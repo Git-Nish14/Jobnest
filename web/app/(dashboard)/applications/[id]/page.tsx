@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,16 +10,18 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import { StatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { getApplicationById } from "@/services";
+import { createClient } from "@/lib/supabase/server";
+import { getSignedUrl } from "@/lib/utils/storage";
 import {
+  StatusBadge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/Card";
-import { getSignedUrl } from "@/lib/utils/storage";
+} from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -30,17 +31,13 @@ interface PageProps {
 
 export default async function ApplicationDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: application, error } = await supabase
-    .from("job_applications")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data: application, error } = await getApplicationById(id);
 
   if (error || !application) {
     notFound();
   }
+
+  const supabase = await createClient();
 
   const resumeUrl = application.resume_path
     ? await getSignedUrl(supabase, application.resume_path)

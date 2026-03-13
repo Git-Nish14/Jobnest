@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(mv Button.tsx button.tsx)",
+      "Bash(mv Input.tsx input.tsx)",
+      "Bash(mv Card.tsx card.tsx)",
+      "Bash(mv Select.tsx select.tsx)",
+      "Bash(mv Badge.tsx badge.tsx)",
+      "Bash(mv applications/ApplicationCard.tsx applications/application-card.tsx)",
+      "Bash(mv applications/ApplicationFilters.tsx applications/application-filters.tsx)",
+      "Bash(mv forms/ApplicationForm.tsx forms/application-form.tsx)",
+      "Bash(mv layout/Navbar.tsx layout/navbar.tsx)",
+      "Bash(mv StatsCard.tsx stats-card.tsx)",
+      "Bash(mv RecentApplications.tsx recent-applications.tsx)",
+      "Bash(mv StatusBreakdown.tsx status-breakdown.tsx)"
     ]
   }
 }

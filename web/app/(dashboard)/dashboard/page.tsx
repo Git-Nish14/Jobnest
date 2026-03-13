@@ -1,67 +1,15 @@
 import Link from "next/link";
-import {
-  FileText,
-  Calendar,
-  TrendingUp,
-  Zap,
-  Plus,
-} from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/Button";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { RecentApplications } from "@/components/dashboard/RecentApplications";
-import { StatusBreakdown } from "@/components/dashboard/StatusBreakdown";
-import { ApplicationStatus, JobApplication } from "@/lib/types/database";
+import { FileText, Calendar, TrendingUp, Zap, Plus } from "lucide-react";
+import { getApplications, calculateStats } from "@/services";
+import { Button } from "@/components/ui";
+import { StatsCard, RecentApplications, StatusBreakdown } from "@/components/dashboard";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const { data: applications } = await supabase
-    .from("job_applications")
-    .select("*")
-    .order("applied_date", { ascending: false });
-
-  const allApps = (applications || []) as JobApplication[];
-
-  // Calculate stats
-  const total = allApps.length;
-
-  // Applications this week
-  const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const thisWeek = allApps.filter(
-    (app) => new Date(app.applied_date) >= startOfWeek
-  ).length;
-
-  // Applications this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-
-  const thisMonth = allApps.filter(
-    (app) => new Date(app.applied_date) >= startOfMonth
-  ).length;
-
-  // Count by status
-  const statusCounts = allApps.reduce(
-    (acc, app) => {
-      acc[app.status] = (acc[app.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<ApplicationStatus, number>
-  );
-
-  // Active applications (not rejected or offered)
-  const activeCount =
-    (statusCounts["Applied"] || 0) +
-    (statusCounts["Phone Screen"] || 0) +
-    (statusCounts["Interview"] || 0);
-
-  // Recent 5 applications
+  const { data: applications } = await getApplications();
+  const allApps = applications || [];
+  const stats = calculateStats(allApps);
   const recentApps = allApps.slice(0, 5);
 
   return (
@@ -86,22 +34,22 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Applications"
-          value={total}
+          value={stats.total}
           icon={<FileText className="h-5 w-5" />}
         />
         <StatsCard
           title="This Week"
-          value={thisWeek}
+          value={stats.thisWeek}
           icon={<Calendar className="h-5 w-5" />}
         />
         <StatsCard
           title="This Month"
-          value={thisMonth}
+          value={stats.thisMonth}
           icon={<TrendingUp className="h-5 w-5" />}
         />
         <StatsCard
           title="Active"
-          value={activeCount}
+          value={stats.active}
           description="In progress"
           icon={<Zap className="h-5 w-5" />}
         />
@@ -113,7 +61,7 @@ export default async function DashboardPage() {
           <RecentApplications applications={recentApps} />
         </div>
         <div>
-          <StatusBreakdown statusCounts={statusCounts} total={total} />
+          <StatusBreakdown statusCounts={stats.statusCounts} total={stats.total} />
         </div>
       </div>
     </div>

@@ -10,16 +10,18 @@ import {
   Briefcase,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/Button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ROUTES, APP_NAME } from "@/config";
 import {
+  Button,
+  Avatar,
+  AvatarFallback,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui";
 
 interface NavbarProps {
   userEmail?: string;

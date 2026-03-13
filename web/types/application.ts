@@ -1,8 +1,4 @@
-// Re-export from validations for consistency
-export {
-  APPLICATION_STATUSES,
-  type ApplicationStatus,
-} from "@/lib/validations/application";
+import type { ApplicationStatus } from "@/config/constants";
 
 export interface JobApplication {
   id: string;
@@ -11,7 +7,7 @@ export interface JobApplication {
   position: string;
   job_id: string | null;
   job_url: string | null;
-  status: "Applied" | "Phone Screen" | "Interview" | "Offer" | "Rejected";
+  status: ApplicationStatus;
   applied_date: string;
   salary_range: string | null;
   location: string | null;
@@ -27,7 +23,7 @@ export interface JobApplicationInsert {
   position: string;
   job_id?: string | null;
   job_url?: string | null;
-  status?: JobApplication["status"];
+  status?: ApplicationStatus;
   applied_date?: string;
   salary_range?: string | null;
   location?: string | null;
@@ -38,14 +34,10 @@ export interface JobApplicationInsert {
 
 export interface JobApplicationUpdate extends Partial<JobApplicationInsert> {}
 
-// Database response types
 export interface ApplicationStats {
-  total_count: number;
-  applied_count: number;
-  phone_screen_count: number;
-  interview_count: number;
-  offer_count: number;
-  rejected_count: number;
-  this_week_count: number;
-  this_month_count: number;
+  total: number;
+  thisWeek: number;
+  thisMonth: number;
+  active: number;
+  statusCounts: Record<ApplicationStatus, number>;
 }

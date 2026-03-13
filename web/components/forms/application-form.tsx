@@ -8,30 +8,25 @@ import { Loader2, Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
+import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
+import { APPLICATION_STATUSES } from "@/config";
+import type { JobApplication } from "@/types";
 import {
-  applicationSchema,
-  APPLICATION_STATUSES,
-  type ApplicationFormData,
-} from "@/lib/validations/application";
-import { JobApplication } from "@/lib/types/database";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
+  Button,
+  Input,
+  Label,
+  Textarea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
-import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/Card";
+} from "@/components/ui";
 
 interface ApplicationFormProps {
   application?: JobApplication;

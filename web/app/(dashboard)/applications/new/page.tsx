@@ -1,18 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { ApplicationForm } from "@/components/forms/ApplicationForm";
+import { getCurrentUser } from "@/services";
+import { ApplicationForm } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewApplicationPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: user, error } = await getCurrentUser();
 
-  if (!user) {
+  if (error || !user) {
     redirect("/login");
   }
 
