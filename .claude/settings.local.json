@@ -14,7 +14,8 @@
       "Bash(mv layout/Navbar.tsx layout/navbar.tsx)",
       "Bash(mv StatsCard.tsx stats-card.tsx)",
       "Bash(mv RecentApplications.tsx recent-applications.tsx)",
-      "Bash(mv StatusBreakdown.tsx status-breakdown.tsx)"
+      "Bash(mv StatusBreakdown.tsx status-breakdown.tsx)",
+      "WebFetch(domain:techifive.com)"
     ]
   }
 }

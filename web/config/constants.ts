@@ -1,4 +1,4 @@
-export const APP_NAME = "JobTracker";
+export const APP_NAME = "Jobnest";
 
 export const ROUTES = {
   HOME: "/",
