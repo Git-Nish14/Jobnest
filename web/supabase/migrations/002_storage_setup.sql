@@ -1,0 +1,73 @@
+-- =============================================
+-- JOBNEST STORAGE SETUP
+-- =============================================
+--
+-- IMPORTANT: Storage policies CANNOT be created via SQL Editor.
+-- You must use the Supabase Dashboard UI instead.
+--
+-- Follow these steps:
+--
+-- =============================================
+-- STEP 1: Create Storage Bucket
+-- =============================================
+-- 1. Go to Supabase Dashboard > Storage (left sidebar)
+-- 2. Click "New Bucket"
+-- 3. Enter:
+--    - Name: documents
+--    - Public bucket: OFF (unchecked)
+--    - File size limit: 5MB
+--    - Allowed MIME types: application/pdf
+-- 4. Click "Create bucket"
+--
+-- =============================================
+-- STEP 2: Create Storage Policies
+-- =============================================
+-- 1. Click on the "documents" bucket
+-- 2. Go to "Policies" tab
+-- 3. Click "New Policy" and create these 4 policies:
+--
+-- ----- POLICY 1: INSERT (Upload) -----
+-- Policy name: Users can upload documents
+-- Allowed operation: INSERT
+-- Target roles: authenticated
+-- WITH CHECK expression:
+--   (bucket_id = 'documents' AND auth.uid()::text = (string_to_array(name, '/'))[1])
+--
+-- ----- POLICY 2: SELECT (View/Download) -----
+-- Policy name: Users can view own documents
+-- Allowed operation: SELECT
+-- Target roles: authenticated
+-- USING expression:
+--   (bucket_id = 'documents' AND auth.uid()::text = (string_to_array(name, '/'))[1])
+--
+-- ----- POLICY 3: UPDATE -----
+-- Policy name: Users can update own documents
+-- Allowed operation: UPDATE
+-- Target roles: authenticated
+-- USING expression:
+--   (bucket_id = 'documents' AND auth.uid()::text = (string_to_array(name, '/'))[1])
+-- WITH CHECK expression:
+--   (bucket_id = 'documents' AND auth.uid()::text = (string_to_array(name, '/'))[1])
+--
+-- ----- POLICY 4: DELETE -----
+-- Policy name: Users can delete own documents
+-- Allowed operation: DELETE
+-- Target roles: authenticated
+-- USING expression:
+--   (bucket_id = 'documents' AND auth.uid()::text = (string_to_array(name, '/'))[1])
+--
+-- =============================================
+-- ALTERNATIVE: Use "Easy Mode" Templates
+-- =============================================
+-- When creating policies, you can also use the template:
+-- "Give users access to only their own top-level folder named as their uid"
+-- This achieves the same result with less configuration.
+--
+-- =============================================
+-- VERIFICATION (run in SQL Editor)
+-- =============================================
+-- Check bucket exists:
+SELECT * FROM storage.buckets WHERE id = 'documents';
+
+-- Check policies (after creating via UI):
+-- SELECT policyname, cmd FROM pg_policies WHERE tablename = 'objects';
