@@ -13,17 +13,18 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import {
+  StatusBadge,
+  Button,
+  Card,
+  CardContent,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { JobApplication } from "@/lib/types/database";
+} from "@/components/ui";
+import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 interface ApplicationCardProps {

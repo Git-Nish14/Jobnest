@@ -3,9 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Search, X } from "lucide-react";
-import { APPLICATION_STATUSES } from "@/lib/validations/application";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { APPLICATION_STATUSES } from "@/config";
+import { Input, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 export function ApplicationFilters() {

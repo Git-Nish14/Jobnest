@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { StatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import {
+  StatusBadge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/Card";
-import { JobApplication } from "@/lib/types/database";
+} from "@/components/ui";
+import type { JobApplication } from "@/types";
 
 interface RecentApplicationsProps {
   applications: JobApplication[];

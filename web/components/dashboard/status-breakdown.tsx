@@ -4,8 +4,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/Card";
-import { APPLICATION_STATUSES, type ApplicationStatus } from "@/lib/validations/application";
+} from "@/components/ui";
+import { APPLICATION_STATUSES, type ApplicationStatus } from "@/config";
 import { cn } from "@/lib/utils";
 
 interface StatusBreakdownProps {

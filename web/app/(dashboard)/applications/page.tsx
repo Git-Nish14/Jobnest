@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/Button";
-import { ApplicationCard } from "@/components/applications/ApplicationCard";
-import { ApplicationFilters } from "@/components/applications/ApplicationFilters";
-import { JobApplication } from "@/lib/types/database";
+import { getApplications } from "@/services";
+import { Button } from "@/components/ui";
+import { ApplicationCard, ApplicationFilters } from "@/components/applications";
 
 export const dynamic = "force-dynamic";
 
@@ -17,27 +15,13 @@ interface PageProps {
 
 export default async function ApplicationsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const supabase = await createClient();
-
-  let query = supabase
-    .from("job_applications")
-    .select("*")
-    .order("applied_date", { ascending: false });
-
-  if (params.search) {
-    query = query.or(
-      `company.ilike.%${params.search}%,position.ilike.%${params.search}%`
-    );
-  }
-
-  if (params.status && params.status !== "all") {
-    query = query.eq("status", params.status);
-  }
-
-  const { data: applications, error } = await query;
+  const { data: applications, error } = await getApplications({
+    search: params.search,
+    status: params.status,
+  });
 
   if (error) {
-    console.error("Error fetching applications:", error);
+    console.error("Error fetching applications:", error.message);
   }
 
   return (
@@ -64,7 +48,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       {/* Applications List */}
       <div className="space-y-4">
         {applications && applications.length > 0 ? (
-          applications.map((app: JobApplication) => (
+          applications.map((app) => (
             <ApplicationCard key={app.id} application={app} />
           ))
         ) : (

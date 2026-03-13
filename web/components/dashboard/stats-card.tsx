@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 interface StatsCardProps {

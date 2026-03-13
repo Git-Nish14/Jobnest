@@ -1,5 +1,5 @@
-export { Button, buttonVariants } from "./Button";
-export { Input } from "./Input";
+export { Button, buttonVariants } from "./button";
+export { Input } from "./input";
 export {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "./Select";
+} from "./select";
 export {
   Card,
   CardContent,
@@ -19,8 +19,8 @@ export {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./Card";
-export { Badge, StatusBadge, badgeVariants } from "./Badge";
+} from "./card";
+export { Badge, StatusBadge, badgeVariants } from "./badge";
 export { Label } from "./label";
 export { Textarea } from "./textarea";
 export { Avatar, AvatarFallback, AvatarImage } from "./avatar";

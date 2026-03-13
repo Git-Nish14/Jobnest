@@ -1,14 +1,5 @@
 import { z } from "zod";
-
-export const APPLICATION_STATUSES = [
-  "Applied",
-  "Phone Screen",
-  "Interview",
-  "Offer",
-  "Rejected",
-] as const;
-
-export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+import { APPLICATION_STATUSES } from "@/config";
 
 // Schema for creating/updating a job application
 export const applicationSchema = z.object({

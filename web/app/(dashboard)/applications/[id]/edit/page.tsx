@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { ApplicationForm } from "@/components/forms/ApplicationForm";
+import { getCurrentUser, getApplicationById } from "@/services";
+import { ApplicationForm } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
@@ -12,22 +12,13 @@ interface PageProps {
 
 export default async function EditApplicationPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const { data: user, error: userError } = await getCurrentUser();
+  if (userError || !user) {
     redirect("/login");
   }
 
-  const { data: application, error } = await supabase
-    .from("job_applications")
-    .select("*")
-    .eq("id", id)
-    .single();
-
+  const { data: application, error } = await getApplicationById(id);
   if (error || !application) {
     notFound();
   }
