@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Briefcase,
   FileText,
@@ -9,13 +10,9 @@ import {
   CheckCircle2,
   Search,
   Bell,
-  Target,
   Shield,
   Zap,
   Users,
-  TrendingUp,
-  Clock,
-  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui";
 
@@ -110,10 +107,14 @@ export default async function Home() {
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Briefcase className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold">JobTracker</span>
+            <Image
+              src="/logo_1.png"
+              alt="Jobnest Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
+            <span className="text-lg font-bold">Jobnest</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/login">
@@ -337,25 +338,105 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Briefcase className="h-4 w-4 text-primary-foreground" />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Brand */}
+            <div className="sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2">
+                <Image
+                  src="/logo_1.png"
+                  alt="Jobnest Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                />
+                <span className="font-semibold">Jobnest</span>
               </div>
-              <span className="font-semibold">JobTracker</span>
+              <p className="mt-3 text-sm text-muted-foreground">
+                The simple, powerful way to organize your job search and land your dream job.
+              </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground sm:gap-6">
-              <Link href="/login" className="transition-colors hover:text-foreground">
-                Log in
-              </Link>
-              <Link href="/signup" className="transition-colors hover:text-foreground">
-                Sign up
-              </Link>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-semibold text-sm">Product</h4>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/signup" className="transition-colors hover:text-foreground">
+                    Get Started
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="transition-colors hover:text-foreground">
+                    Sign In
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold text-sm">Legal</h4>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/privacy" className="transition-colors hover:text-foreground">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="transition-colors hover:text-foreground">
+                    Terms of Use
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="font-semibold text-sm">Company</h4>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <a
+                    href="https://techifive.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-foreground"
+                  >
+                    Techifive
+                  </a>
+                </li>
+                <li>
+                  <Link href="/contact" className="transition-colors hover:text-foreground">
+                    Contact Us
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
-          <div className="mt-6 border-t pt-6 text-center sm:mt-8 sm:pt-8">
+
+          <div className="mt-8 border-t pt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-xs text-muted-foreground sm:text-sm">
-              © {new Date().getFullYear()} JobTracker. Built with Next.js, Tailwind CSS, and Supabase.
+              © {new Date().getFullYear()}{" "}
+              <a
+                href="https://techifive.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-foreground transition-colors"
+              >
+                Techifive
+              </a>
+              . All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              A{" "}
+              <a
+                href="https://techifive.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline"
+              >
+                Techifive
+              </a>
+              {" "}Product
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -13,14 +13,89 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobnest.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "JobTracker - Track Your Job Applications",
-    template: "%s | JobTracker",
+    default: "Jobnest - Track Your Job Applications",
+    template: "%s | Jobnest",
   },
   description:
-    "Track and manage your job applications in one place. Monitor your job search progress with an intuitive dashboard.",
-  keywords: ["job tracker", "job applications", "career", "job search"],
+    "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster. Free forever.",
+  keywords: [
+    "job tracker",
+    "job applications",
+    "career",
+    "job search",
+    "application tracking",
+    "job hunting",
+    "employment",
+    "resume tracker",
+    "interview tracker",
+  ],
+  authors: [{ name: "Techifive", url: "https://techifive.com" }],
+  creator: "Techifive",
+  publisher: "Techifive",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "Jobnest",
+    title: "Jobnest - Track Your Job Applications",
+    description:
+      "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
+    images: [
+      {
+        url: "/logo_1.png",
+        width: 512,
+        height: 512,
+        alt: "Jobnest Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Jobnest - Track Your Job Applications",
+    description:
+      "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
+    images: ["/logo_1.png"],
+    creator: "@jobtracker",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  icons: {
+    icon: "/logo_1.png",
+    shortcut: "/logo_1.png",
+    apple: "/logo_1.png",
+  },
+  manifest: "/manifest.json",
+  category: "productivity",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({
@@ -30,6 +105,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta name="application-name" content="Jobnest" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Jobnest" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-tap-highlight" content="no" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
       >

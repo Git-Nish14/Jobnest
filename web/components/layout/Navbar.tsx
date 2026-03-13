@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
   LogOut,
   Plus,
-  Briefcase,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, APP_NAME } from "@/config";
@@ -50,10 +50,14 @@ export function Navbar({ userEmail }: NavbarProps) {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Briefcase className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold">JobTracker</span>
+            <Image
+              src="/logo_1.png"
+              alt="Jobnest Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
+            <span className="text-lg font-bold">Jobnest</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
