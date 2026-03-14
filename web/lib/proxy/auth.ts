@@ -168,6 +168,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "frame-src 'self' https://*.supabase.co blob:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

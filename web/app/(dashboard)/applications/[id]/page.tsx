@@ -7,8 +7,6 @@ import {
   Calendar,
   MapPin,
   DollarSign,
-  FileText,
-  Download,
 } from "lucide-react";
 import { getApplicationById } from "@/services";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +19,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  DocumentViewer,
 } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -181,42 +180,24 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               <CardDescription>Attached files for this application</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {resumeUrl ? (
-                <a
-                  href={resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-500/20">
-                    <FileText className="h-5 w-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">Resume</p>
-                    <p className="text-xs text-muted-foreground">PDF Document</p>
-                  </div>
-                  <Download className="h-4 w-4 text-muted-foreground" />
-                </a>
+              {application.resume_path && resumeUrl ? (
+                <DocumentViewer
+                  path={application.resume_path}
+                  downloadUrl={resumeUrl}
+                  title="Resume"
+                  type="resume"
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">No resume uploaded</p>
               )}
 
-              {coverLetterUrl ? (
-                <a
-                  href={coverLetterUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-500/20">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">Cover Letter</p>
-                    <p className="text-xs text-muted-foreground">PDF Document</p>
-                  </div>
-                  <Download className="h-4 w-4 text-muted-foreground" />
-                </a>
+              {application.cover_letter_path && coverLetterUrl ? (
+                <DocumentViewer
+                  path={application.cover_letter_path}
+                  downloadUrl={coverLetterUrl}
+                  title="Cover Letter"
+                  type="cover_letter"
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No cover letter uploaded
