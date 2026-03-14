@@ -15,19 +15,75 @@ export async function getApplications(
   try {
     const supabase = await createClient();
 
-    let query = supabase
-      .from("job_applications")
-      .select("*")
-      .order("applied_date", { ascending: false });
+    let query = supabase.from("job_applications").select("*");
 
+    // Search filter
     if (params?.search) {
       query = query.or(
         `company.ilike.%${params.search}%,position.ilike.%${params.search}%`
       );
     }
 
+    // Status filter
     if (params?.status && params.status !== "all") {
       query = query.eq("status", params.status);
+    }
+
+    // Location filter
+    if (params?.location) {
+      query = query.ilike("location", `%${params.location}%`);
+    }
+
+    // Date range filter
+    if (params?.dateRange && params.dateRange !== "all") {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (params.dateRange) {
+        case "today":
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case "week":
+          startDate = new Date(now);
+          startDate.setDate(now.getDate() - now.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case "quarter":
+          startDate = new Date(now);
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case "year":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(0);
+      }
+
+      query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
+    }
+
+    // Sorting
+    const sort = params?.sort || "date_desc";
+    switch (sort) {
+      case "date_asc":
+        query = query.order("applied_date", { ascending: true });
+        break;
+      case "company_asc":
+        query = query.order("company", { ascending: true });
+        break;
+      case "company_desc":
+        query = query.order("company", { ascending: false });
+        break;
+      case "position_asc":
+        query = query.order("position", { ascending: true });
+        break;
+      case "date_desc":
+      default:
+        query = query.order("applied_date", { ascending: false });
+        break;
     }
 
     const { data, error } = await query;

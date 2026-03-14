@@ -9,9 +9,13 @@ import {
   FileText,
   LogOut,
   Plus,
+  Calendar,
+  Bell,
+  Users,
+  Mail,
+  DollarSign,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ROUTES, APP_NAME } from "@/config";
 import {
   Button,
   Avatar,
@@ -47,6 +51,11 @@ export function Navbar({ userEmail }: NavbarProps) {
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/applications", label: "Applications", icon: FileText },
+    { href: "/interviews", label: "Interviews", icon: Calendar },
+    { href: "/reminders", label: "Reminders", icon: Bell },
+    { href: "/contacts", label: "Contacts", icon: Users },
+    { href: "/templates", label: "Templates", icon: Mail },
+    { href: "/salary", label: "Salary", icon: DollarSign },
   ];
 
   const userInitial = userEmail?.charAt(0).toUpperCase() || "U";

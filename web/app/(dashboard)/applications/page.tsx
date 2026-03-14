@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { getApplications } from "@/services";
 import { Button } from "@/components/ui";
-import { ApplicationCard, ApplicationFilters } from "@/components/applications";
+import { ApplicationCard, ApplicationFilters, ExportButton } from "@/components/applications";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,9 @@ interface PageProps {
   searchParams: Promise<{
     search?: string;
     status?: string;
+    location?: string;
+    dateRange?: string;
+    sort?: string;
   }>;
 }
 
@@ -18,6 +21,9 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   const { data: applications, error } = await getApplications({
     search: params.search,
     status: params.status,
+    location: params.location,
+    dateRange: params.dateRange as any,
+    sort: params.sort,
   });
 
   if (error) {
@@ -34,12 +40,15 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             Manage and track your job applications
           </p>
         </div>
-        <Link href="/applications/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Application
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <ExportButton />
+          <Link href="/applications/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Application
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

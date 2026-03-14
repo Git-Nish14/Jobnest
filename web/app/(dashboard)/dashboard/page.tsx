@@ -1,16 +1,49 @@
 import Link from "next/link";
 import { FileText, Calendar, TrendingUp, Zap, Plus } from "lucide-react";
-import { getApplications, calculateStats } from "@/services";
+import { getDashboardAnalytics } from "@/services";
 import { Button } from "@/components/ui";
-import { StatsCard, RecentApplications, StatusBreakdown } from "@/components/dashboard";
+import {
+  StatsCard,
+  RecentApplications,
+  ApplicationChart,
+  StatusPieChart,
+  UpcomingInterviews,
+  PendingReminders,
+  ResponseRateCard,
+} from "@/components/dashboard";
+import { getApplications } from "@/services";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const { data: applications } = await getApplications();
+  const [{ data: analytics }, { data: applications }] = await Promise.all([
+    getDashboardAnalytics(),
+    getApplications(),
+  ]);
+
   const allApps = applications || [];
-  const stats = calculateStats(allApps);
   const recentApps = allApps.slice(0, 5);
+
+  const stats = analytics || {
+    totalApplications: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+    responseRate: 0,
+    statusDistribution: [],
+    weeklyTrends: [],
+    upcomingInterviews: [],
+    pendingReminders: [],
+  };
+
+  // Calculate active applications
+  const activeCount = stats.statusDistribution
+    .filter((s) => ["Applied", "Phone Screen", "Interview"].includes(s.status))
+    .reduce((sum, s) => sum + s.count, 0);
+
+  // Calculate responses for response rate card
+  const responses = stats.statusDistribution
+    .filter((s) => ["Phone Screen", "Interview", "Offer", "Rejected"].includes(s.status))
+    .reduce((sum, s) => sum + s.count, 0);
 
   return (
     <div className="space-y-8">
@@ -34,7 +67,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Applications"
-          value={stats.total}
+          value={stats.totalApplications}
           icon={<FileText className="h-5 w-5" />}
         />
         <StatsCard
@@ -49,20 +82,34 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Active"
-          value={stats.active}
+          value={activeCount}
           description="In progress"
           icon={<Zap className="h-5 w-5" />}
         />
       </div>
 
-      {/* Main Content */}
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ApplicationChart data={stats.weeklyTrends} title="Weekly Applications" />
+        <StatusPieChart data={stats.statusDistribution} total={stats.totalApplications} />
+      </div>
+
+      {/* Response Rate & Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentApplications applications={recentApps} />
         </div>
-        <div>
-          <StatusBreakdown statusCounts={stats.statusCounts} total={stats.total} />
-        </div>
+        <ResponseRateCard
+          rate={stats.responseRate}
+          total={stats.totalApplications}
+          responses={responses}
+        />
+      </div>
+
+      {/* Interviews & Reminders */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <UpcomingInterviews interviews={stats.upcomingInterviews} />
+        <PendingReminders reminders={stats.pendingReminders} />
       </div>
     </div>
   );

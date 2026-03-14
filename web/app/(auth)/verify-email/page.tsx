@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Loader2, Mail, CheckCircle2, RefreshCw, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
