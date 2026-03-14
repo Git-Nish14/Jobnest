@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
-import { handleAuth } from "@/lib/middleware/auth";
+import { handleAuth } from "@/lib/proxy/auth";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return handleAuth(request);
 }
 

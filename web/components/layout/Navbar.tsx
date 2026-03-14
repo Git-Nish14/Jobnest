@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +31,11 @@ interface NavbarProps {
 export function Navbar({ userEmail }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -90,52 +96,65 @@ export function Navbar({ userEmail }: NavbarProps) {
             </Button>
           </Link>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-9 w-9 rounded-full"
-              >
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {userInitial}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Account</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {userEmail}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="md:hidden">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <DropdownMenuItem key={link.href} asChild>
-                      <Link href={link.href} className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
+          {mounted ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Account</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {userEmail}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-              </div>
-              <DropdownMenuItem
-                onClick={handleSignOut}
-                className="text-destructive focus:text-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <div className="md:hidden">
+                  {navLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild>
+                        <Link href={link.href} className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {link.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                </div>
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              className="relative h-9 w-9 rounded-full"
+            >
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          )}
         </div>
       </div>
     </nav>
