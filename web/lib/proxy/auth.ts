@@ -3,21 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Routes that don't require authentication
-const publicRoutes = [
-  "/",
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-  "/auth/callback",
-  "/auth/confirm",
-  "/privacy",
-  "/terms",
-  "/contact",
-];
-
 // Routes that require authentication
 const protectedRoutes = ["/dashboard", "/applications"];
 
@@ -80,11 +65,6 @@ export async function handleAuth(request: NextRequest) {
 
   // Check if route is protected
   const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
-
-  // Check if route is public (auth pages)
-  const isPublicRoute = publicRoutes.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
 

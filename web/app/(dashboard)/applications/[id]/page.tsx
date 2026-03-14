@@ -8,7 +8,7 @@ import {
   MapPin,
   DollarSign,
 } from "lucide-react";
-import { getApplicationById } from "@/services";
+import { getApplicationById, getInterviews, getActivityLogs } from "@/services";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/utils/storage";
 import {
@@ -21,6 +21,8 @@ import {
   CardTitle,
   DocumentViewer,
 } from "@/components/ui";
+import { InterviewList } from "@/components/interviews";
+import { ActivityTimeline } from "@/components/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,16 @@ interface PageProps {
 
 export default async function ApplicationDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const { data: application, error } = await getApplicationById(id);
+
+  const [
+    { data: application, error },
+    { data: interviews },
+    { data: activityLogs },
+  ] = await Promise.all([
+    getApplicationById(id),
+    getInterviews(id),
+    getActivityLogs(id),
+  ]);
 
   if (error || !application) {
     notFound();
@@ -158,6 +169,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
+          {/* Interviews */}
+          <InterviewList
+            applicationId={id}
+            interviews={interviews || []}
+          />
+
           {application.notes && (
             <Card>
               <CardHeader>
@@ -172,8 +189,9 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Documents Sidebar */}
+        {/* Sidebar */}
         <div className="space-y-6">
+          {/* Documents */}
           <Card>
             <CardHeader>
               <CardTitle>Documents</CardTitle>
@@ -205,6 +223,9 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Activity Timeline */}
+          <ActivityTimeline activities={activityLogs || []} />
         </div>
       </div>
     </div>

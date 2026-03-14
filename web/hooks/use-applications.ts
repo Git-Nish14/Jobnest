@@ -4,7 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/config/constants";
-import type { JobApplication, JobApplicationInsert, JobApplicationUpdate } from "@/types";
+import type { JobApplicationInsert, JobApplicationUpdate } from "@/types";
 
 interface UseApplicationsReturn {
   isPending: boolean;

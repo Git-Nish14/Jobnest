@@ -9,6 +9,10 @@ export const ROUTES = {
   APPLICATION_NEW: "/applications/new",
   APPLICATION_DETAIL: (id: string) => `/applications/${id}`,
   APPLICATION_EDIT: (id: string) => `/applications/${id}/edit`,
+  INTERVIEWS: "/interviews",
+  CONTACTS: "/contacts",
+  TEMPLATES: "/templates",
+  REMINDERS: "/reminders",
 } as const;
 
 export const APPLICATION_STATUSES = [
