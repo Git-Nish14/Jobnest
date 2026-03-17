@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Briefcase,
   FileText,
@@ -15,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui";
+import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -102,36 +102,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo_1.png"
-              alt="Jobnest Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="text-lg font-bold">Jobnest</span>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                Log in
-              </Button>
-              <Button variant="ghost" size="sm" className="sm:hidden">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <LayoutWrapper footerVariant="full">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
@@ -335,112 +306,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Brand */}
-            <div className="sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-2">
-                <Image
-                  src="/logo_1.png"
-                  alt="Jobnest Logo"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                />
-                <span className="font-semibold">Jobnest</span>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                The simple, powerful way to organize your job search and land your dream job.
-              </p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-semibold text-sm">Product</h4>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="/signup" className="transition-colors hover:text-foreground">
-                    Get Started
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/login" className="transition-colors hover:text-foreground">
-                    Sign In
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <h4 className="font-semibold text-sm">Legal</h4>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="/privacy" className="transition-colors hover:text-foreground">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="transition-colors hover:text-foreground">
-                    Terms of Use
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Company */}
-            <div>
-              <h4 className="font-semibold text-sm">Company</h4>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <a
-                    href="https://techifive.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="transition-colors hover:text-foreground"
-                  >
-                    Techifive
-                  </a>
-                </li>
-                <li>
-                  <Link href="/contact" className="transition-colors hover:text-foreground">
-                    Contact Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-8 border-t pt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              © {new Date().getFullYear()}{" "}
-              <a
-                href="https://techifive.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium hover:text-foreground transition-colors"
-              >
-                Techifive
-              </a>
-              . All rights reserved.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              A{" "}
-              <a
-                href="https://techifive.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                Techifive
-              </a>
-              {" "}Product
-            </p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </LayoutWrapper>
   );
 }

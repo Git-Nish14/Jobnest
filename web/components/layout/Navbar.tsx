@@ -14,6 +14,11 @@ import {
   Users,
   Mail,
   DollarSign,
+  Menu,
+  X,
+  HelpCircle,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -27,19 +32,70 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 interface NavbarProps {
-  userEmail?: string;
+  user?: { email?: string } | null;
 }
 
-export function Navbar({ userEmail }: NavbarProps) {
+const dashboardLinks = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/applications", label: "Applications", icon: FileText },
+  { href: "/interviews", label: "Interviews", icon: Calendar },
+  { href: "/reminders", label: "Reminders", icon: Bell },
+  { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/templates", label: "Templates", icon: Mail },
+  { href: "/salary", label: "Salary", icon: DollarSign },
+  { href: "/nesta-ai", label: "NESTAi", icon: Sparkles },
+];
+
+export function Navbar({ user: initialUser }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState(initialUser);
+
+  const isDashboardPage =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/applications") ||
+    pathname.startsWith("/interviews") ||
+    pathname.startsWith("/reminders") ||
+    pathname.startsWith("/contacts") ||
+    pathname.startsWith("/templates") ||
+    pathname.startsWith("/salary") ||
+    pathname.startsWith("/nesta-ai");
 
   useEffect(() => {
     setMounted(true);
+
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser({ email: data.user.email });
+      } else {
+        setUser(null);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ email: session.user.email });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  const isAuthenticated = !!user;
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -48,124 +104,316 @@ export function Navbar({ userEmail }: NavbarProps) {
     router.refresh();
   };
 
-  const navLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/applications", label: "Applications", icon: FileText },
-    { href: "/interviews", label: "Interviews", icon: Calendar },
-    { href: "/reminders", label: "Reminders", icon: Bell },
-    { href: "/contacts", label: "Contacts", icon: Users },
-    { href: "/templates", label: "Templates", icon: Mail },
-    { href: "/salary", label: "Salary", icon: DollarSign },
-  ];
+  const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
+  const userEmail = user?.email || "";
 
-  const userInitial = userEmail?.charAt(0).toUpperCase() || "U";
+  // Authenticated dashboard navbar
+  if (isAuthenticated && isDashboardPage) {
+    return (
+      <>
+        <nav className="sticky top-0 z-50 w-full border-b bg-white dark:bg-zinc-950">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex h-14 sm:h-16 items-center justify-between">
+              {/* Left: Logo + Nav */}
+              <div className="flex items-center gap-8">
+                <Link href="/dashboard" className="flex items-center gap-2.5">
+                  <Image
+                    src="/logo_1.png"
+                    alt="Jobnest"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8"
+                  />
+                  <span className="text-lg font-semibold tracking-tight">Jobnest</span>
+                </Link>
 
-  return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image
-              src="/logo_1.png"
-              alt="Jobnest Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="text-lg font-bold">Jobnest</span>
-          </Link>
+                {/* Desktop Navigation */}
+                <nav className="hidden lg:flex items-center">
+                  <ul className="flex items-center gap-1">
+                    {dashboardLinks.map((link) => {
+                      const isActive =
+                        pathname === link.href ||
+                        (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
+                      return (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            className={cn(
+                              "relative px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                              isActive
+                                ? "text-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            {link.label}
+                            {isActive && (
+                              <span className="absolute inset-x-3 -bottom-4 h-0.5 bg-primary rounded-full" />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+              </div>
 
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive =
-                pathname === link.href ||
-                pathname.startsWith(link.href + "/");
-              return (
-                <Link key={link.href} href={link.href}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {link.label}
+              {/* Right: Actions + Profile */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* New Application - Desktop */}
+                <Link href="/applications/new" className="hidden md:block">
+                  <Button size="sm" className="h-9 gap-2 shadow-sm">
+                    <Plus className="h-4 w-4" />
+                    <span>New Application</span>
                   </Button>
                 </Link>
-              );
-            })}
+
+                {/* New Application - Mobile (icon only) */}
+                <Link href="/applications/new" className="md:hidden">
+                  <Button size="sm" variant="outline" className="h-9 w-9 p-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </Link>
+
+                {/* Profile Dropdown */}
+                {mounted && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 rounded-full p-1 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <Avatar className="h-8 w-8 border-2 border-muted">
+                          <AvatarFallback className="bg-linear-to-br from-primary/80 to-primary text-primary-foreground text-sm font-medium">
+                            {userInitial}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <div className="px-3 py-3 border-b">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarFallback className="bg-linear-to-br from-primary/80 to-primary text-primary-foreground font-medium">
+                              {userInitial}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{userEmail}</p>
+                            <p className="text-xs text-muted-foreground">Free Plan</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-1">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href="/contact"
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <HelpCircle className="h-4 w-4" />
+                            Help & Support
+                          </Link>
+                        </DropdownMenuItem>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <div className="p-1">
+                        <DropdownMenuItem
+                          onClick={handleSignOut}
+                          className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Sign out
+                        </DropdownMenuItem>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {/* Mobile Menu Button */}
+                <button
+                  type="button"
+                  className="lg:hidden p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
+                  onClick={() => setMobileMenuOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </nav>
 
-        <div className="flex items-center gap-3">
-          <Link href="/applications/new" className="hidden sm:flex">
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Application
-            </Button>
-          </Link>
+        {/* Mobile Slide-out Menu */}
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-50 bg-black/50 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
 
-          {mounted ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-9 w-9 rounded-full"
-                >
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {userInitial}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Account</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {userEmail}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="md:hidden">
-                  {navLinks.map((link) => {
-                    const Icon = link.icon;
-                    return (
-                      <DropdownMenuItem key={link.href} asChild>
-                        <Link href={link.href} className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          {link.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                  <DropdownMenuSeparator />
+            {/* Slide-out Panel */}
+            <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-white dark:bg-zinc-950 shadow-xl lg:hidden">
+              <div className="flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 h-14 border-b">
+                  <span className="font-semibold">Menu</span>
+                  <button
+                    type="button"
+                    className="p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+                {/* Navigation Links */}
+                <nav className="flex-1 overflow-y-auto py-4">
+                  <ul className="space-y-1 px-3">
+                    {dashboardLinks.map((link) => {
+                      const Icon = link.icon;
+                      const isActive =
+                        pathname === link.href ||
+                        (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
+                      return (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                              isActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <Icon className="h-5 w-5" />
+                            {link.label}
+                            {isActive && (
+                              <ChevronRight className="h-4 w-4 ml-auto" />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+
+                {/* Footer with User Info */}
+                <div className="border-t p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="h-10 w-10 border">
+                      <AvatarFallback className="bg-linear-to-br from-primary/80 to-primary text-primary-foreground font-medium">
+                        {userInitial}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{userEmail}</p>
+                      <p className="text-xs text-muted-foreground">Free Plan</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center gap-2"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
+
+  // Public navbar (landing, auth pages, etc.)
+  return (
+    <nav className="sticky top-0 z-50 w-full border-b bg-white/95 dark:bg-zinc-950/95 backdrop-blur supports-backdrop-filter:bg-white/80">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/logo_1.png"
+            alt="Jobnest"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
+          <span className="text-lg font-semibold tracking-tight">Jobnest</span>
+        </Link>
+
+        {/* Desktop nav */}
+        <div className="hidden sm:flex items-center gap-3">
+          {isAuthenticated ? (
+            <>
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </>
           ) : (
-            <Button
-              variant="ghost"
-              className="relative h-9 w-9 rounded-full"
-            >
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {userInitial}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">
+                  Log in
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="sm" className="shadow-sm">Get Started</Button>
+              </Link>
+            </>
           )}
         </div>
+
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          className="sm:hidden p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </button>
       </div>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden border-t bg-white dark:bg-zinc-950 px-4 py-4 space-y-2">
+          {isAuthenticated ? (
+            <>
+              <Link href="/dashboard" className="block">
+                <Button variant="ghost" className="w-full justify-start">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleSignOut}
+              >
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="block">
+                <Button variant="ghost" className="w-full justify-start">
+                  Log in
+                </Button>
+              </Link>
+              <Link href="/signup" className="block">
+                <Button className="w-full">Get Started</Button>
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

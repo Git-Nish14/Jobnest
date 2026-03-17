@@ -1,46 +1,103 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ApiError, errorResponse } from "@/lib/api/errors";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { z } from "zod";
+
+// Document path validation - must be userId/applicationId/filename format
+const pathSchema = z
+  .string()
+  .min(1, "Path is required")
+  .refine(
+    (path) => {
+      const parts = path.split("/");
+      // Must have exactly 3 parts: userId, applicationId, filename
+      if (parts.length !== 3) return false;
+      // Each part must be non-empty
+      if (parts.some((p) => !p)) return false;
+      // Filename must have an extension
+      if (!parts[2].includes(".")) return false;
+      return true;
+    },
+    { message: "Invalid document path format" }
+  );
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const path = searchParams.get("path");
+  try {
+    const { searchParams } = new URL(request.url);
+    const path = searchParams.get("path");
 
-  if (!path) {
-    return NextResponse.json({ error: "Path is required" }, { status: 400 });
+    // Validate path exists
+    if (!path) {
+      throw ApiError.badRequest("Path is required");
+    }
+
+    // Validate path format
+    const validationResult = pathSchema.safeParse(path);
+    if (!validationResult.success) {
+      throw ApiError.badRequest("Invalid document path format");
+    }
+
+    const supabase = await createClient();
+
+    // Verify user is authenticated
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw ApiError.unauthorized();
+    }
+
+    // Rate limit document access
+    const rateLimitResult = checkRateLimit(`docs:${user.id}`, {
+      maxRequests: 60,
+      windowMs: 60 * 1000, // 60 requests per minute
+    });
+
+    if (!rateLimitResult.allowed) {
+      throw ApiError.tooManyRequests("Too many document requests. Please slow down.");
+    }
+
+    // SECURITY: Verify the path belongs to the user (path format: userId/applicationId/filename)
+    const pathParts = path.split("/");
+    if (pathParts[0] !== user.id) {
+      throw ApiError.forbidden("You don't have permission to access this document");
+    }
+
+    // Additional security check: verify the application belongs to the user
+    const applicationId = pathParts[1];
+    const { data: application, error: appError } = await supabase
+      .from("job_applications")
+      .select("id")
+      .eq("id", applicationId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (appError || !application) {
+      throw ApiError.forbidden("You don't have permission to access this document");
+    }
+
+    // Download the file from Supabase storage
+    const { data, error } = await supabase.storage.from("documents").download(path);
+
+    if (error || !data) {
+      throw ApiError.notFound("File not found");
+    }
+
+    // Return the file with appropriate headers
+    const arrayBuffer = await data.arrayBuffer();
+
+    return new NextResponse(arrayBuffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": "inline",
+        "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (error) {
+    return errorResponse(error);
   }
-
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Verify the path belongs to the user (path format: userId/applicationId/filename)
-  const pathParts = path.split("/");
-  if (pathParts[0] !== user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  // Download the file from Supabase storage
-  const { data, error } = await supabase.storage
-    .from("documents")
-    .download(path);
-
-  if (error || !data) {
-    return NextResponse.json({ error: "File not found" }, { status: 404 });
-  }
-
-  // Return the file with appropriate headers
-  const arrayBuffer = await data.arrayBuffer();
-
-  return new NextResponse(arrayBuffer, {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": "inline",
-      "Cache-Control": "private, max-age=3600",
-    },
-  });
 }

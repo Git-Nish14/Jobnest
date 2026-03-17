@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import {
+  reminderSchema,
+  type ReminderFormData,
+  REMINDER_TYPES,
+} from "@/lib/validations/forms";
 import {
   Button,
   Input,
@@ -23,39 +30,45 @@ import {
 } from "@/components/ui";
 import type { Reminder } from "@/types";
 
-const REMINDER_TYPES = ["Follow Up", "Interview", "Deadline", "Custom"] as const;
-
 interface ReminderFormProps {
   applicationId?: string;
   reminder?: Reminder;
   onSuccess?: () => void;
 }
 
+function getDefaultDateTime(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(9, 0, 0, 0);
+  return date.toISOString().slice(0, 16);
+}
+
 export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getDefaultDateTime = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    date.setHours(9, 0, 0, 0);
-    return date.toISOString().slice(0, 16);
-  };
-
-  const [formData, setFormData] = useState({
-    type: reminder?.type || "Follow Up",
-    title: reminder?.title || "",
-    description: reminder?.description || "",
-    remind_at: reminder?.remind_at
-      ? new Date(reminder.remind_at).toISOString().slice(0, 16)
-      : getDefaultDateTime(),
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ReminderFormData>({
+    resolver: zodResolver(reminderSchema),
+    defaultValues: {
+      type: reminder?.type || "Follow Up",
+      title: reminder?.title || "",
+      description: reminder?.description || "",
+      remind_at: reminder?.remind_at
+        ? new Date(reminder.remind_at).toISOString().slice(0, 16)
+        : getDefaultDateTime(),
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const currentType = watch("type");
 
+  const onSubmit = async (data: ReminderFormData) => {
     const supabase = createClient();
 
     try {
@@ -71,10 +84,10 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
       const reminderData = {
         user_id: user.id,
         application_id: applicationId || null,
-        type: formData.type,
-        title: formData.title,
-        description: formData.description || null,
-        remind_at: new Date(formData.remind_at).toISOString(),
+        type: data.type,
+        title: data.title,
+        description: data.description || null,
+        remind_at: new Date(data.remind_at).toISOString(),
       };
 
       if (reminder) {
@@ -92,7 +105,7 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
       }
 
       setOpen(false);
-      setFormData({
+      reset({
         type: "Follow Up",
         title: "",
         description: "",
@@ -102,13 +115,23 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
       onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save reminder");
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && !reminder) {
+      reset({
+        type: "Follow Up",
+        title: "",
+        description: "",
+        remind_at: getDefaultDateTime(),
+      });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -122,24 +145,26 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
             {reminder ? "Edit Reminder" : "Create Reminder"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
               placeholder="e.g., Follow up with recruiter"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              required
+              {...register("title")}
+              className={errors.title ? "border-destructive" : ""}
             />
+            {errors.title && (
+              <p className="text-sm text-destructive">{errors.title.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value as any })}
+                value={currentType}
+                onValueChange={(value) => setValue("type", value as ReminderFormData["type"])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -152,6 +177,9 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
                   ))}
                 </SelectContent>
               </Select>
+              {errors.type && (
+                <p className="text-sm text-destructive">{errors.type.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -159,10 +187,12 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
               <Input
                 id="remind_at"
                 type="datetime-local"
-                value={formData.remind_at}
-                onChange={(e) => setFormData({ ...formData, remind_at: e.target.value })}
-                required
+                {...register("remind_at")}
+                className={errors.remind_at ? "border-destructive" : ""}
               />
+              {errors.remind_at && (
+                <p className="text-sm text-destructive">{errors.remind_at.message}</p>
+              )}
             </div>
           </div>
 
@@ -171,10 +201,13 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
             <Textarea
               id="description"
               placeholder="Additional details..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              {...register("description")}
               rows={3}
+              className={errors.description ? "border-destructive" : ""}
             />
+            {errors.description && (
+              <p className="text-sm text-destructive">{errors.description.message}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

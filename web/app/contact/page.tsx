@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Send, Mail, MessageSquare, User, Loader2, CheckCircle2 } from "lucide-react";
+import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2, Github } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
+import { Navbar, Footer } from "@/components/layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,29 +60,8 @@ export default function ContactPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo_1.png"
-              alt="Jobnest Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="text-lg font-bold">Jobnest</span>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
-      </nav>
+      <Navbar user={null} />
 
-      {/* Content */}
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
@@ -119,6 +97,26 @@ export default function ContactPage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Github className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Report Issues</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Found a bug?{" "}
+                      <a
+                        href="https://github.com/techifive"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Report on GitHub
+                      </a>
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-10 rounded-xl border bg-muted/30 p-6">
@@ -138,6 +136,18 @@ export default function ContactPage() {
                   </li>
                 </ul>
               </div>
+
+              <div className="mt-6 text-sm text-muted-foreground">
+                Jobnest is a product of{" "}
+                <a
+                  href="https://techifive.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Techifive
+                </a>
+              </div>
             </div>
 
             {/* Right Column - Form */}
@@ -153,6 +163,7 @@ export default function ContactPage() {
                       Thank you for reaching out. We'll get back to you soon.
                     </p>
                     <Button
+                      type="button"
                       className="mt-6"
                       onClick={() => setIsSuccess(false)}
                     >
@@ -218,7 +229,7 @@ export default function ContactPage() {
                         placeholder="Tell us more about your inquiry..."
                         className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         {...register("message")}
-                        aria-invalid={errors.message ? true : undefined}
+                        aria-invalid={!!errors.message || undefined}
                       />
                       {errors.message && (
                         <p className="text-sm text-destructive">{errors.message.message}</p>
@@ -256,68 +267,7 @@ export default function ContactPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/logo_1.png"
-                alt="Jobnest Logo"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-              />
-              <span className="font-semibold">Jobnest</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground sm:gap-6">
-              <Link href="/contact" className="transition-colors hover:text-foreground">
-                Contact
-              </Link>
-              <Link href="/privacy" className="transition-colors hover:text-foreground">
-                Privacy
-              </Link>
-              <Link href="/terms" className="transition-colors hover:text-foreground">
-                Terms
-              </Link>
-              <a
-                href="https://techifive.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-foreground"
-              >
-                Techifive
-              </a>
-            </div>
-          </div>
-          <div className="mt-6 border-t pt-6 flex flex-col items-center justify-between gap-2 sm:mt-8 sm:pt-8 sm:flex-row">
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              © {new Date().getFullYear()}{" "}
-              <a
-                href="https://techifive.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium hover:text-foreground transition-colors"
-              >
-                Techifive
-              </a>
-              . All rights reserved.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              A{" "}
-              <a
-                href="https://techifive.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary hover:underline"
-              >
-                Techifive
-              </a>
-              {" "}Product
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer variant="simple" />
     </div>
   );
 }

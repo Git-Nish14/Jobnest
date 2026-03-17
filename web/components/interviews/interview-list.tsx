@@ -88,9 +88,9 @@ export function InterviewList({ applicationId, interviews }: InterviewListProps)
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
           Interviews
         </CardTitle>
         <InterviewForm applicationId={applicationId} />
@@ -166,18 +166,18 @@ function InterviewCard({
   isDeleting,
 }: InterviewCardProps) {
   return (
-    <div className="p-4 rounded-lg border bg-muted/30">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium">{interview.type}</span>
-            <span className="text-xs text-muted-foreground">Round {interview.round}</span>
-            <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
+    <div className="p-3 sm:p-4 rounded-lg border bg-muted/30">
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <span className="font-medium text-sm sm:text-base">{interview.type}</span>
+            <span className="text-xs text-muted-foreground">R{interview.round}</span>
+            <span className={`text-xs px-1.5 sm:px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
               {interview.status}
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs sm:text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}

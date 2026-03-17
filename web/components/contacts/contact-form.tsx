@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { contactFormSchema, type ContactFormData } from "@/lib/validations/forms";
 import {
   Button,
   Input,
@@ -27,22 +30,30 @@ interface ContactFormProps {
 export function ContactForm({ applicationId, contact, onSuccess }: ContactFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: contact?.name || "",
-    title: contact?.title || "",
-    email: contact?.email || "",
-    phone: contact?.phone || "",
-    linkedin_url: contact?.linkedin_url || "",
-    notes: contact?.notes || "",
-    is_primary: contact?.is_primary || false,
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: contact?.name || "",
+      title: contact?.title || "",
+      email: contact?.email || "",
+      phone: contact?.phone || "",
+      linkedin_url: contact?.linkedin_url || "",
+      notes: contact?.notes || "",
+      is_primary: contact?.is_primary || false,
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const isPrimary = watch("is_primary");
 
+  const onSubmit = async (data: ContactFormData) => {
     const supabase = createClient();
 
     try {
@@ -58,13 +69,13 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       const contactData = {
         user_id: user.id,
         application_id: applicationId || null,
-        name: formData.name,
-        title: formData.title || null,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        linkedin_url: formData.linkedin_url || null,
-        notes: formData.notes || null,
-        is_primary: formData.is_primary,
+        name: data.name,
+        title: data.title || null,
+        email: data.email || null,
+        phone: data.phone || null,
+        linkedin_url: data.linkedin_url || null,
+        notes: data.notes || null,
+        is_primary: data.is_primary,
       };
 
       if (contact) {
@@ -82,7 +93,7 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       }
 
       setOpen(false);
-      setFormData({
+      reset({
         name: "",
         title: "",
         email: "",
@@ -95,13 +106,26 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save contact");
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && !contact) {
+      reset({
+        name: "",
+        title: "",
+        email: "",
+        phone: "",
+        linkedin_url: "",
+        notes: "",
+        is_primary: false,
+      });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -115,17 +139,19 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
             {contact ? "Edit Contact" : "Add Contact"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                {...register("name")}
+                className={errors.name ? "border-destructive" : ""}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -133,9 +159,12 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
               <Input
                 id="title"
                 placeholder="Recruiter, Hiring Manager..."
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                {...register("title")}
+                className={errors.title ? "border-destructive" : ""}
               />
+              {errors.title && (
+                <p className="text-sm text-destructive">{errors.title.message}</p>
+              )}
             </div>
           </div>
 
@@ -146,9 +175,12 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
                 id="email"
                 type="email"
                 placeholder="john@company.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                {...register("email")}
+                className={errors.email ? "border-destructive" : ""}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -157,9 +189,12 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
                 id="phone"
                 type="tel"
                 placeholder="+1 (555) 123-4567"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                {...register("phone")}
+                className={errors.phone ? "border-destructive" : ""}
               />
+              {errors.phone && (
+                <p className="text-sm text-destructive">{errors.phone.message}</p>
+              )}
             </div>
           </div>
 
@@ -169,9 +204,12 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
               id="linkedin_url"
               type="url"
               placeholder="https://linkedin.com/in/johndoe"
-              value={formData.linkedin_url}
-              onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+              {...register("linkedin_url")}
+              className={errors.linkedin_url ? "border-destructive" : ""}
             />
+            {errors.linkedin_url && (
+              <p className="text-sm text-destructive">{errors.linkedin_url.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -179,19 +217,23 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
             <Textarea
               id="notes"
               placeholder="How did you meet? Important details..."
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              {...register("notes")}
               rows={3}
+              className={errors.notes ? "border-destructive" : ""}
             />
+            {errors.notes && (
+              <p className="text-sm text-destructive">{errors.notes.message}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="is_primary"
-              checked={formData.is_primary}
-              onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
+              checked={isPrimary}
+              onChange={(e) => setValue("is_primary", e.target.checked)}
               className="rounded"
+              aria-label="Primary contact for this application"
             />
             <Label htmlFor="is_primary" className="font-normal cursor-pointer">
               Primary contact for this application

@@ -46,17 +46,17 @@ export default async function DashboardPage() {
     .reduce((sum, s) => sum + s.count, 0);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Track your job application progress
           </p>
         </div>
-        <Link href="/applications/new">
-          <Button className="gap-2">
+        <Link href="/applications/new" className="w-full sm:w-auto">
+          <Button className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             New Application
           </Button>
@@ -64,38 +64,38 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatsCard
           title="Total Applications"
           value={stats.totalApplications}
-          icon={<FileText className="h-5 w-5" />}
+          icon={<FileText className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title="This Week"
           value={stats.thisWeek}
-          icon={<Calendar className="h-5 w-5" />}
+          icon={<Calendar className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title="This Month"
           value={stats.thisMonth}
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
         <StatsCard
           title="Active"
           value={activeCount}
           description="In progress"
-          icon={<Zap className="h-5 w-5" />}
+          icon={<Zap className="h-4 w-4 sm:h-5 sm:w-5" />}
         />
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <ApplicationChart data={stats.weeklyTrends} title="Weekly Applications" />
         <StatusPieChart data={stats.statusDistribution} total={stats.totalApplications} />
       </div>
 
       {/* Response Rate & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentApplications applications={recentApps} />
         </div>
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Interviews & Reminders */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <UpcomingInterviews interviews={stats.upcomingInterviews} />
         <PendingReminders reminders={stats.pendingReminders} />
       </div>

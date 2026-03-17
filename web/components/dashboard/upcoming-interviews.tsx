@@ -61,20 +61,20 @@ export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {
                     <p className="text-sm text-muted-foreground truncate">
                       {interview.job_applications?.company}
                     </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}</span>
                       </span>
                       {interview.meeting_url && (
                         <span className="flex items-center gap-1">
-                          <Video className="h-3 w-3" />
+                          <Video className="h-3 w-3 shrink-0" />
                           Video
                         </span>
                       )}
                       {interview.location && (
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
+                          <MapPin className="h-3 w-3 shrink-0" />
                           On-site
                         </span>
                       )}
