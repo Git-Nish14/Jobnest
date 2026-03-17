@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,13 +24,11 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<SignupStep>("form");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const router = useRouter();
 
   const {
     register,
@@ -80,7 +77,6 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormData) => {
     setError(null);
     setEmail(data.email);
-    setPassword(data.password);
 
     // Create the user account first
     const supabase = createClient();

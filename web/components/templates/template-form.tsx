@@ -52,7 +52,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
       name: template?.name || "",
       subject: template?.subject || "",
       body: template?.body || "",
-      category: template?.category || "General",
+      category: (template?.category as TemplateFormData["category"]) || "General",
     },
   });
 

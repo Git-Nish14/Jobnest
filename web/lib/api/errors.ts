@@ -89,12 +89,12 @@ export class ApiError extends Error {
 export function zodErrorToApiError(error: ZodError): ApiError {
   const fieldErrors: Record<string, string[]> = {};
 
-  error.errors.forEach((err) => {
-    const path = err.path.join(".");
+  error.issues.forEach((issue) => {
+    const path = issue.path.join(".");
     if (!fieldErrors[path]) {
       fieldErrors[path] = [];
     }
-    fieldErrors[path].push(err.message);
+    fieldErrors[path].push(issue.message);
   });
 
   return ApiError.validation(fieldErrors);
