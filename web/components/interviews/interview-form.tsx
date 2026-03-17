@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import {
+  interviewSchema,
+  type InterviewFormData,
+  INTERVIEW_TYPES,
+  INTERVIEW_STATUSES,
+} from "@/lib/validations/forms";
 import {
   Button,
   Input,
@@ -23,24 +31,6 @@ import {
 } from "@/components/ui";
 import type { Interview } from "@/types";
 
-const INTERVIEW_TYPES = [
-  "Phone Screen",
-  "Technical",
-  "Behavioral",
-  "On-site",
-  "Panel",
-  "Final",
-  "Other",
-] as const;
-
-const INTERVIEW_STATUSES = [
-  "Scheduled",
-  "Completed",
-  "Cancelled",
-  "Rescheduled",
-  "No Show",
-] as const;
-
 interface InterviewFormProps {
   applicationId: string;
   interview?: Interview;
@@ -50,27 +40,36 @@ interface InterviewFormProps {
 export function InterviewForm({ applicationId, interview, onSuccess }: InterviewFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    type: interview?.type || "Phone Screen",
-    status: interview?.status || "Scheduled",
-    round: interview?.round || 1,
-    scheduled_at: interview?.scheduled_at
-      ? new Date(interview.scheduled_at).toISOString().slice(0, 16)
-      : "",
-    duration_minutes: interview?.duration_minutes || 60,
-    location: interview?.location || "",
-    meeting_url: interview?.meeting_url || "",
-    interviewer_names: interview?.interviewer_names?.join(", ") || "",
-    preparation_notes: interview?.preparation_notes || "",
-    post_interview_notes: interview?.post_interview_notes || "",
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<InterviewFormData>({
+    resolver: zodResolver(interviewSchema),
+    defaultValues: {
+      type: interview?.type || "Phone Screen",
+      status: interview?.status || "Scheduled",
+      round: interview?.round || 1,
+      scheduled_at: interview?.scheduled_at
+        ? new Date(interview.scheduled_at).toISOString().slice(0, 16)
+        : "",
+      duration_minutes: interview?.duration_minutes || 60,
+      location: interview?.location || "",
+      meeting_url: interview?.meeting_url || "",
+      interviewer_names: interview?.interviewer_names?.join(", ") || "",
+      preparation_notes: interview?.preparation_notes || "",
+      post_interview_notes: interview?.post_interview_notes || "",
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const currentType = watch("type");
+  const currentStatus = watch("status");
 
+  const onSubmit = async (data: InterviewFormData) => {
     const supabase = createClient();
 
     try {
@@ -86,18 +85,18 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
       const interviewData = {
         application_id: applicationId,
         user_id: user.id,
-        type: formData.type,
-        status: formData.status,
-        round: formData.round,
-        scheduled_at: new Date(formData.scheduled_at).toISOString(),
-        duration_minutes: formData.duration_minutes,
-        location: formData.location || null,
-        meeting_url: formData.meeting_url || null,
-        interviewer_names: formData.interviewer_names
-          ? formData.interviewer_names.split(",").map((n) => n.trim())
+        type: data.type,
+        status: data.status,
+        round: data.round,
+        scheduled_at: new Date(data.scheduled_at).toISOString(),
+        duration_minutes: data.duration_minutes,
+        location: data.location || null,
+        meeting_url: data.meeting_url || null,
+        interviewer_names: data.interviewer_names
+          ? data.interviewer_names.split(",").map((n) => n.trim()).filter(Boolean)
           : null,
-        preparation_notes: formData.preparation_notes || null,
-        post_interview_notes: formData.post_interview_notes || null,
+        preparation_notes: data.preparation_notes || null,
+        post_interview_notes: data.post_interview_notes || null,
       };
 
       if (interview) {
@@ -119,13 +118,18 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
       onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save interview");
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      reset();
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant={interview ? "outline" : "default"} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
@@ -138,13 +142,13 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             {interview ? "Edit Interview" : "Schedule New Interview"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Interview Type</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value as any })}
+                value={currentType}
+                onValueChange={(value) => setValue("type", value as InterviewFormData["type"])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -157,6 +161,9 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
                   ))}
                 </SelectContent>
               </Select>
+              {errors.type && (
+                <p className="text-sm text-destructive">{errors.type.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -165,11 +172,13 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
                 id="round"
                 type="number"
                 min="1"
-                value={formData.round}
-                onChange={(e) =>
-                  setFormData({ ...formData, round: parseInt(e.target.value) || 1 })
-                }
+                max="20"
+                {...register("round")}
+                className={errors.round ? "border-destructive" : ""}
               />
+              {errors.round && (
+                <p className="text-sm text-destructive">{errors.round.message}</p>
+              )}
             </div>
           </div>
 
@@ -179,29 +188,27 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
               <Input
                 id="scheduled_at"
                 type="datetime-local"
-                value={formData.scheduled_at}
-                onChange={(e) =>
-                  setFormData({ ...formData, scheduled_at: e.target.value })
-                }
-                required
+                {...register("scheduled_at")}
+                className={errors.scheduled_at ? "border-destructive" : ""}
               />
+              {errors.scheduled_at && (
+                <p className="text-sm text-destructive">{errors.scheduled_at.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Label htmlFor="duration_minutes">Duration (minutes)</Label>
               <Input
-                id="duration"
+                id="duration_minutes"
                 type="number"
                 min="15"
                 max="480"
-                value={formData.duration_minutes}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    duration_minutes: parseInt(e.target.value) || 60,
-                  })
-                }
+                {...register("duration_minutes")}
+                className={errors.duration_minutes ? "border-destructive" : ""}
               />
+              {errors.duration_minutes && (
+                <p className="text-sm text-destructive">{errors.duration_minutes.message}</p>
+              )}
             </div>
           </div>
 
@@ -209,10 +216,8 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={formData.status}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value as any })
-                }
+                value={currentStatus}
+                onValueChange={(value) => setValue("status", value as InterviewFormData["status"])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -225,6 +230,9 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
                   ))}
                 </SelectContent>
               </Select>
+              {errors.status && (
+                <p className="text-sm text-destructive">{errors.status.message}</p>
+              )}
             </div>
           )}
 
@@ -234,11 +242,12 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
               id="meeting_url"
               type="url"
               placeholder="https://zoom.us/j/..."
-              value={formData.meeting_url}
-              onChange={(e) =>
-                setFormData({ ...formData, meeting_url: e.target.value })
-              }
+              {...register("meeting_url")}
+              className={errors.meeting_url ? "border-destructive" : ""}
             />
+            {errors.meeting_url && (
+              <p className="text-sm text-destructive">{errors.meeting_url.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -246,11 +255,12 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             <Input
               id="location"
               placeholder="Office address or 'Remote'"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
+              {...register("location")}
+              className={errors.location ? "border-destructive" : ""}
             />
+            {errors.location && (
+              <p className="text-sm text-destructive">{errors.location.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -258,14 +268,15 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             <Input
               id="interviewer_names"
               placeholder="John Doe, Jane Smith"
-              value={formData.interviewer_names}
-              onChange={(e) =>
-                setFormData({ ...formData, interviewer_names: e.target.value })
-              }
+              {...register("interviewer_names")}
+              className={errors.interviewer_names ? "border-destructive" : ""}
             />
             <p className="text-xs text-muted-foreground">
               Separate multiple names with commas
             </p>
+            {errors.interviewer_names && (
+              <p className="text-sm text-destructive">{errors.interviewer_names.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -273,12 +284,13 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             <Textarea
               id="preparation_notes"
               placeholder="Topics to review, questions to ask..."
-              value={formData.preparation_notes}
-              onChange={(e) =>
-                setFormData({ ...formData, preparation_notes: e.target.value })
-              }
+              {...register("preparation_notes")}
               rows={3}
+              className={errors.preparation_notes ? "border-destructive" : ""}
             />
+            {errors.preparation_notes && (
+              <p className="text-sm text-destructive">{errors.preparation_notes.message}</p>
+            )}
           </div>
 
           {interview && (
@@ -287,12 +299,13 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
               <Textarea
                 id="post_interview_notes"
                 placeholder="How did it go? Key takeaways..."
-                value={formData.post_interview_notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, post_interview_notes: e.target.value })
-                }
+                {...register("post_interview_notes")}
                 rows={3}
+                className={errors.post_interview_notes ? "border-destructive" : ""}
               />
+              {errors.post_interview_notes && (
+                <p className="text-sm text-destructive">{errors.post_interview_notes.message}</p>
+              )}
             </div>
           )}
 

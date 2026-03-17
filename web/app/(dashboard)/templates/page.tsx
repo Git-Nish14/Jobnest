@@ -1,7 +1,7 @@
 import { Mail, FileText } from "lucide-react";
 import { getEmailTemplates } from "@/services";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { TemplateForm, TemplateList } from "@/components/templates";
+import { TemplateForm, TemplateList, TemplateGallery } from "@/components/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,10 @@ export default async function TemplatesPage() {
             Save and reuse email templates for your job search
           </p>
         </div>
-        <TemplateForm />
+        <div className="flex gap-2">
+          <TemplateGallery />
+          <TemplateForm />
+        </div>
       </div>
 
       {/* Template Variables Info */}
@@ -42,9 +45,16 @@ export default async function TemplatesPage() {
             <code className="px-2 py-1 bg-muted rounded">{"{{position}}"}</code>
             <code className="px-2 py-1 bg-muted rounded">{"{{contact_name}}"}</code>
             <code className="px-2 py-1 bg-muted rounded">{"{{date}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{your_name}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{your_email}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{your_phone}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{your_linkedin}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{interview_date}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{start_date}}"}</code>
+            <code className="px-2 py-1 bg-muted rounded">{"{{salary}}"}</code>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Use these variables in your templates - they'll be replaced when you use the template
+            Replace these placeholders with actual values before sending your email
           </p>
         </CardContent>
       </Card>
@@ -55,10 +65,14 @@ export default async function TemplatesPage() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No templates yet</p>
-              <p className="text-sm mt-1">
-                Create reusable email templates for follow-ups, thank you notes, and more
+              <p className="font-medium">No templates yet</p>
+              <p className="text-sm mt-1 mb-4">
+                Create your own templates or browse our pre-built collection
               </p>
+              <div className="flex justify-center gap-2">
+                <TemplateGallery />
+                <TemplateForm />
+              </div>
             </div>
           </CardContent>
         </Card>

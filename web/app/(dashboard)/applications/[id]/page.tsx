@@ -68,39 +68,40 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Back button and actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Link
           href="/applications"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Applications
+          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Back to Applications</span>
+          <span className="sm:hidden">Back</span>
         </Link>
         <Link href={`/applications/${id}/edit`}>
-          <Button className="gap-2">
-            <Pencil className="h-4 w-4" />
+          <Button className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-4">
+            <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Edit
           </Button>
         </Link>
       </div>
 
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
+      <div className="space-y-1.5 sm:space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">
             {application.position}
           </h1>
           <StatusBadge status={application.status} />
         </div>
-        <p className="text-xl text-muted-foreground">{application.company}</p>
+        <p className="text-base sm:text-xl text-muted-foreground">{application.company}</p>
       </div>
 
       {/* Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Main Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Application Details</CardTitle>
@@ -190,7 +191,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Documents */}
           <Card>
             <CardHeader>

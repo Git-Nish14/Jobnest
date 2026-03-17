@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import {
+  templateSchema,
+  type TemplateFormData,
+  TEMPLATE_CATEGORIES,
+} from "@/lib/validations/forms";
 import {
   Button,
   Input,
@@ -23,14 +30,6 @@ import {
 } from "@/components/ui";
 import type { EmailTemplate } from "@/types";
 
-const TEMPLATE_CATEGORIES = [
-  "Follow Up",
-  "Thank You",
-  "Offer",
-  "General",
-  "Networking",
-] as const;
-
 interface TemplateFormProps {
   template?: EmailTemplate;
   onSuccess?: () => void;
@@ -39,19 +38,27 @@ interface TemplateFormProps {
 export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: template?.name || "",
-    subject: template?.subject || "",
-    body: template?.body || "",
-    category: template?.category || "General",
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TemplateFormData>({
+    resolver: zodResolver(templateSchema),
+    defaultValues: {
+      name: template?.name || "",
+      subject: template?.subject || "",
+      body: template?.body || "",
+      category: template?.category || "General",
+    },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const currentCategory = watch("category");
 
+  const onSubmit = async (data: TemplateFormData) => {
     const supabase = createClient();
 
     try {
@@ -66,10 +73,10 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
 
       const templateData = {
         user_id: user.id,
-        name: formData.name,
-        subject: formData.subject,
-        body: formData.body,
-        category: formData.category,
+        name: data.name,
+        subject: data.subject,
+        body: data.body,
+        category: data.category,
       };
 
       if (template) {
@@ -87,18 +94,23 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
       }
 
       setOpen(false);
-      setFormData({ name: "", subject: "", body: "", category: "General" });
+      reset({ name: "", subject: "", body: "", category: "General" });
       router.refresh();
       onSuccess?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save template");
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && !template) {
+      reset({ name: "", subject: "", body: "", category: "General" });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
@@ -112,24 +124,26 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             {template ? "Edit Template" : "Create Template"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Template Name *</Label>
               <Input
                 id="name"
                 placeholder="e.g., Follow Up After Interview"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                {...register("name")}
+                className={errors.name ? "border-destructive" : ""}
               />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
+                value={currentCategory}
+                onValueChange={(value) => setValue("category", value as TemplateFormData["category"])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -142,6 +156,9 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.category && (
+                <p className="text-sm text-destructive">{errors.category.message}</p>
+              )}
             </div>
           </div>
 
@@ -150,10 +167,12 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <Input
               id="subject"
               placeholder="e.g., Following up on {{position}} application"
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              required
+              {...register("subject")}
+              className={errors.subject ? "border-destructive" : ""}
             />
+            {errors.subject && (
+              <p className="text-sm text-destructive">{errors.subject.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -161,11 +180,13 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <Textarea
               id="body"
               placeholder="Write your email template here. Use {{company}}, {{position}}, {{contact_name}}, {{date}} for dynamic content."
-              value={formData.body}
-              onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+              {...register("body")}
               rows={10}
-              required
+              className={errors.body ? "border-destructive" : ""}
             />
+            {errors.body && (
+              <p className="text-sm text-destructive">{errors.body.message}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

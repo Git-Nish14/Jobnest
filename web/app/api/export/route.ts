@@ -1,89 +1,107 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { exportSchema } from "@/lib/validations/api";
+import { ApiError, errorResponse, validateQuery } from "@/lib/api/errors";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const format = searchParams.get("format") || "csv";
-  const includeNotes = searchParams.get("includeNotes") === "true";
-  const statuses = searchParams.get("statuses")?.split(",").filter(Boolean);
+  try {
+    const supabase = await createClient();
 
-  const supabase = await createClient();
+    // Verify user is authenticated
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw ApiError.unauthorized();
+    }
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    // Rate limit exports (expensive operation)
+    const rateLimitResult = checkRateLimit(`export:${user.id}`, {
+      maxRequests: 10,
+      windowMs: 60 * 60 * 1000, // 10 exports per hour
+    });
 
-  // Fetch applications
-  let query = supabase
-    .from("job_applications")
-    .select("*")
-    .order("applied_date", { ascending: false });
+    if (!rateLimitResult.allowed) {
+      throw ApiError.tooManyRequests("Export limit exceeded. Please try again later.");
+    }
 
-  if (statuses && statuses.length > 0) {
-    query = query.in("status", statuses);
-  }
+    // Validate and parse query parameters
+    const { searchParams } = new URL(request.url);
+    const { format, includeNotes, statuses } = validateQuery(searchParams, exportSchema);
 
-  const { data: applications, error } = await query;
+    // SECURITY FIX: Always filter by user_id to prevent data leakage
+    let query = supabase
+      .from("job_applications")
+      .select("*")
+      .eq("user_id", user.id) // CRITICAL: Filter by authenticated user
+      .order("applied_date", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    if (statuses && statuses.length > 0) {
+      query = query.in("status", statuses);
+    }
 
-  if (format === "json") {
-    return NextResponse.json(applications, {
+    const { data: applications, error } = await query;
+
+    if (error) {
+      console.error("Export query error:", error);
+      throw ApiError.internal("Failed to fetch applications");
+    }
+
+    if (format === "json") {
+      return NextResponse.json(applications, {
+        headers: {
+          "Content-Disposition": 'attachment; filename="applications.json"',
+        },
+      });
+    }
+
+    // CSV format
+    const headers = [
+      "Company",
+      "Position",
+      "Status",
+      "Applied Date",
+      "Location",
+      "Salary Range",
+      "Job ID",
+      "Job URL",
+      ...(includeNotes ? ["Notes"] : []),
+    ];
+
+    const escapeCSV = (value: string | null): string => {
+      if (!value) return "";
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const rows = applications?.map((app) => {
+      return [
+        escapeCSV(app.company),
+        escapeCSV(app.position),
+        escapeCSV(app.status),
+        app.applied_date,
+        escapeCSV(app.location),
+        escapeCSV(app.salary_range),
+        escapeCSV(app.job_id),
+        escapeCSV(app.job_url),
+        ...(includeNotes ? [escapeCSV(app.notes)] : []),
+      ].join(",");
+    });
+
+    const csv = [headers.join(","), ...(rows || [])].join("\n");
+
+    return new NextResponse(csv, {
       headers: {
-        "Content-Disposition": 'attachment; filename="applications.json"',
+        "Content-Type": "text/csv",
+        "Content-Disposition": 'attachment; filename="applications.csv"',
       },
     });
+  } catch (error) {
+    return errorResponse(error);
   }
-
-  // CSV format
-  const headers = [
-    "Company",
-    "Position",
-    "Status",
-    "Applied Date",
-    "Location",
-    "Salary Range",
-    "Job ID",
-    "Job URL",
-    ...(includeNotes ? ["Notes"] : []),
-  ];
-
-  const escapeCSV = (value: string | null): string => {
-    if (!value) return "";
-    if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  };
-
-  const rows = applications?.map((app) => {
-    return [
-      escapeCSV(app.company),
-      escapeCSV(app.position),
-      escapeCSV(app.status),
-      app.applied_date,
-      escapeCSV(app.location),
-      escapeCSV(app.salary_range),
-      escapeCSV(app.job_id),
-      escapeCSV(app.job_url),
-      ...(includeNotes ? [escapeCSV(app.notes)] : []),
-    ].join(",");
-  });
-
-  const csv = [headers.join(","), ...(rows || [])].join("\n");
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": 'attachment; filename="applications.csv"',
-    },
-  });
 }

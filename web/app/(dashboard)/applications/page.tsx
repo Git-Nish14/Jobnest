@@ -31,21 +31,21 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Applications</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage and track your job applications
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <ExportButton />
-          <Link href="/applications/new">
-            <Button className="gap-2">
+          <Link href="/applications/new" className="flex-1 sm:flex-none">
+            <Button className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
-              New Application
+              <span className="sm:inline">New Application</span>
             </Button>
           </Link>
         </div>
@@ -55,7 +55,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       <ApplicationFilters />
 
       {/* Applications List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {applications && applications.length > 0 ? (
           applications.map((app) => (
             <ApplicationCard key={app.id} application={app} />

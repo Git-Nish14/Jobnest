@@ -66,50 +66,50 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
 
   return (
     <Card className="group transition-all hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-2 sm:gap-4">
           <div className="flex-1 min-w-0 space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-start sm:items-center gap-1.5 sm:gap-2 flex-wrap">
               <Link
                 href={`/applications/${application.id}`}
-                className="font-semibold text-foreground hover:underline truncate"
+                className="font-semibold text-sm sm:text-base text-foreground hover:underline line-clamp-1"
               >
                 {application.position}
               </Link>
               <StatusBadge status={application.status} />
             </div>
 
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
               {application.company}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-0.5 sm:pt-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
+                <Calendar className="h-3 w-3 shrink-0" />
                 {formattedDate}
               </span>
               {application.location && (
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {application.location}
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate max-w-24 sm:max-w-none">{application.location}</span>
                 </span>
               )}
               {application.salary_range && (
-                <span className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
+                <span className="hidden sm:flex items-center gap-1">
+                  <DollarSign className="h-3 w-3 shrink-0" />
                   {application.salary_range}
                 </span>
               )}
             </div>
 
             {application.notes && (
-              <p className="pt-2 text-sm text-muted-foreground line-clamp-2">
+              <p className="pt-1.5 sm:pt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2">
                 {application.notes}
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             {application.job_url && (
               <Button variant="ghost" size="icon" asChild>
                 <a

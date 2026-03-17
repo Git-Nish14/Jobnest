@@ -27,6 +27,7 @@ export const applicationSchema = z.object({
   job_url: z
     .string()
     .url("Please enter a valid URL")
+    .max(500, "URL is too long")
     .optional()
     .or(z.literal("")),
   salary_range: z
@@ -48,44 +49,6 @@ export const applicationSchema = z.object({
 
 export type ApplicationFormData = z.infer<typeof applicationSchema>;
 
-// Schema for login
-export const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
-});
-
-export type LoginFormData = z.infer<typeof loginSchema>;
-
-// Schema for signup
-export const signupSchema = z
-  .object({
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email address"),
-    password: z
-      .string()
-      .min(1, "Password is required")
-      .min(6, "Password must be at least 6 characters")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-      ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
-export type SignupFormData = z.infer<typeof signupSchema>;
-
 // Schema for search/filter
 const SEARCH_STATUSES = ["all", ...APPLICATION_STATUSES] as const;
 
@@ -95,3 +58,11 @@ export const searchSchema = z.object({
 });
 
 export type SearchFormData = z.infer<typeof searchSchema>;
+
+// Re-export auth schemas for backwards compatibility
+export {
+  loginFormSchema as loginSchema,
+  signupFormSchema as signupSchema,
+  type LoginFormData,
+  type SignupFormData,
+} from "./auth";

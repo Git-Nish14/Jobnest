@@ -1,15 +1,21 @@
-# JobNest - Job Application Tracker
+# Jobnest - Job Application Tracker
 
-A comprehensive platform to track and manage your job search. Built with Next.js 16, Supabase, and TypeScript.
+A modern, secure platform to track and manage your job search. Built with Next.js 16, Supabase, and TypeScript.
+
+**A [Techifive](https://techifive.com) Product**
 
 ## Features
 
-### Authentication
-- Email/Password authentication with Supabase Auth
-- Email verification flow
-- Password reset (forgot password / reset password)
-- Periodic re-verification (every 7 days)
-- Protected routes with middleware
+### Authentication & Security
+- **OTP-based authentication** via Nodemailer (not Supabase Auth emails)
+- Email/Password login with 6-digit OTP verification
+- Secure signup with email OTP verification
+- Password reset via OTP verification
+- Protected routes with Next.js middleware
+- Security headers (HSTS, CSP, X-Frame-Options)
+- Rate limiting on all auth endpoints
+- SHA-256 hashed OTP storage
+- Timing-safe OTP comparison
 
 ### Dashboard
 - Overview statistics (total applications, interviews, offers, response rate)
@@ -20,136 +26,104 @@ A comprehensive platform to track and manage your job search. Built with Next.js
 - Recent activity timeline
 
 ### Applications Management
-- Create, read, update, delete job applications
-- Filter applications by status, company, and date
+- Full CRUD for job applications
+- Filter by status, company, and date
 - Track application details:
   - Company name and position
-  - Application status (Applied, Interview, Offer, Rejected, etc.)
+  - Application status (Applied, Interview, Offer, Rejected)
   - Salary information (expected/offered)
   - Job posting URL and location
   - Notes and documents
-- Tag applications for organization
 - Export applications to CSV/JSON
 
 ### Interviews
 - Schedule and track interviews
-- Multiple interview types (Phone Screen, Technical, Behavioral, On-site, Final)
-- Interview status tracking (Scheduled, Completed, Cancelled, Rescheduled)
+- Multiple interview types (Phone Screen, Technical, Behavioral, On-site)
+- Interview status tracking
 - Meeting links and location support
 - Preparation and post-interview notes
-- Calendar view of upcoming interviews
 
 ### Contacts
 - Manage recruiters and hiring managers
 - Store contact information (email, phone, LinkedIn)
 - Associate contacts with companies
-- Track interaction history
 
 ### Reminders
 - Set follow-up reminders for applications
 - Due date tracking with overdue alerts
 - Mark reminders as completed
-- Link reminders to specific applications
 
 ### Email Templates
 - Create reusable email templates
-- Variable placeholders (company, position, contact name, date)
-- Categorize templates (Follow-up, Thank You, etc.)
+- Variable placeholders (company, position, contact name)
 - One-click copy to clipboard
+
+### NESTAi Assistant
+- AI-powered job search companion
+- Analyze your applications and track progress
+- Personalized insights and recommendations
+- Chat history with session management
+- Suggested quick questions (stats, success rate, pending responses)
+- Rate limiting (5 questions per minute)
 
 ### Salary Tracking
 - Track expected and offered salaries
 - Compare compensation across applications
-- Salary analytics and insights
-
-### Activity Logs
-- Automatic activity tracking
-- Timeline of all application changes
-- Status change history
-
-### Security
-- CSRF protection with HMAC-signed tokens
-- Rate limiting
-- Secure OTP generation using Node.js crypto
-- Security headers (CSP, HSTS, X-Frame-Options, etc.)
-- Row Level Security (RLS) on Supabase
-- Secure PDF viewer for documents
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router, Turbopack)
-- **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Storage**: Supabase Storage (for documents)
-- **Styling**: Tailwind CSS
-- **UI Components**: Custom components with Radix UI primitives
-- **Charts**: Recharts
-- **Form Handling**: React Hook Form + Zod validation
-- **Icons**: Lucide React
-- **Notifications**: Sonner (toast notifications)
+| Category | Technology |
+|----------|------------|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript |
+| Database | Supabase (PostgreSQL) |
+| Auth | Custom OTP + Supabase Auth |
+| Email | Nodemailer |
+| Styling | Tailwind CSS 4 |
+| UI | Radix UI + Custom Components |
+| Forms | React Hook Form + Zod |
+| Icons | Lucide React |
+| Notifications | Sonner |
 
 ## Project Structure
 
 ```
 web/
 ├── app/
-│   ├── (auth)/                    # Auth pages
-│   │   ├── login/
-│   │   ├── signup/
-│   │   ├── forgot-password/
-│   │   ├── reset-password/
-│   │   └── verify-email/
-│   ├── (dashboard)/               # Protected dashboard pages
+│   ├── (auth)/                 # Auth pages (login, signup, forgot-password)
+│   ├── (dashboard)/            # Protected dashboard pages
 │   │   ├── dashboard/
 │   │   ├── applications/
-│   │   │   ├── [id]/
-│   │   │   │   └── edit/
-│   │   │   └── new/
 │   │   ├── interviews/
 │   │   ├── reminders/
 │   │   ├── contacts/
 │   │   ├── templates/
-│   │   └── salary/
+│   │   ├── salary/
+│   │   └── nesta-ai/           # NESTAi Assistant chat interface
 │   ├── api/
+│   │   ├── auth/               # OTP endpoints (send-otp, verify-otp, reset-password)
+│   │   ├── nesta-ai/           # NESTAi API (chat, sessions, messages)
 │   │   ├── export/
 │   │   ├── documents/
 │   │   └── contact/
-│   ├── auth/                      # Auth callbacks
-│   ├── privacy/
-│   ├── terms/
-│   └── contact/
+│   └── auth/callback/          # OAuth callback
 ├── components/
-│   ├── ui/                        # Base UI components
-│   ├── applications/              # Application components
-│   ├── dashboard/                 # Dashboard widgets
-│   ├── interviews/                # Interview components
-│   ├── reminders/                 # Reminder components
-│   ├── contacts/                  # Contact components
-│   ├── templates/                 # Email template components
-│   ├── tags/                      # Tag components
-│   ├── activity/                  # Activity timeline
-│   └── layout/                    # Layout components
-├── services/                      # API service functions
-│   ├── applications.ts
-│   ├── interviews.ts
-│   ├── reminders.ts
-│   ├── contacts.ts
-│   ├── email-templates.ts
-│   ├── tags.ts
-│   ├── analytics.ts
-│   ├── activity-logs.ts
-│   ├── salary.ts
-│   └── export.ts
+│   ├── ui/                     # Base UI components
+│   ├── applications/           # Application components
+│   ├── dashboard/              # Dashboard widgets
+│   └── ...
 ├── lib/
-│   ├── proxy/                     # Middleware logic
-│   ├── security/                  # Security utilities
-│   ├── supabase/                  # Supabase clients
-│   └── validations/               # Zod schemas
-├── hooks/                         # Custom React hooks
-├── types/                         # TypeScript types
-└── supabase/
-    └── migrations/                # Database migrations
+│   ├── email/                  # Nodemailer service
+│   ├── security/               # OTP, rate-limit, CSRF
+│   ├── supabase/               # Client, server, admin
+│   └── validations/            # Zod schemas
+├── services/                   # API service functions
+├── hooks/                      # Custom React hooks
+├── types/                      # TypeScript types
+└── middleware.ts               # Route protection + security headers
+
+supabase/
+└── migrations/                 # Database migrations
 ```
 
 ## Getting Started
@@ -159,21 +133,39 @@ web/
 - Node.js 18+
 - npm/yarn/pnpm/bun
 - Supabase account
+- SMTP server (for OTP emails)
 
 ### Environment Variables
 
 Create a `.env.local` file in the `web/` directory:
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-CSRF_SECRET=your_csrf_secret
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# SMTP (for OTP emails)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+CONTACT_EMAIL=contact@example.com
+
+# App
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
 ```
 
 ### Database Setup
 
 1. Create a new Supabase project
-2. Run the migrations in order from `supabase/migrations/`
+2. Run the migrations in order from `supabase/migrations/`:
+   - `20240101000000_initial_schema.sql`
+   - `20240101000001_storage_setup.sql`
+   - `20240101000002_security_functions.sql`
+   - `20240101000003_enhanced_features.sql`
+   - `20240101000004_otp_codes.sql`
+   - `20240101000005_chat_history.sql`
 
 ### Installation
 
@@ -183,7 +175,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Scripts
 
@@ -194,14 +186,43 @@ npm run start    # Start production server
 npm run lint     # Run ESLint
 ```
 
+## Security Features
+
+- **OTP via Nodemailer**: All verification emails sent through your SMTP server
+- **Hashed OTPs**: SHA-256 hashing for OTP storage
+- **Rate Limiting**: Prevents brute force attacks
+- **Timing-Safe Comparison**: Prevents timing attacks on OTP verification
+- **Security Headers**: HSTS, CSP, X-Frame-Options, X-Content-Type-Options
+- **Row Level Security**: Database-level access control via Supabase RLS
+- **Service Role Isolation**: OTP table only accessible via service role
+
 ## Deployment
 
-Deploy to Vercel or any platform that supports Next.js:
+### Vercel (Recommended)
 
 ```bash
 npm run build
 ```
 
+Deploy to Vercel and set environment variables in the dashboard.
+
+### Docker
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
 ## License
 
 Private - All rights reserved
+
+---
+
+Built with care by [Techifive](https://techifive.com)

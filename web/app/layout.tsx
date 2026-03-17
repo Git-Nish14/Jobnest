@@ -52,7 +52,7 @@ export const metadata: Metadata = {
       "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
     images: [
       {
-        url: "/logo_1.png",
+        url: "/icon-512.png",
         width: 512,
         height: 512,
         alt: "Jobnest Logo",
@@ -60,12 +60,12 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Jobnest - Track Your Job Applications",
     description:
       "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
-    images: ["/logo_1.png"],
-    creator: "@jobtracker",
+    images: ["/icon-512.png"],
+    creator: "@techifive",
   },
   robots: {
     index: true,
@@ -79,9 +79,13 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/logo_1.png",
-    shortcut: "/logo_1.png",
-    apple: "/logo_1.png",
+    icon: [
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
   category: "productivity",

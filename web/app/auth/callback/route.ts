@@ -4,31 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const type = searchParams.get("type");
   const next = searchParams.get("next") ?? "/dashboard";
 
   if (code) {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data.user) {
-      // If this is a verification callback, update the reverification timestamp
-      if (type === "verification") {
-        await supabase.auth.updateUser({
-          data: {
-            last_reverification: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Clear any reverification cookies
-      const response = NextResponse.redirect(new URL(next, origin));
-      response.cookies.delete("needs_reverification");
-
-      return response;
+    if (!error) {
+      return NextResponse.redirect(new URL(next, origin));
     }
   }
 
-  // Return the user to an error page with instructions
   return NextResponse.redirect(new URL("/auth/auth-error", origin));
 }
