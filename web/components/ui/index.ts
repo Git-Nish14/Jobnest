@@ -55,3 +55,4 @@ export {
   DialogDescription,
 } from "./dialog";
 export { DocumentViewer } from "./document-viewer";
+export { Skeleton } from "./skeleton";

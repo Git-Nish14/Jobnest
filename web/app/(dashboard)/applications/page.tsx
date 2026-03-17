@@ -33,19 +33,19 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Applications</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Applications</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage and track your job applications
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <ExportButton />
           <Link href="/applications/new" className="flex-1 sm:flex-none">
-            <Button className="gap-2 w-full sm:w-auto">
+            <Button className="gap-2 w-full sm:w-auto shadow-sm">
               <Plus className="h-4 w-4" />
-              <span className="sm:inline">New Application</span>
+              New Application
             </Button>
           </Link>
         </div>
@@ -61,16 +61,16 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             <ApplicationCard key={app.id} application={app} />
           ))
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <FileText className="h-8 w-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
+              <FileText className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold">No applications yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Start tracking your job applications by adding your first one.
+            <h3 className="mt-4 text-base font-semibold">No applications yet</h3>
+            <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
+              Start tracking your job search by logging your first application.
             </p>
             <Link href="/applications/new" className="mt-6">
-              <Button className="gap-2">
+              <Button className="gap-2 shadow-sm">
                 <Plus className="h-4 w-4" />
                 Add Your First Application
               </Button>

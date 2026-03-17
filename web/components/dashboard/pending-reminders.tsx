@@ -61,13 +61,13 @@ export function PendingReminders({ reminders }: PendingRemindersProps) {
   const getReminderTypeColor = (type: string) => {
     switch (type) {
       case "Follow Up":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+        return "bg-blue-100 text-blue-700";
       case "Interview":
-        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
+        return "bg-purple-100 text-purple-700";
       case "Deadline":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+        return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+        return "bg-gray-100 text-gray-700";
     }
   };
 

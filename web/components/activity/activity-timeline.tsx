@@ -30,15 +30,15 @@ const activityIcons: Record<string, React.ReactNode> = {
 };
 
 const activityColors: Record<string, string> = {
-  Created: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-  "Status Changed": "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-  "Interview Scheduled": "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  "Interview Completed": "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
-  "Note Added": "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
-  "Document Uploaded": "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-  "Reminder Set": "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400",
-  "Contact Added": "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400",
-  Updated: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  Created: "bg-green-100 text-green-600",
+  "Status Changed": "bg-blue-100 text-blue-600",
+  "Interview Scheduled": "bg-purple-100 text-purple-600",
+  "Interview Completed": "bg-emerald-100 text-emerald-600",
+  "Note Added": "bg-yellow-100 text-yellow-600",
+  "Document Uploaded": "bg-orange-100 text-orange-600",
+  "Reminder Set": "bg-pink-100 text-pink-600",
+  "Contact Added": "bg-cyan-100 text-cyan-600",
+  Updated: "bg-gray-100 text-gray-600",
 };
 
 export function ActivityTimeline({ activities }: ActivityTimelineProps) {

@@ -26,8 +26,8 @@ export function DocumentViewer({ path, downloadUrl, title, type }: DocumentViewe
   const [canRenderPdf, setCanRenderPdf] = useState(true);
 
   const colorClass = type === "resume"
-    ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400"
-    : "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400";
+    ? "bg-red-100 text-red-600"
+    : "bg-blue-100 text-blue-600";
 
   // Detect mobile device and PDF support
   useEffect(() => {

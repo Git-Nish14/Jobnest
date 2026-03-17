@@ -32,6 +32,16 @@ export const nestaAiSchema = z.object({
     .min(1, "Question is required")
     .max(2000, "Question is too long")
     .trim(),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(10000),
+      })
+    )
+    .max(20)
+    .optional()
+    .default([]),
 });
 
 // Document path validation
@@ -86,6 +96,7 @@ export const createChatMessageSchema = z.object({
 // Export types
 export type ContactApiInput = z.infer<typeof contactApiSchema>;
 export type NestaAiInput = z.infer<typeof nestaAiSchema>;
+export type NestaAiHistoryItem = NestaAiInput["history"][number];
 export type DocumentPathInput = z.infer<typeof documentPathSchema>;
 export type ExportInput = z.infer<typeof exportSchema>;
 export type CreateChatSessionInput = z.infer<typeof createChatSessionSchema>;

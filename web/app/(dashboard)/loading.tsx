@@ -1,5 +1,5 @@
-import { PageLoading } from "@/components/common";
+import { GenericPageSkeleton } from "@/components/common";
 
 export default function DashboardLoading() {
-  return <PageLoading />;
+  return <GenericPageSkeleton />;
 }
