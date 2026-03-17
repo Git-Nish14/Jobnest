@@ -1,57 +1,27 @@
-# JobNest Web Application
+# Jobnest — Web Application
 
-Next.js 16 web application for the JobNest job tracking platform.
+Next.js 16 web application for the Jobnest job tracking platform.
 
-## Development
+See the [root README](../README.md) for full documentation, setup instructions, and feature details.
+
+## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Run development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Lint code
-npm run lint
 ```
 
-## Environment Setup
-
-Copy `.env.example` to `.env.local` and fill in the values:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-CSRF_SECRET=
-```
-
-## Database Migrations
-
-Run these SQL files in your Supabase SQL Editor in order:
-
-1. `supabase/migrations/001_initial_setup.sql` - Database schema
-2. `supabase/migrations/002_storage_setup.sql` - Storage configuration
-
-## Key Directories
-
-| Directory | Purpose |
-|-----------|---------|
-| `app/` | Next.js App Router pages |
-| `components/` | React components |
-| `lib/` | Utilities, clients, security |
-| `supabase/` | Database migrations |
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `dev` | Start development server with Turbopack |
-| `build` | Build for production |
-| `start` | Start production server |
-| `lint` | Run ESLint |
+```bash
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Production server
+npm run lint     # ESLint
+```
+
+## Environment
+
+Create `.env.local` with the variables listed in the [root README](../README.md#environment-variables).

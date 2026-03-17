@@ -155,8 +155,8 @@ export default function ContactPage() {
               <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
                 {isSuccess ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                      <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                      <CheckCircle2 className="h-8 w-8 text-green-600" />
                     </div>
                     <h3 className="mt-4 text-xl font-semibold">Message Sent!</h3>
                     <p className="mt-2 text-muted-foreground">

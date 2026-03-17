@@ -16,7 +16,7 @@ export default function TermsPage() {
           <p className="mt-2 text-sm text-muted-foreground">Last updated: March 16, 2026</p>
         </div>
 
-        <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
+        <div className="prose prose-gray max-w-none space-y-8">
           <section>
             <h2 className="text-xl font-semibold sm:text-2xl">1. Acceptance of Terms</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">

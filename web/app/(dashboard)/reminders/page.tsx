@@ -30,9 +30,9 @@ export default async function RemindersPage() {
 
       {/* Overdue Reminders */}
       {overdue.length > 0 && (
-        <Card className="border-red-200 dark:border-red-900">
+        <Card className="border-red-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <CardTitle className="flex items-center gap-2 text-red-600">
               <Clock className="h-5 w-5" />
               Overdue ({overdue.length})
             </CardTitle>

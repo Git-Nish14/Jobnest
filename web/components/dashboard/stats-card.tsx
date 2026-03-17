@@ -17,17 +17,17 @@ export function StatsCard({
   className,
 }: StatsCardProps) {
   return (
-    <Card className={cn("", className)}>
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-0.5 sm:space-y-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
-            <p className="text-2xl sm:text-3xl font-bold tracking-tight">{value}</p>
+    <Card className={cn("overflow-hidden", className)}>
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">{title}</p>
+            <p className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground">{description}</p>
             )}
           </div>
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
             {icon}
           </div>
         </div>

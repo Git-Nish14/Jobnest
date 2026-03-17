@@ -57,6 +57,9 @@ const nextConfig: NextConfig = {
     return [];
   },
 
+  // Keep native Node.js modules out of the webpack client bundle
+  serverExternalPackages: ["pdf-parse", "mammoth"],
+
   // Security-related experimental features
   experimental: {
     // Enable strict mode for React

@@ -80,7 +80,7 @@ export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {
                       )}
                     </div>
                   </div>
-                  <span className="text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                  <span className="text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-700">
                     {interview.type}
                   </span>
                 </div>

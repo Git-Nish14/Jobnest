@@ -45,7 +45,7 @@ const dashboardLinks = [
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/templates", label: "Templates", icon: Mail },
   { href: "/salary", label: "Salary", icon: DollarSign },
-  { href: "/nesta-ai", label: "NESTAi", icon: Sparkles },
+  { href: "/nestai", label: "NESTAi", icon: Sparkles },
 ];
 
 export function Navbar({ user: initialUser }: NavbarProps) {
@@ -63,7 +63,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/contacts") ||
     pathname.startsWith("/templates") ||
     pathname.startsWith("/salary") ||
-    pathname.startsWith("/nesta-ai");
+    pathname.startsWith("/nestai");
 
   useEffect(() => {
     setMounted(true);
@@ -110,12 +110,12 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   if (isAuthenticated && isDashboardPage) {
     return (
       <>
-        <nav className="sticky top-0 z-50 w-full border-b bg-white dark:bg-zinc-950">
+        <nav className="sticky top-0 z-50 w-full border-b bg-white/98 shadow-xs backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
               {/* Left: Logo + Nav */}
-              <div className="flex items-center gap-8">
-                <Link href="/dashboard" className="flex items-center gap-2.5">
+              <div className="flex items-center gap-6">
+                <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
                   <Image
                     src="/logo_1.png"
                     alt="Jobnest"
@@ -128,7 +128,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
                 {/* Desktop Navigation */}
                 <nav className="hidden lg:flex items-center">
-                  <ul className="flex items-center gap-1">
+                  <ul className="flex items-center gap-0.5">
                     {dashboardLinks.map((link) => {
                       const isActive =
                         pathname === link.href ||
@@ -138,16 +138,13 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                           <Link
                             href={link.href}
                             className={cn(
-                              "relative px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                              "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150",
                               isActive
-                                ? "text-primary"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                             )}
                           >
                             {link.label}
-                            {isActive && (
-                              <span className="absolute inset-x-3 -bottom-4 h-0.5 bg-primary rounded-full" />
-                            )}
                           </Link>
                         </li>
                       );
@@ -157,18 +154,18 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               </div>
 
               {/* Right: Actions + Profile */}
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
                 {/* New Application - Desktop */}
                 <Link href="/applications/new" className="hidden md:block">
-                  <Button size="sm" className="h-9 gap-2 shadow-sm">
-                    <Plus className="h-4 w-4" />
-                    <span>New Application</span>
+                  <Button size="sm" className="h-8 gap-1.5 px-3 text-xs font-medium shadow-sm">
+                    <Plus className="h-3.5 w-3.5" />
+                    New Application
                   </Button>
                 </Link>
 
                 {/* New Application - Mobile (icon only) */}
                 <Link href="/applications/new" className="md:hidden">
-                  <Button size="sm" variant="outline" className="h-9 w-9 p-0">
+                  <Button size="sm" variant="outline" className="h-8 w-8 p-0">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -177,19 +174,19 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 {mounted && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-2 rounded-full p-1 hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <Avatar className="h-8 w-8 border-2 border-muted">
-                          <AvatarFallback className="bg-linear-to-br from-primary/80 to-primary text-primary-foreground text-sm font-medium">
+                      <button className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-border transition-all focus:outline-none">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                             {userInitial}
                           </AvatarFallback>
                         </Avatar>
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64">
-                      <div className="px-3 py-3 border-b">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border">
-                            <AvatarFallback className="bg-linear-to-br from-primary/80 to-primary text-primary-foreground font-medium">
+                    <DropdownMenuContent align="end" className="w-60">
+                      <div className="px-3 py-2.5 border-b bg-muted/30">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                               {userInitial}
                             </AvatarFallback>
                           </Avatar>
@@ -201,10 +198,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                       </div>
                       <div className="p-1">
                         <DropdownMenuItem asChild>
-                          <Link
-                            href="/contact"
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
+                          <Link href="/contact" className="flex items-center gap-2 cursor-pointer">
                             <HelpCircle className="h-4 w-4" />
                             Help & Support
                           </Link>
@@ -227,7 +221,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 {/* Mobile Menu Button */}
                 <button
                   type="button"
-                  className="lg:hidden p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
+                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-muted/60 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                 >
@@ -248,7 +242,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             />
 
             {/* Slide-out Panel */}
-            <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-white dark:bg-zinc-950 shadow-xl lg:hidden">
+            <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-white shadow-xl lg:hidden">
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 h-14 border-b">
@@ -326,7 +320,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   // Public navbar (landing, auth pages, etc.)
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-white/95 dark:bg-zinc-950/95 backdrop-blur supports-backdrop-filter:bg-white/80">
+    <nav className="sticky top-0 z-50 w-full border-b bg-white/95 shadow-xs backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5">
           <Image
@@ -383,7 +377,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t bg-white dark:bg-zinc-950 px-4 py-4 space-y-2">
+        <div className="sm:hidden border-t bg-white px-4 py-4 space-y-2">
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block">
