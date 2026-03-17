@@ -7,7 +7,6 @@ import {
   User,
   Loader2,
   Trash2,
-  Lightbulb,
   Zap,
   MessageSquare,
   Plus,
@@ -25,7 +24,7 @@ import {
   Building2,
   Target,
 } from "lucide-react";
-import { Button, Card, CardContent } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 interface Message {

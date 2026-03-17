@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateChatSessionSchema } from "@/lib/validations/api";
-import { ApiError, errorResponse, validateBody, successResponse, HttpStatus } from "@/lib/api/errors";
+import { ApiError, errorResponse, validateBody, successResponse } from "@/lib/api/errors";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
 // GET /api/nesta-ai/sessions/[id] - Get a specific chat session with messages
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -94,7 +94,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/nesta-ai/sessions/[id] - Delete a chat session
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(_: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();

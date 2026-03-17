@@ -39,12 +39,12 @@ export const interviewSchema = z.object({
   status: z.enum(INTERVIEW_STATUSES, {
     message: "Please select a valid status",
   }),
-  round: z.coerce.number().int().min(1, "Round must be at least 1").max(20, "Round cannot exceed 20"),
+  round: z.number().int().min(1, "Round must be at least 1").max(20, "Round cannot exceed 20"),
   scheduled_at: z
     .string()
     .min(1, "Date and time is required")
     .refine((val) => !isNaN(Date.parse(val)), "Invalid date format"),
-  duration_minutes: z.coerce
+  duration_minutes: z
     .number()
     .int()
     .min(15, "Duration must be at least 15 minutes")
@@ -132,7 +132,7 @@ export const contactFormSchema = z.object({
     .max(2000, "Notes are too long")
     .optional()
     .or(z.literal("")),
-  is_primary: z.boolean().default(false),
+  is_primary: z.boolean(),
 });
 
 // Email template form schema

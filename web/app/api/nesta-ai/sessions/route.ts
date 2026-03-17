@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createChatSessionSchema } from "@/lib/validations/api";
-import { ApiError, errorResponse, validateBody, successResponse, HttpStatus } from "@/lib/api/errors";
+import { ApiError, errorResponse, successResponse, HttpStatus } from "@/lib/api/errors";
 
 // GET /api/nesta-ai/sessions - List all chat sessions for the user
 export async function GET() {

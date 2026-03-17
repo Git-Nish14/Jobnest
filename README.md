@@ -109,15 +109,18 @@ web/
 │   └── auth/callback/          # OAuth callback
 ├── components/
 │   ├── ui/                     # Base UI components
+│   ├── layout/                 # Navbar, Footer, LayoutWrapper
 │   ├── applications/           # Application components
 │   ├── dashboard/              # Dashboard widgets
+│   ├── templates/              # Email template components
 │   └── ...
 ├── lib/
+│   ├── api/                    # Error handling, response helpers
+│   ├── data/                   # Data utilities
 │   ├── email/                  # Nodemailer service
-│   ├── security/               # OTP, rate-limit, CSRF
+│   ├── security/               # OTP, rate-limit, sanitization
 │   ├── supabase/               # Client, server, admin
 │   └── validations/            # Zod schemas
-├── services/                   # API service functions
 ├── hooks/                      # Custom React hooks
 ├── types/                      # TypeScript types
 └── middleware.ts               # Route protection + security headers

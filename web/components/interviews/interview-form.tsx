@@ -173,7 +173,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
                 type="number"
                 min="1"
                 max="20"
-                {...register("round")}
+                {...register("round", { valueAsNumber: true })}
                 className={errors.round ? "border-destructive" : ""}
               />
               {errors.round && (
@@ -203,7 +203,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
                 type="number"
                 min="15"
                 max="480"
-                {...register("duration_minutes")}
+                {...register("duration_minutes", { valueAsNumber: true })}
                 className={errors.duration_minutes ? "border-destructive" : ""}
               />
               {errors.duration_minutes && (
