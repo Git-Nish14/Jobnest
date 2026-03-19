@@ -3,6 +3,14 @@ import { Plus, FileText } from "lucide-react";
 import { getApplications } from "@/services";
 import { Button } from "@/components/ui";
 import { ApplicationCard, ApplicationFilters, ExportButton } from "@/components/applications";
+import type { QueryParams } from "@/types/api";
+
+const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
+function toDateRange(val?: string): QueryParams["dateRange"] | undefined {
+  return DATE_RANGES.includes(val as QueryParams["dateRange"])
+    ? (val as QueryParams["dateRange"])
+    : undefined;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +30,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
     search: params.search,
     status: params.status,
     location: params.location,
-    dateRange: params.dateRange as any,
+    dateRange: toDateRange(params.dateRange),
     sort: params.sort,
   });
 

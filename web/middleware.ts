@@ -62,10 +62,10 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip proxy for static files
+  // Skip middleware for static files
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
@@ -106,6 +106,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
+  // Refresh session — keeps tokens from expiring between requests
   const {
     data: { user },
   } = await supabase.auth.getUser();

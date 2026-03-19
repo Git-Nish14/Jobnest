@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2, Github } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
+import { fetchWithRetry, getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { Navbar, Footer } from "@/components/layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +22,7 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -32,15 +34,15 @@ export default function ContactPage() {
   });
 
   const onSubmit = async (data: ContactFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/contact", {
+      const response = await fetchWithRetry("/api/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
@@ -52,9 +54,10 @@ export default function ContactPage() {
       setIsSuccess(true);
       reset();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(getNetworkErrorMessage(err));
     } finally {
       setIsSubmitting(false);
+      submittingRef.current = false;
     }
   };
 

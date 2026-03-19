@@ -22,10 +22,15 @@ interface ContactListProps {
 export function ContactList({ contacts }: ContactListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this contact?")) return;
+  const handleDeleteClick = (id: string) => {
+    setConfirmingId(id);
+    setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 4000);
+  };
 
+  const handleDeleteConfirm = async (id: string) => {
+    setConfirmingId(null);
     setDeletingId(id);
     const supabase = createClient();
 
@@ -68,14 +73,24 @@ export function ContactList({ contacts }: ContactListProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleDelete(contact.id)}
-                  disabled={deletingId === contact.id}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
+                {confirmingId === contact.id ? (
+                  <DropdownMenuItem
+                    onClick={() => handleDeleteConfirm(contact.id)}
+                    className="text-destructive font-medium"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Confirm delete
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => handleDeleteClick(contact.id)}
+                    disabled={deletingId === contact.id}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deletingId === contact.id ? "Deleting..." : "Delete"}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

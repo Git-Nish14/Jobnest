@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
 import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
+import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { APPLICATION_STATUSES } from "@/config";
 import type { JobApplication } from "@/types";
 import {
@@ -36,6 +37,7 @@ interface ApplicationFormProps {
 export function ApplicationForm({ application, userId }: ApplicationFormProps) {
   const router = useRouter();
   const isEditing = !!application;
+  const submittingRef = useRef(false);
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
@@ -65,6 +67,8 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
   const currentStatus = watch("status");
 
   const onSubmit = async (data: ApplicationFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const supabase = createClient();
 
     try {
@@ -145,7 +149,9 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       router.push("/applications");
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "An error occurred");
+      toast.error(getNetworkErrorMessage(err));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

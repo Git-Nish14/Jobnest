@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import {
   interviewSchema,
   type InterviewFormData,
@@ -40,6 +41,7 @@ interface InterviewFormProps {
 export function InterviewForm({ applicationId, interview, onSuccess }: InterviewFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -70,6 +72,8 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
   const currentStatus = watch("status");
 
   const onSubmit = async (data: InterviewFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const supabase = createClient();
 
     try {
@@ -117,7 +121,9 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
       router.refresh();
       onSuccess?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save interview");
+      toast.error(getNetworkErrorMessage(err));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

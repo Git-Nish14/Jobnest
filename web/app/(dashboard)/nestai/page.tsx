@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 
 interface Message {
   id: string;
@@ -167,6 +168,7 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <button
+      type="button"
       onClick={copy}
       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
       title="Copy"
@@ -196,7 +198,10 @@ export default function NestAiPage() {
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Default sidebar closed on mobile (< lg), open on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
+  );
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -209,7 +214,7 @@ export default function NestAiPage() {
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
-      const res = await fetch("/api/nesta-ai/sessions");
+      const res = await fetchWithRetry("/api/nesta-ai/sessions");
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -258,7 +263,7 @@ export default function NestAiPage() {
 
   const createSession = async (): Promise<string | null> => {
     try {
-      const res = await fetch("/api/nesta-ai/sessions", {
+      const res = await fetchWithRetry("/api/nesta-ai/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "New Chat" }),
@@ -276,7 +281,7 @@ export default function NestAiPage() {
 
   const loadSession = async (sessionId: string) => {
     try {
-      const res = await fetch(`/api/nesta-ai/sessions/${sessionId}`);
+      const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`);
       if (res.ok) {
         const data = await res.json();
         const loaded: Message[] = data.session.messages.map((m: any) => ({
@@ -296,7 +301,7 @@ export default function NestAiPage() {
 
   const deleteSession = async (sessionId: string) => {
     try {
-      const res = await fetch(`/api/nesta-ai/sessions/${sessionId}`, { method: "DELETE" });
+      const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`, { method: "DELETE" }, { retries: 1 });
       if (res.ok) {
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
         if (currentSessionId === sessionId) {
@@ -312,11 +317,11 @@ export default function NestAiPage() {
 
   const updateSessionTitle = async (sessionId: string, title: string) => {
     try {
-      const res = await fetch(`/api/nesta-ai/sessions/${sessionId}`, {
+      const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
-      });
+      }, { retries: 1 });
       if (res.ok) {
         setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, title } : s)));
       }
@@ -328,11 +333,11 @@ export default function NestAiPage() {
 
   const saveMessage = async (sessionId: string, role: "user" | "assistant", content: string) => {
     try {
-      await fetch(`/api/nesta-ai/sessions/${sessionId}/messages`, {
+      await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role, content }),
-      });
+      }, { retries: 1 });
     } catch (err) {
       console.error("Failed to save message:", err);
     }
@@ -383,21 +388,20 @@ export default function NestAiPage() {
     if (sessionId) saveMessage(sessionId, "user", question);
 
     try {
-      const res = await fetch("/api/nesta-ai", {
+      const res = await fetchWithRetry("/api/nesta-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
-          history: historySnapshot.slice(-10), // last 10 turns for context
+          history: historySnapshot.slice(-10),
         }),
-      });
+      }, { retries: 1, timeoutMs: 45_000 }); // generous timeout for AI + DB round-trip
       const data = await res.json();
 
       if (!res.ok) {
         if (res.status === 429 && data.resetIn) {
           setIsRateLimited(true);
           setRemaining(0);
-          // Sync authoritative reset time from server
           setWindowEndAt(Date.now() + data.resetIn * 1000);
         }
         throw new Error(data.error || "Failed to get response");
@@ -454,11 +458,22 @@ export default function NestAiPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] sm:h-[calc(100vh-4.5rem)] overflow-hidden rounded-xl border bg-white shadow-sm">
 
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside
         className={cn(
           "flex flex-col border-r bg-muted/30 transition-all duration-300 shrink-0",
-          sidebarOpen ? "w-64" : "w-0 overflow-hidden border-r-0"
+          sidebarOpen
+            ? "w-64 fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto rounded-l-xl"
+            : "w-0 overflow-hidden border-r-0"
         )}
       >
         {/* Sidebar header */}
@@ -529,12 +544,16 @@ export default function NestAiPage() {
                         }}
                       />
                       <button
+                        type="button"
+                        aria-label="Save title"
                         onClick={() => updateSessionTitle(session.id, editTitle)}
                         className="p-1 rounded hover:bg-green-100 text-green-600"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        type="button"
+                        aria-label="Cancel edit"
                         onClick={() => setEditingSessionId(null)}
                         className="p-1 rounded hover:bg-muted"
                       >
@@ -544,6 +563,7 @@ export default function NestAiPage() {
                   ) : (
                     <>
                       <button
+                        type="button"
                         className="flex-1 text-left px-2 py-2 min-w-0"
                         onClick={() => loadSession(session.id)}
                       >
@@ -556,6 +576,8 @@ export default function NestAiPage() {
                       {/* Context menu */}
                       <div className="relative pr-1 shrink-0">
                         <button
+                          type="button"
+                          aria-label="Session options"
                           className={cn(
                             "p-1 rounded hover:bg-muted transition-opacity text-muted-foreground",
                             menuOpenId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
@@ -573,6 +595,7 @@ export default function NestAiPage() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
+                              type="button"
                               className="w-full px-3 py-1.5 text-xs text-left hover:bg-muted flex items-center gap-2 transition-colors"
                               onClick={() => {
                                 setEditTitle(session.title);
@@ -584,6 +607,7 @@ export default function NestAiPage() {
                               Rename
                             </button>
                             <button
+                              type="button"
                               className="w-full px-3 py-1.5 text-xs text-left hover:bg-destructive/10 flex items-center gap-2 text-destructive transition-colors"
                               onClick={() => deleteSession(session.id)}
                             >
@@ -742,7 +766,7 @@ export default function NestAiPage() {
           <div className="px-4 pb-2 max-w-2xl mx-auto w-full">
             <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/8 border border-destructive/20 text-destructive text-sm">
               <span>{error}</span>
-              <button onClick={() => setError(null)} className="hover:opacity-70 shrink-0">
+              <button type="button" aria-label="Dismiss error" onClick={() => setError(null)} className="hover:opacity-70 shrink-0">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -759,8 +783,8 @@ export default function NestAiPage() {
                 {/* Progress bar — drains left to right over the 60s window */}
                 <div className="h-1 w-full rounded-full bg-destructive/15 mb-3 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-destructive/40 transition-all duration-1000"
-                    style={{ width: `${(resetCountdown / (WINDOW_MS / 1000)) * 100}%` }}
+                    className="h-full rounded-full bg-destructive/40 transition-all duration-1000 [width:var(--bar-w)]"
+                    style={{ "--bar-w": `${Math.max(0, (resetCountdown / (WINDOW_MS / 1000)) * 100)}%` } as React.CSSProperties}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
@@ -791,8 +815,7 @@ export default function NestAiPage() {
                     placeholder="Message NESTAi…"
                     rows={1}
                     disabled={isLoading}
-                    className="flex-1 resize-none bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/50 py-1.5 max-h-[200px] leading-relaxed disabled:opacity-50"
-                    style={{ minHeight: "36px" }}
+                    className="flex-1 resize-none bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/50 py-1.5 min-h-9 max-h-[200px] leading-relaxed disabled:opacity-50"
                   />
                   <Button
                     type="submit"

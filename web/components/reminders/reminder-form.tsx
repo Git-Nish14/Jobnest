@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import {
   reminderSchema,
   type ReminderFormData,
@@ -46,6 +47,7 @@ function getDefaultDateTime(): string {
 export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -69,6 +71,8 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
   const currentType = watch("type");
 
   const onSubmit = async (data: ReminderFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const supabase = createClient();
 
     try {
@@ -114,7 +118,9 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
       router.refresh();
       onSuccess?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save reminder");
+      toast.error(getNetworkErrorMessage(err));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

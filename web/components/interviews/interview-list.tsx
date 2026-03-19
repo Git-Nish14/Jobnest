@@ -27,6 +27,12 @@ interface InterviewListProps {
 export function InterviewList({ applicationId, interviews }: InterviewListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setConfirmingId(id);
+    setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 4000);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -61,9 +67,8 @@ export function InterviewList({ applicationId, interviews }: InterviewListProps)
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this interview?")) return;
-
+  const handleDeleteConfirm = async (id: string) => {
+    setConfirmingId(null);
     setDeletingId(id);
     const supabase = createClient();
 
@@ -114,8 +119,10 @@ export function InterviewList({ applicationId, interviews }: InterviewListProps)
                     formatDate={formatDate}
                     formatTime={formatTime}
                     getStatusColor={getStatusColor}
-                    onDelete={handleDelete}
+                    onDeleteClick={handleDeleteClick}
+                    onDeleteConfirm={handleDeleteConfirm}
                     isDeleting={deletingId === interview.id}
+                    isConfirming={confirmingId === interview.id}
                   />
                 ))}
               </div>
@@ -133,8 +140,10 @@ export function InterviewList({ applicationId, interviews }: InterviewListProps)
                     formatDate={formatDate}
                     formatTime={formatTime}
                     getStatusColor={getStatusColor}
-                    onDelete={handleDelete}
+                    onDeleteClick={handleDeleteClick}
+                    onDeleteConfirm={handleDeleteConfirm}
                     isDeleting={deletingId === interview.id}
+                    isConfirming={confirmingId === interview.id}
                   />
                 ))}
               </div>
@@ -152,8 +161,10 @@ interface InterviewCardProps {
   formatDate: (date: string) => string;
   formatTime: (date: string) => string;
   getStatusColor: (status: string) => string;
-  onDelete: (id: string) => void;
+  onDeleteClick: (id: string) => void;
+  onDeleteConfirm: (id: string) => void;
   isDeleting: boolean;
+  isConfirming: boolean;
 }
 
 function InterviewCard({
@@ -162,8 +173,10 @@ function InterviewCard({
   formatDate,
   formatTime,
   getStatusColor,
-  onDelete,
+  onDeleteClick,
+  onDeleteConfirm,
   isDeleting,
+  isConfirming,
 }: InterviewCardProps) {
   return (
     <div className="p-3 sm:p-4 rounded-lg border bg-muted/30">
@@ -240,14 +253,24 @@ function InterviewCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <InterviewForm applicationId={applicationId} interview={interview} />
-            <DropdownMenuItem
-              onClick={() => onDelete(interview.id)}
-              disabled={isDeleting}
-              className="text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
+            {isConfirming ? (
+              <DropdownMenuItem
+                onClick={() => onDeleteConfirm(interview.id)}
+                className="text-destructive font-medium"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Confirm delete
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => onDeleteClick(interview.id)}
+                disabled={isDeleting}
+                className="text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? "Deleting..." : "Delete"}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

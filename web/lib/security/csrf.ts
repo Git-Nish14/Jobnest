@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
 import { randomBytes, createHmac } from "crypto";
 
-const CSRF_SECRET = process.env.CSRF_SECRET || "default-csrf-secret-change-in-production";
+const CSRF_SECRET = (() => {
+  const secret = process.env.CSRF_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("CSRF_SECRET environment variable is required in production");
+  }
+  return secret || "dev-csrf-secret-not-for-production";
+})();
 const CSRF_TOKEN_NAME = "csrf_token";
 const CSRF_HEADER_NAME = "x-csrf-token";
 

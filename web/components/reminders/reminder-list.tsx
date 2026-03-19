@@ -23,6 +23,7 @@ interface ReminderListProps {
 export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -77,9 +78,13 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
     setLoadingId(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this reminder?")) return;
+  const handleDeleteClick = (id: string) => {
+    setConfirmingId(id);
+    setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 4000);
+  };
 
+  const handleDeleteConfirm = async (id: string) => {
+    setConfirmingId(null);
     setLoadingId(id);
     const supabase = createClient();
 
@@ -121,7 +126,7 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 flex-shrink-0 mt-0.5"
+              className="h-6 w-6 shrink-0 mt-0.5"
               onClick={() => handleComplete(reminder.id)}
               disabled={loadingId === reminder.id}
               title="Mark as complete"
@@ -153,19 +158,29 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(reminder.id)}
-                    disabled={loadingId === reminder.id}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
+                  {confirmingId === reminder.id ? (
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteConfirm(reminder.id)}
+                      className="text-destructive font-medium"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Confirm delete
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteClick(reminder.id)}
+                      disabled={loadingId === reminder.id}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {loadingId === reminder.id ? "Deleting..." : "Delete"}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
