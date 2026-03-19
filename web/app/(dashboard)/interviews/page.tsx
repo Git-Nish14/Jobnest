@@ -98,71 +98,73 @@ export default async function InterviewsPage() {
           ) : (
             <div className="space-y-4">
               {upcoming.map((interview: any) => (
-                <Link
+                <div
                   key={interview.id}
-                  href={`/applications/${interview.application_id}`}
-                  className="block p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold">
-                          {interview.job_applications?.position || "Interview"}
-                        </h3>
-                        <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(interview.type)}`}>
-                          {interview.type}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
-                          Round {interview.round}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {interview.job_applications?.company}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
-                        </span>
-                        {interview.duration_minutes && (
-                          <span>{interview.duration_minutes} min</span>
-                        )}
-                        {interview.meeting_url && (
-                          <span className="flex items-center gap-1">
-                            <Video className="h-4 w-4" />
-                            Video Call
-                          </span>
-                        )}
-                        {interview.location && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {interview.location}
-                          </span>
-                        )}
-                        {interview.interviewer_names?.length > 0 && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            {interview.interviewer_names.join(", ")}
-                          </span>
-                        )}
-                      </div>
+                  {/* Clickable content area navigates to the application */}
+                  <Link
+                    href={`/applications/${interview.application_id}`}
+                    className="flex-1 min-w-0"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold">
+                        {interview.job_applications?.position || "Interview"}
+                      </h3>
+                      <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(interview.type)}`}>
+                        {interview.type}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
+                        Round {interview.round}
+                      </span>
                     </div>
-                    {interview.meeting_url && (
-                      <a
-                        href={interview.meeting_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="shrink-0"
-                      >
-                        <Button size="sm" className="gap-2">
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {interview.job_applications?.company}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
+                      </span>
+                      {interview.duration_minutes && (
+                        <span>{interview.duration_minutes} min</span>
+                      )}
+                      {interview.meeting_url && (
+                        <span className="flex items-center gap-1">
                           <Video className="h-4 w-4" />
-                          Join
-                        </Button>
-                      </a>
-                    )}
-                  </div>
-                </Link>
+                          Video Call
+                        </span>
+                      )}
+                      {interview.location && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {interview.location}
+                        </span>
+                      )}
+                      {interview.interviewer_names?.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          {interview.interviewer_names.join(", ")}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+
+                  {/* Join button is a sibling to the Link — no stopPropagation needed */}
+                  {interview.meeting_url && (
+                    <a
+                      href={interview.meeting_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0"
+                    >
+                      <Button size="sm" className="gap-2">
+                        <Video className="h-4 w-4" />
+                        Join
+                      </Button>
+                    </a>
+                  )}
+                </div>
               ))}
             </div>
           )}

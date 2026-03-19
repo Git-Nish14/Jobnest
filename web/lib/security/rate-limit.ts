@@ -68,15 +68,3 @@ export function checkRateLimit(
 export function resetRateLimit(identifier: string): void {
   rateLimitStore.delete(identifier);
 }
-
-// Specific rate limiters for different actions
-export const authRateLimiter = {
-  login: (ip: string) =>
-    checkRateLimit(`login:${ip}`, { windowMs: 15 * 60 * 1000, maxRequests: 5 }),
-  signup: (ip: string) =>
-    checkRateLimit(`signup:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
-  forgotPassword: (ip: string) =>
-    checkRateLimit(`forgot:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 3 }),
-  resendVerification: (ip: string) =>
-    checkRateLimit(`resend:${ip}`, { windowMs: 60 * 60 * 1000, maxRequests: 5 }),
-};

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, ArrowLeft, Mail, CheckCircle2, KeyRound } from "lucide-react";
+import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import {
   Button,
   Input,
@@ -51,6 +52,9 @@ export default function ForgotPasswordPage() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpVerifyingRef = useRef(false);
+  const otpSendingRef = useRef(false);
+  const resetPasswordRef = useRef(false);
 
   const emailForm = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -74,8 +78,10 @@ export default function ForgotPasswordPage() {
   }, [step]);
 
   const sendOtp = async (emailToSend: string): Promise<boolean> => {
+    if (otpSendingRef.current) return false;
+    otpSendingRef.current = true;
     try {
-      const response = await fetch("/api/auth/send-otp", {
+      const response = await fetchWithRetry("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToSend, purpose: "password_reset" }),
@@ -90,9 +96,11 @@ export default function ForgotPasswordPage() {
 
       setResendCooldown(60);
       return true;
-    } catch {
-      setError("Failed to send verification code. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send verification code. Please try again.");
       return false;
+    } finally {
+      otpSendingRef.current = false;
     }
   };
 
@@ -141,18 +149,16 @@ export default function ForgotPasswordPage() {
   };
 
   const verifyOtp = async (code: string) => {
+    if (otpVerifyingRef.current) return;
+    otpVerifyingRef.current = true;
     setError(null);
     setIsVerifying(true);
 
     try {
-      const response = await fetch("/api/auth/verify-otp", {
+      const response = await fetchWithRetry("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          code,
-          purpose: "password_reset",
-        }),
+        body: JSON.stringify({ email, code, purpose: "password_reset" }),
       });
 
       const data = await response.json();
@@ -161,16 +167,16 @@ export default function ForgotPasswordPage() {
         setError(data.error || "Invalid verification code");
         setOtp(["", "", "", "", "", ""]);
         otpRefs.current[0]?.focus();
-        setIsVerifying(false);
         return;
       }
 
       setResetToken(data.reset_token);
       setStep("reset");
-    } catch {
-      setError("Verification failed. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Verification failed. Please try again.");
     } finally {
       setIsVerifying(false);
+      otpVerifyingRef.current = false;
     }
   };
 
@@ -191,18 +197,15 @@ export default function ForgotPasswordPage() {
   };
 
   const onSubmitReset = async (data: ResetPasswordFormData) => {
+    if (resetPasswordRef.current) return;
+    resetPasswordRef.current = true;
     setError(null);
 
     try {
-      // Use the API to update the user's password
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await fetchWithRetry("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          newPassword: data.password,
-          resetToken,
-        }),
+        body: JSON.stringify({ email, newPassword: data.password, resetToken }),
       });
 
       const result = await response.json();
@@ -213,8 +216,10 @@ export default function ForgotPasswordPage() {
       }
 
       setStep("success");
-    } catch {
-      setError("Failed to reset password. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset password. Please try again.");
+    } finally {
+      resetPasswordRef.current = false;
     }
   };
 

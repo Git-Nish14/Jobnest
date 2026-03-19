@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Download, Loader2, FileText, FileJson } from "lucide-react";
 import { toast } from "sonner";
+import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import {
   Button,
   DropdownMenu,
@@ -15,8 +16,11 @@ import {
 
 export function ExportButton() {
   const [loading, setLoading] = useState(false);
+  const exportingRef = useRef(false);
 
   const handleExport = async (format: "csv" | "json", includeNotes = false) => {
+    if (exportingRef.current) return;
+    exportingRef.current = true;
     setLoading(true);
 
     try {
@@ -24,7 +28,7 @@ export function ExportButton() {
       params.set("format", format);
       if (includeNotes) params.set("includeNotes", "true");
 
-      const response = await fetch(`/api/export?${params.toString()}`);
+      const response = await fetchWithRetry(`/api/export?${params.toString()}`, {}, { retries: 1, timeoutMs: 30_000 });
 
       if (!response.ok) {
         throw new Error("Export failed");
@@ -42,9 +46,10 @@ export function ExportButton() {
 
       toast.success(`Exported applications as ${format.toUpperCase()}`);
     } catch (err) {
-      toast.error("Failed to export applications");
+      toast.error(err instanceof Error ? err.message : "Failed to export applications");
     } finally {
       setLoading(false);
+      exportingRef.current = false;
     }
   };
 

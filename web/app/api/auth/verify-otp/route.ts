@@ -114,13 +114,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (purpose === "signup") {
-      // Mark email as verified in user metadata
+      // Mark email as verified in user metadata (best-effort — user may not have a session yet)
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user: signupUser } } = await supabase.auth.getUser();
 
-      if (user) {
+      if (signupUser) {
         await supabase.auth.updateUser({
           data: {
             email_verified: true,
@@ -128,6 +126,7 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+      // If no session yet, the metadata will be set on next authenticated request — not a hard failure
 
       return successResponse({
         success: true,

@@ -336,7 +336,7 @@ function buildContext(
     parts.push(
       `APPLICATIONS — Total: ${applications.length} | This week: ${thisWeekCount} | This month: ${thisMonthCount}`,
       `Status breakdown: ${Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(" | ")}`,
-      `Documents on file: ${appsWithResume} resume(s), ${appsWithCoverLetter} cover letter(s) uploaded. Filenames are listed per application below. File contents cannot be read — only the filename is available.`,
+      `Documents on file: ${appsWithResume} resume(s), ${appsWithCoverLetter} cover letter(s) uploaded. Full text of each document is included in the DOCUMENT CONTENTS section below.`,
     );
 
     // Every single application

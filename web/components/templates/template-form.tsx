@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import {
   templateSchema,
   type TemplateFormData,
@@ -38,6 +39,7 @@ interface TemplateFormProps {
 export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -59,6 +61,8 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
   const currentCategory = watch("category");
 
   const onSubmit = async (data: TemplateFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const supabase = createClient();
 
     try {
@@ -98,7 +102,9 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
       router.refresh();
       onSuccess?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save template");
+      toast.error(getNetworkErrorMessage(err));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

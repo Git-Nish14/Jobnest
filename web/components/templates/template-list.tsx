@@ -22,6 +22,7 @@ export function TemplateList({ templates }: TemplateListProps) {
   const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const handleCopy = async (template: EmailTemplate) => {
     const text = `Subject: ${template.subject}\n\n${template.body}`;
@@ -31,9 +32,13 @@ export function TemplateList({ templates }: TemplateListProps) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this template?")) return;
+  const handleDeleteClick = (id: string) => {
+    setConfirmingId(id);
+    setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 4000);
+  };
 
+  const handleDeleteConfirm = async (id: string) => {
+    setConfirmingId(null);
     setDeletingId(id);
     const supabase = createClient();
 
@@ -67,7 +72,7 @@ export function TemplateList({ templates }: TemplateListProps) {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -94,14 +99,24 @@ export function TemplateList({ templates }: TemplateListProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(template.id)}
-                    disabled={deletingId === template.id}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
+                  {confirmingId === template.id ? (
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteConfirm(template.id)}
+                      className="text-destructive font-medium"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Confirm delete
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => handleDeleteClick(template.id)}
+                      disabled={deletingId === template.id}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {deletingId === template.id ? "Deleting..." : "Delete"}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

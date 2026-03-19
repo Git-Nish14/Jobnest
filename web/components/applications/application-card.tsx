@@ -34,10 +34,16 @@ interface ApplicationCardProps {
 export function ApplicationCard({ application }: ApplicationCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this application?")) return;
+  const handleDeleteClick = () => {
+    setConfirmingDelete(true);
+    // Auto-cancel confirmation after 4 seconds
+    setTimeout(() => setConfirmingDelete(false), 4000);
+  };
 
+  const handleDeleteConfirm = async () => {
+    setConfirmingDelete(false);
     setDeleting(true);
     const supabase = createClient();
     const { error } = await supabase
@@ -116,14 +122,24 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {deleting ? "Deleting..." : "Delete"}
-                    </DropdownMenuItem>
+                    {confirmingDelete ? (
+                      <DropdownMenuItem
+                        onClick={handleDeleteConfirm}
+                        className="text-destructive focus:text-destructive font-medium"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Confirm delete
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={handleDeleteClick}
+                        disabled={deleting}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {deleting ? "Deleting..." : "Delete"}
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

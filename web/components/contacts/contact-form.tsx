@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { contactFormSchema, type ContactFormData } from "@/lib/validations/forms";
 import {
   Button,
@@ -30,6 +31,7 @@ interface ContactFormProps {
 export function ContactForm({ applicationId, contact, onSuccess }: ContactFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -54,6 +56,8 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
   const isPrimary = watch("is_primary");
 
   const onSubmit = async (data: ContactFormData) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const supabase = createClient();
 
     try {
@@ -105,7 +109,9 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       router.refresh();
       onSuccess?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save contact");
+      toast.error(getNetworkErrorMessage(err));
+    } finally {
+      submittingRef.current = false;
     }
   };
 
