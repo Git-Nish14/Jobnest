@@ -264,4 +264,4 @@ Private — All rights reserved
 
 ---
 
-Built with care by [Techifive](https://techifive.com)
+Built with precision by [Techifive](https://techifive.com)
