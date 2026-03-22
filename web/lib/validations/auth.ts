@@ -27,7 +27,7 @@ export const otpSchema = z
   .regex(/^\d{6}$/, "Verification code must only contain digits");
 
 // Auth purpose validation
-export const authPurposeSchema = z.enum(["login", "signup", "password_reset"]);
+export const authPurposeSchema = z.enum(["login", "signup", "password_reset", "change_password", "delete_account"]);
 
 // Send OTP request schema
 export const sendOtpSchema = z.object({

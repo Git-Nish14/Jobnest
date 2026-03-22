@@ -39,7 +39,7 @@ function createTransporter() {
 export async function sendOTPEmail(
   email: string,
   otp: string,
-  purpose: "login" | "signup" | "password_reset" = "login"
+  purpose: "login" | "signup" | "password_reset" | "change_password" | "delete_account" = "login"
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const transporter = createTransporter();
@@ -49,12 +49,16 @@ export async function sendOTPEmail(
       login: "sign in to your account",
       signup: "verify your email address",
       password_reset: "reset your password",
+      change_password: "confirm your password change",
+      delete_account: "confirm your account deletion request",
     };
 
     const purposeTitle = {
       login: "Sign In Verification",
       signup: "Email Verification",
       password_reset: "Password Reset",
+      change_password: "Password Change Verification",
+      delete_account: "Account Deletion Confirmation",
     };
 
     const mailOptions = {
@@ -120,6 +124,263 @@ A Techifive Product
     return { success: true };
   } catch (error) {
     console.error("Failed to send OTP email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export async function sendDeletionScheduledEmail(
+  email: string,
+  scheduledDeletionAt: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jobnest.nishpatel.dev";
+    const deletionDate = formatDate(scheduledDeletionAt);
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: "Your Jobnest account has been scheduled for deletion",
+      text: `
+Your Jobnest account has been scheduled for permanent deletion on ${deletionDate}.
+
+You have 30 days to change your mind. Simply sign in to your account at ${appUrl}/login and your account will be immediately restored.
+
+If you take no action, your account and all data will be permanently deleted on ${deletionDate}.
+
+We'll send you reminders every 7 days until then.
+
+Best regards,
+The Jobnest Team
+A Techifive Product
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Account Deletion Scheduled</h1>
+  </div>
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+    <p>Your Jobnest account has been scheduled for permanent deletion on:</p>
+    <div style="background: #fee2e2; border: 1px solid #fca5a5; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <strong style="font-size: 18px; color: #b91c1c;">${deletionDate}</strong>
+    </div>
+    <p>You have <strong>30 days</strong> to change your mind. Simply sign in to your account and it will be immediately restored — no action required beyond logging in.</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${appUrl}/login" style="background: #3b82f6; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Sign In to Cancel Deletion</a>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">If you take no action, your account and all associated data (applications, interviews, contacts, and more) will be <strong>permanently deleted</strong> on ${deletionDate}. This cannot be undone.</p>
+    <p style="color: #6b7280; font-size: 14px;">We'll send you reminder emails every 7 days until then.</p>
+    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      <p style="margin: 0; font-size: 12px; color: #9ca3af; text-align: center;">
+        If you didn't request this, please sign in immediately and contact our support team.
+      </p>
+    </div>
+    <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
+      Best regards,<br><strong>The Jobnest Team</strong><br>
+      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+    </p>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send deletion scheduled email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
+export async function sendDeletionReminderEmail(
+  email: string,
+  scheduledDeletionAt: string,
+  daysRemaining: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jobnest.nishpatel.dev";
+    const deletionDate = formatDate(scheduledDeletionAt);
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Reminder: Your Jobnest account will be deleted in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`,
+      text: `
+Reminder: Your Jobnest account is scheduled for permanent deletion in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} (${deletionDate}).
+
+To cancel the deletion and restore your account, simply sign in at ${appUrl}/login.
+
+If you take no action, all your data will be permanently deleted on ${deletionDate}.
+
+Best regards,
+The Jobnest Team
+A Techifive Product
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">⚠️ Deletion Reminder</h1>
+  </div>
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+    <p>This is a reminder that your Jobnest account is scheduled for permanent deletion in:</p>
+    <div style="background: #ffedd5; border: 1px solid #fdba74; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <strong style="font-size: 28px; color: #c2410c;">${daysRemaining} day${daysRemaining === 1 ? "" : "s"}</strong>
+      <p style="margin: 4px 0 0; color: #7c2d12; font-size: 14px;">${deletionDate}</p>
+    </div>
+    <p>To restore your account, simply sign in — your data will be immediately recovered and the deletion will be cancelled.</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${appUrl}/login" style="background: #3b82f6; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Sign In to Restore Account</a>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">After ${deletionDate}, your account and all data (applications, interviews, contacts, salary data, and more) will be <strong>permanently deleted</strong> and cannot be recovered.</p>
+    <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
+      Best regards,<br><strong>The Jobnest Team</strong><br>
+      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+    </p>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send deletion reminder email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
+export async function sendDeletionFinalWarningEmail(
+  email: string,
+  scheduledDeletionAt: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jobnest.nishpatel.dev";
+    const deletionDate = formatDate(scheduledDeletionAt);
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: "Final notice: Your Jobnest account will be deleted tomorrow",
+      text: `
+FINAL NOTICE: Your Jobnest account is scheduled for permanent deletion on ${deletionDate}.
+
+This is your last chance to cancel. Sign in at ${appUrl}/login within the next 24 hours to restore your account. After that, all your data will be permanently deleted and cannot be recovered.
+
+Best regards,
+The Jobnest Team
+A Techifive Product
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <p style="color: #fca5a5; font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 8px;">Final Notice</p>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Account Deleted Tomorrow</h1>
+  </div>
+  <div style="background: #fff7f7; padding: 30px; border: 2px solid #dc2626; border-top: none; border-radius: 0 0 12px 12px;">
+    <p style="font-size: 16px; font-weight: 600; color: #7f1d1d; margin: 0 0 16px;">Your account will be permanently deleted on ${deletionDate}.</p>
+    <p>This is your <strong>last chance</strong> to cancel. Sign in within the next 24 hours to restore your account — your data is still intact right now.</p>
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="${appUrl}/login" style="background: #dc2626; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px; display: inline-block;">Sign In Now — Save My Account</a>
+    </div>
+    <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 20px 0;">
+      <p style="margin: 0; font-size: 14px; color: #7f1d1d;">
+        After deletion, <strong>all your data is gone forever</strong>: applications, interviews, contacts, salary records, templates, and more. This cannot be undone.
+      </p>
+    </div>
+    <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
+      Best regards,<br><strong>The Jobnest Team</strong><br>
+      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+    </p>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send final warning email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
+export async function sendAccountReactivatedEmail(
+  email: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: "Your Jobnest account has been restored",
+      text: `
+Great news! Your Jobnest account has been successfully restored. Your scheduled deletion has been cancelled and all your data is intact.
+
+Welcome back!
+
+Best regards,
+The Jobnest Team
+A Techifive Product
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Account Restored</h1>
+  </div>
+  <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+    <p>Your Jobnest account has been successfully restored. The scheduled deletion has been cancelled and all your data is fully intact.</p>
+    <div style="background: #dcfce7; border: 1px solid #86efac; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
+      <strong style="color: #15803d;">Welcome back!</strong>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">If you'd like to delete your account again in the future, you can do so from your Profile settings.</p>
+    <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
+      Best regards,<br><strong>The Jobnest Team</strong><br>
+      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+    </p>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send account reactivated email:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to send email",
