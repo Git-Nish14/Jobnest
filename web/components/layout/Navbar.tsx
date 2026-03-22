@@ -19,6 +19,7 @@ import {
   HelpCircle,
   ChevronRight,
   Sparkles,
+  UserCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -63,7 +64,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/contacts") ||
     pathname.startsWith("/templates") ||
     pathname.startsWith("/salary") ||
-    pathname.startsWith("/nestai");
+    pathname.startsWith("/nestai") ||
+    pathname.startsWith("/profile");
 
   useEffect(() => {
     setMounted(true);
@@ -197,6 +199,12 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                         </div>
                       </div>
                       <div className="p-1">
+                        <DropdownMenuItem asChild>
+                          <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                            <UserCircle className="h-4 w-4" />
+                            Profile
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href="/contact" className="flex items-center gap-2 cursor-pointer">
                             <HelpCircle className="h-4 w-4" />

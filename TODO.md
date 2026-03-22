@@ -4,6 +4,28 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## 🚨 Next Session — Must Do First
+
+These are environment/infrastructure tasks that are **blocking production correctness** right now. Do these before anything else.
+
+- [ ] **Run Supabase migration 7**
+  - Open Supabase dashboard → SQL editor
+  - Run `supabase/migrations/20240101000007_pending_deletions_improvements.sql`
+  - This fixes the broken UNIQUE constraint on `pending_deletions` and adds the `delete_account` OTP purpose
+
+- [ ] **Update `web/.env.local`**
+  - Add `NEXT_PUBLIC_APP_URL=https://jobnest.nishpatel.dev`
+  - Add `CRON_SECRET=<generate: openssl rand -hex 32>`
+  - Confirm `NEXT_PUBLIC_SITE_URL=https://jobnest.nishpatel.dev` (not jobnest.app)
+
+- [ ] **Update Vercel environment variables** (Settings → Environment Variables)
+  - Add `NEXT_PUBLIC_APP_URL=https://jobnest.nishpatel.dev`
+  - Add `NEXT_PUBLIC_SITE_URL=https://jobnest.nishpatel.dev`
+  - Add `CRON_SECRET=<same value as .env.local>`
+  - Redeploy after adding
+
+---
+
 ## 🔐 Auth
 
 - [ ] **OAuth — Google & GitHub sign-in/sign-up**
@@ -12,7 +34,6 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - Handle `/auth/callback` route to exchange the code and set the session
   - Remove `disabled` + `opacity-50` from the OAuth buttons on login/signup pages
   - Merge OAuth users with existing email/password accounts where email matches
-  - Test both new-user and returning-user flows
 
 - [ ] **Session persistence across tabs**
   - Listen to `supabase.auth.onAuthStateChange` globally and sync logout across browser tabs
@@ -24,16 +45,23 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 👤 Profile Page
 
-- [ ] **Build `/profile` route under `(dashboard)`**
-  - Display current account info: email, joined date, plan
-  - Update display name / avatar (initials-based until custom avatar is added)
-  - Change password flow (current password → new password with OTP re-verification)
-  - Delete account with confirmation (cascade delete all user data via Supabase RLS)
+- [x] **Build `/profile` route under `(dashboard)`**
+  - Account info: email, joined date, plan, last password changed
+  - Display name update (initials-based avatar)
+  - Change password (3-step: current password → OTP → new password)
+  - Delete account — OTP-confirmed soft delete with 30-day grace period
+
+- [x] **Soft-delete / account grace period**
+  - 30-day grace period with 7-day reminder emails
+  - 24-hour final warning email
+  - Inline cancel button on profile page + dashboard banner
+  - Daily Vercel Cron job permanently deletes expired accounts
+  - IP address + optional reason recorded for audit
 
 - [ ] **NESTAi AI context section on profile**
   - Free-text "About Me" field — career goals, current role, industry, preferred locations, skills
-  - This gets injected into the NESTAi system prompt as additional user context
-  - Example fields: current title, years of experience, target roles, target salary range, preferred work type (remote/hybrid/on-site)
+  - Injected into the NESTAi system prompt as additional user context
+  - Example fields: current title, years of experience, target roles, target salary, preferred work type
 
 - [ ] **Notification preferences**
   - Email reminders for overdue items
@@ -46,11 +74,11 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ### Memory & History
 - [ ] **Increase per-session message history from 10 → 100**
   - Update `history.slice(-10)` to `history.slice(-100)` in the API route
-  - Adjust `max` on the Zod `history` array validation accordingly
+  - Adjust `max` on the Zod `history` array validation
   - Monitor token usage — add a token estimate guard before sending to Groq
 
 - [ ] **Pin important chats**
-  - Add a `is_pinned` boolean column to the `chat_sessions` table
+  - Add `is_pinned` boolean column to `chat_sessions` table
   - Pinned chats appear at the top of the sidebar, separated by a divider
   - Toggle pin via the session context menu (⋯)
 
@@ -62,48 +90,45 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ### File Attachments in Chat
 - [ ] **Drag-and-drop / click-to-attach files directly in the NESTAi input**
   - Support PDF, DOCX, TXT uploads inline in the chat
-  - Parse the file client-side (or send to a `/api/nesta-ai/parse-file` endpoint) and inject the extracted text into the next message
+  - Parse the file and inject extracted text into the next message
   - Show a file chip above the textarea (with ✕ to remove) before sending
   - Cap per-message file size at 5 MB
 
 - [ ] **Reliable PDF/DOCX text extraction** *(currently WIP)*
   - Fix `pdf-parse` v1 integration in Next.js Turbopack environment
-  - Test with image-only PDFs and fallback gracefully with a clear message
-  - Consider switching to `pdfjs-dist` (Mozilla's maintained library) for better compatibility
+  - Consider switching to `pdfjs-dist` for better compatibility
 
 ### Generation Control
 - [ ] **Stop / abort AI response mid-stream**
-  - Switch from a single `fetch()` response to a **streaming** Groq API response (`stream: true`)
-  - Use `ReadableStream` on the server and `EventSource` / `fetch` with `AbortController` on the client
-  - Show a "Stop" button (■) while the response is streaming; hide once complete
-  - Partial response is shown incrementally as tokens arrive
+  - Switch to streaming Groq API response (`stream: true`)
+  - Use `ReadableStream` on server and `AbortController` on client
+  - Show a "Stop" button (■) while streaming
 
 ### Context & Intelligence
 - [ ] **User profile context in system prompt**
-  - Once the profile "About Me" section is built, prepend it to the NESTAi system prompt
+  - Once "About Me" is built, prepend it to the NESTAi system prompt
 - [ ] **Smart context trimming**
-  - Estimate token count before sending; if over ~100K tokens, summarise older history automatically
+  - Estimate token count; if over ~100K tokens, summarise older history
 - [ ] **Suggested follow-up questions**
-  - After each assistant response, suggest 2–3 relevant follow-up prompts the user can tap
+  - After each response, suggest 2–3 relevant follow-up prompts
 
 ---
 
 ## 📱 Responsive Design
 
 - [ ] **Mobile navigation overhaul**
-  - Current mobile menu works but the dashboard nav links require scrolling on small screens
-  - Consider a bottom tab bar on mobile for the most-used dashboard sections (Overview, Applications, Interviews, NESTAi)
+  - Consider a bottom tab bar on mobile for most-used sections (Overview, Applications, Interviews, NESTAi)
 
 - [ ] **NESTAi sidebar on mobile**
-  - Sidebar should be a full-screen drawer on mobile (`sm:` breakpoint), not a side panel that collapses to 0 width
+  - Full-screen drawer on mobile instead of collapsing side panel
   - Swipe-to-open gesture
 
 - [ ] **Application detail page — mobile layout**
-  - Stack the two-column layout vertically on small screens
-  - Make action buttons sticky at the bottom on mobile
+  - Stack two-column layout vertically on small screens
+  - Sticky action buttons at the bottom
 
 - [ ] **Forms — mobile keyboard handling**
-  - Ensure inputs are not obscured by the on-screen keyboard on iOS/Android
+  - Ensure inputs are not obscured by on-screen keyboard on iOS/Android
 
 - [ ] **Table / list views — horizontal scroll on small screens**
   - Interviews, salary comparison, templates list
@@ -113,11 +138,11 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ## 🎨 Design
 
 - [ ] **Onboarding flow for new users**
-  - Empty dashboard with a "Get started" guide — add first application, set first reminder, explore NESTAi
-  - Step indicator or checklist card on the dashboard until the user has ≥ 3 applications
+  - Empty dashboard "Get started" guide
+  - Step checklist card until user has ≥ 3 applications
 
 - [ ] **Application Kanban view**
-  - Toggle between the current list view and a Kanban board grouped by status (Applied → Phone Screen → Interview → Offer)
+  - Toggle between list view and Kanban board grouped by status
   - Drag-and-drop cards to change status
 
 - [ ] **Dark mode** *(removed — re-evaluate based on user feedback)*
@@ -150,17 +175,18 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## ⚙️ Infrastructure & DX
 
-- [ ] **Redis-backed rate limiting**
-  - Replace the in-memory rate limiter with Redis (e.g. Upstash) so limits survive server restarts and work across multiple instances
+- [ ] **Redis-backed rate limiting** *(known production limitation)*
+  - Replace in-memory rate limiter with Upstash Redis or Vercel KV
+  - Current limiter resets on every Vercel cold start — limits are not airtight
 
 - [ ] **Move document parse cache to Redis**
-  - Same motivation — in-memory cache is lost on cold starts
+  - Same motivation — in-memory cache lost on cold starts
 
 - [ ] **Environment variable validation on startup**
-  - Throw a clear error at boot if `GROQ_API_KEY`, `SMTP_HOST`, etc. are missing
+  - Throw clear error at boot if `GROQ_API_KEY`, `SMTP_HOST`, etc. are missing
 
 - [ ] **Error monitoring**
-  - Integrate Sentry (or similar) for server-side and client-side error tracking
+  - Integrate Sentry for server-side and client-side error tracking
 
 - [ ] **End-to-end tests**
   - Auth flow (signup → OTP → dashboard)
@@ -175,6 +201,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] OAuth buttons are visible on login/signup but non-functional (disabled state)
 - [ ] No confirmation dialog before deleting a chat session in NESTAi
 - [ ] Document parse cache is in-memory — lost on server restart
+- [ ] Rate limiter is in-memory — resets on Vercel cold starts (see Infrastructure section)
 
 ---
 

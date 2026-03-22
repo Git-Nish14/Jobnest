@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobnest.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobnest.nishpatel.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
