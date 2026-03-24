@@ -32,6 +32,11 @@ export const nestaAiSchema = z.object({
     .min(1, "Question is required")
     .max(2000, "Question is too long")
     .trim(),
+  fileContent: z
+    .string()
+    .max(15000, "Attached file content is too large")
+    .optional(),
+  fileName: z.string().max(255).optional(),
   history: z
     .array(
       z.object({
@@ -39,7 +44,7 @@ export const nestaAiSchema = z.object({
         content: z.string().max(10000),
       })
     )
-    .max(20)
+    .max(200)
     .optional()
     .default([]),
 });
@@ -81,7 +86,11 @@ export const updateChatSessionSchema = z.object({
     .string()
     .min(1, "Title is required")
     .max(255, "Title is too long")
-    .trim(),
+    .trim()
+    .optional(),
+  is_pinned: z.boolean().optional(),
+}).refine((d) => d.title !== undefined || d.is_pinned !== undefined, {
+  message: "Provide at least title or is_pinned",
 });
 
 export const createChatMessageSchema = z.object({
@@ -91,6 +100,17 @@ export const createChatMessageSchema = z.object({
     .min(1, "Content is required")
     .max(50000, "Content is too long")
     .trim(),
+  metadata: z
+    .object({
+      attachment: z
+        .object({
+          name: z.string().max(255),
+          fileType: z.string().max(10),
+          preview: z.string().max(3000).optional(), // first 3000 chars for in-chat viewing
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 // Export types

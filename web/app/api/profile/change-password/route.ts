@@ -108,10 +108,17 @@ export async function POST(request: NextRequest) {
       throw ApiError.internal("Failed to update password");
     }
 
-    // Record the timestamp of the password change in user metadata
-    await supabase.auth.updateUser({
-      data: { password_changed_at: new Date().toISOString() },
+    // Record the timestamp in user metadata via admin client — the user's
+    // session was invalidated by the password change above, so the regular
+    // supabase.auth.updateUser() call would fail silently.
+    const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      user_metadata: { password_changed_at: new Date().toISOString() },
     });
+
+    if (metaError) {
+      // Non-fatal — password was changed, just log the metadata failure
+      console.error("Failed to record password_changed_at:", metaError);
+    }
 
     return successResponse({
       success: true,

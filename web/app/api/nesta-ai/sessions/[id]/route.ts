@@ -37,7 +37,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     // Get messages
     const { data: messages, error: messagesError } = await supabase
       .from("chat_messages")
-      .select("id, role, content, created_at")
+      .select("id, role, content, metadata, created_at")
       .eq("session_id", id)
       .eq("user_id", user.id)
       .order("created_at", { ascending: true });
@@ -73,11 +73,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       throw ApiError.unauthorized();
     }
 
-    const { title } = await validateBody(request, updateChatSessionSchema);
+    const body = await validateBody(request, updateChatSessionSchema);
+    const updateData: Record<string, unknown> = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.is_pinned !== undefined) updateData.is_pinned = body.is_pinned;
 
     const { data: session, error } = await supabase
       .from("chat_sessions")
-      .update({ title })
+      .update(updateData)
       .eq("id", id)
       .eq("user_id", user.id)
       .select()

@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   FileText,
   LogOut,
-  Plus,
   Calendar,
   Bell,
   Users,
@@ -157,21 +156,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
               {/* Right: Actions + Profile */}
               <div className="flex items-center gap-2">
-                {/* New Application - Desktop */}
-                <Link href="/applications/new" className="hidden md:block">
-                  <Button size="sm" className="h-8 gap-1.5 px-3 text-xs font-medium shadow-sm">
-                    <Plus className="h-3.5 w-3.5" />
-                    New Application
-                  </Button>
-                </Link>
-
-                {/* New Application - Mobile (icon only) */}
-                <Link href="/applications/new" className="md:hidden">
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </Link>
-
                 {/* Profile Dropdown */}
                 {mounted && (
                   <DropdownMenu>

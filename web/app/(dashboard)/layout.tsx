@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Navbar } from "@/components/layout";
 import { DeletionBanner } from "@/components/profile";
+import { AuthSync } from "@/components/auth/auth-sync";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-muted/30">
+      <AuthSync />
       <Navbar user={{ email: user.email }} />
       {pendingDeletion && (
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />

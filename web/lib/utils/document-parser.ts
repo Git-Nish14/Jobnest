@@ -67,6 +67,52 @@ export async function extractDocumentText(
 }
 
 /**
+ * Extracts plain text from a raw buffer given the original filename.
+ * Used for inline file attachments in the NESTAi chat.
+ */
+export async function extractTextFromBuffer(
+  buffer: Buffer,
+  filename: string
+): Promise<ParseResult> {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+
+  try {
+    if (ext === "pdf") {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse/lib/pdf-parse.js");
+      const result = await pdfParse(buffer);
+      const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
+      return text
+        ? { text, error: null }
+        : { text: null, error: "PDF appears to be image-only or has no selectable text." };
+    }
+
+    if (ext === "docx" || ext === "doc") {
+      const mammoth: { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> } =
+        require("mammoth");
+      const result = await mammoth.extractRawText({ buffer });
+      const text = result.value.trim().slice(0, MAX_CHARS);
+      return text
+        ? { text, error: null }
+        : { text: null, error: "Document appears to be empty." };
+    }
+
+    if (ext === "txt" || ext === "md") {
+      const text = buffer.toString("utf-8").trim().slice(0, MAX_CHARS);
+      return { text: text || null, error: text ? null : "File is empty." };
+    }
+
+    return {
+      text: null,
+      error: `File format ".${ext}" is not supported. Supported: PDF, DOCX, DOC, TXT.`,
+    };
+  } catch (err) {
+    console.error("Buffer parse error:", err);
+    return { text: null, error: "Failed to extract text from file." };
+  }
+}
+
+/**
  * Extracts text from all resume/cover-letter paths attached to the user's
  * applications, deduplicating by storage path so the same file isn't parsed twice.
  */

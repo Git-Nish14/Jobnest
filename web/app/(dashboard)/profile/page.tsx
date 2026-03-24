@@ -28,6 +28,12 @@ export default async function ProfilePage() {
     // Non-critical — don't block the page
   }
 
+  const notificationPrefs = user.user_metadata?.notification_prefs ?? {};
+  // user has a password only if they have an email/password identity
+  const hasPassword = (user.identities ?? []).some(
+    (id: { provider: string }) => id.provider === "email"
+  );
+
   return (
     <ProfileClient
       user={{
@@ -36,6 +42,12 @@ export default async function ProfilePage() {
         displayName: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "",
         createdAt: user.created_at,
         passwordChangedAt: user.user_metadata?.password_changed_at ?? null,
+        aboutMe: user.user_metadata?.about_me ?? "",
+        hasPassword,
+        notificationPrefs: {
+          overdueReminders: notificationPrefs.overdue_reminders ?? true,
+          weeklyDigest: notificationPrefs.weekly_digest ?? false,
+        },
       }}
       pendingDeletion={pendingDeletion}
     />

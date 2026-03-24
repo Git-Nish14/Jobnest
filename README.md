@@ -10,29 +10,39 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Authentication & Security
 - Email/Password login with **6-digit OTP verification** (via Nodemailer — not Supabase Auth emails)
-- Secure signup and password reset via OTP
-- Protected routes via Next.js middleware + Supabase SSR session refresh
+- **Google & GitHub OAuth** — one-click sign-in/sign-up, `/auth/callback` exchanges the code and sets the session
+- Secure signup, password reset, and **change password** via OTP
+- **Stay signed in** checkbox — unchecked sessions are terminated on next browser start via `sessionStorage` + `sb_rm` cookie
+- **Cross-tab logout sync** — `AuthSync` component listens to `onAuthStateChange`; signing out in one tab redirects all open tabs instantly
+- Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
 - Security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
 - Rate limiting on all auth and sensitive endpoints
 - SHA-256 hashed OTP storage with timing-safe comparison
 - Row Level Security (RLS) on all Supabase tables
 
-### Profile
-- View account info: email, join date, current plan, last password change date
-- Update display name (initials-based avatar)
-- **Change password** — 3-step OTP-verified flow: current password → email OTP → new password
-- **Delete account** — OTP-confirmed soft delete with 30-day grace period (see below)
+### Profile Page
+Two-column layout — sticky sidebar (avatar, stats, quick nav) + settings sections on the right.
+
+- **Account info** — email, joined date, plan, last password change / auth method
+- **Display name** — inline save
+- **NESTAi Context** — free-text "About Me" injected into every NESTAi message for personalised answers
+- **Notifications** — toggle switches for overdue reminder alerts and weekly digest
+- **Change / Set password** — 3-step OTP-verified flow with OTP gating (password fields only appear after correct OTP)
+  - OAuth-only users can set a password for the first time
+  - "Forgot current password?" link bypasses current-password check
+  - On success: 5-second countdown → signs out all devices → redirects to `/login`
+- **Delete account** — OTP-confirmed soft delete with 30-day grace period
 
 ### Account Deletion (Grace Period)
-Modelled after AWS / GitHub's approach — accounts are never immediately destroyed.
+Modelled after AWS / GitHub — accounts are never immediately destroyed.
 
 1. User requests deletion → OTP sent to email for confirmation
-2. Deletion is **scheduled 30 days out** — account stays fully accessible
-3. **7-day reminder emails** sent throughout the grace period
+2. Deletion **scheduled 30 days out** — account stays fully accessible
+3. **7-day reminder emails** throughout the grace period
 4. **24-hour final warning** email before permanent deletion
-5. User can **cancel at any time** by signing back in (button in dashboard banner and profile page)
-6. After 30 days, a daily cron job permanently deletes the account and all associated data via RLS cascade
-7. Deletion request records IP address and optional user-provided reason for audit
+5. User can **cancel at any time** — button on profile page and dashboard banner
+6. After 30 days, a daily cron job permanently deletes the account and all data via RLS cascade
+7. IP address + optional user-provided reason recorded for audit
 
 ### Dashboard
 - Overview stats — total applications, this week/month, active pipeline
@@ -83,15 +93,24 @@ Modelled after AWS / GitHub's approach — accounts are never immediately destro
 - Comparison across all applications
 
 ### NESTAi — AI Job Search Assistant
-- Claude/ChatGPT-style chat interface with collapsible conversation history sidebar
-- Full access to all user data for contextual answers (applications, interviews, reminders, contacts, salary, templates, activity log)
-- Conversation history — last 10 messages passed to the model for natural follow-ups
-- Real-time rate-limit counter — shows requests remaining (X/5) with live countdown
-- Chat sessions with rename and delete
-- 5 requests per minute (server-enforced, client-visible)
-- Powered by Groq (llama-3.1-8b-instant)
+- Claude/ChatGPT-style chat interface with collapsible + pinnable conversation sidebar
+- Full access to all user data (applications, interviews, reminders, contacts, salary, templates, activity log)
+- **Streaming responses** — tokens appear word-by-word; **Stop button** (■) aborts mid-stream, preserving partial response
+- **Conversation history** — last 100 messages passed to the model for natural follow-ups
+- **Pin chats** — pin important sessions to the top of the sidebar
+- **Edit messages** — click the pencil on any user message, edit inline, re-send from that point (messages after it are pruned from DB and local state)
+- **File attachments** — attach PDF, DOCX, TXT, MD (up to 5 MB); chip shows loading/error/ready state; non-blocking (you can still chat while a PDF is being parsed)
+  - **View attached document** — click the file card in the chat to open a full preview modal with the extracted text
+  - Attachment card persists on session reload (stored in `chat_messages.metadata` JSONB)
+- **Inline markdown rendering** — headers, bold, italic, inline code, fenced code blocks (dark theme), lists, blockquotes, streaming cursor
+- **Real-time rate-limit counter** — pip dots showing X/5 remaining with live countdown
+- **Suggested follow-up questions** — tappable chips below every assistant response
+- **User About Me** injected into the system prompt if set on the profile page
+- Chat sessions with confirm-before-delete and rename (Enter/Escape keyboard shortcuts)
+- 5 requests per minute (server-enforced)
+- Powered by Groq (`llama-3.3-70b-versatile`)
 
-> **Note:** NESTAi can see which applications have resumes and cover letters attached (filenames visible). Full document text extraction (PDF/DOCX) is a work in progress.
+> NESTAi can read, quote, and summarise uploaded resumes and cover letters. Full text is extracted server-side (PDF/DOCX/TXT) and injected into the context.
 
 ---
 
@@ -99,13 +118,14 @@ Modelled after AWS / GitHub's approach — accounts are never immediately destro
 
 | Category | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
+| Framework | Next.js 16.2.1 (App Router, Turbopack) |
+| Language | TypeScript 5.9 |
 | Database | Supabase (PostgreSQL + RLS) |
 | Storage | Supabase Storage |
-| Auth | Custom OTP via Nodemailer + Supabase Auth |
-| AI | Groq API (llama-3.1-8b-instant) |
+| Auth | Custom OTP via Nodemailer + Supabase Auth (email/password + Google/GitHub OAuth) |
+| AI | Groq API (`llama-3.3-70b-versatile`) |
 | Email | Nodemailer (SMTP) |
+| Font | Geist Sans / Geist Mono (`next/font/google`) |
 | Styling | Tailwind CSS 4 (light-only) |
 | UI | Radix UI primitives + custom components |
 | Forms | React Hook Form + Zod |
@@ -130,22 +150,26 @@ web/
 │   │   ├── templates/
 │   │   ├── salary/
 │   │   ├── nestai/
-│   │   └── profile/              # Account settings, change password, delete account
+│   │   └── profile/              # Account settings, password, delete account
 │   ├── api/
 │   │   ├── auth/                 # send-otp, verify-otp, reset-password
 │   │   ├── profile/              # update-name, change-password, delete-account,
-│   │   │                         # reactivate-account, verify-password-send-otp
+│   │   │                         # reactivate-account, verify-password-send-otp,
+│   │   │                         # update-about-me, update-notifications, verify-change-otp
 │   │   ├── cron/
-│   │   │   └── process-deletions/ # Daily cron: reminders + permanent deletions
-│   │   ├── nesta-ai/             # NESTAi chat, sessions, messages
+│   │   │   └── process-deletions/ # Daily cron: 7-day reminders, 24h final warning, permanent deletion
+│   │   ├── nesta-ai/             # Chat API (streaming), sessions, messages, parse-file
 │   │   ├── export/
 │   │   ├── documents/
 │   │   └── contact/
+│   ├── auth/
+│   │   └── callback/             # OAuth code exchange
 │   ├── contact/
 │   ├── privacy/
 │   └── terms/
 ├── components/
 │   ├── ui/                       # Base UI: Button, Card, Badge, Skeleton, …
+│   ├── auth/                     # AuthSync (cross-tab logout + remember-me)
 │   ├── common/                   # Loading, ErrorBoundary, skeleton screens
 │   ├── layout/                   # Navbar, Footer, LayoutWrapper
 │   ├── profile/                  # ProfileClient, DeletionBanner
@@ -163,16 +187,16 @@ web/
 │   ├── security/                 # OTP generation, rate-limit, sanitization, CSRF
 │   ├── supabase/                 # Client, server, admin Supabase clients
 │   ├── utils/
-│   │   ├── document-parser.ts    # PDF/DOCX/TXT text extraction (WIP)
+│   │   ├── document-parser.ts    # PDF/DOCX/TXT text extraction + extractTextFromBuffer
 │   │   ├── fetch-retry.ts        # Fetch with retry + timeout
 │   │   └── storage.ts            # Supabase Storage helpers
-│   └── validations/              # Zod schemas (auth, application, forms)
+│   └── validations/              # Zod schemas (auth, application, forms, API)
 ├── services/                     # Server-side data access layer
 ├── hooks/                        # Custom React hooks
 ├── config/                       # Constants, env validation, routes
 ├── types/                        # TypeScript type definitions
 ├── vercel.json                   # Cron job schedule
-└── middleware.ts                 # Route protection + security headers
+└── proxy.ts                      # Route protection + security headers (Next.js 16 proxy convention)
 
 supabase/
 └── migrations/                   # SQL migration files (run in order)
@@ -189,6 +213,8 @@ supabase/
 - Supabase project
 - SMTP server (for OTP and lifecycle emails)
 - Groq API key (for NESTAi)
+- Google OAuth credentials (optional, for Google sign-in)
+- GitHub OAuth app (optional, for GitHub sign-in)
 
 ### Environment Variables
 
@@ -206,7 +232,7 @@ NEXT_PUBLIC_APP_URL=https://jobnest.nishpatel.dev    # Transactional email links
 
 # Security
 CSRF_SECRET=<openssl rand -hex 32>
-CRON_SECRET=<openssl rand -hex 32>                   # Protects the cron endpoint
+CRON_SECRET=<openssl rand -hex 32>                   # Protects /api/cron/* — required
 
 # SMTP
 SMTP_HOST=smtp.gmail.com
@@ -221,6 +247,20 @@ GROQ_API_KEY=gsk_your_groq_api_key
 
 > **Tip:** Generate secrets with `openssl rand -hex 32`
 
+### OAuth Setup (Google & GitHub)
+
+**Google:**
+1. Google Cloud Console → APIs & Services → Credentials → Create OAuth 2.0 Client
+2. Authorized JavaScript origins: `https://jobnest.nishpatel.dev` + `http://localhost:3000`
+3. Authorized redirect URIs: `https://jobnest.nishpatel.dev/auth/callback`, `https://<ref>.supabase.co/auth/v1/callback`, + localhost equivalents
+4. Supabase dashboard → Authentication → Providers → Google → paste Client ID + Secret
+
+**GitHub:**
+1. GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+2. Homepage URL: `https://jobnest.nishpatel.dev`
+3. Callback URL: `https://<ref>.supabase.co/auth/v1/callback`
+4. Supabase dashboard → Authentication → Providers → GitHub → paste Client ID + Secret
+
 ### Database Setup
 
 Run the migration files in order from `supabase/migrations/` via the Supabase SQL editor:
@@ -233,8 +273,10 @@ Run the migration files in order from `supabase/migrations/` via the Supabase SQ
 | 4 | `20240101000003_enhanced_features.sql` | Tags, salary, contacts, reminders, templates |
 | 5 | `20240101000004_otp_codes.sql` | OTP verification table |
 | 6 | `20240101000005_chat_history.sql` | NESTAi session and message tables |
-| 7 | `20240101000006_pending_deletions.sql` | Soft-delete table + change_password OTP purpose |
-| 8 | `20240101000007_pending_deletions_improvements.sql` | Fixes UNIQUE constraint bug, adds audit columns, final warning tracking, delete_account OTP purpose |
+| 7 | `20240101000006_pending_deletions.sql` | Soft-delete table + `change_password` OTP purpose |
+| 8 | `20240101000007_pending_deletions_improvements.sql` | Fixes UNIQUE constraint bug, adds audit columns, `delete_account` OTP purpose |
+| 9 | `20240101000008_chat_pin.sql` | Adds `is_pinned` to `chat_sessions` |
+| 10 | `20240101000009_chat_message_metadata.sql` | Adds `metadata` JSONB to `chat_messages` (file attachment cards) |
 
 ### Installation
 
@@ -267,13 +309,17 @@ npm run lint     # ESLint
 | OTP storage | SHA-256 hashed, service role only access |
 | OTP comparison | Timing-safe (`crypto.timingSafeEqual`) |
 | OTP purposes | `login`, `signup`, `password_reset`, `change_password`, `delete_account` |
+| OTP gating | Password fields only shown after OTP is verified server-side (pre-verify endpoint) |
 | Rate limiting | In-memory per-key limits on all auth, profile, and AI endpoints |
 | Security headers | HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
 | RLS | Every table enforces row-level security tied to `auth.uid()` |
 | CSRF | Token-based protection on mutating API routes |
-| Cron auth | `Authorization: Bearer <CRON_SECRET>` required on `/api/cron/*` |
+| Cron auth | `Authorization: Bearer <CRON_SECRET>` required — **fail-closed** (endpoint locked if env var not set) |
 | Account deletion | OTP re-authentication required before scheduling deletion |
 | Audit trail | IP address + optional reason recorded on every deletion request |
+| Password change | Signs out all devices on success; `password_changed_at` saved via admin client (bypasses invalidated session) |
+| OAuth sessions | `sb_rm` cookie controls remember-me behaviour; `AuthSync` enforces session-only mode on browser restart |
+| CVEs patched | Next.js 16.2.1 fixes HTTP request smuggling, CSRF bypass, DoS (from 16.1.6) |
 
 ---
 
@@ -286,15 +332,15 @@ npm run lint     # ESLint
 3. Add all environment variables (Settings → Environment Variables)
 4. Deploy
 
-Vercel automatically picks up `vercel.json` and schedules the cron job (`/api/cron/process-deletions` daily at 09:00 UTC). It also injects `Authorization: Bearer <CRON_SECRET>` on each invocation — make sure `CRON_SECRET` is set in your Vercel environment variables.
+Vercel automatically picks up `vercel.json` and schedules the cron job (`/api/cron/process-deletions` daily at 09:00 UTC). It injects `Authorization: Bearer <CRON_SECRET>` automatically — **`CRON_SECRET` must be set or the endpoint will return 401 for all callers including Vercel itself.**
 
 ### Production Caveats
 
 | Area | Limitation | Fix |
 |---|---|---|
-| Rate limiting | In-memory — resets on every cold start (Vercel serverless) | Replace `lib/security/rate-limit.ts` with [Upstash Redis](https://upstash.com) or Vercel KV |
+| Rate limiting | In-memory — resets on every cold start; multiple instances don't share state | Replace `lib/security/rate-limit.ts` with [Upstash Redis](https://upstash.com) or Vercel KV |
 | NESTAi doc cache | In-memory — not shared across function instances | Same — use Vercel KV or Redis |
-| Sessions | Only current session is invalidated on account deletion request | Acceptable for current scale; Supabase session revocation is not instance-scoped |
+| Sessions on deletion | Only current session is invalidated on account deletion request | Acceptable for current scale |
 
 ---
 

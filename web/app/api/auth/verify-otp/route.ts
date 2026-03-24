@@ -22,7 +22,7 @@ function secureCompare(a: string, b: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     // Validate input with Zod
-    const { email, code, purpose, password } = await validateBody(request, verifyOtpSchema);
+    const { email, code, purpose, password, rememberMe } = await validateBody(request, verifyOtpSchema);
 
     // For login, password is required
     if (purpose === "login" && !password) {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         throw ApiError.unauthorized("Invalid email or password");
       }
 
-      return successResponse({
+      const loginResponse = successResponse({
         success: true,
         message: "Login successful",
         user: {
@@ -111,6 +111,17 @@ export async function POST(request: NextRequest) {
           email: authData.user.email,
         },
       });
+
+      // Set remember-me cookies so AuthSync can enforce session-only behaviour.
+      // sb_rm is readable by JS (no HttpOnly) for the AuthSync component to check.
+      const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
+      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+      loginResponse.headers.append(
+        "Set-Cookie",
+        `sb_rm=${rememberMe ? "1" : "0"}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`
+      );
+
+      return loginResponse;
     }
 
     if (purpose === "signup") {
