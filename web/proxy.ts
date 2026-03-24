@@ -62,10 +62,10 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static files
+  // Skip for static files
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/static") ||
@@ -113,7 +113,7 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = isPublicPath(pathname);
 
-  // Redirect unauthenticated users to login
+  // Redirect unauthenticated users to login (preserve intended destination)
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);

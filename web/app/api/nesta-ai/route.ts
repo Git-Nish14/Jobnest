@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { question, history } = await validateBody(request, nestaAiSchema);
+    const { question, history, fileContent, fileName } = await validateBody(request, nestaAiSchema);
 
     // ── Fetch every piece of user data in parallel ─────────────────────────
     const [
@@ -190,10 +190,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Inject user's "About Me" context if they've set it
+    const aboutMe: string = user.user_metadata?.about_me ?? "";
+
     const systemPrompt = `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-
+${aboutMe ? `\n=== ABOUT THIS USER ===\n${aboutMe}\n=== END USER CONTEXT ===\n` : ""}
 === USER'S COMPLETE JOB SEARCH DATA ===
 ${context}
 === END OF DATA ===
@@ -204,12 +207,20 @@ Guidelines:
 - Quote specific numbers, names, companies, and dates from the data.
 - Resumes and cover letters: full extracted text is included in the DOCUMENT CONTENTS section. You CAN read, quote, and summarise their content. If a document says "(Could not extract text: ...)", explain that to the user and suggest they check the file format.
 - When relevant, suggest a concrete next step.
-- Use conversation history for natural follow-ups.`;
+- Use conversation history for natural follow-ups.
+- After your response, append EXACTLY this on a new line (replace the brackets with real questions relevant to the conversation — no extra text):
+FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
+
+    // If the user attached a file, prepend its content to the user turn server-side
+    // (keeps `question` within its 2000-char validation limit on the client)
+    const userContent = fileContent
+      ? `[Attached file: ${fileName ?? "file"}]\n${fileContent}\n\n${question}`
+      : question;
 
     const groqMessages = [
       { role: "system" as const, content: systemPrompt },
-      ...history.slice(-10),
-      { role: "user" as const, content: question },
+      ...history.slice(-100),
+      { role: "user" as const, content: userContent },
     ];
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -222,7 +233,8 @@ Guidelines:
         model: "llama-3.1-8b-instant",
         messages: groqMessages,
         temperature: 0.6,
-        max_tokens: 1024,
+        max_tokens: 1500,
+        stream: true,
       }),
     });
 
@@ -243,19 +255,48 @@ Guidelines:
       );
     }
 
-    const groqData = await groqResponse.json();
-    const answer =
-      groqData.choices?.[0]?.message?.content ||
-      "I couldn't generate a response — please try again.";
+    // Stream tokens from Groq SSE → client
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream({
+      async start(controller) {
+        const reader = groqResponse.body!.getReader();
+        const decoder = new TextDecoder();
+        let doneStreaming = false;
+        try {
+          while (!doneStreaming) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value, { stream: true });
+            for (const line of text.split("\n")) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6).trim();
+              if (payload === "[DONE]") { doneStreaming = true; break; }
+              try {
+                const json = JSON.parse(payload);
+                const token = json.choices?.[0]?.delta?.content;
+                if (token) controller.enqueue(encoder.encode(token));
+              } catch { /* skip malformed chunks */ }
+            }
+          }
+          // Close only once, on normal completion
+          controller.close();
+        } catch (err) {
+          // controller.error() terminates the stream — do NOT also call close()
+          controller.error(err);
+        }
+      },
+    });
 
     const resetInSeconds = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
 
-    return NextResponse.json({
-      answer,
-      rateLimit: {
-        remaining: rateLimit.remaining,
-        resetIn: resetInSeconds,
-        limit: MAX_REQUESTS,
+    return new NextResponse(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "X-RateLimit-Remaining": String(rateLimit.remaining),
+        "X-RateLimit-Reset-In": String(resetInSeconds),
+        "X-RateLimit-Limit": String(MAX_REQUESTS),
       },
     });
   } catch (error) {

@@ -41,6 +41,7 @@ export const verifyOtpSchema = z.object({
   code: otpSchema,
   purpose: authPurposeSchema.default("login"),
   password: z.string().optional(),
+  rememberMe: z.boolean().optional().default(true),
 });
 
 // Reset password request schema

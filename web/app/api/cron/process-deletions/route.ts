@@ -10,13 +10,13 @@ const REMINDER_INTERVAL_DAYS = 7;
 const FINAL_WARNING_THRESHOLD_HOURS = 26; // slightly over 24h so the cron window is safe
 
 export async function GET(request: NextRequest) {
-  // Verify caller — Vercel Cron sets Authorization: Bearer <CRON_SECRET> automatically
+  // Verify caller — Vercel Cron sets Authorization: Bearer <CRON_SECRET> automatically.
+  // Fail-closed: if CRON_SECRET is not configured the endpoint is locked down entirely
+  // so a misconfigured deployment never exposes it publicly.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const authHeader = request.headers.get("authorization");
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabaseAdmin = createAdminClient();

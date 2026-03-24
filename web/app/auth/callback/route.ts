@@ -11,7 +11,14 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(new URL(next, origin));
+      const response = NextResponse.redirect(new URL(next, origin));
+      // OAuth users always stay signed in — set the JS-readable companion cookie
+      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+      response.headers.append(
+        "Set-Cookie",
+        `sb_rm=1; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax${secure}`
+      );
+      return response;
     }
   }
 

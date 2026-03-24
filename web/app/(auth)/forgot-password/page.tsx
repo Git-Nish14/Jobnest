@@ -325,6 +325,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full">
         <CardHeader className="space-y-1">
           <button
+            type="button"
             onClick={handleBackToEmail}
             className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
           >
@@ -381,6 +382,7 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-muted-foreground">
               Didn&apos;t receive the code?{" "}
               <button
+                type="button"
                 onClick={handleResendOtp}
                 disabled={resendCooldown > 0 || isSendingOtp}
                 className="text-primary hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed"

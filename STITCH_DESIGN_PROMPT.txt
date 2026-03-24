@@ -1,0 +1,929 @@
+==============================================================================
+JOBNEST — COMPLETE STITCH DESIGN PROMPT
+==============================================================================
+
+Design a complete, production-ready web application called "Jobnest" — a free
+job application tracking platform. Design every screen listed below. The design
+should be clean, modern, and professional. Use a light-mode-only theme. The
+visual language should feel similar to Linear, Vercel, or Notion — minimal,
+confident, and highly usable.
+
+==============================================================================
+BRAND & COLOR SYSTEM
+==============================================================================
+
+Primary (brand blue):    #2563EB   — buttons, links, active states, icons, badges
+Primary light:           #EFF6FF   — backgrounds behind primary elements, hover fill
+Primary text on white:   #1D4ED8   — hyperlinks and interactive text
+Background (page):       #FFFFFF
+Card surface:            #FFFFFF   — white cards with border
+Muted surface:           #F1F5F9   — section backgrounds, nav backgrounds, table rows
+Muted foreground:        #64748B   — secondary labels, placeholder text, captions
+Foreground (headings):   #0F172A   — primary text, headings
+Border:                  #E2E8F0   — card borders, dividers, input borders
+Destructive red:         #EF4444   — errors, delete actions, danger states
+Destructive light:       #FEF2F2   — error message backgrounds
+Success green:           #16A34A   — offers, completed states, success toasts
+Warning amber:           #D97706   — reminders, rate limit warnings
+Focus ring:              #2563EB   — 2px outline on focused inputs
+
+STATUS BADGE COLORS (pill badges, small rounded labels):
+  Applied        — #EFF6FF background, #1D4ED8 text    (blue)
+  Phone Screen   — #F5F3FF background, #7C3AED text    (purple)
+  Interview      — #FFFBEB background, #B45309 text    (amber)
+  Offer          — #F0FDF4 background, #15803D text    (green)
+  Rejected       — #FFF1F2 background, #BE123C text    (rose/red)
+  Withdrawn      — #F8FAFC background, #475569 text    (slate)
+  Ghosted        — #FFF7ED background, #C2410C text    (orange)
+
+INTERVIEW TYPE BADGE COLORS:
+  Phone Screen   — #F5F3FF background, #7C3AED text
+  Technical      — #FFF7ED background, #C2410C text
+  Behavioral     — #ECFEFF background, #0E7490 text
+  On-site        — #EEF2FF background, #4338CA text
+  Final          — #FDF2F8 background, #BE185D text
+
+INTERVIEW STATUS BADGE COLORS:
+  Scheduled      — #EFF6FF background, #1D4ED8 text
+  Completed      — #F0FDF4 background, #15803D text
+  Cancelled      — #FFF1F2 background, #BE123C text
+  Rescheduled    — #FFFBEB background, #B45309 text
+
+==============================================================================
+TYPOGRAPHY
+==============================================================================
+
+Font family: Geist Sans (fallback: Inter, system-ui, sans-serif)
+Mono font:   Geist Mono (for code blocks)
+
+Scale:
+  Page title (h1):         28px / 700 weight / #0F172A / -0.5px tracking
+  Section title (h2):      22px / 700 weight / #0F172A / -0.3px tracking
+  Card title:              16px / 600 weight / #0F172A
+  Body text:               14px / 400 weight / #0F172A / 1.6 line height
+  Label / secondary text:  13px / 500 weight / #64748B
+  Caption / meta:          12px / 400 weight / #64748B
+  Badge text:              11px / 600 weight / uppercase tracked 0.3px
+  Navbar link:             14px / 500 weight
+
+==============================================================================
+GLOBAL LAYOUT & COMPONENTS
+==============================================================================
+
+BORDER RADIUS:
+  Buttons, inputs: 6px (0.375rem)
+  Cards: 8px (0.5rem)
+  Large cards / panels: 12px (0.75rem)
+  Badges / pills: 999px (fully rounded)
+  Avatars: 999px (circle)
+  Company initials avatar: 8px
+
+SHADOWS:
+  Card default: 0 1px 2px rgba(0,0,0,0.05)
+  Card hover:   0 4px 12px rgba(0,0,0,0.08)
+  Button:       0 1px 3px rgba(0,0,0,0.1)
+  Navbar:       0 1px 3px rgba(0,0,0,0.08), border-bottom 1px solid #E2E8F0
+  Dropdown:     0 8px 24px rgba(0,0,0,0.12), border 1px solid #E2E8F0
+
+BUTTON STYLES:
+  Primary:   bg #2563EB, text white, hover #1D4ED8, 14px/600, h=36px, px=16px
+  Outline:   border #E2E8F0, bg white, text #0F172A, hover bg #F1F5F9
+  Ghost:     bg transparent, text #64748B, hover bg #F1F5F9, hover text #0F172A
+  Danger:    bg #EF4444, text white, hover #DC2626
+  Small btn: h=32px, px=12px, 13px
+  Icon btn:  32x32px square, ghost variant
+
+INPUT FIELDS:
+  Height: 40px
+  Border: 1px solid #E2E8F0
+  Border radius: 6px
+  Background: white
+  Placeholder text: #94A3B8
+  Focus: border #2563EB, ring 2px #2563EB20
+  Error state: border #EF4444
+  Font: 14px / #0F172A
+
+CARDS:
+  Background: white
+  Border: 1px solid #E2E8F0
+  Border radius: 8px
+  Shadow: subtle (0 1px 2px rgba(0,0,0,0.05))
+  Hover: shadow lifts + border darkens slightly
+  Padding: 20px (desktop), 16px (mobile)
+
+==============================================================================
+PAGE 1: LANDING PAGE (/)
+==============================================================================
+
+NAVBAR (public, sticky top):
+  Height: 64px, white bg, subtle bottom border, backdrop blur
+  Left: Logo image (32x32 bird/nest icon, blue) + "Jobnest" text (18px/600/#0F172A)
+  Right: "Log in" ghost button + "Get Started" primary button (small)
+  Mobile: hamburger menu opens dropdown with same links
+
+HERO SECTION:
+  Full-width, white background, subtle dot-grid pattern behind (gray #E2E8F0 lines, 40px grid, 50% opacity)
+  Soft radial glow behind center: #2563EB at 8% opacity, 800px wide, blurred 120px
+  Centered content, max-width 1280px, generous vertical padding (py-36 desktop)
+
+  Top badge pill: border #2563EB30, bg #EFF6FF, text #2563EB
+    — Contains lightning bolt icon (12px) + "Free Job Application Tracker" (11px/600/uppercase/tracked)
+
+  H1 (56px desktop, 40px mobile, 700 weight, -1px tracking, max-width 720px centered):
+    "Organize your job search."
+    Next line uses gradient text: "Land faster."
+    Gradient: left-to-right from #2563EB → #60A5FA → #2563EB, clipped to text
+
+  Subtext (18px, #64748B, max-width 480px centered, 1.7 line-height):
+    "Track every application, manage documents, and stay on top of interviews —
+    all in one clean, free workspace."
+
+  CTA buttons (centered, row on desktop, column on mobile):
+    1. Primary "Get Started Free" button (lg size, px=28, shadow-md, ArrowRight icon)
+    2. Outline "Sign In" button (lg size, px=28)
+
+  Trust row below buttons (flex, centered, gap-6):
+    3 items with green checkmark icon + text: "No credit card required" / "Free forever" / "Secure & private"
+
+STATS SECTION:
+  Full-width, bg #F1F5F9, border-top/bottom 1px solid #E2E8F0
+  4-column grid (2 on mobile), py-56px, max-width 1280px
+  Each stat: large number (36px/700/#2563EB) + label below (14px/#64748B/500)
+    — "100%" / "Free Forever"
+    — "5min" / "Setup Time"
+    — "24/7" / "Access Anywhere"
+    — "∞" / "Applications"
+
+HOW IT WORKS SECTION:
+  White background, max-width 1280px, py-96px
+  Centered header: "How it works" tag (10px/700/uppercase/tracked/#2563EB) + H2 "Up and running in minutes"
+  4-step horizontal flow (4 cols on desktop, 2 on tablet, 1 on mobile):
+    Each step:
+      - Numbered square badge (48x48, #2563EB bg, white text, 14px/700, 12px radius, shadow)
+      - Connector line (horizontal, 1px, gradient from #E2E8F0 → transparent) between steps (desktop only)
+      - Step title (15px/600/#0F172A) below badge
+      - Step description (14px/#64748B) below title
+    Steps: "01 Create Your Account" / "02 Add Applications" / "03 Track Progress" / "04 Land Your Dream Job"
+
+FEATURES SECTION:
+  bg #F8FAFC, border-top/bottom, py-96px, max-width 1280px
+  Centered header: "Features" tag + H2 "Everything you need to succeed"
+  6-card grid (3 cols desktop, 2 tablet, 1 mobile), gap-16px
+  Feature card: white, border, 12px radius, p=24px, subtle shadow
+    - Icon container (40x40, #EFF6FF bg, 8px radius, icon in #2563EB)
+    - Feature title (15px/600/#0F172A, mt-16px)
+    - Feature description (14px/#64748B, mt-8px)
+    - Hover: card lifts (-2px translateY, shadow increases, icon bg darkens to #DBEAFE)
+  Features:
+    1. FileText icon — "Application Tracking" — "Log company details, position, salary expectations, and application status in one centralized location."
+    2. Briefcase icon — "Document Management" — "Store and organize resumes, cover letters, and other documents for each application."
+    3. BarChart3 icon — "Progress Analytics" — "Visualize your job search with insightful statistics and track your application success rate."
+    4. Bell icon — "Status Updates" — "Keep track of interview stages, follow-ups, and important deadlines for each opportunity."
+    5. Search icon — "Quick Search" — "Find any application instantly with powerful search and filtering capabilities."
+    6. Shield icon — "Secure & Private" — "Your data is encrypted and securely stored. Only you have access to your information."
+
+SOCIAL PROOF SECTION:
+  White background, max-width 1280px, py-96px
+  Large rounded card (24px radius, gradient bg from #EFF6FF → #EFF6FF/50, border #DBEAFE, p=64px, text-center)
+    - Row of 5 overlapping avatar circles (-8px spacing), each 40x40, #EFF6FF bg, Users icon #2563EB
+    - 5 gold stars (16px, fill #FBBF24, flex row gap-4)
+    - H3: "Built for job seekers, by job seekers" (24px/700/#0F172A)
+    - Body text describing the app value (16px/#64748B, max-width 512px)
+    - Primary CTA button "Start for free" with ArrowRight icon
+
+CTA SECTION:
+  Full-width, bg #2563EB, py-80px
+  Centered:
+    - H2 (32px/700/white): "Ready to take control of your job search?"
+    - Subtext (16px/white at 80% opacity)
+    - "Get Started Free" secondary (white bg) button + ArrowRight icon
+    - Fine print (12px/white at 60% opacity): "No credit card required · Free forever · Takes 30 seconds"
+
+FOOTER:
+  White bg, border-top, py-40px, max-width 1280px
+  Logo + "Jobnest" left, links center (Privacy Policy / Terms of Service / Contact), copyright right
+  All link text: 14px/#64748B, hover #0F172A
+
+==============================================================================
+PAGE 2: LOGIN PAGE (/login)
+==============================================================================
+
+Centered layout — full-page centering, bg #F8FAFC
+Card (400px wide, white, border, 8px radius, p=32px, shadow-md)
+
+Step 1 — CREDENTIALS:
+  Center-aligned header in card:
+    - Jobnest logo image (48x48, centered)
+    - H1 "Welcome back" (24px/700)
+    - Subtext "Sign in to track your job applications" (14px/#64748B)
+
+  Error banner (if error): #FEF2F2 bg, #EF4444 border, #EF4444 text, p=12px, 6px radius
+
+  OAuth buttons (2-column grid, full width):
+    Each: border #E2E8F0, white bg, 10px radius, h=40px, flex-center, 14px/500
+    - Google button: Google multicolor G logo + "Google"
+    - GitHub button: GitHub Octocat icon (black) + "GitHub"
+
+  Divider: horizontal line with "or continue with email" centered text (12px/#64748B, bg-white px-8px)
+
+  Form fields:
+    - "Email" label + input (type=email, placeholder="you@example.com")
+    - "Password" label row (label left, "Forgot password?" link right in #2563EB 12px) + password input (type=password, placeholder dots)
+    - "Stay signed in" checkbox row: custom 16x16px checkbox (border #E2E8F0, checked=bg #2563EB with white checkmark), label 14px/#64748B
+
+  Primary "Sign In" button (full-width, primary blue)
+  Bottom link: "Don't have an account? Sign up" (14px/#64748B + #2563EB link)
+
+Step 2 — OTP VERIFICATION (same card, replaces credentials view):
+  Back button row (ArrowLeft icon + "Back" in #64748B, 14px)
+  Center email icon circle (48x48, #EFF6FF bg, Mail icon #2563EB)
+  H1 "Check your email" (24px/700, centered)
+  Subtext: "We sent a verification code to [email address in bold #0F172A]" (14px/#64748B, centered)
+
+  OTP input row: 6 individual input boxes in a row (centered, gap=8px)
+    Each box: 48x48px, border #E2E8F0, 6px radius, text-center, 20px/700/#0F172A
+    Focused box: border #2563EB, ring
+    Filled box: bg #EFF6FF border #2563EB
+
+  "Verify" primary button (full-width, disabled until all 6 digits filled)
+  Resend row: "Didn't receive the code? Resend code" (14px/#64748B + #2563EB link, disabled with countdown "Resend in 45s")
+
+==============================================================================
+PAGE 3: SIGN UP PAGE (/signup)
+==============================================================================
+
+Same centered layout as login, bg #F8FAFC, same card dimensions
+Card header: logo + H1 "Create your account" + subtext "Start tracking your job search for free"
+Same OAuth buttons + divider
+
+Form fields:
+  - "Email" input
+  - "Password" input (with strength indicator below: 3 horizontal bars, fill based on password strength — gray → red → amber → green)
+  - "Confirm Password" input
+
+Primary "Create Account" button (full-width)
+Terms text (12px/#64748B, centered): "By creating an account, you agree to our Terms of Service and Privacy Policy" (linked)
+Bottom: "Already have an account? Sign in" link
+
+OTP step: identical to login OTP step
+
+==============================================================================
+PAGE 4: FORGOT PASSWORD PAGE (/forgot-password)
+==============================================================================
+
+Same centered card layout
+Step 1 — EMAIL ENTRY:
+  Back arrow link to /login
+  Lock icon circle (48x48, #EFF6FF, Lock icon #2563EB) centered
+  H1 "Reset your password" (24px/700)
+  Subtext (14px/#64748B)
+  Email input + "Send Reset Code" primary button
+
+Step 2 — OTP ENTRY: same as login OTP
+
+Step 3 — NEW PASSWORD:
+  ShieldCheck icon circle (48x48, #F0FDF4, #16A34A icon)
+  H1 "Choose a new password"
+  New password input + Confirm password input + "Set New Password" button
+
+==============================================================================
+PAGE 5: DASHBOARD LAYOUT (authenticated pages)
+==============================================================================
+
+DASHBOARD NAVBAR (sticky top, 64px height):
+  White bg (#FFFFFF/98%), bottom border 1px #E2E8F0, subtle shadow, backdrop-blur
+  Max-width 1280px, px=32px
+
+  LEFT SIDE:
+    Logo (32x32) + "Jobnest" text (18px/600/#0F172A) + 2.5rem gap
+    Then horizontal navigation links (desktop only):
+      Overview | Applications | Interviews | Reminders | Contacts | Templates | Salary | NESTAi
+      Link style: 14px/500, px=12px, py=6px, rounded-6px
+      Active: bg #EFF6FF, text #2563EB
+      Inactive: text #64748B, hover text #0F172A, hover bg #F1F5F9
+      "NESTAi" link has a Sparkles star icon before it (12px, #2563EB)
+
+  RIGHT SIDE:
+    "+ New Application" button (small, primary, with Plus icon) — hidden on mobile
+    Mobile: Plus icon-only outline button (32x32)
+    Avatar circle (32x32, bg #2563EB, white initial letter, 600 weight, 14px)
+    Clicking avatar opens dropdown (240px wide, 8px radius, shadow-xl, border):
+      Header area (bg #F8FAFC, border-bottom, p=12px):
+        Avatar (36x36) + email text (14px/500) + "Free Plan" badge (12px/#64748B)
+      Menu items (p=4px, each 36px tall, flex items, 12px gap):
+        - UserCircle icon + "Profile"
+        - HelpCircle icon + "Help & Support"
+        Separator (1px #E2E8F0)
+        - LogOut icon + "Sign out" (text #EF4444)
+
+  MOBILE hamburger (visible < 1024px):
+    Slide-out panel from right (320px max, full height, white, shadow-xl)
+    Panel header: "Menu" + X close button
+    Nav links list with icons (LayoutDashboard / FileText / Calendar / Bell / Users / Mail / DollarSign / Sparkles)
+    Each link: icon (20px) + label, 40px tall, 12px radius, same active/inactive colors as desktop
+    Panel footer: user email + avatar row + "Sign out" outline button full-width
+
+DASHBOARD CONTENT AREA:
+  Max-width 1280px, px=32px (desktop), px=16px (mobile)
+  py=32px
+  Background: white page (NOT a sidebar layout — top nav only)
+
+DELETION WARNING BANNER (shown at top of every dashboard page if account has pending deletion):
+  Full-width banner below navbar, bg #FFF7ED, border-bottom 1px #FED7AA
+  Left: AlertTriangle icon (#D97706) + "Your account is scheduled for deletion on [date] ([N] days remaining)"
+  Right: "Cancel Deletion" outline button (small, border #D97706, text #D97706)
+  Text: 14px/#92400E
+
+==============================================================================
+PAGE 6: DASHBOARD OVERVIEW (/dashboard)
+==============================================================================
+
+Page header (flex row, space-between, align-end):
+  H1 "Dashboard" (28px/700) + subtext "Track your job application progress" (14px/#64748B)
+  "+ New Application" primary button with Plus icon
+
+STATS GRID (4 columns desktop, 2 tablet, 2 mobile, gap=16px):
+  Each StatsCard (white card, border, 8px radius, p=20px):
+    Top row: label text (13px/500/#64748B) left + icon right (20x20, #2563EB in #EFF6FF 8px circle)
+    Big number (32px/700/#0F172A) below
+    Optional subtext (12px/#64748B) below number
+  Cards: "Total Applications" / "This Week" / "This Month" / "Active (In progress)"
+
+CHARTS ROW (2 columns, gap=24px):
+  LEFT — "Weekly Applications" line/bar chart card:
+    Card with CardHeader "Weekly Applications" title
+    Chart area (280px height): X-axis = days of week, Y-axis = count
+    Line chart with filled area, color #2563EB, area fill #2563EB15
+    Grid lines: #E2E8F0 horizontal dashes
+    Axis labels: 12px/#64748B
+    Tooltip: white card, border, shadow, "Mon: 3 applications"
+
+  RIGHT — "Application Status" donut/pie chart card:
+    Card with "Application Status" title
+    Donut chart (200px diameter, 40px ring width) with color-coded segments matching status badge colors
+    Center of donut: total number (24px/700) + "Total" label (12px/#64748B)
+    Legend below chart: colored dot + status name + count for each status
+
+BOTTOM SECTION (3-column grid on desktop):
+  LEFT 2/3 — "Recent Applications" card:
+    Card header "Recent Applications" title + "View all" link (#2563EB)
+    List of up to 5 application rows (see ApplicationCard compact style below)
+
+  RIGHT 1/3 — "Response Rate" card:
+    Large circular progress ring (160px diameter, 12px stroke)
+    Ring fill: #2563EB for responded, #F1F5F9 for not yet
+    Center: "X%" in 28px/700 + "Response Rate" label 12px/#64748B
+    Below ring: 2 stat rows — "Total Applications: N" / "Responses: N"
+    Card title "Response Rate" in header
+
+BOTTOM ROW (2 columns, gap=24px):
+  LEFT — "Upcoming Interviews" card:
+    CardHeader with Calendar icon + "Upcoming Interviews" title
+    List of interview rows: company + position, type badge, date/time row
+    Empty state: Calendar icon (48px, #94A3B8) + "No upcoming interviews"
+
+  RIGHT — "Pending Reminders" card:
+    CardHeader with Bell icon + "Pending Reminders" title
+    List of reminder rows: reminder title, due date with Clock icon
+    Empty state: Bell icon + "No pending reminders"
+
+==============================================================================
+PAGE 7: APPLICATIONS LIST (/applications)
+==============================================================================
+
+Page header (flex, space-between):
+  H1 "Applications" + subtext "Manage and track your job applications"
+  Right: "Export" outline button + "+ New Application" primary button
+
+FILTER BAR (horizontal row, flex, gap=8px, flex-wrap):
+  Search input (240px, magnifier icon inside left, placeholder "Search applications...")
+  "Status" select dropdown (with all status options)
+  "Location" text input (smaller, 160px)
+  "Date Range" select (Today / This Week / This Month / This Quarter / This Year / All Time)
+  "Sort" select (Newest / Oldest / Company A-Z / Status)
+  All filter controls: same input style, 36px height
+
+APPLICATION CARDS LIST (vertical stack, gap=12px):
+  Each ApplicationCard (white, border, 8px radius, hover shadow + border darkens):
+    Left: Company initial avatar (36x36, #EFF6FF bg, 8px radius, #2563EB bold letter)
+    Content area (flex-1):
+      Row 1: Position name (15px/600/#0F172A, hover #2563EB) + StatusBadge pill
+      Row 2: Company name (14px/500/#64748B)
+      Row 3 (meta, flex, gap=16px, 12px/#94A3B8):
+        Calendar icon + "Mar 15, 2025"
+        MapPin icon + "San Francisco, CA" (if set)
+        DollarSign icon + "$120,000 - $150,000" (if set, desktop only)
+      Row 4 (if notes): thin top border, note preview text (12px/#64748B, 1 line clamp)
+    Right actions (visible on hover only):
+      ExternalLink icon button (if job_url set)
+      MoreHorizontal icon button → dropdown: "Edit" (Pencil) / separator / "Delete" (Trash, red)
+      Delete shows "Confirm delete" on first click, then executes on second
+
+EMPTY STATE (when no applications):
+  Dashed border rounded card, centered content, py=80px
+  FileText icon (56px, in #F1F5F9 48x48 rounded box)
+  "No applications yet" (16px/600) + subtext
+  "+ Add Your First Application" primary button
+
+==============================================================================
+PAGE 8: NEW APPLICATION FORM (/applications/new)
+PAGE 9: EDIT APPLICATION (/applications/[id]/edit)
+==============================================================================
+
+Full page, max-width 720px, centered
+Back arrow link "Back to Applications"
+H1 "New Application" (or "Edit Application")
+
+Form in a white card (border, 8px radius, p=32px):
+  SECTION 1 — "Job Details":
+    "Company Name" input (required)
+    "Position / Job Title" input (required)
+    "Job URL" input (optional, placeholder: https://...)
+    "Location" input (optional)
+
+  SECTION 2 — "Application Details":
+    "Status" select (all status options with colored dots in dropdown)
+    "Applied Date" date picker input
+    "Salary Range" text input (placeholder: "$80,000 - $100,000")
+
+  SECTION 3 — "Notes & Details":
+    "Notes" textarea (4 rows, resize-y, placeholder: "Add any notes about this application...")
+
+  TAGS (optional multi-select):
+    Tag selector: inline pills that can be clicked/selected from a preset list, custom tag input
+
+  DOCUMENTS section:
+    "Attach Documents" area (dashed border, 8px radius, p=24px, text-center)
+    Upload icon + "Drag & drop files or click to upload" (14px/#64748B)
+    Supported: PDF, DOCX, DOC, TXT (displayed as small caption)
+    Uploaded files show as rows: file icon + name + remove X button
+
+  Bottom buttons (flex, right-aligned, gap=8px):
+    "Cancel" ghost button + "Save Application" primary button
+
+==============================================================================
+PAGE 10: APPLICATION DETAIL (/applications/[id])
+==============================================================================
+
+Back link "Back to Applications"
+H1 = Position name (28px/700) + status badge beside it
+Subtext = Company name (18px/500/#64748B)
+
+2-column layout (desktop): main content left (2/3), sidebar right (1/3)
+
+MAIN CONTENT (left):
+  Details card:
+    Grid 2-col: Applied Date / Location / Job URL (link) / Salary Range
+    Each detail: label (12px/#64748B uppercase tracked) + value (14px/#0F172A)
+
+  Notes card (if notes):
+    "Notes" title
+    Notes body text (14px/#0F172A, white-space: pre-wrap)
+
+  Documents card (if docs):
+    List of attached docs: file icon + name + download button
+
+  Activity Timeline card:
+    Timeline of status changes/notes logged with dates
+    Each entry: colored dot on vertical line + date (12px/#64748B) + event description
+
+  Interviews section (sub-list within application):
+    "Interviews" card header with "+ Add Interview" button
+    List of interview entries with type/round/date/status badges
+    Each interview: expandable row showing interviewer names, location, meeting URL, notes
+
+  Reminders section:
+    "Reminders" card header with "+ Add Reminder" button
+    List of reminders with due dates and Bell icon
+
+SIDEBAR (right):
+  Quick actions card:
+    "Edit Application" outline button (full-width)
+    "Delete Application" ghost red button (full-width)
+
+  Status card:
+    Status select dropdown (full-width, styled)
+    "Update Status" primary button
+
+  Contacts card:
+    Linked contacts for this application
+    "+ Link Contact" button
+
+==============================================================================
+PAGE 11: INTERVIEWS (/interviews)
+==============================================================================
+
+H1 "Interviews" + subtext "Manage your upcoming and past interviews"
+
+UPCOMING INTERVIEWS card:
+  CardHeader: Calendar icon + "Upcoming Interviews" title
+  Interview rows (each 60-80px tall, border-bottom, hover bg #F8FAFC):
+    Left content (clickable link to application):
+      Row 1: Position name (15px/600) + Interview Type badge + "Round N" badge (small pills)
+      Row 2: Company name (14px/#64748B)
+      Row 3 (meta): Clock icon + full date + time / duration / Video icon "Video Call" / MapPin + location / User icon + interviewer names
+    Right: "Join" primary button (if meeting_url set) — NOT part of the link
+
+  Empty state: Calendar icon (48px, gray) + text + "Add interviews from your application details page"
+
+PAST INTERVIEWS card:
+  "Past Interviews" title
+  Compact rows (horizontal, border-bottom, 48px tall, hover bg #F8FAFC):
+    Left: Company name (15px/500) + status badge
+    Right: "Type · Round N · Date" (13px/#64748B)
+
+==============================================================================
+PAGE 12: REMINDERS (/reminders)
+==============================================================================
+
+H1 "Reminders" + subtext
+"+ New Reminder" primary button top-right
+
+OVERDUE REMINDERS section (if any, shown first):
+  Section label "Overdue" (12px/600/uppercase/#EF4444)
+  Cards with red-tinted left border (4px solid #EF4444)
+
+UPCOMING section:
+  Section label "Upcoming"
+  Reminder cards: title / due date with Clock icon / linked application / status badge
+  Each card: flex row, white card, border, 8px radius, p=16px
+    Left: Bell icon (in amber circle if upcoming, red circle if overdue) + title (15px/600) + application link (14px/#64748B)
+    Right: date (14px/#64748B) + Mark Complete button (green outline, small)
+
+COMPLETED section (collapsed by default):
+  "Completed (N)" expand toggle
+  Dimmed cards with checkmark icon
+
+==============================================================================
+PAGE 13: CONTACTS (/contacts)
+==============================================================================
+
+H1 "Contacts" + subtext "Manage your recruiters and hiring managers"
+"+ Add Contact" primary button top-right (opens modal)
+
+ADD CONTACT MODAL:
+  Modal overlay (black/50%), centered card (480px, white, 12px radius, shadow-xl, p=32px)
+  H2 "Add Contact" + X close button
+  Fields: Full Name / Company / Title / Email / Phone / LinkedIn URL / Notes (textarea)
+  "Save Contact" primary button + "Cancel" ghost button
+
+CONTACTS LIST card:
+  CardHeader: Users icon + "All Contacts (N)" title
+  Contact rows (border-bottom, 56px tall, hover bg #F8FAFC):
+    Left: Avatar circle (40px, #EFF6FF, initials in #2563EB, 600 weight)
+    Center: Name (15px/600) + Title, Company (14px/#64748B) + Email (12px/#94A3B8)
+    Right: Phone/LinkedIn icon links + MoreHorizontal actions menu
+
+==============================================================================
+PAGE 14: EMAIL TEMPLATES (/templates)
+==============================================================================
+
+H1 "Email Templates" + subtext "Save and reuse email templates for your job search"
+Right buttons: "Browse Gallery" outline + "+ New Template" primary
+
+TEMPLATE VARIABLES INFO card:
+  "Available Variables" title (smaller card)
+  Row of code pill badges (bg #F1F5F9, border, mono font, 12px):
+    {{company}} {{position}} {{contact_name}} {{date}} {{your_name}} {{your_email}}
+    {{your_phone}} {{your_linkedin}} {{interview_date}} {{start_date}} {{salary}}
+  Helper text below (12px/#64748B): "Replace these placeholders with actual values before sending"
+
+TEMPLATES BY CATEGORY:
+  One card per category (e.g., "Follow-Up", "Thank You", "Application", "Negotiation")
+  CardHeader: FileText icon + category name
+  Template rows inside (hover bg #F8FAFC, border-bottom, p=12px):
+    Template name (15px/600) + subject line preview (14px/#64748B, truncated)
+    Right: "Copy" + "Edit" + "Delete" icon buttons (appear on hover)
+
+EMPTY STATE:
+  Mail icon (48px) + "No templates yet" + "Browse our pre-built collection" subtext
+  Two buttons: "Browse Gallery" + "Create Template"
+
+TEMPLATE GALLERY MODAL:
+  Large modal (640px wide), scrollable, grid of pre-built template cards
+  Each: title + short description, "Use Template" button
+
+==============================================================================
+PAGE 15: SALARY COMPARISON (/salary)
+==============================================================================
+
+H1 "Salary Comparison" + subtext "Compare and track offers across your applications"
+
+STATS GRID (4 columns, matching dashboard StatsCard style):
+  "Total Offers" (Award icon) / "Highest Offer" (TrendingUp icon, value in green #16A34A) / "Average Base Salary" (DollarSign icon) / "Applications with Salary" (Building icon)
+
+OFFER COMPARISON TABLE card:
+  "Offer Comparison" title + "Compare compensation packages across your offers" description
+  Table (overflow-x-auto on mobile):
+    Columns: Company | Position | Base Salary | Bonus | Signing | Total | Benefits
+    Header row: 13px/500/#64748B, border-bottom, py=12px px=16px
+    Data rows: 14px/#0F172A, border-bottom, hover bg #F8FAFC, py=12px px=16px
+    Company cell: link in #2563EB, hover underline
+    Total column: bold + green #16A34A
+    Benefits column: centered small pills (Health = green, 401k = blue, "Nd PTO" = purple)
+
+EMPTY STATE:
+  DollarSign icon (48px, gray/50%) + "No offers with salary data yet" + instructional text
+
+ALL SALARY INFO card (shown if non-offer applications also have salary data):
+  List rows (border, 8px radius, p=12px each, flex space-between):
+    Left: Company link + Position
+    Right: Salary amount (bold) + Status badge
+
+==============================================================================
+PAGE 16: NESTAI — AI CHAT ASSISTANT (/nestai)
+==============================================================================
+
+Full-height chat interface (calc(100vh - 64px)), overflow hidden
+Outer container: white, border, 12px radius, shadow-sm
+
+TWO-PANEL LAYOUT:
+
+LEFT PANEL — Sidebar (256px wide, collapsible):
+  Background: #F8FAFC, border-right 1px #E2E8F0
+  Sticky on mobile: fixed overlay with black backdrop, transitions
+
+  Sidebar header (border-bottom, px=12px, py=12px):
+    "NESTAi" title (14px/600/#0F172A)
+    Right: Plus icon button (32x32 ghost, "New chat" tooltip) + PanelLeftClose icon button
+
+  Sessions list (flex-1, overflow-y-auto, p=8px):
+    Section label "Pinned" (10px/600/uppercase tracked/#94A3B8, px=8px, pb=4px) — if pinned sessions exist
+    Session rows (each ~36px, 6px radius, hover bg #F1F5F9):
+      Active: bg #F1F5F9, text #0F172A
+      Inactive: text #64748B, hover text #0F172A
+      Pin icon (10px, #2563EB40) positioned absolute top-left if pinned
+      Session title (12px/500, truncated) + date below (11px/#94A3B8)
+      MoreHorizontal icon button (appears on hover, 28px ghost)
+        → Dropdown: Rename / Pin (or Unpin) / Delete (red)
+        → Delete shows inline confirm: "Delete this chat?" + Delete / Cancel buttons
+
+    Section label "Recent" if pinned exists and unpinned follows
+
+  LOADING STATE (sessions):
+    5 skeleton rows (gray animated shimmer, 12px/40% width, rounded, gap=8px)
+
+RIGHT PANEL — Chat area:
+
+  TOP BAR (border-bottom, px=16px, py=10px, flex, space-between):
+    Left: PanelLeft icon button (if sidebar closed) + Sparkles icon circle (24x24, #2563EB bg, white sparkles icon) + "NESTAi" (14px/600) + "Job search assistant" badge pill (12px/#64748B, border, rounded-full, px=8 py=2px)
+    Right: Rate limit counter + "New chat" ghost button (if messages exist)
+
+  RATE LIMIT COUNTER (pill, border, flex, px=10 py=4px, 12px):
+    5 dots (6x6 circles) representing remaining requests:
+      Filled = #2563EB60 (or amber if 1 left, or red if rate limited)
+      Empty = #E2E8F0
+    Text "N/5" tabular-nums/500
+    When rate limited: Zap icon + "Ns until reset" in red
+    Pill color: transparent border normally → amber bg/border if 1 left → red bg/border if 0
+
+  EMPTY CHAT STATE:
+    Centered vertically/horizontally in the chat area
+    BrainCircuit icon (56x56, #EFF6FF bg, 12px radius, icon #2563EB)
+    "How can I help you?" (20px/600/#0F172A)
+    Subtext "Ask me anything about your applications, interviews, or job search progress." (14px/#64748B)
+    Grid of 6 suggested prompt cards (2 columns, gap=8px, max-width 512px):
+      Each card: border, bg #F8FAFC, 12px radius, p=14px, flex row, hover bg #F1F5F9, hover border-darker
+        Icon square (28x28, white bg, border, 8px radius) + icon (14px, #64748B → #2563EB on hover)
+        Label (12px/500/#0F172A) + prompt text (12px/#64748B, mt-2px)
+      Prompts: "Application stats" / "Success rate" / "Pending responses" / "Upcoming interviews" / "My reminders" / "Progress summary"
+
+  MESSAGES AREA (flex-1, overflow-y-auto, px=16px, py=24px):
+    Max-width 672px, centered
+
+    USER MESSAGE (right-aligned bubble):
+      Flex column align-end
+      File attachment card (if file attached, shown above bubble):
+        Rounded card (12px radius, border, px=14px py=10px, w-fit):
+          File icon block (36x28, white bg, border, rounded, file type label tiny + 3 lines below)
+          File name (12px/600, truncated) + "PDF document" caption (11px, 70% opacity)
+          Bg/border/text color matches file type: PDF=red, DOCX/DOC=blue, TXT=zinc, MD=purple
+      Message bubble: #F1F5F9 bg, 16px radius with tr=4px (chat bubble shape), px=16px py=10px
+        Text: 14px/#0F172A, white-space pre-wrap
+
+    ASSISTANT MESSAGE (left-aligned with avatar):
+      Flex row, gap=12px
+      Avatar circle (28x28, #2563EB bg, Sparkles icon white, 14px)
+      Content:
+        Markdown-rendered text (14px/#0F172A, leading=1.7):
+          Bold: font-semibold
+          Italic: italic
+          Code inline: bg #F1F5F9, border, mono 0.8em, px=6 py=2px, 4px radius
+          Code blocks: dark bg (#09090B), lighter header bar showing language name, white mono code, 12px radius
+          H1/H2/H3: appropriate sizes, font-bold/semibold, mt-20px mb-4px
+          Lists: disc/decimal, ml=20px, space-y=2px
+          Blockquote: left border 2px #2563EB50, pl=12px, italic, muted text
+          HR: #E2E8F0, my=12px
+          Streaming cursor: 2px wide inline block, 1.1em tall, #2563EB70, animate-pulse, ml=2px
+        Hover shows actions row: Copy icon button (14px) + timestamp (11px/#94A3B8)
+        Follow-up suggestion pills (if present, mt=12px, flex-wrap gap=6px):
+          Each pill: border, bg #F8FAFC, hover bg #F1F5F9, text #64748B, hover text #0F172A, 999px radius, 12px, px=12 py=6px
+
+    TYPING INDICATOR (shown when loading, before first token):
+      Same avatar + 3 bouncing dots (6px circles, #94A3B8, animate-bounce with staggered delays)
+
+  ERROR BANNER (above input, if error):
+    Max-width 672px centered, #FEF2F2 bg, #FECACA border, #EF4444 text
+    Error message text + X dismiss button right-aligned
+    12px radius, px=16px py=10px
+
+  INPUT AREA (sticky bottom, px=16px, pb=16px, pt=8px):
+    Max-width 672px centered
+
+    RATE LIMITED STATE (full replacement):
+      Red-tinted card (12px radius, #FEF2F2 border-red):
+        Progress bar (full width, 4px height, bg #FECACA, fill #EF444460, transitions 1s)
+        Below: Zap circle (32x32, #EF4444/10 bg) + "Rate limit reached" title + "You've used all 5 requests for this minute"
+        Right side: large countdown "Ns" (28px/700/#EF4444) + "until reset" label
+
+    FILE ATTACHMENT CHIP (shown above input when file selected):
+      Small pill (border, w-fit, px=12px py=6px, flex, gap=8px, 6px radius):
+        States: Loading = gray/spinner / Error = red/X / Ready = blue/Paperclip
+        File name text (12px/500, truncate, max-width 220px)
+        X remove button (opacity 60%, hover 100%)
+
+    INPUT CONTAINER (border, bg white, 16px radius, shadow-sm, focus shadow-md, px=12px py=8px, flex, items-end, gap=8px):
+      Paperclip icon button (16px, #64748B, hover #0F172A, pb=6px, for file attach)
+      Hidden file input (accept .pdf,.docx,.doc,.txt,.md)
+      Textarea (flex-1, resize-none, transparent bg, 14px, no-outline, min-h=36px, max-h=200px, auto-resize)
+        Placeholder: "Message NESTAi…" (#94A3B8/50%)
+      RIGHT BUTTON:
+        While generating: Stop square button (32x32, bg #0F172A/10, hover #0F172A/20, Square icon filled)
+        When idle: Send button (32x32, 12px radius, bg primary if text/file else bg #F1F5F9)
+          Send arrow icon (14px)
+
+    Footer caption (11px/#94A3B8/60%, text-center, mt=8px):
+      "5 requests per minute · Responses based on your Jobnest data"
+
+==============================================================================
+PAGE 17: PROFILE (/profile)
+==============================================================================
+
+H1 "Profile" + subtext "Manage your account settings and preferences"
+
+3 sections stacked, each in a white card (border, 8px radius, p=24px):
+
+SECTION 1 — "Account Information":
+  H2 (card title) + horizontal divider
+  2-column info grid:
+    - Avatar (48x48, #2563EB bg, white letter, 600/18px) + "Email address" label + email value
+    - "Member since" + formatted join date
+    - "Plan" + "Free" badge (green)
+    - "Last password changed" + date or "Never"
+    - "Two-factor method" + "OTP via email" badge
+
+SECTION 2 — "Display Name":
+  Input (full width, current name pre-filled) + "Save Changes" primary button right
+  Success state: green checkmark icon + "Display name updated" inline
+
+SECTION 3 — "About Me":
+  Textarea (4 rows) for bio text + "Save" button
+
+SECTION 4 — "Notifications":
+  Two toggle rows (flex, space-between, border-bottom each):
+    "Overdue reminders" label + subtext + toggle switch
+    "Weekly digest" label + subtext + toggle switch
+  Toggle: 44x24px, bg #E2E8F0 off → #2563EB on, circle thumb 20x20 white
+
+SECTION 5 — "Change Password" (only if user has password auth):
+  Card: KeyRound icon in header + "Change Password" title
+
+  If user doesn't have a password (OAuth only):
+    Muted message: "You signed in with Google/GitHub. Password change is not available."
+
+  Step 1 — "Enter current password":
+    "Current Password" input (show/hide toggle EyeOff/Eye icon button inside right)
+    "Forgot your password?" link (#2563EB, 12px)
+    "Continue" primary button → triggers OTP send
+    Loading state: Loader2 spinner in button
+
+  Step 2 — "Verify your identity" (OTP):
+    Back arrow button
+    Mail icon circle (48x48, #EFF6FF, Mail #2563EB)
+    "Check your email" title + "We sent a 6-digit code to..." subtext
+    6 OTP input boxes (same as login OTP)
+    "Verify Code" primary button + Resend link
+
+  Step 3 — "Set new password":
+    "New Password" input (show/hide) + "Confirm New Password" input (show/hide)
+    Password strength meter (3 bars, color-coded)
+    "Update Password" primary button
+    Success state: ShieldCheck icon + "Password updated successfully" green message
+
+SECTION 6 — "Danger Zone" / "Delete Account":
+  Card with red left-accent border (4px solid #EF4444) or red header
+
+  IDLE STATE (no pending deletion):
+    ShieldAlert icon + "Delete Account" title (red)
+    Warning text: list of consequences (all data deleted, can't undo)
+    "Schedule Account Deletion" red outline button
+
+  WARN STATE (first click, step 2):
+    AlertTriangle icon in amber circle
+    Consequence bullets (red list):
+      - All job applications permanently deleted
+      - All documents and files removed
+      - All contacts and templates deleted
+      - This action cannot be undone after 30 days
+    "Reason (optional)" textarea
+    "Send Verification Code" + "Cancel" buttons
+
+  OTP STATE (step 3):
+    Same OTP input boxes
+    "Delete My Account" red primary button + "Cancel" ghost button
+
+  PENDING DELETION STATE (after scheduling):
+    Amber warning card (bg #FFF7ED, border #FED7AA):
+      AlertTriangle (#D97706) + "Deletion scheduled"
+      "Your account will be permanently deleted on [date] ([N] days remaining)"
+      "Cancel Deletion" outline button (border #D97706, text #D97706, full-width)
+
+==============================================================================
+PAGE 18: CONTACT / SUPPORT (/contact)
+==============================================================================
+
+Centered layout, max-width 640px
+H1 "Help & Support" + subtext
+Contact form card:
+  Name input / Email input / Subject input / Message textarea (6 rows)
+  "Send Message" primary button
+Success state: green card "Message sent! We'll get back to you soon."
+
+==============================================================================
+PAGE 19: TERMS OF SERVICE (/terms)
+PAGE 20: PRIVACY POLICY (/privacy)
+==============================================================================
+
+Both: prose layout, max-width 720px, centered, long-form legal text
+H1 title + "Last updated" date line
+Section headers (H2) with numbered sections
+Body text (16px, line-height 1.8)
+
+==============================================================================
+AUTH ERROR PAGE (/auth/auth-error)
+==============================================================================
+
+Centered card (same as auth card):
+  AlertTriangle icon circle (48x48, #FFF7ED bg, #D97706 icon)
+  H1 "Authentication Error"
+  Error message description
+  "Try Again" primary button → /login
+  "Contact Support" ghost button → /contact
+
+==============================================================================
+SHARED EMPTY STATES
+==============================================================================
+
+All empty states follow the same pattern:
+  Dashed border card (1px dashed #E2E8F0), white bg, 12px radius, centered content, py=80px
+  Icon (56x56 in #F1F5F9 box, 12px radius, icon color #94A3B8)
+  Heading (16px/600/#0F172A)
+  Description (14px/#64748B, max-width 280px)
+  Primary action button (when applicable)
+
+==============================================================================
+TOAST NOTIFICATIONS (sonner)
+==============================================================================
+
+Bottom-right corner, fixed
+Success toast: white card, border, shadow, green dot/checkmark + message (14px)
+Error toast: white card, red dot/X + message (14px)
+Width: 356px, 8px radius, p=16px
+
+==============================================================================
+RESPONSIVE BREAKPOINTS
+==============================================================================
+
+Mobile:  < 640px  — single column, full-width elements, collapsible nav
+Tablet:  640-1024px — 2 columns where applicable, nav still in hamburger
+Desktop: > 1024px — full layout, side-by-side, nav visible
+
+==============================================================================
+MOTION & ANIMATION
+==============================================================================
+
+Page transitions: fade-in from bottom (8px) over 300ms ease-out
+Card hover: translateY(-2px), shadow increase, 150ms ease
+Button hover: 100ms color transition
+Nav link active: instant color change + bg fill
+Dropdown open: subtle scale-in + fade, 150ms
+Mobile menu: slide from right, 200ms ease-out
+OTP boxes: focus ring pulses in, 100ms
+Streaming cursor: pulse animation (opacity 0→1), 700ms infinite
+Rate limit dots: smooth color transition 300ms
+Skeleton loading: shimmer animation (gray bg, lighter shimmer sweep left→right, 1.5s infinite)
+
+==============================================================================
+DESIGN NOTES FOR STITCH
+==============================================================================
+
+1. The app is called "Jobnest" — it tracks job applications for individuals.
+2. The primary blue #2563EB is THE signature color — use it for all interactive elements, active states, and brand accents.
+3. White (#FFFFFF) is the dominant surface. Muted (#F1F5F9) is used for alternating sections and sidebar backgrounds.
+4. Cards should feel clean and contained — no drop shadows that are too heavy.
+5. The navbar is the primary navigation — there is no left sidebar for the dashboard (unlike typical SaaS apps). All nav is at the top.
+6. NESTAi is the AI chat feature — it has a two-panel layout that lives inside the main content area (NOT full viewport), respecting the navbar.
+7. Status badges are always pills (fully rounded), brightly colored but soft (light background + dark matching text).
+8. The overall vibe: calm, professional, trustworthy. Not gamified. Not playful. Clean productivity tool.
+9. Font is Geist Sans by Vercel — very clean, geometric sans-serif. Use system-ui as fallback.
+10. Every interactive element must have clear hover, focus, active, and disabled states designed.

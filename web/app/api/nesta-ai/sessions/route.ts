@@ -19,13 +19,9 @@ export async function GET() {
 
     const { data: sessions, error } = await supabase
       .from("chat_sessions")
-      .select(`
-        id,
-        title,
-        created_at,
-        updated_at
-      `)
+      .select("id, title, is_pinned, created_at, updated_at")
       .eq("user_id", user.id)
+      .order("is_pinned", { ascending: false })
       .order("updated_at", { ascending: false });
 
     if (error) {
