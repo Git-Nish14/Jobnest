@@ -1,22 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { Newsreader, Manrope } from "next/font/google";
 import {
-  Briefcase,
-  FileText,
   BarChart3,
-  ArrowRight,
-  CheckCircle2,
-  Search,
-  Bell,
-  Shield,
-  Zap,
-  Users,
+  PenLine,
+  Lock,
+  Sparkles,
+  LayoutDashboard,
+  BadgeCheck,
+  Clock,
+  Star,
 } from "lucide-react";
-import { Button } from "@/components/ui";
-import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
+import {
+  LandingScrollLink,
+  LandingScrollToTop,
+} from "@/components/landing/LandingScrollLink";
+import "./landing.css";
 
 export const dynamic = "force-dynamic";
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export default async function Home() {
   try {
@@ -24,275 +41,454 @@ export default async function Home() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
-    if (user) {
-      redirect("/dashboard");
-    }
+    if (user) redirect("/dashboard");
   } catch {
     // Supabase not configured yet, show landing page
   }
 
-  const features = [
-    {
-      icon: FileText,
-      title: "Application Tracking",
-      description:
-        "Log company details, position, salary expectations, and application status in one centralized location.",
-    },
-    {
-      icon: Briefcase,
-      title: "Document Management",
-      description:
-        "Store and organize resumes, cover letters, and other documents for each application.",
-    },
-    {
-      icon: BarChart3,
-      title: "Progress Analytics",
-      description:
-        "Visualize your job search with insightful statistics and track your application success rate.",
-    },
-    {
-      icon: Bell,
-      title: "Status Updates",
-      description:
-        "Keep track of interview stages, follow-ups, and important deadlines for each opportunity.",
-    },
-    {
-      icon: Search,
-      title: "Quick Search",
-      description:
-        "Find any application instantly with powerful search and filtering capabilities.",
-    },
-    {
-      icon: Shield,
-      title: "Secure & Private",
-      description:
-        "Your data is encrypted and securely stored. Only you have access to your information.",
-    },
-  ];
-
-  const steps = [
-    {
-      number: "01",
-      title: "Create Your Account",
-      description: "Sign up in seconds with just your email. No credit card required.",
-    },
-    {
-      number: "02",
-      title: "Add Applications",
-      description: "Log each job application with company details, position, and status.",
-    },
-    {
-      number: "03",
-      title: "Track Progress",
-      description: "Update statuses, add notes, and monitor your job search journey.",
-    },
-    {
-      number: "04",
-      title: "Land Your Dream Job",
-      description: "Stay organized and focused until you secure the perfect opportunity.",
-    },
-  ];
-
-  const stats = [
-    { value: "100%", label: "Free Forever" },
-    { value: "5min", label: "Setup Time" },
-    { value: "24/7", label: "Access Anywhere" },
-    { value: "∞", label: "Applications" },
-  ];
-
   return (
-    <LayoutWrapper footerVariant="full">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-white">
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:40px_40px] opacity-50" />
-        <div className="absolute left-1/2 top-0 -z-10 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-primary/8 blur-[120px]" />
+    <div
+      className={`${newsreader.variable} ${manrope.variable} min-h-screen landing-root`}
+    >
+      {/* ── Header ── */}
+      <header className="fixed top-0 w-full z-50 backdrop-blur-md border-b landing-header">
+        <div className="flex justify-between items-center px-6 py-3.5 w-full max-w-7xl mx-auto">
+          {/* Logo */}
+          <LandingScrollToTop className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none p-0">
+            <Image
+              src="/new_logo_1.png"
+              alt="Jobnest"
+              width={36}
+              height={36}
+              priority
+            />
+            <span className="text-xl landing-logo-text">Jobnest</span>
+          </LandingScrollToTop>
 
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
-          <div className="flex flex-col items-center text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary tracking-wide uppercase">
-              <Zap className="h-3 w-3" />
-              Free Job Application Tracker
-            </div>
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-2">
+            <LandingScrollToTop className="font-semibold text-sm px-3 py-1.5 rounded-lg landing-nav-active bg-transparent border-none cursor-pointer">
+              Overview
+            </LandingScrollToTop>
+            <LandingScrollLink
+              sectionId="features"
+              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
+            >
+              Features
+            </LandingScrollLink>
+            <LandingScrollLink
+              sectionId="testimonials"
+              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
+            >
+              Testimonials
+            </LandingScrollLink>
+          </nav>
 
-            <h1 className="mt-8 max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Organize your job search.{" "}
-              <span className="bg-gradient-to-r from-primary via-blue-500 to-primary bg-clip-text text-transparent">
-                Land faster.
-              </span>
-            </h1>
-
-            <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg leading-relaxed">
-              Track every application, manage documents, and stay on top of interviews — all in one clean, free workspace.
-            </p>
-
-            <div className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Link href="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full gap-2 px-7 shadow-md hover:shadow-lg transition-shadow sm:w-auto">
-                  Get Started Free
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto px-7">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {["No credit card required", "Free forever", "Secure & private"].map((text) => (
-                <div key={text} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  {text}
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="hidden sm:block text-sm font-medium landing-login-link"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="px-6 py-2 rounded-full font-medium text-sm transition-all landing-btn-primary"
+            >
+              Get Started
+            </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Stats Section */}
-      <section className="border-y bg-muted/40">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-3xl font-bold text-primary sm:text-4xl tabular-nums">
-                  {stat.value}
+      <main className="pt-28 pb-24">
+        {/* ── Hero ── */}
+        <section className="max-w-7xl mx-auto px-6 mb-24 lg:mb-32">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            {/* Left */}
+            <div className="lg:col-span-7 space-y-8">
+              <h1 className="text-5xl md:text-7xl tracking-tight leading-[1.1] landing-serif">
+                Organize your job Application.
+                <br />
+                <span className="landing-gradient-text">Land faster.</span>
+              </h1>
+
+              <p className="text-xl max-w-xl leading-relaxed landing-subtext">
+                The thoughtful workspace for the modern professional. Track
+                applications, manage interviews, and curate your career path
+                with editorial precision.
+              </p>
+
+              <div className="flex flex-wrap gap-4 pt-4">
+                <Link
+                  href="/signup"
+                  className="px-10 py-4 rounded-full font-bold text-lg transition-all landing-btn-hero-cta"
+                >
+                  Get Started Free
+                </Link>
+                <Link
+                  href="/login"
+                  className="px-10 py-4 rounded-full font-bold text-lg transition-all border landing-btn-hero-ghost"
+                >
+                  Sign In
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm font-medium pt-2 landing-verified-text">
+                <BadgeCheck className="w-4 h-4 text-[#006d34]" />
+                Free for individuals during early access.
+              </div>
+            </div>
+
+            {/* Right — visual */}
+            <div className="lg:col-span-5 relative">
+              <div className="aspect-square rounded-xl relative overflow-hidden landing-hero-visual">
+                {/* Decorative dashboard skeleton */}
+                <div className="absolute inset-0 p-8 flex flex-col gap-3 opacity-25">
+                  <div className="flex gap-2 mb-2">
+                    <div className="h-2 w-16 rounded-full bg-[#99462a]" />
+                    <div className="h-2 w-24 rounded-full bg-white/20" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-16 rounded-lg border border-white/10 bg-white/4"
+                      />
+                    ))}
+                  </div>
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-8 rounded-lg border border-white/10 bg-white/3"
+                    />
+                  ))}
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground font-medium">
-                  {stat.label}
+                <div className="absolute inset-0 bg-linear-to-tr from-[#99462a]/15 to-transparent" />
+              </div>
+
+              {/* Floating card */}
+              <div className="absolute -bottom-6 -left-6 p-6 rounded-lg max-w-xs border landing-floating-card">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#ffdbd0]">
+                    <Sparkles className="w-5 h-5 text-[#99462a]" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest landing-subtext">
+                      Next Step
+                    </p>
+                    <p className="text-sm font-bold">
+                      Interview with Design Studio
+                    </p>
+                  </div>
                 </div>
+                <div className="h-2 w-full rounded-full overflow-hidden bg-[#efeeec]">
+                  <div className="h-full rounded-full w-3/4 bg-[#d97757]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features Bento ── */}
+        <section id="features" className="max-w-7xl mx-auto px-6 mb-32">
+          <div className="mb-16">
+            <h2 className="text-3xl md:text-4xl mb-4 landing-serif text-[#1a1c1b]">
+              Features for the focused mind
+            </h2>
+            <div className="h-1 w-20 rounded-full bg-[#d97757]" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Large card */}
+            <div className="md:col-span-2 rounded-xl p-10 flex flex-col justify-between min-h-95 bg-[#f4f3f1]">
+              <div>
+                <LayoutDashboard className="w-10 h-10 text-[#99462a] mb-6" />
+                <h3 className="text-3xl mb-4 landing-serif">
+                  Centralized Intelligence
+                </h3>
+                <p className="text-lg max-w-md leading-relaxed landing-subtext">
+                  A single source of truth for your professional journey. From
+                  first contact to final offer, every detail is meticulously
+                  organized.
+                </p>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-3">
+                {["Application Tracker", "Contact CRM", "Document Vault"].map(
+                  (tag) => (
+                    <span
+                      key={tag}
+                      className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-tighter bg-[#e3e2e0]"
+                    >
+                      {tag}
+                    </span>
+                  ),
+                )}
+              </div>
+            </div>
+
+            {/* Accent tall card */}
+            <div className="rounded-xl p-10 flex flex-col justify-end relative overflow-hidden group min-h-95 bg-[#99462a] text-white">
+              <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:scale-110 transition-transform duration-500">
+                <Clock className="w-28 h-28" />
+              </div>
+              <h3 className="text-3xl mb-4 relative z-10 landing-serif">
+                Smart Alerts
+              </h3>
+              <p className="relative z-10 leading-relaxed landing-accent-card-subtext">
+                Never miss a follow-up. Our intelligent notification system
+                keeps you one step ahead of the competition.
+              </p>
+            </div>
+
+            {/* Small cards */}
+            {[
+              {
+                Icon: BarChart3,
+                title: "Insightful Analytics",
+                desc: "Visualize your conversion rates across different stages of the funnel.",
+              },
+              {
+                Icon: PenLine,
+                title: "Interview Journal",
+                desc: "Refined space for note-taking during and after your conversations.",
+              },
+              {
+                Icon: Lock,
+                title: "Privacy First",
+                desc: "Your data is encrypted and never sold. You are the curator of your story.",
+              },
+            ].map(({ Icon, title, desc }) => (
+              <div key={title} className="rounded-xl p-10 bg-[#f4f3f1]">
+                <Icon className="w-7 h-7 text-[#99462a] mb-6" />
+                <h3 className="text-2xl mb-2 landing-serif">{title}</h3>
+                <p className="text-sm leading-relaxed landing-subtext">
+                  {desc}
+                </p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How It Works Section */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">How it works</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-            Up and running in minutes
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground sm:text-base">
-            A simple four-step process to take control of your job search
-          </p>
-        </div>
-
-        <div className="mt-12 grid gap-8 sm:mt-16 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step, index) => (
-            <div key={step.number} className="relative flex flex-col items-center text-center">
-              {index < steps.length - 1 && (
-                <div className="absolute left-1/2 top-6 hidden h-px w-full bg-gradient-to-r from-border to-transparent lg:block" />
-              )}
-              <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-md">
-                {step.number}
-              </div>
-              <h3 className="mt-4 text-sm font-semibold sm:text-base">{step.title}</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+        {/* ── Testimonials ── */}
+        <section id="testimonials" className="py-24 bg-[#f4f3f1]">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
+                Trusted by the best
+              </p>
+              <h2 className="text-4xl landing-serif">Words from the Atelier</h2>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="bg-muted/30 border-y">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">Features</p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-              Everything you need to succeed
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground sm:text-base">
-              Powerful tools designed to streamline your entire job search
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-4 sm:mt-16 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  quote:
+                    "Jobnest transformed my chaotic search into a refined strategy. I felt like I was managing a gallery, not a spreadsheet.",
+                  name: "Eleanor Vance",
+                  role: "Senior Product Designer",
+                  initial: "E",
+                },
+                {
+                  quote:
+                    "The editorial feel of the UI makes me actually want to log in and update my progress. A true sanctuary for focus.",
+                  name: "Julian Thorne",
+                  role: "Technical Architect",
+                  initial: "J",
+                },
+                {
+                  quote:
+                    "Finally, a tool that respects the complexity of a modern career. The design is as intelligent as the features it holds.",
+                  name: "Sophia Chen",
+                  role: "Director of Operations",
+                  initial: "S",
+                },
+              ].map(({ quote, name, role, initial }) => (
                 <div
-                  key={feature.title}
-                  className="group rounded-xl border bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 sm:p-6"
+                  key={name}
+                  className="p-8 rounded-lg landing-testimonial-card"
                 >
-                  <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="flex gap-1 mb-6">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className="w-4 h-4 fill-[#99462a] text-[#99462a]"
+                      />
+                    ))}
                   </div>
-                  <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                    {feature.description}
+                  <p className="text-xl mb-8 leading-relaxed landing-quote">
+                    &ldquo;{quote}&rdquo;
                   </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Section */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <div className="rounded-2xl border bg-gradient-to-br from-primary/5 to-blue-50/50 p-8 text-center sm:p-12 lg:p-16">
-          <div className="mx-auto flex max-w-2xl flex-col items-center">
-            <div className="flex -space-x-2">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-primary/10 text-primary sm:h-10 sm:w-10"
-                >
-                  <Users className="h-4 w-4" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shrink-0 bg-[#99462a]">
+                      {initial}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{name}</p>
+                      <p className="text-xs landing-subtext">{role}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className="h-4 w-4 fill-amber-400" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <h3 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">
-              Built for job seekers, by job seekers
-            </h3>
-            <p className="mt-3 text-muted-foreground sm:text-base leading-relaxed">
-              Stop juggling spreadsheets and sticky notes. Jobnest keeps every application, interview, and follow-up organized in one place so you can focus on what matters — getting hired.
-            </p>
-            <Link href="/signup" className="mt-8">
-              <Button size="lg" className="gap-2 shadow-md">
-                Start for free
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="border-t bg-primary">
-        <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-            Ready to take control of your job search?
+        {/* ── Final CTA ── */}
+        <section className="max-w-4xl mx-auto px-6 py-32 text-center">
+          <h2 className="text-4xl md:text-5xl mb-8 leading-tight landing-serif">
+            Elevate your search from a task to a craft.
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-primary-foreground/80 sm:text-base">
-            Create your free account today and never lose track of an application again.
+          <p className="text-xl mb-12 max-w-2xl mx-auto landing-subtext">
+            Join a community of thousands who have traded the noise for the
+            nuance of Jobnest.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link href="/signup" className="w-full sm:w-auto">
-              <Button size="lg" variant="secondary" className="w-full gap-2 sm:w-auto font-semibold shadow-sm">
-                Get Started Free
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link
+              href="/signup"
+              className="px-12 py-5 rounded-full font-bold text-xl transition-all landing-btn-cta-primary"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/login"
+              className="px-12 py-5 rounded-full font-bold text-xl transition-all border landing-btn-cta-secondary"
+            >
+              Sign In
             </Link>
           </div>
-          <p className="mt-4 text-xs text-primary-foreground/60">
-            No credit card required · Free forever · Takes 30 seconds
-          </p>
-        </div>
-      </section>
+        </section>
+      </main>
 
-    </LayoutWrapper>
+      {/* ── Footer ── */}
+      <footer className="border-t py-16 landing-footer">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12">
+          {/* Brand */}
+          <div className="col-span-2">
+            <div className="flex items-center gap-2.5 mb-5">
+              <Image
+                src="/new_logo_1.png"
+                alt="Jobnest"
+                width={32}
+                height={32}
+              />
+              <span className="text-xl landing-logo-text">Jobnest</span>
+            </div>
+            <p className="text-sm leading-relaxed max-w-xs landing-footer-links">
+              A digital sanctuary for career growth. Designed for clarity, built
+              for progress.
+            </p>
+            <p className="mt-3 text-xs landing-footer-links">
+              A product of{" "}
+              <a
+                href="https://techifive.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="landing-techifive-link"
+              >
+                Techifive
+              </a>
+            </p>
+          </div>
+
+          {/* Product */}
+          <div>
+            <h4 className="font-bold text-sm mb-6 uppercase tracking-widest">
+              Product
+            </h4>
+            <ul className="space-y-4 text-sm landing-footer-links">
+              <li>
+                <LandingScrollToTop className="landing-footer-nav-link bg-transparent border-none cursor-pointer p-0 text-sm">
+                  Overview
+                </LandingScrollToTop>
+              </li>
+              <li>
+                <LandingScrollLink
+                  sectionId="features"
+                  className="landing-footer-nav-link bg-transparent border-none cursor-pointer p-0 text-sm"
+                >
+                  Features
+                </LandingScrollLink>
+              </li>
+              <li>
+                <LandingScrollLink
+                  sectionId="testimonials"
+                  className="landing-footer-nav-link bg-transparent border-none cursor-pointer p-0 text-sm"
+                >
+                  Testimonials
+                </LandingScrollLink>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="font-bold text-sm mb-6 uppercase tracking-widest">
+              Legal
+            </h4>
+            <ul className="space-y-4 text-sm">
+              <li>
+                <Link href="/privacy" className="landing-footer-nav-link">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="landing-footer-nav-link">
+                  Terms
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="landing-footer-nav-link">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Get Access */}
+          <div className="col-span-2">
+            <h4 className="font-bold text-sm mb-6 uppercase tracking-widest">
+              Get Access
+            </h4>
+            <p className="text-xs mb-4 landing-footer-links">
+              Start tracking your job search for free today.
+            </p>
+            <Link
+              href="/signup"
+              className="inline-block px-6 py-2 rounded-lg text-sm font-bold transition-all landing-footer-signup"
+            >
+              Sign Up Free
+            </Link>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t flex flex-col md:flex-row justify-between gap-4 landing-footer-divider">
+          <p className="text-xs landing-copyright">
+            © {new Date().getFullYear()} Jobnest — a{" "}
+            <a
+              href="https://techifive.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="landing-techifive-link text-xs font-semibold"
+            >
+              Techifive
+            </a>{" "}
+            product. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-xs">
+            <Link href="/privacy" className="landing-footer-nav-link">
+              Privacy
+            </Link>
+            <Link href="/terms" className="landing-footer-nav-link">
+              Terms
+            </Link>
+            <Link href="/contact" className="landing-footer-nav-link">
+              Contact
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

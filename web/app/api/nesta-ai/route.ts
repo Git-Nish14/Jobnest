@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       ]);
 
       if (tagRows) {
-        tags = tagRows.flatMap((row: TagRow) => {
+        tags = (tagRows as unknown as TagRow[]).flatMap((row) => {
           const tagName = row.tags?.name;
           return tagName ? [{ application_id: row.application_id, tag_name: tagName }] : [];
         });
@@ -170,14 +170,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Shared args for buildContext — reused across trimming passes
+    // Shared args for buildContext — reused across trimming passes.
+    // Supabase infers joined tables (job_applications) as arrays without generated
+    // DB types, so we cast the three affected arrays through unknown.
     const contextArgs = [
       applications,
-      interviews,
-      reminders,
+      interviews as unknown as InterviewRow[] | null,
+      reminders as unknown as ReminderRow[] | null,
       contacts,
       tags,
-      activityLogs,
+      activityLogs as unknown as ActivityRow[] | null,
       salaryDetails,
       emailTemplates,
       documentTexts,
@@ -377,18 +379,82 @@ function fmt(date: string | Date) {
   return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function fmtMoney(amount: number | null, currency = "USD") {
+function fmtMoney(amount: number | null, currency?: string | null) {
+  currency = currency ?? "USD";
   if (!amount) return null;
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
-type AppRow = Record<string, unknown>;
-type InterviewRow = Record<string, unknown>;
-type ReminderRow = Record<string, unknown>;
-type ContactRow = Record<string, unknown>;
-type ActivityRow = Record<string, unknown>;
-type SalaryRow = Record<string, unknown>;
-type TemplateRow = Record<string, unknown>;
+type AppRow = {
+  id: string;
+  company: string;
+  position: string;
+  status: string;
+  applied_date: string;
+  location: string | null;
+  salary_range: string | null;
+  notes: string | null;
+  job_url: string | null;
+  resume_path: string | null;
+  cover_letter_path: string | null;
+};
+type InterviewRow = {
+  id: string;
+  type: string;
+  round: number;
+  status: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  location: string | null;
+  meeting_url: string | null;
+  interviewer_names: string[] | null;
+  notes: string | null;
+  job_applications: { company: string; position: string } | null;
+};
+type ReminderRow = {
+  id: string;
+  title: string;
+  type: string | null;
+  due_date: string;
+  is_completed: boolean;
+  notes: string | null;
+  job_applications: { company: string; position: string } | null;
+};
+type ContactRow = {
+  name: string;
+  company: string | null;
+  role: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  is_primary: boolean;
+  linkedin_url: string | null;
+  application_id: string | null;
+};
+type ActivityRow = {
+  activity_type: string;
+  description: string | null;
+  created_at: string;
+  job_applications: { company: string; position: string } | null;
+};
+type SalaryRow = {
+  application_id: string;
+  base_salary: number | null;
+  bonus: number | null;
+  signing_bonus: number | null;
+  equity: string | null;
+  benefits: string | null;
+  final_offer: number | null;
+  offer_deadline: string | null;
+  currency: string | null;
+  notes: string | null;
+};
+type TemplateRow = {
+  name: string;
+  category: string;
+  subject: string;
+  body: string;
+};
 type TagRow = { application_id: string; tags: { name: string } | null };
 
 type DocResult = {
@@ -585,7 +651,7 @@ function buildContext(
     const withOffers = salaryDetails.filter((s) => s.final_offer);
     const avgBase = salaryDetails
       .filter((s) => s.base_salary)
-      .reduce((sum, s, _, arr) => sum + s.base_salary / arr.length, 0);
+      .reduce((sum, s, _, arr) => sum + s.base_salary! / arr.length, 0);
 
     parts.push(
       `SALARY TRACKER — ${salaryDetails.length} application(s) with salary data | ${withOffers.length} with final offer | Avg base: ${avgBase ? fmtMoney(Math.round(avgBase)) : "N/A"}`

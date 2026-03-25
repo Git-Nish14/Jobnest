@@ -44,7 +44,9 @@ export async function getApplicationTags(
       };
     }
 
-    const tags = data?.map((item: { tag_id: string; tags: Tag | null }) => item.tags).filter(Boolean) as Tag[];
+    const tags = (data as unknown as Array<{ tag_id: string; tags: Tag | null }>)
+      ?.map((item) => item.tags)
+      .filter(Boolean) as Tag[];
 
     return { data: tags, error: null };
   } catch {
