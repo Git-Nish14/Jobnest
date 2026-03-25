@@ -407,11 +407,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       });
       const data = await res.json();
       if (!res.ok) { setDeleteError(data.error || "Failed to schedule deletion"); return; }
-      setPendingDeletion({
-        scheduled_deletion_at: data.scheduledDeletionAt,
-        created_at: new Date().toISOString(),
-      });
-      setDeleteStep("done");
+      router.push("/login");
     } catch {
       setDeleteError("Failed to schedule deletion. Please try again.");
     } finally {

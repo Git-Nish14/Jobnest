@@ -14,6 +14,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Secure signup, password reset, and **change password** via OTP
 - **Stay signed in** checkbox — unchecked sessions are terminated on next browser start via `sessionStorage` + `sb_rm` cookie
 - **Cross-tab logout sync** — `AuthSync` component listens to `onAuthStateChange`; signing out in one tab redirects all open tabs instantly
+- **Auto-redirect** — authenticated users visiting `/`, `/login`, `/signup`, or `/forgot-password` are redirected to `/dashboard`; `sb_rm=0` (session-only) sessions are exempt to prevent an AuthSync redirect loop
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
 - Security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
 - Rate limiting on all auth and sensitive endpoints
@@ -106,6 +107,7 @@ Modelled after AWS / GitHub — accounts are never immediately destroyed.
 - **Real-time rate-limit counter** — pip dots showing X/5 remaining with live countdown
 - **Suggested follow-up questions** — tappable chips below every assistant response
 - **User About Me** injected into the system prompt if set on the profile page
+- **Smart context trimming** — token budget of 124,500 tokens enforced via a 4-step progressive trim: history → 20 messages, docs → 1,000 chars each, docs omitted + activity → 20 entries, hard truncation
 - Chat sessions with confirm-before-delete and rename (Enter/Escape keyboard shortcuts)
 - 5 requests per minute (server-enforced)
 - Powered by Groq (`llama-3.3-70b-versatile`)
@@ -125,7 +127,7 @@ Modelled after AWS / GitHub — accounts are never immediately destroyed.
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email/password + Google/GitHub OAuth) |
 | AI | Groq API (`llama-3.3-70b-versatile`) |
 | Email | Nodemailer (SMTP) |
-| Font | Geist Sans / Geist Mono (`next/font/google`) |
+| Font | Geist Sans / Geist Mono (dashboard) · Newsreader + Manrope (auth pages) via `next/font/google` |
 | Styling | Tailwind CSS 4 (light-only) |
 | UI | Radix UI primitives + custom components |
 | Forms | React Hook Form + Zod |
@@ -293,11 +295,41 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Scripts
 
 ```bash
-npm run dev      # Development server (Turbopack)
-npm run build    # Production build
-npm run start    # Production server
-npm run lint     # ESLint
+npm run dev           # Development server (Turbopack)
+npm run build         # Production build
+npm run start         # Production server
+npm run lint          # ESLint
+npm run typecheck     # TypeScript type check (tsc --noEmit)
+npm test              # Run all Vitest tests (unit + flow)
+npm run test:watch    # Vitest in watch mode
+npm run test:coverage # Vitest with V8 coverage report
 ```
+
+---
+
+## Testing
+
+All tests run with **Vitest** — no browser or external service required.
+
+```bash
+npm test              # Run all tests once
+npm run test:coverage # Coverage report
+```
+
+| Suite | Location | What it covers |
+|---|---|---|
+| Unit | `tests/unit/` | lib utilities (errors, rate-limit, OTP, fetch-retry, Zod schemas), every API route handler, proxy redirect logic |
+| E2E flows | `tests/flows/` | Full user journeys: login, signup, forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload |
+
+All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` required to run tests.
+
+### CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every push and pull request:
+
+1. **Typecheck** — `tsc --noEmit`
+2. **Test** — `vitest run` (all 253 tests)
+3. **Build** — `next build` (depends on steps 1 + 2 passing)
 
 ---
 

@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!rateLimitResult.allowed) {
-      throw ApiError.tooManyRequests("Too many attempts. Please try again later.");
+      const waitSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      throw ApiError.tooManyRequests(`Too many attempts. Please wait ${waitSeconds} seconds and try again.`);
     }
 
     const supabaseAdmin = createAdminClient();
@@ -109,7 +110,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      throw ApiError.conflict("Your account is already scheduled for deletion");
+      const scheduledDate = new Date(existing.scheduled_deletion_at).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric",
+      });
+      throw ApiError.conflict(
+        `Your account is already scheduled for deletion on ${scheduledDate}. You can cancel this from your profile page.`
+      );
     }
 
     // ── Schedule deletion ─────────────────────────────────────────────────

@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!rateLimitResult.allowed) {
-      throw ApiError.tooManyRequests("Too many reset attempts. Please try again later.");
+      const waitSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      throw ApiError.tooManyRequests(`Too many reset attempts. Please wait ${waitSeconds} seconds and try again.`);
     }
 
     const supabaseAdmin = createAdminClient();
@@ -54,7 +55,8 @@ export async function POST(request: NextRequest) {
     const user = userData.users.find((u) => u.email?.toLowerCase() === email);
 
     if (!user) {
-      throw ApiError.notFound("User not found");
+      // Don't reveal whether the email exists in our system
+      throw ApiError.badRequest("Password reset failed. Please try again or contact support.");
     }
 
     // Update the user's password
