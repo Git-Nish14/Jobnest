@@ -1,0 +1,204 @@
+/* ── Landing Page — Intellectual Atelier Design ──────────────────────────────
+   Design tokens mirror auth.css exactly. Defined here so the landing page is
+   self-contained and guaranteed in sync with the auth page palette.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --atelier-bg:             #faf9f7;
+  --atelier-surface:        #ffffff;
+  --atelier-surface-low:    #f4f3f1;
+  --atelier-surface-high:   #e9e8e6;
+  --atelier-primary:        #99462a;
+  --atelier-primary-hover:  #d97757;
+  --atelier-on-surface:     #1a1c1b;
+  --atelier-on-surface-var: #55433d;
+  --atelier-outline-var:    #dbc1b9;
+}
+
+/* ── Root ──────────────────────────────────────────────────────────────────── */
+.landing-root {
+  background-color: var(--atelier-bg);
+  color: var(--atelier-on-surface);
+  font-family: var(--font-manrope, system-ui), sans-serif;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+.landing-header {
+  background-color: rgba(250, 249, 247, 0.80);
+  border-color: rgba(219, 193, 185, 0.15);
+  box-shadow: 0 1px 12px rgba(26, 28, 27, 0.04);
+}
+
+.landing-logo-text {
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-style: italic;
+  color: var(--atelier-primary);
+}
+
+.landing-nav-active {
+  color: var(--atelier-primary);
+}
+
+.landing-nav-link {
+  color: rgba(26, 28, 27, 0.6);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.landing-nav-link:hover {
+  background-color: rgba(217, 119, 87, 0.10);
+}
+
+.landing-login-link {
+  color: rgba(26, 28, 27, 0.7);
+  transition: color 150ms;
+}
+.landing-login-link:hover {
+  color: var(--atelier-primary);
+}
+
+.landing-btn-primary {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  transition: background-color 0.25s, transform 0.1s;
+}
+.landing-btn-primary:hover {
+  background-color: var(--atelier-primary-hover);
+}
+.landing-btn-primary:active {
+  transform: scale(0.96);
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────────── */
+.landing-serif {
+  font-family: var(--font-newsreader, Georgia, serif);
+}
+
+.landing-gradient-text {
+  font-style: italic;
+  background: linear-gradient(90deg, var(--atelier-primary), var(--atelier-primary-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-subtext {
+  color: var(--atelier-on-surface-var);
+}
+
+.landing-verified-text {
+  color: rgba(26, 28, 27, 0.5);
+}
+
+.landing-btn-hero-cta {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(153, 70, 42, 0.15);
+  transition: background-color 0.25s;
+}
+.landing-btn-hero-cta:hover {
+  background-color: var(--atelier-primary-hover);
+}
+
+.landing-btn-hero-ghost {
+  border-color: rgba(219, 193, 185, 0.6);
+  color: var(--atelier-on-surface);
+  transition: background-color 150ms;
+}
+.landing-btn-hero-ghost:hover {
+  background-color: var(--atelier-surface-low);
+}
+
+.landing-hero-visual {
+  background: linear-gradient(135deg, #2e1c14 0%, #1a1c1b 50%, #0f1210 100%);
+  box-shadow: 0 24px 64px rgba(26, 28, 27, 0.25);
+}
+
+.landing-floating-card {
+  background-color: var(--atelier-surface);
+  border-color: rgba(219, 193, 185, 0.20);
+  box-shadow: 0 12px 40px rgba(26, 28, 27, 0.10);
+}
+
+/* ── Features ──────────────────────────────────────────────────────────────── */
+.landing-accent-card-subtext {
+  color: rgba(255, 255, 255, 0.80);
+}
+
+/* ── Testimonials ──────────────────────────────────────────────────────────── */
+.landing-testimonial-card {
+  background-color: var(--atelier-surface);
+  box-shadow: 0 2px 16px rgba(26, 28, 27, 0.05);
+}
+
+.landing-quote {
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-style: italic;
+}
+
+/* ── CTA ───────────────────────────────────────────────────────────────────── */
+.landing-btn-cta-primary {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(153, 70, 42, 0.15);
+  transition: background-color 0.25s;
+}
+.landing-btn-cta-primary:hover {
+  background-color: var(--atelier-primary-hover);
+}
+
+.landing-btn-cta-secondary {
+  border-color: rgba(219, 193, 185, 0.5);
+  color: var(--atelier-on-surface);
+  background-color: var(--atelier-surface-low);
+  transition: background-color 150ms;
+}
+.landing-btn-cta-secondary:hover {
+  background-color: var(--atelier-surface-high);
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+.landing-footer {
+  background-color: var(--atelier-surface-low);
+  border-color: rgba(219, 193, 185, 0.20);
+}
+
+.landing-footer-links {
+  color: var(--atelier-on-surface-var);
+}
+
+.landing-footer-divider {
+  border-color: rgba(219, 193, 185, 0.15);
+}
+
+.landing-footer-signup {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  transition: background-color 0.25s;
+}
+.landing-footer-signup:hover {
+  background-color: var(--atelier-primary-hover);
+}
+
+.landing-copyright {
+  color: rgba(26, 28, 27, 0.45);
+}
+
+.landing-footer-nav-link {
+  color: rgba(26, 28, 27, 0.45);
+  transition: color 150ms;
+}
+.landing-footer-nav-link:hover {
+  color: var(--atelier-primary);
+}
+
+.landing-techifive-link {
+  color: var(--atelier-primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.landing-techifive-link:hover {
+  opacity: 0.7;
+}

@@ -155,7 +155,7 @@ export default async function InterviewsPage() {
                           {interview.location}
                         </span>
                       )}
-                      {interview.interviewer_names?.length > 0 && (
+                      {interview.interviewer_names && interview.interviewer_names.length > 0 && (
                         <span className="flex items-center gap-1">
                           <User className="h-4 w-4" />
                           {interview.interviewer_names.join(", ")}
