@@ -36,7 +36,7 @@ export async function getReminders(
     }
 
     return { data: data as Reminder[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch reminders" },
@@ -66,7 +66,7 @@ export async function getUpcomingReminders(
     }
 
     return { data: data as Reminder[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch upcoming reminders" },
@@ -93,7 +93,7 @@ export async function getDueReminders(): Promise<ApiResponse<Reminder[]>> {
     }
 
     return { data: data as Reminder[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch due reminders" },
@@ -121,7 +121,7 @@ export async function getReminderById(
     }
 
     return { data: data as Reminder, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch reminder" },
@@ -160,7 +160,7 @@ export async function createReminder(
     }
 
     return { data: data as Reminder, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create reminder" },
@@ -190,7 +190,7 @@ export async function updateReminder(
     }
 
     return { data: data as Reminder, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update reminder" },
@@ -221,7 +221,7 @@ export async function deleteReminder(id: string): Promise<ApiResponse<null>> {
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete reminder" },

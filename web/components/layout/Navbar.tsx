@@ -67,6 +67,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/profile");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
 
     const supabase = createClient();
@@ -92,6 +93,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   // Close mobile menu on route change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
   }, [pathname]);
 

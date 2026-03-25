@@ -32,7 +32,7 @@ export interface JobApplicationInsert {
   cover_letter_path?: string | null;
 }
 
-export interface JobApplicationUpdate extends Partial<JobApplicationInsert> {}
+export type JobApplicationUpdate = Partial<JobApplicationInsert>;
 
 export interface ApplicationStats {
   total: number;

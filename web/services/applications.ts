@@ -96,7 +96,7 @@ export async function getApplications(
     }
 
     return { data: data as JobApplication[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch applications" },
@@ -124,7 +124,7 @@ export async function getApplicationById(
     }
 
     return { data: data as JobApplication, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch application" },
@@ -152,7 +152,7 @@ export async function createApplication(
     }
 
     return { data: data as JobApplication, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create application" },
@@ -182,7 +182,7 @@ export async function updateApplication(
     }
 
     return { data: data as JobApplication, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update application" },
@@ -209,7 +209,7 @@ export async function deleteApplication(
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete application" },

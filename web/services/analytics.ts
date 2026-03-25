@@ -161,7 +161,7 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       },
       error: null,
     };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch analytics" },
@@ -218,7 +218,7 @@ export async function getApplicationTrends(period: "week" | "month" | "year" = "
     const result = Object.entries(trends).map(([label, count]) => ({ label, count }));
 
     return { data: result, error: null };
-  } catch (err) {
+  } catch {
     return { data: null, error: { message: "Failed to fetch trends" } };
   }
 }

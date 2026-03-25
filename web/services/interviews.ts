@@ -31,7 +31,7 @@ export async function getInterviews(
     }
 
     return { data: data as Interview[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch interviews" },
@@ -61,7 +61,7 @@ export async function getUpcomingInterviews(
     }
 
     return { data: data as Interview[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch upcoming interviews" },
@@ -89,7 +89,7 @@ export async function getInterviewById(
     }
 
     return { data: data as Interview, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch interview" },
@@ -128,7 +128,7 @@ export async function createInterview(
     }
 
     return { data: data as Interview, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create interview" },
@@ -158,7 +158,7 @@ export async function updateInterview(
     }
 
     return { data: data as Interview, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update interview" },
@@ -180,7 +180,7 @@ export async function deleteInterview(id: string): Promise<ApiResponse<null>> {
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete interview" },

@@ -1,10 +1,9 @@
-import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAccountReactivatedEmail } from "@/lib/email/nodemailer";
 import { ApiError, errorResponse, successResponse } from "@/lib/api/errors";
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();

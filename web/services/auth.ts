@@ -30,7 +30,7 @@ export async function getCurrentUser(): Promise<ApiResponse<User>> {
       data: { id: user.id, email: user.email },
       error: null,
     };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to get current user" },
@@ -60,7 +60,7 @@ export async function signIn(
       data: { id: data.user.id, email: data.user.email },
       error: null,
     };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to sign in" },
@@ -90,7 +90,7 @@ export async function signUp(
       data: { message: "Check your email to confirm your account" },
       error: null,
     };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to sign up" },
@@ -111,7 +111,7 @@ export async function signOut(): Promise<ApiResponse<null>> {
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to sign out" },

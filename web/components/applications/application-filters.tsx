@@ -100,8 +100,8 @@ export function ApplicationFilters({ onExport }: ApplicationFiltersProps) {
     });
   };
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const location = e.target.value;
+  const handleLocationChange = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    const location = (e.target as HTMLInputElement).value;
     startTransition(() => {
       router.push(`/applications?${createQueryString({ location })}`);
     });
@@ -250,7 +250,7 @@ export function ApplicationFilters({ onExport }: ApplicationFiltersProps) {
               onBlur={handleLocationChange}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  handleLocationChange(e as any);
+                  handleLocationChange(e);
                 }
               }}
             />

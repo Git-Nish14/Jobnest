@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Tag as TagIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -33,20 +33,20 @@ export function TagSelector({ applicationId, selectedTags, onTagsChange }: TagSe
   const [newTagColor, setNewTagColor] = useState(DEFAULT_COLORS[0]);
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  const fetchTags = async () => {
+  const fetchTags = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
       .from("tags")
       .select("*")
       .order("name", { ascending: true });
-
     setAllTags(data || []);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchTags();
+  }, [fetchTags]);
 
   const handleAddTag = async (tag: Tag) => {
     const supabase = createClient();
