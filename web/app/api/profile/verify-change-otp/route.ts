@@ -35,7 +35,10 @@ export async function POST(request: NextRequest) {
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
     });
-    if (!rateLimitResult.allowed) throw ApiError.tooManyRequests("Too many attempts. Please try again later.");
+    if (!rateLimitResult.allowed) {
+      const waitSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      throw ApiError.tooManyRequests(`Too many attempts. Please wait ${waitSeconds} seconds and try again.`);
+    }
 
     const supabaseAdmin = createAdminClient();
 

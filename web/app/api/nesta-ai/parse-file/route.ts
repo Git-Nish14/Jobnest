@@ -22,14 +22,17 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
-    if (!file) throw ApiError.badRequest("No file provided");
-    if (file.size > MAX_FILE_SIZE) throw ApiError.badRequest("File exceeds 5 MB limit");
+    if (!file) throw ApiError.badRequest("Please select a file to upload.");
+    if (file.size > MAX_FILE_SIZE) throw ApiError.badRequest("File exceeds the 5 MB size limit. Please use a smaller file.");
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const { text, error } = await extractTextFromBuffer(buffer, file.name);
 
     if (error && !text) {
-      return NextResponse.json({ error }, { status: 422 });
+      return NextResponse.json(
+        { error: "Could not read this file. Please ensure it is a valid PDF, Word document, or plain text file and try again." },
+        { status: 422 }
+      );
     }
 
     return NextResponse.json({ text, fileName: file.name });

@@ -1,0 +1,514 @@
+/* ── Atelier Design System — Auth Pages ─────────────────────────────────────
+   All design tokens for the Intellectual Atelier login/signup/forgot-password
+   pages live here. No inline styles allowed.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --atelier-bg:              #faf9f7;
+  --atelier-surface:         #ffffff;
+  --atelier-surface-low:     #f4f3f1;
+  --atelier-surface-high:    #e9e8e6;
+  --atelier-primary:         #99462a;
+  --atelier-primary-hover:   #d97757;
+  --atelier-on-surface:      #1a1c1b;
+  --atelier-on-surface-var:  #55433d;
+  --atelier-outline-var:     #dbc1b9;
+  --atelier-error-bg:        #ffdad6;
+  --atelier-error-text:      #93000a;
+  --font-headline:           var(--font-newsreader, Georgia, serif);
+  --font-body:               var(--font-manrope, system-ui, sans-serif);
+}
+
+/* ── Background glows ───────────────────────────────────────────────────── */
+.atelier-glow-top {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 40%;
+  height: 40%;
+  background-color: #d9775718;
+  border-radius: 9999px;
+  filter: blur(120px);
+  pointer-events: none;
+}
+
+.atelier-glow-bottom {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 30%;
+  height: 30%;
+  background-color: #99462a0a;
+  border-radius: 9999px;
+  filter: blur(100px);
+  pointer-events: none;
+}
+
+/* ── Grain overlay ──────────────────────────────────────────────────────── */
+.atelier-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bU9jdGF2ZXM9IjMiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMSIvPjwvc3ZnPg==");
+}
+
+/* ── Headline (Newsreader serif) ────────────────────────────────────────── */
+.atelier-headline {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  color: var(--atelier-on-surface);
+}
+
+/* ── Subtext ────────────────────────────────────────────────────────────── */
+.atelier-subtext {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.8;
+}
+
+.atelier-subtext strong {
+  color: var(--atelier-on-surface);
+  opacity: 1;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.atelier-card {
+  background-color: var(--atelier-surface);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 32px #1a1c1b08;
+  border: 1px solid #dbc1b91a;
+}
+
+/* ── Error banner ───────────────────────────────────────────────────────── */
+.atelier-error {
+  background-color: var(--atelier-error-bg);
+  color: var(--atelier-error-text);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  margin-bottom: 1.5rem;
+}
+
+/* ── Field label ────────────────────────────────────────────────────────── */
+.atelier-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.6;
+  margin-left: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Variant: label used inside a flex row (e.g. alongside "Forgot?" link) */
+.atelier-label-inline {
+  margin-bottom: 0;
+}
+
+/* ── Field error message ────────────────────────────────────────────────── */
+.atelier-field-error {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--atelier-error-text);
+  margin-left: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+/* ── Text input ─────────────────────────────────────────────────────────── */
+.atelier-input {
+  width: 100%;
+  background-color: var(--atelier-surface-high);
+  color: var(--atelier-on-surface);
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: background-color 0.25s, box-shadow 0.25s;
+}
+
+.atelier-input::placeholder {
+  color: var(--atelier-on-surface-var);
+  opacity: 0.35;
+}
+
+.atelier-input:focus {
+  background-color: var(--atelier-surface);
+  box-shadow: 0 0 0 1px #99462a66;
+}
+
+.atelier-input-error-state {
+  background-color: var(--atelier-error-bg);
+}
+
+/* ── OAuth buttons ──────────────────────────────────────────────────────── */
+.atelier-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 9999px;
+  background-color: var(--atelier-surface-low);
+  color: var(--atelier-on-surface);
+  border: 1px solid #dbc1b926;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.atelier-oauth-btn:hover:not(:disabled) {
+  opacity: 0.75;
+}
+
+.atelier-oauth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Divider "or continue with email" ──────────────────────────────────── */
+.atelier-divider-label {
+  background-color: var(--atelier-surface);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.4;
+}
+
+.atelier-divider-line {
+  border-top: 1px solid #dbc1b926;
+}
+
+/* ── Checkbox ───────────────────────────────────────────────────────────── */
+.atelier-checkbox-box {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.atelier-checkbox-box-on {
+  background-color: var(--atelier-primary);
+  border: none;
+}
+
+.atelier-checkbox-box-off {
+  background-color: var(--atelier-surface-high);
+  border: 1px solid #dbc1b966;
+}
+
+.atelier-checkbox-label {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.8;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Primary CTA button ─────────────────────────────────────────────────── */
+.atelier-btn-primary {
+  width: 100%;
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.1s;
+  box-shadow: 0 1px 4px #99462a30;
+}
+
+.atelier-btn-primary:hover:not(:disabled) {
+  background-color: var(--atelier-primary-hover);
+}
+
+.atelier-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.atelier-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Back button ────────────────────────────────────────────────────────── */
+.atelier-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--atelier-on-surface-var);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 2rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.atelier-back-btn:hover {
+  opacity: 0.5;
+}
+
+/* ── OTP digit input ────────────────────────────────────────────────────── */
+.atelier-otp-box {
+  width: 3rem;
+  height: 3.5rem;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-weight: 600;
+  background-color: var(--atelier-surface-high);
+  color: var(--atelier-on-surface);
+  border: none;
+  border-radius: 0.75rem;
+  outline: none;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.atelier-otp-box:focus {
+  background-color: var(--atelier-surface);
+  box-shadow: 0 0 0 1.5px #99462a99;
+}
+
+.atelier-otp-box:not(:placeholder-shown) {
+  background-color: var(--atelier-surface);
+  box-shadow: 0 0 0 1.5px #99462a66;
+}
+
+.atelier-otp-box:disabled {
+  opacity: 0.5;
+}
+
+/* ── Primary text link / button ─────────────────────────────────────────── */
+.atelier-link-primary {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--atelier-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.atelier-link-primary:hover {
+  opacity: 0.7;
+}
+
+.atelier-link-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Footer text ────────────────────────────────────────────────────────── */
+.atelier-footer-text {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.7;
+}
+
+/* ── Footer links ───────────────────────────────────────────────────────── */
+.atelier-footer-link {
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.4;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.atelier-footer-link:hover {
+  opacity: 0.8;
+}
+
+/* ── "Forgot?" link ─────────────────────────────────────────────────────── */
+.atelier-forgot-link {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--atelier-primary);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.atelier-forgot-link:hover {
+  opacity: 0.7;
+}
+
+/* ── Password input wrapper + eye toggle ────────────────────────────────── */
+.atelier-input-wrap {
+  position: relative;
+}
+
+.atelier-input-wrap .atelier-input {
+  padding-right: 2.75rem;
+}
+
+.atelier-eye-btn {
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  line-height: 1;
+}
+
+.atelier-eye-btn:hover {
+  opacity: 0.9;
+}
+
+/* ── Signup card (surface-container-low background) ────────────────────── */
+/* Tonal layering: page (#faf9f7) → card (#f4f3f1) → inputs (#e9e8e6) → focus (#fff) */
+.atelier-card-low {
+  background-color: var(--atelier-surface-low);
+  border-radius: 1rem;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 4px 32px #1a1c1b05;
+  border: 1px solid #dbc1b91a;
+}
+
+/* ── OAuth button — elevated (white bg, for use on surface-container-low card) */
+.atelier-oauth-btn-white {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  height: 3rem;
+  padding: 0 1.25rem;
+  border-radius: 9999px;
+  background-color: var(--atelier-surface);
+  color: var(--atelier-on-surface);
+  border: 1px solid #dbc1b926;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: background-color 0.25s;
+  cursor: pointer;
+}
+
+.atelier-oauth-btn-white:hover:not(:disabled) {
+  background-color: var(--atelier-surface-high);
+}
+
+.atelier-oauth-btn-white:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Divider label variant for low-surface card */
+.atelier-divider-label-low {
+  background-color: var(--atelier-surface-low);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.4;
+}
+
+/* ── Password strength meter ────────────────────────────────────────────── */
+.atelier-strength-bars {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+}
+
+.atelier-strength-bar {
+  flex: 1;
+  border-radius: 9999px;
+  background-color: #dbc1b930;
+  transition: background-color 0.35s;
+}
+
+.atelier-strength-bar-red   { background-color: #ba1a1a; }
+.atelier-strength-bar-amber { background-color: #d97706; }
+.atelier-strength-bar-green { background-color: #006d34; }
+
+.atelier-strength-hint {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.7;
+  margin-top: 0.375rem;
+  margin-left: 0.25rem;
+}
+
+.atelier-strength-hint-red   { color: #ba1a1a; opacity: 1; }
+.atelier-strength-hint-amber { color: #92400e; opacity: 1; }
+.atelier-strength-hint-green { color: #006d34; opacity: 1; }
+
+/* ── Success state ──────────────────────────────────────────────────────── */
+.atelier-success-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: #d1fae5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+/* ── Resend hint text ───────────────────────────────────────────────────── */
+.atelier-resend-text {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface-var);
+  opacity: 0.6;
+  text-align: center;
+  margin-top: 1.5rem;
+}

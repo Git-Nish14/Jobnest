@@ -170,7 +170,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const context = buildContext(
+    // Shared args for buildContext — reused across trimming passes
+    const contextArgs = [
       applications,
       interviews,
       reminders,
@@ -180,12 +181,12 @@ export async function POST(request: NextRequest) {
       salaryDetails,
       emailTemplates,
       documentTexts,
-    );
+    ] as const;
 
     const groqApiKey = process.env.GROQ_API_KEY;
     if (!groqApiKey) {
       return NextResponse.json(
-        { error: "AI service not configured. Please add GROQ_API_KEY to environment variables." },
+        { error: "AI service is temporarily unavailable. Please try again later." },
         { status: 500 }
       );
     }
@@ -193,7 +194,8 @@ export async function POST(request: NextRequest) {
     // Inject user's "About Me" context if they've set it
     const aboutMe: string = user.user_metadata?.about_me ?? "";
 
-    const systemPrompt = `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
+    const buildSystemPrompt = (context: string) =>
+      `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 ${aboutMe ? `\n=== ABOUT THIS USER ===\n${aboutMe}\n=== END USER CONTEXT ===\n` : ""}
@@ -217,11 +219,52 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       ? `[Attached file: ${fileName ?? "file"}]\n${fileContent}\n\n${question}`
       : question;
 
-    const groqMessages = [
-      { role: "system" as const, content: systemPrompt },
-      ...history.slice(-100),
+    // ── Smart context trimming ─────────────────────────────────────────────
+    // Build messages, progressively trimming until within the token budget.
+    const totalEstTokens = (msgs: Array<{ content: string }>) =>
+      msgs.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+
+    let trimmedHistory = history.slice(-100);
+
+    const makeMessages = (ctx: string, hist: typeof trimmedHistory) => [
+      { role: "system" as const, content: buildSystemPrompt(ctx) },
+      ...hist,
       { role: "user" as const, content: userContent },
     ];
+
+    let context = buildContext(...contextArgs);
+    let groqMessages = makeMessages(context, trimmedHistory);
+
+    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      // Step 1 — trim history to 20 messages
+      trimmedHistory = history.slice(-20);
+      groqMessages = makeMessages(context, trimmedHistory);
+    }
+
+    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      // Step 2 — truncate each document body to 1 000 chars
+      context = buildContext(...contextArgs, { maxDocCharsEach: 1_000 });
+      groqMessages = makeMessages(context, trimmedHistory);
+    }
+
+    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      // Step 3 — omit doc bodies entirely, cap activity log at 20 entries
+      context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 20 });
+      groqMessages = makeMessages(context, trimmedHistory);
+    }
+
+    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      // Step 4 — hard-truncate the context string itself
+      const baseTokens =
+        estimateTokens(buildSystemPrompt("")) +
+        trimmedHistory.reduce((s, m) => s + estimateTokens(m.content), 0) +
+        estimateTokens(userContent);
+      const remainingChars = Math.max(500, (INPUT_TOKEN_BUDGET - baseTokens) * 4);
+      context =
+        context.slice(0, remainingChars) +
+        "\n\n[Context truncated. Ask about specific applications or topics for full details.]";
+      groqMessages = makeMessages(context, trimmedHistory);
+    }
 
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -304,6 +347,24 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
   }
 }
 
+// ── Token estimation ─────────────────────────────────────────────────────────
+
+/** Rough token estimate: 1 token ≈ 4 characters (English text). */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * The model's context window is 128 K tokens. We reserve 3 500 tokens for
+ * the response + overhead, leaving a 124 500-token input budget.
+ */
+const INPUT_TOKEN_BUDGET = 124_500;
+
+interface TrimOptions {
+  maxDocCharsEach?: number | null; // undefined = full, null = skip docs, N = max chars
+  maxActivityLogs?: number | null; // undefined/null = all
+}
+
 // ── Context builder — ALL data, no artificial limits ────────────────────────
 
 /** Extract the human-readable filename from a Supabase Storage path */
@@ -341,6 +402,7 @@ function buildContext(
   salaryDetails: any[],
   emailTemplates: any[] | null,
   documentTexts: DocResult[],
+  opts: TrimOptions = {},
 ): string {
   const parts: string[] = [];
   const now = new Date();
@@ -537,8 +599,14 @@ function buildContext(
   // ── Activity log — full history ───────────────────────────────────────────
   parts.push("");
   if (activityLogs && activityLogs.length > 0) {
-    parts.push(`ACTIVITY LOG — ${activityLogs.length} events (newest first):`);
-    activityLogs.forEach((log) => {
+    const logsToShow = opts.maxActivityLogs != null
+      ? activityLogs.slice(0, opts.maxActivityLogs)
+      : activityLogs;
+    const truncated = logsToShow.length < activityLogs.length
+      ? ` (showing newest ${logsToShow.length} of ${activityLogs.length})`
+      : "";
+    parts.push(`ACTIVITY LOG — ${activityLogs.length} events (newest first)${truncated}:`);
+    logsToShow.forEach((log) => {
       const co = log.job_applications?.company || "";
       const pos = log.job_applications?.position || "";
       const appRef = co ? ` [${pos ? pos + " @ " : ""}${co}]` : "";
@@ -550,16 +618,30 @@ function buildContext(
 
   // ── Resume & cover letter full text ───────────────────────────────────────
   parts.push("");
-  if (documentTexts.length > 0) {
+  // opts.maxDocCharsEach === null → omit doc bodies entirely (still list filenames)
+  // opts.maxDocCharsEach === N    → truncate each doc body to N chars
+  // opts.maxDocCharsEach undefined → full text
+  if (documentTexts.length > 0 && opts.maxDocCharsEach !== null) {
     parts.push(`DOCUMENT CONTENTS — ${documentTexts.length} file(s) extracted:`);
     documentTexts.forEach((doc) => {
       const label = doc.type === "resume" ? "RESUME" : "COVER LETTER";
       parts.push(`\n[${label}] "${doc.fileName}" — ${doc.position} @ ${doc.company}`);
       if (doc.text) {
-        parts.push(doc.text);
+        const maxChars = opts.maxDocCharsEach;
+        const body = maxChars != null && doc.text.length > maxChars
+          ? doc.text.slice(0, maxChars) + `\n... [truncated to ${maxChars} chars — ask for specific sections]`
+          : doc.text;
+        parts.push(body);
       } else {
         parts.push(`(Could not extract text: ${doc.error})`);
       }
+    });
+  } else if (documentTexts.length > 0) {
+    // Docs omitted to save tokens — list filenames only
+    parts.push(`DOCUMENT CONTENTS — ${documentTexts.length} file(s) on record (omitted to save space). Ask about a specific document to see its content.`);
+    documentTexts.forEach((doc) => {
+      const label = doc.type === "resume" ? "RESUME" : "COVER LETTER";
+      parts.push(`• [${label}] "${doc.fileName}" — ${doc.position} @ ${doc.company}`);
     });
   } else {
     parts.push("DOCUMENT CONTENTS: No documents uploaded.");

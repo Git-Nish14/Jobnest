@@ -40,11 +40,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - `sb_rm=0` (7-day) → `AuthSync` detects new browser session and signs out automatically
   - `sb_rm=1` (30-day) → stays signed in; OAuth always sets `sb_rm=1`
 
-- [ ] **Auto-redirect authenticated users from auth pages → dashboard**
-  - If a valid Supabase session cookie is already present when visiting `/login`, `/signup`, or `/forgot-password`, redirect straight to `/dashboard` without showing the form
-  - Currently the proxy redirects `/login` → `/dashboard` for authenticated users, but only after the Supabase session is refreshed server-side — verify this works reliably for all auth providers (email + OAuth) and that the `sb_rm` cookie does not interfere
-  - Edge case: if `sb_rm=0` and it's a new browser session, `AuthSync` will sign the user out anyway — ensure the redirect in `proxy.ts` also checks this condition to avoid a redirect loop (redirect to dashboard → AuthSync signs out → redirect to login → repeat)
-  - Test: open `/login` while logged in with "Stay signed in" checked → should land on `/dashboard` instantly
+- [x] **Auto-redirect authenticated users from auth pages → dashboard**
+  - `proxy.ts`: extended auth page set to `/login`, `/signup`, `/forgot-password`
+  - Redirect only when `sb_rm !== "0"` — if user opted out of persistence, let them reach login without redirect to avoid AuthSync loop
 
 ---
 
@@ -95,13 +93,42 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **File attachment card persists on session reload** — metadata JSONB on chat_messages
 - [x] **User About Me injected into system prompt**
 - [x] **Suggested follow-up questions** — model appends `FOLLOW_UPS:` marker; client parses and shows as tappable chips
-- [ ] **Smart context trimming** — estimate token count; summarise if over ~100K tokens
+- [x] **Smart context trimming** — 4-step progressive trim: history→20, docs→1000 chars, docs omitted+activity→20, hard truncate. 124 500-token budget.
 
 ---
 
-## 🎨 Design — STITCH Implementation
+## 🎨 Design — Next Up
 
-The file `STITCH_DESIGN_PROMPT.txt` in the repo root contains the complete design spec. Key items to implement:
+> **Plan:** Implement the Intellectual Atelier design system (Newsreader + Manrope, warm parchment palette, tonal layering, pill buttons) across all dashboard and public pages — matching the quality already shipped on auth pages. After each page is redesigned, audit it for any extra UI functionality introduced during design (e.g. new filter controls, hover states, empty states) and wire up the real logic if it isn't already connected.
+
+### Auth Pages (done ✓)
+- [x] Login — Atelier card, OAuth grid, eye toggle, stay-signed-in, OTP step
+- [x] Signup — Atelier card, full-width OAuth stack, strength meter, eye toggles, must-match
+- [x] Forgot-password — 4-step Atelier flow (email → OTP → new password → success)
+
+### Dashboard & Public Pages (todo)
+- [ ] **Landing page (`/`)** — hero gradient text, stats strip, how-it-works steps, features grid, social proof card, CTA section; wire up real stat counts if surfaced in UI
+- [ ] **Dashboard overview (`/dashboard`)** — page H1 + subtext, "+ New Application" button in content area, stat cards, chart cards, recent applications, response rate ring; verify all widgets pull live data
+- [ ] **Applications list (`/applications`)** — filter bar (search + Status/Location/Date Range/Sort dropdowns, 36px height), application card hover (`translateY(-2px)` + shadow), status badge colours exact-match spec; verify filter/sort logic is connected
+- [ ] **Application detail (`/applications/[id]`)** — 2-col layout, activity timeline, interviews + reminders sub-sections, quick-action sidebar; verify all sections render live data
+- [ ] **Interviews (`/interviews`)** — upcoming + past sections, type/round/status badges; verify "Join" button links to meeting URL
+- [ ] **Reminders (`/reminders`)** — overdue (red accent), upcoming, completed-collapsed sections; verify mark-complete action works
+- [ ] **Contacts (`/contacts`)** — contact rows with avatar initials, add-contact modal; verify save/delete
+- [ ] **Email Templates (`/templates`)** — variable pill badges, gallery modal, category grouping; verify copy-to-clipboard and use-template
+- [ ] **Salary (`/salary`)** — stat grid, offer comparison table, benefits pills; verify all columns populated
+- [ ] **NESTAi (`/nestai`)** — sidebar (pinned/recent labels, skeleton loading), chat area rate-limit dots, suggested prompt cards, file attachment chip states, streaming cursor; verify all UI states match live behaviour
+- [ ] **Profile (`/profile`)** — sidebar avatar/stats, section cards, password strength on set-password step; verify OTP gating and deletion flow still work after redesign
+
+### Cross-cutting after each page
+- [ ] **Empty states** — dashed border card, 56×56px icon box, heading + description + CTA (standardise across all list pages)
+- [ ] **Card hover animation** — `translateY(-2px)` + shadow increase, 150ms ease (applications, contacts, templates)
+- [ ] **OTP boxes** — confirm 48×48px on all pages including profile change-password
+- [ ] **Toast messages** — verify success/error toasts are specific and disappear after 3s consistently
+- [ ] **Responsive** — confirm each redesigned page works on mobile before marking done
+
+---
+
+## 🎨 Design — STITCH Reference (original spec items)
 
 - [ ] **Status badge colours** — verify all badges match STITCH spec exactly:
   - Applied: `#EFF6FF`/`#1D4ED8`, Phone Screen: `#F5F3FF`/`#7C3AED`, Interview: `#FFFBEB`/`#B45309`
@@ -121,7 +148,7 @@ The file `STITCH_DESIGN_PROMPT.txt` in the repo root contains the complete desig
 
 - [ ] **Empty states** — standardise all empty states: dashed border card, 56×56px icon box, heading + description + CTA
 
-- [ ] **Password strength meter** on signup — 3 bars, colour-coded (gray → red → amber → green)
+- [x] **Password strength meter** on signup — 3 bars, colour-coded (gray → red → amber → green)
 
 - [ ] **Card hover animation** — `translateY(-2px)` + shadow increase, 150ms ease, across applications/contacts/templates list
 
@@ -181,7 +208,7 @@ The file `STITCH_DESIGN_PROMPT.txt` in the repo root contains the complete desig
 
 ## 💬 Error Messages & User-Facing Copy
 
-- [ ] **Audit all user-facing error messages for accuracy and clarity**
+- [x] **Audit all user-facing error messages for accuracy and clarity**
   - Every API `ApiError` message that reaches the client should be:
     - **Accurate** — describes the actual problem (not a generic "Something went wrong")
     - **Actionable** — tells the user what to do next ("Try again", "Check your email", "Wait 60 seconds")
@@ -239,7 +266,10 @@ The file `STITCH_DESIGN_PROMPT.txt` in the repo root contains the complete desig
   - `pdf-parse` 1.x → 2.x (major API change)
 - [ ] **Move document parse cache to Redis** — in-memory cache lost on cold starts
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [ ] **End-to-end tests** — auth flow, application CRUD, NESTAi session + message flow
+- [x] **Vitest tests — 253 tests, 24 files, 100% pass (no browser, fully automated)**
+  - Unit tests: `tests/unit/` — lib utilities, all API route handlers, proxy
+  - E2E flow tests: `tests/flows/` — full user journeys (login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload)
+  - No Playwright — all tests run via `npm test` in any CI/CD environment
 
 ---
 
@@ -251,4 +281,4 @@ The file `STITCH_DESIGN_PROMPT.txt` in the repo root contains the complete desig
 
 ---
 
-*Last updated: March 2026*
+*Last updated: March 2026 — auth pages redesigned (Atelier UI), tests added, error messages audited, auth redirect hardened, NESTAi context trimming implemented*

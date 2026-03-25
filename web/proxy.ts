@@ -120,9 +120,24 @@ export async function proxy(request: NextRequest) {
     return addSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+  // Redirect authenticated users away from pages they shouldn't see while logged in.
+  //
+  // Landing page (/): always redirect — no loop risk here.
+  if (user && pathname === "/") {
     return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
+  }
+
+  // Auth form pages (login / signup / forgot-password): redirect unless sb_rm=0.
+  // When sb_rm=0 the user opted out of persistence; AuthSync will sign them out
+  // the moment they hit the dashboard, causing an infinite redirect loop:
+  //   proxy → /dashboard → AuthSync signs out → /login → proxy → /dashboard → …
+  // So we let them through to the auth page and let AuthSync clean up the session.
+  const authFormPages = new Set(["/login", "/signup", "/forgot-password"]);
+  if (user && authFormPages.has(pathname)) {
+    const sbRm = request.cookies.get("sb_rm")?.value;
+    if (sbRm !== "0") {
+      return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
+    }
   }
 
   return addSecurityHeaders(response);

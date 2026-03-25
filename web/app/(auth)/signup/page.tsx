@@ -5,41 +5,70 @@ import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CheckCircle2, ArrowLeft, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signupSchema, type SignupFormData } from "@/lib/validations/application";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 
+type SignupStep = "form" | "otp" | "success";
+
+// ── Password strength ─────────────────────────────────────────────────────────
+type StrengthLevel = 0 | 1 | 2 | 3;
+
+function getPasswordStrength(pw: string): StrengthLevel {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw) && /[0-9]/.test(pw)) score++;
+  return Math.min(score, 3) as StrengthLevel;
+}
+
+const STRENGTH_LABELS: Record<StrengthLevel, string> = {
+  0: "",
+  1: "Weak — needs uppercase, lowercase & number",
+  2: "Almost there — one more requirement",
+  3: "Strong password",
+};
+const STRENGTH_COLOR: Record<StrengthLevel, string> = {
+  0: "", 1: "red", 2: "amber", 3: "green",
+};
+
+function StrengthMeter({ password }: { password: string }) {
+  const level = getPasswordStrength(password);
+  if (!password) return null;
+  const color = STRENGTH_COLOR[level];
+  return (
+    <div className="mt-2 px-1">
+      <div className="atelier-strength-bars">
+        {[1, 2, 3].map((bar) => (
+          <div key={bar} className={`atelier-strength-bar${bar <= level ? ` atelier-strength-bar-${color}` : ""}`} />
+        ))}
+      </div>
+      {level > 0 && <p className={`atelier-strength-hint atelier-strength-hint-${color}`}>{STRENGTH_LABELS[level]}</p>}
+    </div>
+  );
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" />
-      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" />
-      <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" />
-      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z" />
+    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
   );
 }
 
 function GitHubIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
     </svg>
   );
 }
-import {
-  Button,
-  Input,
-  Label,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui";
-
-type SignupStep = "form" | "otp" | "success";
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
@@ -49,11 +78,33 @@ export default function SignupPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const otpVerifyingRef = useRef(false);
   const otpSendingRef = useRef(false);
   const signupRef = useRef(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
+
+  const watchedPassword = watch("password") ?? "";
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (step === "otp") otpRefs.current[0]?.focus();
+  }, [step]);
 
   const handleOAuth = async (provider: "google" | "github") => {
     setError(null);
@@ -66,27 +117,6 @@ export default function SignupPage() {
     if (oauthError) { setError(oauthError.message); setOauthLoading(null); }
   };
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-  });
-
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
-
-  useEffect(() => {
-    if (step === "otp" && otpRefs.current[0]) {
-      otpRefs.current[0].focus();
-    }
-  }, [step]);
-
   const sendOtp = async (emailToSend: string): Promise<boolean> => {
     if (otpSendingRef.current) return false;
     otpSendingRef.current = true;
@@ -96,14 +126,8 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToSend, purpose: "signup" }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Failed to send verification code");
-        return false;
-      }
-
+      if (!response.ok) { setError(data.error || "Failed to send verification code"); return false; }
       setResendCooldown(60);
       return true;
     } catch (err) {
@@ -119,29 +143,18 @@ export default function SignupPage() {
     signupRef.current = true;
     setError(null);
     setEmail(data.email);
-
     try {
       const supabase = createClient();
       const { error: signupError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       });
-
-      if (signupError) {
-        setError(signupError.message);
-        return;
-      }
-
+      if (signupError) { setError(signupError.message); return; }
       setIsSendingOtp(true);
       const sent = await sendOtp(data.email);
       setIsSendingOtp(false);
-
-      if (sent) {
-        setStep("otp");
-      }
+      if (sent) setStep("otp");
     } finally {
       signupRef.current = false;
     }
@@ -152,30 +165,18 @@ export default function SignupPage() {
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-
-    if (digit && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-
-    if (digit && index === 5 && newOtp.every((d) => d)) {
-      verifyOtp(newOtp.join(""));
-    }
+    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
+    if (digit && index === 5 && newOtp.every((d) => d)) verifyOtp(newOtp.join(""));
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !otp[index] && index > 0) otpRefs.current[index - 1]?.focus();
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData.length === 6) {
-      const newOtp = pastedData.split("");
-      setOtp(newOtp);
-      verifyOtp(pastedData);
-    }
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) { setOtp(pasted.split("")); verifyOtp(pasted); }
   };
 
   const verifyOtp = async (code: string) => {
@@ -183,23 +184,19 @@ export default function SignupPage() {
     otpVerifyingRef.current = true;
     setError(null);
     setIsVerifying(true);
-
     try {
       const response = await fetchWithRetry("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code, purpose: "signup" }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         setError(data.error || "Invalid verification code");
         setOtp(["", "", "", "", "", ""]);
         otpRefs.current[0]?.focus();
         return;
       }
-
       setStep("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed. Please try again.");
@@ -219,213 +216,242 @@ export default function SignupPage() {
     otpRefs.current[0]?.focus();
   };
 
-  const handleBackToForm = () => {
-    setStep("form");
-    setOtp(["", "", "", "", "", ""]);
-    setError(null);
-  };
+  // ── Shared shell ──────────────────────────────────────────────────────────
+  const Shell = ({ children }: { children: React.ReactNode }) => (
+    <main className="min-h-screen flex items-center justify-center px-6 py-16 relative overflow-hidden">
+      <div className="atelier-glow-top" />
+      <div className="atelier-glow-bottom" />
+      <div className="atelier-grain" />
+      <div className="w-full max-w-110 z-10">{children}</div>
+    </main>
+  );
 
+  // ── Shared brand header ───────────────────────────────────────────────────
+  const BrandHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
+    <div className="flex flex-col items-center mb-10">
+      <div className="mb-5">
+        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
+      </div>
+      <h1 className="atelier-headline text-4xl md:text-5xl text-center mb-3 leading-tight tracking-tight">
+        {title}
+      </h1>
+      {subtitle && <p className="atelier-subtext text-center">{subtitle}</p>}
+    </div>
+  );
+
+  // ── Success step ──────────────────────────────────────────────────────────
   if (step === "success") {
     return (
-      <Card className="w-full">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Account created!</h2>
-              <p className="text-sm text-muted-foreground">
-                Your email has been verified. You can now sign in.
-              </p>
-            </div>
-            <Link href="/login">
-              <Button className="mt-4">
-                Sign in
-              </Button>
-            </Link>
+      <Shell>
+        <div className="text-center">
+          <div className="atelier-success-icon">
+            <CheckCircle2 className="w-7 h-7 text-emerald-700" aria-hidden="true" />
           </div>
-        </CardContent>
-      </Card>
+          <h1 className="atelier-headline text-4xl mb-3">Account created!</h1>
+          <p className="atelier-subtext mb-8">Your email has been verified. You&apos;re ready to go.</p>
+          <Link href="/login" className="atelier-btn-primary block no-underline">
+            Sign In to Jobnest
+          </Link>
+        </div>
+      </Shell>
     );
   }
 
+  // ── OTP step ──────────────────────────────────────────────────────────────
   if (step === "otp") {
     return (
-      <Card className="w-full">
-        <CardHeader className="space-y-1">
+      <Shell>
+        <BrandHeader title="Check your email" subtitle={`We sent a code to ${email}`} />
+        <div className="atelier-card">
           <button
             type="button"
-            onClick={handleBackToForm}
-            className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2"
+            aria-label="Back to sign up form"
+            onClick={() => { setStep("form"); setOtp(["", "", "", "", "", ""]); setError(null); }}
+            className="atelier-back-btn"
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
             Back
           </button>
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-            <Mail className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">
-            Verify your email
-          </CardTitle>
-          <CardDescription className="text-center">
-            We sent a verification code to<br />
-            <span className="font-medium text-foreground">{email}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-center gap-1.5 sm:gap-2">
+          {error && <p className="atelier-error" role="alert">{error}</p>}
+          <div className="flex justify-center gap-2 mb-8">
             {otp.map((digit, index) => (
-              <Input
+              <input
                 key={index}
                 ref={(el) => { otpRefs.current[index] = el; }}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
+                placeholder=" "
+                aria-label={`Verification code digit ${index + 1}`}
                 onChange={(e) => handleOtpChange(index, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(index, e)}
                 onPaste={handleOtpPaste}
                 disabled={isVerifying}
-                className="w-10 h-10 sm:w-12 sm:h-12 text-center text-lg sm:text-xl font-semibold p-0"
+                className="atelier-otp-box"
               />
             ))}
           </div>
-
-          <Button
+          <button
             type="button"
             onClick={() => verifyOtp(otp.join(""))}
-            className="w-full"
             disabled={isVerifying || otp.some((d) => !d)}
+            className="atelier-btn-primary"
           >
-            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isVerifying && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
             Verify Email
-          </Button>
-
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Didn&apos;t receive the code?{" "}
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                disabled={resendCooldown > 0 || isSendingOtp}
-                className="text-primary hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSendingOtp
-                  ? "Sending..."
-                  : resendCooldown > 0
-                  ? `Resend in ${resendCooldown}s`
-                  : "Resend code"}
-              </button>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          </button>
+          <p className="atelier-resend-text">
+            Didn&apos;t receive it?{" "}
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={resendCooldown > 0 || isSendingOtp}
+              className="atelier-link-primary"
+            >
+              {isSendingOtp ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+            </button>
+          </p>
+        </div>
+      </Shell>
     );
   }
 
+  // ── Form step ─────────────────────────────────────────────────────────────
   return (
-    <Card className="w-full">
-      <CardHeader className="space-y-1 items-center text-center">
-        <Image src="/logo_1.png" alt="Jobnest" width={48} height={48} className="mb-1" />
-        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-        <CardDescription>Start tracking your job applications today</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {error && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
+    <Shell>
+      <BrandHeader title="Create your account" subtitle="Join the intellectual atelier of modern work." />
 
-        {/* OAuth buttons */}
-        <div className="grid grid-cols-2 gap-3">
+      {/* White card — same as login for visual consistency */}
+      <div className="atelier-card">
+        {error && <p className="atelier-error" role="alert">{error}</p>}
+
+        {/* OAuth — stacked full-width */}
+        <div className="flex flex-col gap-3 mb-8">
           {(["google", "github"] as const).map((provider) => (
             <button
               key={provider}
               type="button"
               onClick={() => handleOAuth(provider)}
               disabled={!!oauthLoading}
-              className="flex items-center justify-center gap-2 rounded-lg border bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="atelier-oauth-btn"
             >
               {oauthLoading === provider
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : provider === "google" ? <GoogleIcon /> : <GitHubIcon />
-              }
-              {provider === "google" ? "Google" : "GitHub"}
+                ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                : provider === "google" ? <GoogleIcon /> : <GitHubIcon />}
+              Continue with {provider === "google" ? "Google" : "GitHub"}
             </button>
           ))}
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+        {/* Divider */}
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full atelier-divider-line" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="atelier-divider-label">or email</span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          {/* Email */}
+          <div>
+            <label htmlFor="signup-email" className="atelier-label">Email address</label>
+            <input
+              id="signup-email"
               type="email"
-              placeholder="you@example.com"
+              autoComplete="email"
+              placeholder="name@example.com"
               {...register("email")}
-              className={errors.email ? "border-destructive" : ""}
+              className={`atelier-input${errors.email ? " atelier-input-error-state" : ""}`}
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="atelier-field-error" role="alert">{errors.email.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register("password")}
-              className={errors.password ? "border-destructive" : ""}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            )}
+          {/* Password + strength */}
+          <div>
+            <label htmlFor="signup-password" className="atelier-label">Password</label>
+            <div className="atelier-input-wrap">
+              <input
+                id="signup-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="••••••••"
+                {...register("password")}
+                className={`atelier-input${errors.password ? " atelier-input-error-state" : ""}`}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((v) => !v)}
+                className="atelier-eye-btn"
+              >
+                {showPassword
+                  ? <EyeOff className="w-4 h-4" aria-hidden="true" />
+                  : <Eye className="w-4 h-4" aria-hidden="true" />}
+              </button>
+            </div>
+            <StrengthMeter password={watchedPassword} />
+            {errors.password && <p className="atelier-field-error mt-1" role="alert">{errors.password.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              {...register("confirmPassword")}
-              className={errors.confirmPassword ? "border-destructive" : ""}
-            />
+          {/* Confirm password */}
+          <div>
+            <label htmlFor="signup-confirm" className="atelier-label">Confirm password</label>
+            <div className="atelier-input-wrap">
+              <input
+                id="signup-confirm"
+                type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="••••••••"
+                {...register("confirmPassword")}
+                className={`atelier-input${errors.confirmPassword ? " atelier-input-error-state" : ""}`}
+              />
+              <button
+                type="button"
+                aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                onClick={() => setShowConfirm((v) => !v)}
+                className="atelier-eye-btn"
+              >
+                {showConfirm
+                  ? <EyeOff className="w-4 h-4" aria-hidden="true" />
+                  : <Eye className="w-4 h-4" aria-hidden="true" />}
+              </button>
+            </div>
             {errors.confirmPassword && (
-              <p className="text-sm text-destructive">
-                {errors.confirmPassword.message}
-              </p>
+              <p className="atelier-field-error" role="alert">{errors.confirmPassword.message}</p>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || isSendingOtp || !!oauthLoading}>
-            {(isSubmitting || isSendingOtp) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSendingOtp ? "Sending code..." : "Create Account"}
-          </Button>
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting || isSendingOtp || !!oauthLoading}
+              className="atelier-btn-primary"
+            >
+              {(isSubmitting || isSendingOtp) && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+              {isSendingOtp ? "Sending code…" : "Create Account"}
+            </button>
+          </div>
         </form>
+      </div>
 
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Sign in
-          </Link>
+      {/* Footer */}
+      <div className="mt-8 text-center space-y-6">
+        <p className="text-xs leading-relaxed max-w-72 mx-auto atelier-subtext">
+          By creating an account, you agree to our{" "}
+          <Link href="/terms" className="atelier-link-primary">Terms of Service</Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="atelier-link-primary">Privacy Policy</Link>.
         </p>
-      </CardContent>
-    </Card>
+        <div className="w-12 h-px bg-[#dbc1b933] mx-auto" />
+        <p className="atelier-footer-text">
+          Already have an account?{" "}
+          <Link href="/login" className="atelier-link-primary ml-1">Sign In</Link>
+        </p>
+      </div>
+    </Shell>
   );
 }
