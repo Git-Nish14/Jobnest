@@ -103,7 +103,7 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
       toast.success("Template saved to your collection!");
       router.refresh();
       onTemplateAdded?.();
-    } catch (err) {
+    } catch {
       toast.error("Failed to save template");
     } finally {
       setSavingTemplate(null);

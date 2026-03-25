@@ -32,7 +32,7 @@ export async function getEmailTemplates(
     }
 
     return { data: data as EmailTemplate[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch email templates" },
@@ -60,7 +60,7 @@ export async function getEmailTemplateById(
     }
 
     return { data: data as EmailTemplate, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch email template" },
@@ -99,7 +99,7 @@ export async function createEmailTemplate(
     }
 
     return { data: data as EmailTemplate, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create email template" },
@@ -129,7 +129,7 @@ export async function updateEmailTemplate(
     }
 
     return { data: data as EmailTemplate, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update email template" },
@@ -156,7 +156,7 @@ export async function deleteEmailTemplate(
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete email template" },

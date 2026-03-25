@@ -50,7 +50,7 @@ export async function exportApplications(
       const json = JSON.stringify(applications, null, 2);
       return { data: json, error: null };
     }
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to export applications" },

@@ -18,7 +18,7 @@ export async function getTags(): Promise<ApiResponse<Tag[]>> {
     }
 
     return { data: data as Tag[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch tags" },
@@ -44,10 +44,10 @@ export async function getApplicationTags(
       };
     }
 
-    const tags = data?.map((item: any) => item.tags).filter(Boolean) as Tag[];
+    const tags = data?.map((item: { tag_id: string; tags: Tag | null }) => item.tags).filter(Boolean) as Tag[];
 
     return { data: tags, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch application tags" },
@@ -84,7 +84,7 @@ export async function createTag(tag: TagInsert): Promise<ApiResponse<Tag>> {
     }
 
     return { data: data as Tag, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create tag" },
@@ -114,7 +114,7 @@ export async function updateTag(
     }
 
     return { data: data as Tag, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update tag" },
@@ -136,7 +136,7 @@ export async function deleteTag(id: string): Promise<ApiResponse<null>> {
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete tag" },
@@ -163,7 +163,7 @@ export async function addTagToApplication(
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to add tag to application" },
@@ -192,7 +192,7 @@ export async function removeTagFromApplication(
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to remove tag from application" },

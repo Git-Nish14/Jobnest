@@ -51,7 +51,7 @@ export interface InterviewInsert {
   post_interview_notes?: string | null;
 }
 
-export interface InterviewUpdate extends Partial<InterviewInsert> {}
+export type InterviewUpdate = Partial<InterviewInsert>;
 
 // Contact Types
 export interface Contact {
@@ -80,7 +80,7 @@ export interface ContactInsert {
   is_primary?: boolean;
 }
 
-export interface ContactUpdate extends Partial<ContactInsert> {}
+export type ContactUpdate = Partial<ContactInsert>;
 
 // Tag Types
 export interface Tag {
@@ -96,7 +96,7 @@ export interface TagInsert {
   color?: string;
 }
 
-export interface TagUpdate extends Partial<TagInsert> {}
+export type TagUpdate = Partial<TagInsert>;
 
 export interface ApplicationTag {
   application_id: string;
@@ -182,7 +182,7 @@ export interface EmailTemplateInsert {
   category?: string;
 }
 
-export interface EmailTemplateUpdate extends Partial<EmailTemplateInsert> {}
+export type EmailTemplateUpdate = Partial<EmailTemplateInsert>;
 
 // Salary Details Types
 export interface SalaryDetails {
@@ -230,7 +230,7 @@ export interface SalaryDetailsInsert {
   negotiation_notes?: string | null;
 }
 
-export interface SalaryDetailsUpdate extends Partial<Omit<SalaryDetailsInsert, "application_id">> {}
+export type SalaryDetailsUpdate = Partial<Omit<SalaryDetailsInsert, "application_id">>;
 
 // Dashboard Analytics Types
 export interface DashboardAnalytics {

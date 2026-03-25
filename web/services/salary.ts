@@ -26,7 +26,7 @@ export async function getSalaryDetails(
     }
 
     return { data: data as SalaryDetails | null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch salary details" },
@@ -50,8 +50,8 @@ export async function getAllSalaryDetails(): Promise<ApiResponse<(SalaryDetails 
       };
     }
 
-    return { data: data as any, error: null };
-  } catch (err) {
+    return { data: data as unknown as (SalaryDetails & { job_applications: { company: string; position: string; status: string } })[], error: null };
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch salary details" },
@@ -79,7 +79,7 @@ export async function createSalaryDetails(
     }
 
     return { data: data as SalaryDetails, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create salary details" },
@@ -109,7 +109,7 @@ export async function updateSalaryDetails(
     }
 
     return { data: data as SalaryDetails, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update salary details" },
@@ -137,7 +137,7 @@ export async function upsertSalaryDetails(
     }
 
     return { data: data as SalaryDetails, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to save salary details" },
@@ -164,7 +164,7 @@ export async function deleteSalaryDetails(
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete salary details" },

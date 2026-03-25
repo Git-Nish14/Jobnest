@@ -89,7 +89,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold sm:text-2xl">7. Disclaimer of Warranties</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              Jobnest is provided "as is" and "as available" without warranties of any kind, either express or implied.
+              Jobnest is provided &quot;as is&quot; and &quot;as available&quot; without warranties of any kind, either express or implied.
               We do not warrant that the service will be error-free, secure, or available at all times.
             </p>
           </section>

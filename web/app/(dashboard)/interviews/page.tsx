@@ -1,4 +1,18 @@
 import Link from "next/link";
+
+type InterviewWithApp = {
+  id: string;
+  application_id: string;
+  type: string;
+  status: string;
+  round: number;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  location: string | null;
+  meeting_url: string | null;
+  interviewer_names: string[] | null;
+  job_applications?: { company?: string; position?: string } | null;
+};
 import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
 import { getUpcomingInterviews, getInterviews } from "@/services";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
@@ -97,7 +111,7 @@ export default async function InterviewsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {upcoming.map((interview: any) => (
+              {(upcoming as InterviewWithApp[]).map((interview) => (
                 <div
                   key={interview.id}
                   className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
@@ -179,7 +193,7 @@ export default async function InterviewsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {past.slice(0, 10).map((interview: any) => (
+              {(past as InterviewWithApp[]).slice(0, 10).map((interview) => (
                 <Link
                   key={interview.id}
                   href={`/applications/${interview.application_id}`}

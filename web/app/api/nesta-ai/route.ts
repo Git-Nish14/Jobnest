@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     // ── Fetch tags + salary details using application IDs ──────────────────
     let tags: Array<{ application_id: string; tag_name: string }> = [];
-    let salaryDetails: any[] = [];
+    let salaryDetails: SalaryRow[] = [];
 
     if (applications && applications.length > 0) {
       const appIds = applications.map((a) => a.id);
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       ]);
 
       if (tagRows) {
-        tags = tagRows.flatMap((row: any) => {
+        tags = tagRows.flatMap((row: TagRow) => {
           const tagName = row.tags?.name;
           return tagName ? [{ application_id: row.application_id, tag_name: tagName }] : [];
         });
@@ -382,6 +382,15 @@ function fmtMoney(amount: number | null, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
+type AppRow = Record<string, unknown>;
+type InterviewRow = Record<string, unknown>;
+type ReminderRow = Record<string, unknown>;
+type ContactRow = Record<string, unknown>;
+type ActivityRow = Record<string, unknown>;
+type SalaryRow = Record<string, unknown>;
+type TemplateRow = Record<string, unknown>;
+type TagRow = { application_id: string; tags: { name: string } | null };
+
 type DocResult = {
   applicationId: string;
   company: string;
@@ -393,14 +402,14 @@ type DocResult = {
 };
 
 function buildContext(
-  applications: any[] | null,
-  interviews: any[] | null,
-  reminders: any[] | null,
-  contacts: any[] | null,
+  applications: AppRow[] | null,
+  interviews: InterviewRow[] | null,
+  reminders: ReminderRow[] | null,
+  contacts: ContactRow[] | null,
   tags: Array<{ application_id: string; tag_name: string }>,
-  activityLogs: any[] | null,
-  salaryDetails: any[],
-  emailTemplates: any[] | null,
+  activityLogs: ActivityRow[] | null,
+  salaryDetails: SalaryRow[],
+  emailTemplates: TemplateRow[] | null,
   documentTexts: DocResult[],
   opts: TrimOptions = {},
 ): string {
@@ -421,7 +430,7 @@ function buildContext(
       tagsByApp[t.application_id].push(t.tag_name);
     }
 
-    const salaryByApp: Record<string, any> = {};
+    const salaryByApp: Record<string, SalaryRow> = {};
     for (const s of salaryDetails) {
       salaryByApp[s.application_id] = s;
     }

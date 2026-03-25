@@ -32,7 +32,7 @@ export async function getContacts(
     }
 
     return { data: data as Contact[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch contacts" },
@@ -60,7 +60,7 @@ export async function getContactById(
     }
 
     return { data: data as Contact, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch contact" },
@@ -99,7 +99,7 @@ export async function createContact(
     }
 
     return { data: data as Contact, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create contact" },
@@ -129,7 +129,7 @@ export async function updateContact(
     }
 
     return { data: data as Contact, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to update contact" },
@@ -151,7 +151,7 @@ export async function deleteContact(id: string): Promise<ApiResponse<null>> {
     }
 
     return { data: null, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to delete contact" },

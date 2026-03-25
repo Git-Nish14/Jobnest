@@ -39,7 +39,6 @@ function makeAdminWithOtp(otpRecord: unknown = null, insertErr: unknown = null) 
   const updateChain = makeChain({ data: null, error: null });
   const insertChain = { then: (r: (v: unknown) => void) => Promise.resolve({ error: insertErr }).then(r) };
   const selectChain = makeChain({ data: otpRecord, error: otpRecord ? null : { message: "not found" } });
-  const updateAttemptChain = makeChain({ data: null, error: null });
 
   return {
     from: vi.fn((table: string) => {

@@ -54,6 +54,7 @@ export function DocumentViewer({ path, downloadUrl, title, type }: DocumentViewe
 
   useEffect(() => {
     if (isOpen && !blobUrl && canRenderPdf) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
       setError(null);
 

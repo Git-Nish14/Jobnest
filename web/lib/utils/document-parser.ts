@@ -41,8 +41,8 @@ export async function extractDocumentText(
 
     // ── DOCX / DOC ────────────────────────────────────────────────────────
     if (ext === "docx" || ext === "doc") {
-      const mammoth: { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> } =
-        require("mammoth");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mammoth = require("mammoth") as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
       const result = await mammoth.extractRawText({ buffer });
       const text = result.value.trim().slice(0, MAX_CHARS);
       return text
@@ -88,8 +88,8 @@ export async function extractTextFromBuffer(
     }
 
     if (ext === "docx" || ext === "doc") {
-      const mammoth: { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> } =
-        require("mammoth");
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mammoth = require("mammoth") as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
       const result = await mammoth.extractRawText({ buffer });
       const text = result.value.trim().slice(0, MAX_CHARS);
       return text

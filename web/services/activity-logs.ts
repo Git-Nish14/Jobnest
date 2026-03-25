@@ -23,7 +23,7 @@ export async function getActivityLogs(
     }
 
     return { data: data as ActivityLog[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch activity logs" },
@@ -51,7 +51,7 @@ export async function getRecentActivity(
     }
 
     return { data: data as ActivityLog[], error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to fetch recent activity" },
@@ -90,7 +90,7 @@ export async function createActivityLog(
     }
 
     return { data: data as ActivityLog, error: null };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: { message: "Failed to create activity log" },
@@ -103,10 +103,12 @@ export function formatActivityDescription(log: ActivityLog): string {
   switch (log.activity_type) {
     case "Created":
       return "Application created";
-    case "Status Changed":
-      const oldStatus = (log.metadata as any)?.old_status || "Unknown";
-      const newStatus = (log.metadata as any)?.new_status || "Unknown";
+    case "Status Changed": {
+      const meta = log.metadata as Record<string, unknown>;
+      const oldStatus = (meta?.old_status as string) || "Unknown";
+      const newStatus = (meta?.new_status as string) || "Unknown";
       return `Status changed from ${oldStatus} to ${newStatus}`;
+    }
     case "Interview Scheduled":
       return "Interview scheduled";
     case "Interview Completed":

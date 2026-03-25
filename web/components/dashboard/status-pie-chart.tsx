@@ -32,19 +32,14 @@ export function StatusPieChart({ data, total }: StatusPieChartProps) {
     );
   }
 
-  // Calculate pie chart segments
-  let cumulativePercent = 0;
-  const segments = data.map((item) => {
+  // Calculate pie chart segments using reduce to avoid mutable accumulator
+  const segments = data.reduce<
+    Array<StatusCount & { percent: number; startPercent: number; color: string }>
+  >((acc, item) => {
+    const startPercent = acc.length === 0 ? 0 : acc[acc.length - 1].startPercent + acc[acc.length - 1].percent;
     const percent = (item.count / total) * 100;
-    const startPercent = cumulativePercent;
-    cumulativePercent += percent;
-    return {
-      ...item,
-      percent,
-      startPercent,
-      color: statusColors[item.status] || "#9CA3AF",
-    };
-  });
+    return [...acc, { ...item, percent, startPercent, color: statusColors[item.status] || "#9CA3AF" }];
+  }, []);
 
   // Create SVG pie chart using conic gradient
   const gradientStops = segments.map((segment) => {

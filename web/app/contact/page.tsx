@@ -72,8 +72,8 @@ export default function ContactPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Get in Touch</h1>
               <p className="mt-4 text-muted-foreground leading-relaxed">
-                Have a question, suggestion, or feedback? We'd love to hear from you.
-                Fill out the form and we'll get back to you as soon as possible.
+                Have a question, suggestion, or feedback? We&apos;d love to hear from you.
+                Fill out the form and we&apos;ll get back to you as soon as possible.
               </p>
 
               <div className="mt-8 space-y-6">
@@ -163,7 +163,7 @@ export default function ContactPage() {
                     </div>
                     <h3 className="mt-4 text-xl font-semibold">Message Sent!</h3>
                     <p className="mt-2 text-muted-foreground">
-                      Thank you for reaching out. We'll get back to you soon.
+                      Thank you for reaching out. We&apos;ll get back to you soon.
                     </p>
                     <Button
                       type="button"
