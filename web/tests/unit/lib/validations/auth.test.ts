@@ -7,6 +7,7 @@ import {
   sendOtpSchema,
   verifyOtpSchema,
   resetPasswordSchema,
+  signupFormSchema,
 } from "@/lib/validations/auth";
 
 describe("emailSchema", () => {
@@ -140,6 +141,65 @@ describe("resetPasswordSchema", () => {
   it("rejects weak newPassword", () => {
     expect(() =>
       resetPasswordSchema.parse({ email: "a@b.com", newPassword: "weak", resetToken: "x" })
+    ).toThrow();
+  });
+});
+
+describe("signupFormSchema — age and terms requirements", () => {
+  const validBase = {
+    email: "user@example.com",
+    password: "SecurePass1",
+    confirmPassword: "SecurePass1",
+    ageConfirmed: true,
+    termsAccepted: true,
+  };
+
+  it("accepts valid signup with age confirmed and terms accepted", () => {
+    const result = signupFormSchema.parse(validBase);
+    expect(result.email).toBe("user@example.com");
+    expect(result.ageConfirmed).toBe(true);
+    expect(result.termsAccepted).toBe(true);
+  });
+
+  it("rejects when ageConfirmed is false", () => {
+    expect(() =>
+      signupFormSchema.parse({ ...validBase, ageConfirmed: false })
+    ).toThrow(/18 years of age or older/i);
+  });
+
+  it("rejects when termsAccepted is false", () => {
+    expect(() =>
+      signupFormSchema.parse({ ...validBase, termsAccepted: false })
+    ).toThrow(/Terms of Service/i);
+  });
+
+  it("rejects when both ageConfirmed and termsAccepted are false", () => {
+    expect(() =>
+      signupFormSchema.parse({ ...validBase, ageConfirmed: false, termsAccepted: false })
+    ).toThrow();
+  });
+
+  it("rejects when ageConfirmed is missing", () => {
+    const { ageConfirmed: _age, ...rest } = validBase;
+    void _age;
+    expect(() => signupFormSchema.parse(rest)).toThrow();
+  });
+
+  it("rejects when termsAccepted is missing", () => {
+    const { termsAccepted: _terms, ...rest } = validBase;
+    void _terms;
+    expect(() => signupFormSchema.parse(rest)).toThrow();
+  });
+
+  it("still rejects when passwords don't match even with checkboxes checked", () => {
+    expect(() =>
+      signupFormSchema.parse({ ...validBase, confirmPassword: "DifferentPass1" })
+    ).toThrow(/don't match/i);
+  });
+
+  it("still rejects a weak password even with checkboxes checked", () => {
+    expect(() =>
+      signupFormSchema.parse({ ...validBase, password: "weak", confirmPassword: "weak" })
     ).toThrow();
   });
 });

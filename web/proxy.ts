@@ -14,6 +14,7 @@ const publicRoutes = new Set([
   "/contact",
   "/privacy",
   "/terms",
+  "/pricing",
 ]);
 
 // API routes that don't require authentication

@@ -1,16 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { checkRateLimit, resetRateLimit } from "@/lib/security/rate-limit";
 
-// Use unique keys per test to avoid cross-test pollution
+// Use unique keys per test to avoid cross-test pollution.
+// Counter is never reset so keys remain unique even when tests run in the same millisecond.
 let keyCounter = 0;
 function uniqueKey() {
   return `test-key-${Date.now()}-${keyCounter++}`;
 }
 
 describe("checkRateLimit", () => {
-  beforeEach(() => {
-    keyCounter = 0;
-  });
 
   it("allows first request and returns correct remaining", () => {
     const key = uniqueKey();

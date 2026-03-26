@@ -35,39 +35,61 @@ export default function TermsPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Terms of Use
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: March 16, 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: March 26, 2026</p>
           </div>
 
           <div className="space-y-8 text-[#55433d] leading-relaxed">
             <Section title="1. Acceptance of Terms">
               <p>
-                By accessing and using Jobnest, you accept and agree to be bound by these Terms of Use.
+                By creating an account or using Jobnest — including via Google or GitHub OAuth — you confirm that
+                you have read, understood, and agree to be bound by these Terms of Use and our{" "}
+                <Link href="/privacy" className="text-[#99462a] hover:underline font-medium">Privacy Policy</Link>.
                 If you do not agree to these terms, please do not use our service.
               </p>
             </Section>
 
-            <Section title="2. Description of Service">
-              <p>
-                Jobnest is a free web application developed by{" "}
-                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
-                  Techifive
-                </a>{" "}
-                that allows users to track and manage their job applications.
-                Our service includes features for logging applications, storing documents, and monitoring job search progress.
+            <Section title="2. Age Requirement">
+              <p className="mb-3">
+                <strong>You must be at least 18 years of age to create an account or use Jobnest.</strong> By
+                registering, you represent and warrant that you are 18 years of age or older. This requirement
+                applies to:
+              </p>
+              <ul className="space-y-2 pl-5 list-disc">
+                <li>Email and password registration</li>
+                <li>Sign-up or sign-in via Google OAuth</li>
+                <li>Sign-up or sign-in via GitHub OAuth</li>
+              </ul>
+              <p className="mt-3">
+                If we learn that an account has been created by a person under the age of 18, we reserve the right
+                to suspend or permanently delete that account and all associated data without notice.
               </p>
             </Section>
 
-            <Section title="3. User Accounts">
-              <p className="mb-3">To use Jobnest, you must create an account. You agree to:</p>
+            <Section title="3. Description of Service">
+              <p>
+                Jobnest is a web application developed by{" "}
+                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                  Techifive
+                </a>{" "}
+                that allows users to track and manage their job applications. Our service includes features for
+                logging applications, storing documents, AI-assisted job search (NESTAi), managing contacts and
+                interview schedules, and monitoring job search progress. A free tier and optional paid Pro plan
+                are available.
+              </p>
+            </Section>
+
+            <Section title="4. User Accounts">
+              <p className="mb-3">To use Jobnest, you must create an account and be at least 18 years of age. You agree to:</p>
               <ul className="space-y-2 pl-5 list-disc">
                 <li>Provide accurate and complete information when creating your account</li>
+                <li>Confirm that you meet the minimum age requirement of 18 years</li>
                 <li>Maintain the security of your password and account</li>
                 <li>Notify us immediately of any unauthorized use of your account</li>
                 <li>Accept responsibility for all activities that occur under your account</li>
               </ul>
             </Section>
 
-            <Section title="4. Acceptable Use">
+            <Section title="5. Acceptable Use">
               <p className="mb-3">You agree not to use Jobnest to:</p>
               <ul className="space-y-2 pl-5 list-disc">
                 <li>Violate any applicable laws or regulations</li>
@@ -76,10 +98,11 @@ export default function TermsPage() {
                 <li>Attempt to gain unauthorized access to our systems</li>
                 <li>Use the service for any illegal or fraudulent purpose</li>
                 <li>Share your account credentials with others</li>
+                <li>Use the service for commercial resale or redistribution of data</li>
               </ul>
             </Section>
 
-            <Section title="5. User Content">
+            <Section title="6. User Content">
               <p className="mb-4">
                 You retain ownership of all content you upload to Jobnest, including job application data and documents.
                 By uploading content, you grant us a limited license to store and display your content solely for the purpose
@@ -90,7 +113,17 @@ export default function TermsPage() {
               </p>
             </Section>
 
-            <Section title="6. Service Availability">
+            <Section title="7. AI Features (NESTAi)">
+              <p>
+                Jobnest includes an AI-powered assistant (&quot;NESTAi&quot;) powered by third-party AI services (Groq / Llama).
+                AI-generated responses are provided for informational purposes only and do not constitute professional
+                career, legal, or financial advice. You are responsible for independently verifying any AI-generated
+                content before acting on it. Uploaded documents (resumes, cover letters) are processed server-side
+                and may be transmitted to third-party AI providers solely to generate responses.
+              </p>
+            </Section>
+
+            <Section title="8. Service Availability">
               <p>
                 While we strive to maintain high availability, we do not guarantee uninterrupted access to Jobnest.
                 We may modify, suspend, or discontinue the service at any time with or without notice. We are not liable
@@ -98,30 +131,32 @@ export default function TermsPage() {
               </p>
             </Section>
 
-            <Section title="7. Disclaimer of Warranties">
+            <Section title="9. Disclaimer of Warranties">
               <p>
                 Jobnest is provided &quot;as is&quot; and &quot;as available&quot; without warranties of any kind, either express or implied.
                 We do not warrant that the service will be error-free, secure, or available at all times.
               </p>
             </Section>
 
-            <Section title="8. Limitation of Liability">
+            <Section title="10. Limitation of Liability">
               <p>
-                To the maximum extent permitted by law, Jobnest and its creators (Techifive) shall not be liable for any indirect,
-                incidental, special, consequential, or punitive damages, including loss of data, profits, or business opportunities,
-                arising from your use of the service.
+                To the maximum extent permitted by law, Jobnest and its creators (Techifive) shall not be liable for
+                any indirect, incidental, special, consequential, or punitive damages, including loss of data, profits,
+                or business opportunities, arising from your use of the service.
               </p>
             </Section>
 
-            <Section title="9. Account Termination">
+            <Section title="11. Account Termination">
               <p>
-                You may delete your account at any time. We reserve the right to suspend or terminate accounts that violate
-                these terms or engage in abusive behavior. Upon termination, your data will be deleted in accordance with our
-                Privacy Policy.
+                You may delete your account at any time via your profile page. Deletion follows a 30-day grace period
+                during which your account remains accessible and the deletion can be cancelled. After 30 days, your
+                account and all associated data are permanently deleted. We reserve the right to suspend or terminate
+                accounts that violate these terms, engage in abusive behaviour, or are found to belong to users under
+                the age of 18. Upon termination, your data will be deleted in accordance with our Privacy Policy.
               </p>
             </Section>
 
-            <Section title="10. Changes to Terms">
+            <Section title="12. Changes to Terms">
               <p>
                 We may update these Terms of Use from time to time. We will notify you of significant changes by posting
                 a notice on our website. Your continued use of the service after changes are posted constitutes acceptance
@@ -129,14 +164,14 @@ export default function TermsPage() {
               </p>
             </Section>
 
-            <Section title="11. Governing Law">
+            <Section title="13. Governing Law">
               <p>
                 These Terms of Use shall be governed by and construed in accordance with applicable laws, without regard
                 to conflict of law principles.
               </p>
             </Section>
 
-            <Section title="12. Contact">
+            <Section title="14. Contact">
               <p>
                 If you have any questions about these Terms of Use, please{" "}
                 <Link href="/contact" className="text-[#99462a] hover:underline font-medium">

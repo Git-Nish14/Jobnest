@@ -5,14 +5,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Check,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { signupSchema, type SignupFormData } from "@/lib/validations/application";
+import {
+  signupSchema,
+  type SignupFormData,
+} from "@/lib/validations/application";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 
 type SignupStep = "form" | "otp" | "success";
 
-// ── Password strength ─────────────────────────────────────────────────────────
+// ── Password strength ──────────────────────────────────────────────────────────
 type StrengthLevel = 0 | 1 | 2 | 3;
 
 function getPasswordStrength(pw: string): StrengthLevel {
@@ -42,15 +52,22 @@ function StrengthMeter({ password }: { password: string }) {
     <div className="mt-2 px-1">
       <div className="atelier-strength-bars">
         {[1, 2, 3].map((bar) => (
-          <div key={bar} className={`atelier-strength-bar${bar <= level ? ` atelier-strength-bar-${color}` : ""}`} />
+          <div
+            key={bar}
+            className={`atelier-strength-bar${bar <= level ? ` atelier-strength-bar-${color}` : ""}`}
+          />
         ))}
       </div>
-      {level > 0 && <p className={`atelier-strength-hint atelier-strength-hint-${color}`}>{STRENGTH_LABELS[level]}</p>}
+      {level > 0 && (
+        <p className={`atelier-strength-hint atelier-strength-hint-${color}`}>
+          {STRENGTH_LABELS[level]}
+        </p>
+      )}
     </div>
   );
 }
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
+// ── Icons ──────────────────────────────────────────────────────────────────────
 function GoogleIcon() {
   return (
     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -67,6 +84,36 @@ function GitHubIcon() {
     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
     </svg>
+  );
+}
+
+// ── Shell & BrandHeader — defined OUTSIDE the page component so React never
+//    recreates their identity on re-renders (avoids unmount/remount on keystroke)
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="relative min-h-screen px-6 py-16">
+      {/* Decorative layer — contained so glows don't cause horizontal scroll */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div className="atelier-glow-top" />
+        <div className="atelier-glow-bottom" />
+      </div>
+      <div className="atelier-grain" />
+      <div className="w-full max-w-110 mx-auto relative z-10">{children}</div>
+    </main>
+  );
+}
+
+function BrandHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex flex-col items-center mb-10">
+      <div className="mb-5">
+        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
+      </div>
+      <h1 className="atelier-headline text-4xl md:text-5xl text-center mb-3 leading-tight tracking-tight">
+        {title}
+      </h1>
+      {subtitle && <p className="atelier-subtext text-center">{subtitle}</p>}
+    </div>
   );
 }
 
@@ -94,6 +141,8 @@ export default function SignupPage() {
   } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
 
   const watchedPassword = watch("password") ?? "";
+  const watchedAgeConfirmed = watch("ageConfirmed");
+  const watchedTermsAccepted = watch("termsAccepted");
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -107,6 +156,10 @@ export default function SignupPage() {
   }, [step]);
 
   const handleOAuth = async (provider: "google" | "github") => {
+    if (!watchedAgeConfirmed || !watchedTermsAccepted) {
+      setError("Please confirm your age (18+) and accept the Terms of Service before continuing.");
+      return;
+    }
     setError(null);
     setOauthLoading(provider);
     const supabase = createClient();
@@ -216,30 +269,7 @@ export default function SignupPage() {
     otpRefs.current[0]?.focus();
   };
 
-  // ── Shared shell ──────────────────────────────────────────────────────────
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <main className="min-h-screen flex items-center justify-center px-6 py-16 relative overflow-hidden">
-      <div className="atelier-glow-top" />
-      <div className="atelier-glow-bottom" />
-      <div className="atelier-grain" />
-      <div className="w-full max-w-110 z-10">{children}</div>
-    </main>
-  );
-
-  // ── Shared brand header ───────────────────────────────────────────────────
-  const BrandHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-    <div className="flex flex-col items-center mb-10">
-      <div className="mb-5">
-        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
-      </div>
-      <h1 className="atelier-headline text-4xl md:text-5xl text-center mb-3 leading-tight tracking-tight">
-        {title}
-      </h1>
-      {subtitle && <p className="atelier-subtext text-center">{subtitle}</p>}
-    </div>
-  );
-
-  // ── Success step ──────────────────────────────────────────────────────────
+  // ── Success step ─────────────────────────────────────────────────────────────
   if (step === "success") {
     return (
       <Shell>
@@ -257,7 +287,7 @@ export default function SignupPage() {
     );
   }
 
-  // ── OTP step ──────────────────────────────────────────────────────────────
+  // ── OTP step ─────────────────────────────────────────────────────────────────
   if (step === "otp") {
     return (
       <Shell>
@@ -317,12 +347,14 @@ export default function SignupPage() {
     );
   }
 
-  // ── Form step ─────────────────────────────────────────────────────────────
+  // ── Form step ─────────────────────────────────────────────────────────────────
   return (
     <Shell>
-      <BrandHeader title="Create your account" subtitle="Join the intellectual atelier of modern work." />
+      <BrandHeader
+        title="Create your account"
+        subtitle="Your calm, organised home for every job search."
+      />
 
-      {/* White card — same as login for visual consistency */}
       <div className="atelier-card">
         {error && <p className="atelier-error" role="alert">{error}</p>}
 
@@ -425,6 +457,55 @@ export default function SignupPage() {
             )}
           </div>
 
+          {/* Age confirmation */}
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only appearance-none"
+                aria-label="I confirm I am 18 years of age or older"
+                {...register("ageConfirmed")}
+              />
+              <div className={`atelier-checkbox-box mt-0.5 ${watchedAgeConfirmed ? "atelier-checkbox-box-on" : "atelier-checkbox-box-off"}`}>
+                {watchedAgeConfirmed && <Check className="w-3 h-3 text-white" strokeWidth={3} aria-hidden="true" />}
+              </div>
+              <span className="atelier-checkbox-label">
+                I am <strong>18 years of age or older</strong>
+              </span>
+            </label>
+            {errors.ageConfirmed && (
+              <p className="atelier-field-error mt-1 ml-8" role="alert">{errors.ageConfirmed.message}</p>
+            )}
+          </div>
+
+          {/* Terms acceptance */}
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only appearance-none"
+                aria-label="I accept the Terms of Service and Privacy Policy"
+                {...register("termsAccepted")}
+              />
+              <div className={`atelier-checkbox-box mt-0.5 ${watchedTermsAccepted ? "atelier-checkbox-box-on" : "atelier-checkbox-box-off"}`}>
+                {watchedTermsAccepted && <Check className="w-3 h-3 text-white" strokeWidth={3} aria-hidden="true" />}
+              </div>
+              <span className="atelier-checkbox-label">
+                I accept the{" "}
+                <Link href="/terms" className="atelier-link-primary" onClick={(e) => e.stopPropagation()}>
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="atelier-link-primary" onClick={(e) => e.stopPropagation()}>
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+            {errors.termsAccepted && (
+              <p className="atelier-field-error mt-1 ml-8" role="alert">{errors.termsAccepted.message}</p>
+            )}
+          </div>
+
           <div className="pt-2">
             <button
               type="submit"
@@ -440,12 +521,6 @@ export default function SignupPage() {
 
       {/* Footer */}
       <div className="mt-8 text-center space-y-6">
-        <p className="text-xs leading-relaxed max-w-72 mx-auto atelier-subtext">
-          By creating an account, you agree to our{" "}
-          <Link href="/terms" className="atelier-link-primary">Terms of Service</Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="atelier-link-primary">Privacy Policy</Link>.
-        </p>
         <div className="w-12 h-px bg-[#dbc1b933] mx-auto" />
         <p className="atelier-footer-text">
           Already have an account?{" "}

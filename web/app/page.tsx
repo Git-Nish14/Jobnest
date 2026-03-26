@@ -12,6 +12,9 @@ import {
   BadgeCheck,
   Clock,
   Star,
+  BriefcaseBusiness,
+  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import {
   LandingScrollLink,
@@ -82,6 +85,12 @@ export default async function Home() {
             >
               Testimonials
             </LandingScrollLink>
+            <Link
+              href="/pricing"
+              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
+            >
+              Pricing
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -108,15 +117,15 @@ export default async function Home() {
             {/* Left */}
             <div className="lg:col-span-7 space-y-8">
               <h1 className="text-5xl md:text-7xl tracking-tight leading-[1.1] landing-serif">
-                Organize your job Application.
+                Your sanctuary for
                 <br />
-                <span className="landing-gradient-text">Land faster.</span>
+                <span className="landing-gradient-text">career growth.</span>
               </h1>
 
               <p className="text-xl max-w-xl leading-relaxed landing-subtext">
-                The thoughtful workspace for the modern professional. Track
-                applications, manage interviews, and curate your career path
-                with editorial precision.
+                Jobnest is a calm, organized home for your entire job search —
+                track every application, manage interviews, stay on top of
+                contacts, and let AI guide you to the role you deserve.
               </p>
 
               <div className="flex flex-wrap gap-4 pt-4">
@@ -136,54 +145,144 @@ export default async function Home() {
 
               <div className="flex items-center gap-2 text-sm font-medium pt-2 landing-verified-text">
                 <BadgeCheck className="w-4 h-4 text-[#006d34]" />
-                Free for individuals during early access.
+                Free to start. No credit card required.
               </div>
             </div>
 
-            {/* Right — visual */}
-            <div className="lg:col-span-5 relative">
-              <div className="aspect-square rounded-xl relative overflow-hidden landing-hero-visual">
-                {/* Decorative dashboard skeleton */}
-                <div className="absolute inset-0 p-8 flex flex-col gap-3 opacity-25">
-                  <div className="flex gap-2 mb-2">
-                    <div className="h-2 w-16 rounded-full bg-[#99462a]" />
-                    <div className="h-2 w-24 rounded-full bg-white/20" />
+            {/* Right — Dashboard mockup */}
+            <div className="lg:col-span-5 relative hidden lg:block">
+              <div className="rounded-2xl overflow-hidden landing-hero-mockup">
+                {/* Browser chrome */}
+                <div className="px-4 py-2.5 flex items-center gap-3 landing-hero-chrome">
+                  <div className="flex gap-1.5 shrink-0">
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="h-16 rounded-lg border border-white/10 bg-white/4"
-                      />
-                    ))}
+                  <div className="flex-1 bg-white/8 rounded-full px-3 py-1 text-[10px] text-white/30 select-none">
+                    jobnest.app/dashboard
                   </div>
-                  {[...Array(5)].map((_, i) => (
+                </div>
+
+                {/* App header */}
+                <div className="px-5 py-3 flex items-center justify-between landing-hero-app-header">
+                  <span className="text-sm font-medium text-white/80 italic landing-serif">
+                    Jobnest
+                  </span>
+                  <div className="flex gap-4 text-[11px] text-white/40">
+                    <span>Dashboard</span>
+                    <span>NESTAi</span>
+                    <span>Profile</span>
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-[#99462a]/70 flex items-center justify-center text-[11px] text-white font-bold">
+                    N
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="px-5 pt-5 pb-4 grid grid-cols-3 gap-3">
+                  {[
+                    {
+                      label: "Applied",
+                      value: "24",
+                      sub: "+3 this week",
+                      Icon: BriefcaseBusiness,
+                    },
+                    {
+                      label: "Interviews",
+                      value: "8",
+                      sub: "2 upcoming",
+                      Icon: MessageSquare,
+                    },
+                    {
+                      label: "Offers",
+                      value: "2",
+                      sub: "Active",
+                      Icon: TrendingUp,
+                    },
+                  ].map(({ label, value, sub, Icon }) => (
                     <div
-                      key={i}
-                      className="h-8 rounded-lg border border-white/10 bg-white/3"
-                    />
+                      key={label}
+                      className="rounded-xl p-3 landing-hero-stat-card"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[10px] text-white/45">{label}</p>
+                        <Icon className="w-3 h-3 text-white/20" />
+                      </div>
+                      <p className="text-2xl font-bold text-white">{value}</p>
+                      <p className="text-[9px] text-white/30 mt-0.5">{sub}</p>
+                    </div>
                   ))}
                 </div>
-                <div className="absolute inset-0 bg-linear-to-tr from-[#99462a]/15 to-transparent" />
-              </div>
 
-              {/* Floating card */}
-              <div className="absolute -bottom-6 -left-6 p-6 rounded-lg max-w-xs border landing-floating-card">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#ffdbd0]">
-                    <Sparkles className="w-5 h-5 text-[#99462a]" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest landing-subtext">
-                      Next Step
-                    </p>
-                    <p className="text-sm font-bold">
-                      Interview with Design Studio
-                    </p>
+                {/* Application list */}
+                <div className="px-5 pb-4">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-white/30 mb-3">
+                    Recent Applications
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      {
+                        company: "Stripe",
+                        role: "Product Designer",
+                        status: "Interview",
+                        badgeClass: "landing-hero-badge-interview",
+                        initial: "S",
+                      },
+                      {
+                        company: "Linear",
+                        role: "UX Engineer",
+                        status: "Applied",
+                        badgeClass: "landing-hero-badge-applied",
+                        initial: "L",
+                      },
+                      {
+                        company: "Vercel",
+                        role: "Design Lead",
+                        status: "Offer",
+                        badgeClass: "landing-hero-badge-offer",
+                        initial: "V",
+                      },
+                    ].map((app) => (
+                      <div
+                        key={app.company}
+                        className="flex items-center justify-between rounded-xl px-3.5 py-2.5 landing-hero-app-row"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/10 text-[11px] font-bold text-white shrink-0">
+                            {app.initial}
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-white/80">
+                              {app.company}
+                            </p>
+                            <p className="text-[9px] text-white/35">
+                              {app.role}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${app.badgeClass}`}
+                        >
+                          {app.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="h-2 w-full rounded-full overflow-hidden bg-[#efeeec]">
-                  <div className="h-full rounded-full w-3/4 bg-[#d97757]" />
+
+                {/* NESTAi snippet */}
+                <div className="mx-5 mb-5 rounded-xl p-3.5 landing-hero-nestai">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#d97757]" />
+                    <span className="text-[10px] font-bold text-[#d97757]">
+                      NESTAi
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-white/50 leading-relaxed">
+                    Your Stripe interview is tomorrow. Review system design
+                    patterns and check your saved notes.
+                  </p>
                 </div>
               </div>
             </div>
@@ -194,7 +293,7 @@ export default async function Home() {
         <section id="features" className="max-w-7xl mx-auto px-6 mb-32">
           <div className="mb-16">
             <h2 className="text-3xl md:text-4xl mb-4 landing-serif text-[#1a1c1b]">
-              Features for the focused mind
+              Everything your career journey needs
             </h2>
             <div className="h-1 w-20 rounded-full bg-[#d97757]" />
           </div>
@@ -205,12 +304,12 @@ export default async function Home() {
               <div>
                 <LayoutDashboard className="w-10 h-10 text-[#99462a] mb-6" />
                 <h3 className="text-3xl mb-4 landing-serif">
-                  Centralized Intelligence
+                  One home for your entire search
                 </h3>
                 <p className="text-lg max-w-md leading-relaxed landing-subtext">
-                  A single source of truth for your professional journey. From
-                  first contact to final offer, every detail is meticulously
-                  organized.
+                  From your first application to your final offer — every
+                  company, contact, document, and deadline lives in one calm,
+                  organized sanctuary. No more scattered spreadsheets.
                 </p>
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -233,11 +332,11 @@ export default async function Home() {
                 <Clock className="w-28 h-28" />
               </div>
               <h3 className="text-3xl mb-4 relative z-10 landing-serif">
-                Smart Alerts
+                Never miss a moment
               </h3>
               <p className="relative z-10 leading-relaxed landing-accent-card-subtext">
-                Never miss a follow-up. Our intelligent notification system
-                keeps you one step ahead of the competition.
+                Timely reminders for follow-ups, interviews, and deadlines keep
+                you present and prepared — so no opportunity slips through.
               </p>
             </div>
 
@@ -245,18 +344,18 @@ export default async function Home() {
             {[
               {
                 Icon: BarChart3,
-                title: "Insightful Analytics",
-                desc: "Visualize your conversion rates across different stages of the funnel.",
+                title: "Career Analytics",
+                desc: "See your job search clearly — response rates, interview stages, and offer trends at a glance.",
               },
               {
                 Icon: PenLine,
                 title: "Interview Journal",
-                desc: "Refined space for note-taking during and after your conversations.",
+                desc: "A quiet space to capture your thoughts, questions, and reflections before and after every conversation.",
               },
               {
                 Icon: Lock,
-                title: "Privacy First",
-                desc: "Your data is encrypted and never sold. You are the curator of your story.",
+                title: "Yours alone",
+                desc: "Your career story is private. Your data is encrypted, never sold, and always under your control.",
               },
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="rounded-xl p-10 bg-[#f4f3f1]">
@@ -275,30 +374,30 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
               <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
-                Trusted by the best
+                From our community
               </p>
-              <h2 className="text-4xl landing-serif">Words from the Atelier</h2>
+              <h2 className="text-4xl landing-serif">What people are saying</h2>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
                   quote:
-                    "Jobnest transformed my chaotic search into a refined strategy. I felt like I was managing a gallery, not a spreadsheet.",
+                    "Jobnest gave my job search a proper home. I stopped drowning in spreadsheets and started making real progress — it's the clarity I didn't know I needed.",
                   name: "Eleanor Vance",
                   role: "Senior Product Designer",
                   initial: "E",
                 },
                 {
                   quote:
-                    "The editorial feel of the UI makes me actually want to log in and update my progress. A true sanctuary for focus.",
+                    "NESTAi feels like a career coach built right in. It reads my resume, understands the role, and helps me walk into every interview prepared.",
                   name: "Julian Thorne",
                   role: "Technical Architect",
                   initial: "J",
                 },
                 {
                   quote:
-                    "Finally, a tool that respects the complexity of a modern career. The design is as intelligent as the features it holds.",
+                    "I landed a role I actually love. Jobnest kept me organized, reminded me to follow up, and made the whole search feel manageable instead of overwhelming.",
                   name: "Sophia Chen",
                   role: "Director of Operations",
                   initial: "S",
@@ -334,105 +433,35 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── Pricing ── */}
-        <section className="max-w-5xl mx-auto px-6 py-24">
-          <div className="text-center mb-14">
-            <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
-              Pricing
-            </p>
-            <h2 className="text-4xl landing-serif">Simple, transparent pricing</h2>
-            <p className="text-lg text-[#55433d] mt-4 max-w-md mx-auto leading-relaxed">
-              Every feature, every application, no credit card required.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {/* Free plan */}
-            <div className="relative bg-[#f4f3f1] rounded-2xl p-8 flex flex-col">
-              <div className="mb-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#55433d] mb-2">Free</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-[#1a1c1b] landing-serif">$0</span>
-                  <span className="text-[#55433d]">/ forever</span>
-                </div>
-                <p className="text-sm text-[#55433d] mt-2">Everything you need to land your dream job.</p>
-              </div>
-              <ul className="space-y-3 flex-1 mb-8">
-                {[
-                  "Unlimited job applications",
-                  "AI-powered assistant (NESTAi)",
-                  "Interview tracking & reminders",
-                  "Document storage & management",
-                  "Salary comparison tracker",
-                  "Email templates library",
-                  "Contact relationship manager",
-                  "Data export (CSV & JSON)",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm text-[#55433d]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#99462a] shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className="block text-center px-8 py-3.5 rounded-full font-bold text-white bg-[#99462a] hover:bg-[#d97757] transition-colors"
-              >
-                Get Started Free
-              </Link>
-            </div>
-
-            {/* Pro plan — coming soon */}
-            <div className="relative bg-[#1a1c1b] rounded-2xl p-8 flex flex-col overflow-hidden">
-              <div className="absolute top-4 right-4">
-                <span className="px-3 py-1 rounded-full bg-[#d97757]/20 text-[#d97757] text-xs font-bold uppercase tracking-widest">
-                  Coming Soon
-                </span>
-              </div>
-              {/* Subtle glow */}
-              <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-[#99462a]/15 blur-3xl" />
-              <div className="mb-6 relative">
-                <p className="text-xs font-bold uppercase tracking-widest text-[#d97757] mb-2">Pro</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold text-white landing-serif">$?</span>
-                  <span className="text-white/50">/ month</span>
-                </div>
-                <p className="text-sm text-white/60 mt-2">Advanced features for power users.</p>
-              </div>
-              <ul className="space-y-3 flex-1 mb-8 relative">
-                {[
-                  "Everything in Free",
-                  "Advanced analytics & insights",
-                  "Priority support",
-                  "Custom integrations",
-                  "Team collaboration",
-                  "Bulk import & advanced export",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm text-white/70">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#d97757] shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                disabled
-                className="relative block text-center w-full px-8 py-3.5 rounded-full font-bold text-[#1a1c1b] bg-[#d97757]/60 cursor-not-allowed"
-              >
-                Join Waitlist
-              </button>
-            </div>
-          </div>
+        {/* ── Pricing teaser ── */}
+        <section className="max-w-4xl mx-auto px-6 py-16 text-center">
+          <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
+            Pricing
+          </p>
+          <h2 className="text-4xl landing-serif mb-4">
+            Free to start. Pro when you&apos;re ready.
+          </h2>
+          <p className="text-lg text-[#55433d] max-w-md mx-auto leading-relaxed mb-8">
+            Full access to every feature on the Free plan — upgrade to Pro for
+            advanced analytics, team tools, and priority support.
+          </p>
+          <Link
+            href="/pricing"
+            className="inline-block px-10 py-3.5 rounded-full font-bold text-lg transition-all landing-btn-hero-cta"
+          >
+            See Pricing
+          </Link>
         </section>
 
         {/* ── Final CTA ── */}
         <section className="max-w-4xl mx-auto px-6 py-32 text-center">
           <h2 className="text-4xl md:text-5xl mb-8 leading-tight landing-serif">
-            Elevate your search from a task to a craft.
+            Your career deserves a dedicated space.
           </h2>
           <p className="text-xl mb-12 max-w-2xl mx-auto landing-subtext">
-            Join a community of thousands who have traded the noise for the
-            nuance of Jobnest.
+            Join thousands of professionals who have made Jobnest their career
+            sanctuary — where every application is tracked, every opportunity
+            captured, and every step feels intentional.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
@@ -466,8 +495,8 @@ export default async function Home() {
               <span className="text-xl landing-logo-text">Jobnest</span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs landing-footer-links">
-              A digital sanctuary for career growth. Designed for clarity, built
-              for progress.
+              A digital sanctuary for career growth — where every application is
+              managed, every opportunity tracked, and every step matters.
             </p>
             <p className="mt-3 text-xs landing-footer-links">
               A product of{" "}
@@ -509,6 +538,11 @@ export default async function Home() {
                   Testimonials
                 </LandingScrollLink>
               </li>
+              <li>
+                <Link href="/pricing" className="landing-footer-nav-link">
+                  Pricing
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -542,7 +576,7 @@ export default async function Home() {
               Get Access
             </h4>
             <p className="text-xs mb-4 landing-footer-links">
-              Start tracking your job search for free today.
+              Build your career sanctuary today — free, forever.
             </p>
             <Link
               href="/signup"
