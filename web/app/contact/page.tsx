@@ -2,12 +2,16 @@
 
 import { useState, useRef } from "react";
 import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2, Github } from "lucide-react";
-import { Button, Input, Label } from "@/components/ui";
 import { fetchWithRetry, getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { Navbar, Footer } from "@/components/layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Newsreader, Manrope } from "next/font/google";
+import "../landing.css";
+
+const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", display: "swap", style: ["normal", "italic"], weight: ["400", "500", "600", "700"] });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -17,6 +21,30 @@ const contactSchema = z.object({
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
+
+const INFO_ITEMS = [
+  {
+    icon: Mail,
+    title: "Email Support",
+    body: "We typically respond within 24–48 hours during business days.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Feedback Welcome",
+    body: "Your feedback helps us improve Jobnest for everyone.",
+  },
+  {
+    icon: Github,
+    title: "Report Issues",
+    body: null,
+  },
+];
+
+const FAQS = [
+  { q: "Is Jobnest free?", a: "Yes, completely free forever." },
+  { q: "Is my data secure?", a: "Yes, we use industry-standard encryption." },
+  { q: "Can I export my data?", a: "Yes, you can export your data anytime." },
+];
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,28 +57,23 @@ export default function ContactPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ContactFormData>({
-    resolver: zodResolver(contactSchema),
-  });
+  } = useForm<ContactFormData>({ resolver: zodResolver(contactSchema) });
 
   const onSubmit = async (data: ContactFormData) => {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
-
     try {
       const response = await fetchWithRetry("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
       if (!response.ok) {
         const result = await response.json();
         throw new Error(result.error || "Failed to send message");
       }
-
       setIsSuccess(true);
       reset();
     } catch (err) {
@@ -62,209 +85,164 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`${newsreader.variable} ${manrope.variable} flex min-h-screen flex-col landing-root`}>
       <Navbar user={null} />
 
-      <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-            {/* Left Column - Info */}
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Get in Touch</h1>
-              <p className="mt-4 text-muted-foreground leading-relaxed">
-                Have a question, suggestion, or feedback? We&apos;d love to hear from you.
-                Fill out the form and we&apos;ll get back to you as soon as possible.
-              </p>
+      <main className="flex-1 py-14 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 
-              <div className="mt-8 space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
+          {/* Header */}
+          <div className="text-center mb-14">
+            <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mb-4">
+              Get in Touch
+            </h1>
+            <p className="text-[#55433d] text-lg max-w-md mx-auto leading-relaxed">
+              Have a question, suggestion, or feedback? We&apos;d love to hear from you.
+            </p>
+          </div>
+
+          <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+
+            {/* Left — Info */}
+            <div className="space-y-6">
+              {INFO_ITEMS.map(({ icon: Icon, title, body }) => (
+                <div key={title} className="flex items-start gap-4">
+                  <div className="h-11 w-11 shrink-0 rounded-xl bg-[#ffdbd0] flex items-center justify-center">
+                    <Icon className="h-5 w-5 text-[#99462a]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Email Support</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      We typically respond within 24-48 hours during business days.
-                    </p>
+                    <h3 className="font-semibold text-[#1a1c1b]">{title}</h3>
+                    {body ? (
+                      <p className="mt-1 text-sm text-[#55433d]">{body}</p>
+                    ) : (
+                      <p className="mt-1 text-sm text-[#55433d]">
+                        Found a bug?{" "}
+                        <a href="https://github.com/techifive" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                          Report on GitHub
+                        </a>
+                      </p>
+                    )}
                   </div>
                 </div>
+              ))}
 
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Feedback Welcome</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Your feedback helps us improve Jobnest for everyone.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Github className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Report Issues</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Found a bug?{" "}
-                      <a
-                        href="https://github.com/techifive"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        Report on GitHub
-                      </a>
-                    </p>
-                  </div>
+              {/* FAQ */}
+              <div className="mt-8 rounded-2xl bg-[#f4f3f1] p-6">
+                <h3 className="landing-serif text-lg font-semibold text-[#1a1c1b] mb-4">
+                  Frequently Asked Questions
+                </h3>
+                <div className="space-y-3">
+                  {FAQS.map(({ q, a }) => (
+                    <div key={q} className="flex gap-2 text-sm">
+                      <span className="font-semibold text-[#1a1c1b] shrink-0">{q}</span>
+                      <span className="text-[#55433d]">— {a}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-10 rounded-xl border bg-muted/30 p-6">
-                <h3 className="font-semibold">Frequently Asked Questions</h3>
-                <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="font-medium text-foreground">Is Jobnest free?</span>
-                    <span>— Yes, completely free forever.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-medium text-foreground">Is my data secure?</span>
-                    <span>— Yes, we use industry-standard encryption.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-medium text-foreground">Can I export my data?</span>
-                    <span>— Yes, you can export your data anytime.</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-6 text-sm text-muted-foreground">
+              <p className="text-sm text-[#55433d]/70">
                 Jobnest is a product of{" "}
-                <a
-                  href="https://techifive.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-primary hover:underline"
-                >
+                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#99462a] hover:underline">
                   Techifive
                 </a>
-              </div>
+              </p>
             </div>
 
-            {/* Right Column - Form */}
-            <div>
-              <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-                {isSuccess ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                      <CheckCircle2 className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h3 className="mt-4 text-xl font-semibold">Message Sent!</h3>
-                    <p className="mt-2 text-muted-foreground">
-                      Thank you for reaching out. We&apos;ll get back to you soon.
-                    </p>
-                    <Button
-                      type="button"
-                      className="mt-6"
-                      onClick={() => setIsSuccess(false)}
-                    >
-                      Send Another Message
-                    </Button>
+            {/* Right — Form */}
+            <div className="bg-[#f4f3f1] rounded-2xl p-6 sm:p-8">
+              {isSuccess ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="h-16 w-16 rounded-full bg-[#006d34]/12 flex items-center justify-center mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-[#006d34]" />
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Name
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="Your name"
-                        {...register("name")}
-                        aria-invalid={errors.name ? true : undefined}
-                      />
-                      {errors.name && (
-                        <p className="text-sm text-destructive">{errors.name.message}</p>
-                      )}
-                    </div>
+                  <h3 className="landing-serif text-2xl font-semibold text-[#1a1c1b] mb-2">Message Sent!</h3>
+                  <p className="text-[#55433d] mb-6">Thank you for reaching out. We&apos;ll get back to you soon.</p>
+                  <button type="button" className="landing-btn-primary" onClick={() => setIsSuccess(false)}>
+                    Send Another Message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                  {/* Name */}
+                  <div>
+                    <label htmlFor="name" className="atelier-label flex items-center gap-1.5 mb-1.5">
+                      <User className="h-3.5 w-3.5" /> Name
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      placeholder="Your name"
+                      className="atelier-input"
+                      aria-invalid={!!errors.name}
+                      {...register("name")}
+                    />
+                    {errors.name && <p className="atelier-field-error">{errors.name.message}</p>}
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your@email.com"
-                        {...register("email")}
-                        aria-invalid={errors.email ? true : undefined}
-                      />
-                      {errors.email && (
-                        <p className="text-sm text-destructive">{errors.email.message}</p>
-                      )}
-                    </div>
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="email" className="atelier-label flex items-center gap-1.5 mb-1.5">
+                      <Mail className="h-3.5 w-3.5" /> Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      className="atelier-input"
+                      aria-invalid={!!errors.email}
+                      {...register("email")}
+                    />
+                    {errors.email && <p className="atelier-field-error">{errors.email.message}</p>}
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Subject
-                      </Label>
-                      <Input
-                        id="subject"
-                        placeholder="How can we help?"
-                        {...register("subject")}
-                        aria-invalid={errors.subject ? true : undefined}
-                      />
-                      {errors.subject && (
-                        <p className="text-sm text-destructive">{errors.subject.message}</p>
-                      )}
-                    </div>
+                  {/* Subject */}
+                  <div>
+                    <label htmlFor="subject" className="atelier-label flex items-center gap-1.5 mb-1.5">
+                      <MessageSquare className="h-3.5 w-3.5" /> Subject
+                    </label>
+                    <input
+                      id="subject"
+                      type="text"
+                      placeholder="How can we help?"
+                      className="atelier-input"
+                      aria-invalid={!!errors.subject}
+                      {...register("subject")}
+                    />
+                    {errors.subject && <p className="atelier-field-error">{errors.subject.message}</p>}
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="message">Message</Label>
-                      <textarea
-                        id="message"
-                        rows={5}
-                        placeholder="Tell us more about your inquiry..."
-                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...register("message")}
-                        aria-invalid={!!errors.message || undefined}
-                      />
-                      {errors.message && (
-                        <p className="text-sm text-destructive">{errors.message.message}</p>
-                      )}
-                    </div>
+                  {/* Message */}
+                  <div>
+                    <label htmlFor="message" className="atelier-label mb-1.5 block">Message</label>
+                    <textarea
+                      id="message"
+                      rows={5}
+                      placeholder="Tell us more about your inquiry..."
+                      className="atelier-input resize-none"
+                      aria-invalid={!!errors.message}
+                      {...register("message")}
+                    />
+                    {errors.message && <p className="atelier-field-error">{errors.message.message}</p>}
+                  </div>
 
-                    {error && (
-                      <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                        {error}
-                      </div>
+                  {error && (
+                    <div className="atelier-error">{error}</div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="atelier-btn-primary w-full"
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
+                    ) : (
+                      <><Send className="h-4 w-4" /> Send Message</>
                     )}
-
-                    <Button
-                      type="submit"
-                      className="w-full gap-2"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          Send Message
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                )}
-              </div>
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>

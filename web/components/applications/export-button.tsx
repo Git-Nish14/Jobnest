@@ -5,7 +5,6 @@ import { Download, Loader2, FileText, FileJson } from "lucide-react";
 import { toast } from "sonner";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import {
-  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -56,14 +55,14 @@ export function ExportButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={loading} className="gap-2">
+        <button type="button" disabled={loading} className="db-btn-page-secondary">
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Download className="h-4 w-4" />
           )}
           Export
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Export Format</DropdownMenuLabel>

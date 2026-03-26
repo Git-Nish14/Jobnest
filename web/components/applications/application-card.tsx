@@ -4,31 +4,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  ExternalLink,
-  MapPin,
-  DollarSign,
-  Calendar,
+  MoreHorizontal, Pencil, Trash2, ExternalLink,
+  MapPin, DollarSign, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  StatusBadge,
-  Button,
-  Card,
-  CardContent,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui";
 import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface ApplicationCardProps {
   application: JobApplication;
+}
+
+// Status → colour tokens
+function statusTokens(status: string) {
+  const map: Record<string, { accent: string; avatar: string; badge: string }> = {
+    "Interview":    { accent: "bg-[#006d34]",  avatar: "db-status-interview", badge: "db-status-interview" },
+    "Phone Screen": { accent: "bg-[#99462a]",  avatar: "db-status-phone",    badge: "db-status-phone" },
+    "Applied":      { accent: "bg-amber-500",  avatar: "db-status-applied",  badge: "db-status-applied" },
+    "Offer":        { accent: "bg-[#006d34]",  avatar: "db-status-offer",    badge: "db-status-offer" },
+    "Accepted":     { accent: "bg-[#006d34]",  avatar: "db-status-accepted", badge: "db-status-accepted" },
+    "Rejected":     { accent: "bg-[#ba1a1a]",  avatar: "db-status-rejected", badge: "db-status-rejected" },
+    "Withdrawn":    { accent: "bg-[#88726c]",  avatar: "db-status-withdrawn",badge: "db-status-withdrawn" },
+  };
+  return map[status] ?? { accent: "bg-[#dbc1b9]", avatar: "db-status-default", badge: "db-status-default" };
 }
 
 export function ApplicationCard({ application }: ApplicationCardProps) {
@@ -38,7 +41,6 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
 
   const handleDeleteClick = () => {
     setConfirmingDelete(true);
-    // Auto-cancel confirmation after 4 seconds
     setTimeout(() => setConfirmingDelete(false), 4000);
   };
 
@@ -56,63 +58,72 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
       setDeleting(false);
       return;
     }
-
     toast.success("Application deleted");
     router.refresh();
   };
 
-  const formattedDate = new Date(application.applied_date).toLocaleDateString(
-    "en-US",
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }
-  );
+  const formattedDate = new Date(application.applied_date).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
 
-  const companyInitial = application.company.charAt(0).toUpperCase();
+  const initial = application.company.charAt(0).toUpperCase();
+  const { accent, avatar, badge } = statusTokens(application.status);
 
   return (
-    <Card className="group transition-all duration-150 hover:shadow-md hover:border-border/80">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start gap-3 sm:gap-4">
-          {/* Company Initial Avatar */}
-          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-sm sm:text-base shrink-0 select-none">
-            {companyInitial}
-          </div>
+    <div className="db-app-card group relative overflow-hidden pl-5 sm:pl-6">
+      {/* ── Status accent bar (left edge) ── */}
+      <div className={cn("absolute left-0 inset-y-0 w-1.5 rounded-l-xl", accent)} />
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Link
-                    href={`/applications/${application.id}`}
-                    className="font-semibold text-sm sm:text-base text-foreground hover:text-primary transition-colors line-clamp-1"
-                  >
-                    {application.position}
-                  </Link>
-                  <StatusBadge status={application.status} />
-                </div>
-                <p className="text-sm text-muted-foreground font-medium mt-0.5 truncate">
-                  {application.company}
-                </p>
-              </div>
+      <div className="flex items-start gap-4 sm:gap-5">
+        {/* Company avatar */}
+        <div className={cn("db-company-avatar-lg shrink-0", avatar)}>
+          {initial}
+        </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+
+          {/* Top row: title + badge + actions */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/applications/${application.id}`}
+                className="db-headline text-lg sm:text-xl font-semibold text-[#1a1c1b] hover:text-[#99462a] transition-colors leading-tight line-clamp-2 block"
+              >
+                {application.position}
+              </Link>
+              <p className="text-[#55433d] text-sm font-medium mt-0.5 truncate">
+                {application.company}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={cn("db-status-badge hidden sm:inline-block", badge)}>
+                {application.status}
+              </span>
+
+              {/* Actions — appear on hover */}
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                 {application.job_url && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                    <a href={application.job_url} target="_blank" rel="noopener noreferrer" title="View job posting">
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </Button>
+                  <a
+                    href={application.job_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View job posting"
+                    className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                      title="More options"
+                    >
                       <MoreHorizontal className="h-3.5 w-3.5" />
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
@@ -137,41 +148,48 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        {deleting ? "Deleting..." : "Delete"}
+                        {deleting ? "Deleting…" : "Delete"}
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 shrink-0" />
-                {formattedDate}
+          {/* Mobile status badge */}
+          <span className={cn("db-status-badge sm:hidden mt-2 inline-block", badge)}>
+            {application.status}
+          </span>
+
+          {/* Metadata row */}
+          <div className="flex flex-wrap gap-3 sm:gap-5 mt-2.5 text-xs sm:text-sm text-[#55433d]/75">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
+              {formattedDate}
+            </span>
+            {application.location && (
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate max-w-32 sm:max-w-none">{application.location}</span>
               </span>
-              {application.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  <span className="truncate max-w-28 sm:max-w-none">{application.location}</span>
-                </span>
-              )}
-              {application.salary_range && (
-                <span className="hidden sm:flex items-center gap-1">
-                  <DollarSign className="h-3 w-3 shrink-0" />
-                  {application.salary_range}
-                </span>
-              )}
-            </div>
-
-            {application.notes && (
-              <p className="mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-1 border-t pt-2">
-                {application.notes}
-              </p>
+            )}
+            {application.salary_range && (
+              <span className="hidden sm:flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 shrink-0" />
+                {application.salary_range}
+              </span>
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Notes */}
+      {application.notes && (
+        <p className="db-card-notes ml-0 sm:ml-21 line-clamp-2 mt-1">
+          &ldquo;{application.notes}&rdquo;
+        </p>
+      )}
+    </div>
   );
 }

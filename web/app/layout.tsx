@@ -52,7 +52,7 @@ export const metadata: Metadata = {
       "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
     images: [
       {
-        url: "/icon-512.png",
+        url: "/new_logo_1.png",
         width: 512,
         height: 512,
         alt: "Jobnest Logo",
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     title: "Jobnest - Track Your Job Applications",
     description:
       "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
-    images: ["/icon-512.png"],
+    images: ["/new_logo_1.png"],
     creator: "@techifive",
   },
   robots: {
@@ -78,21 +78,19 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // File-based icons (app/icon.png, app/apple-icon.png) take priority;
+  // these metadata entries are fallbacks for older browsers / crawlers.
   icons: {
-    icon: [
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    shortcut: "/favicon.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/new_logo_1.png",
+    shortcut: "/new_logo_1.png",
+    apple: "/new_logo_1.png",
   },
   manifest: "/manifest.json",
   category: "productivity",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#99462a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,

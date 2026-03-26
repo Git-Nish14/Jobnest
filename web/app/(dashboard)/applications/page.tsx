@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { getApplications } from "@/services";
-import { Button } from "@/components/ui";
-import { ApplicationCard, ApplicationFilters, ExportButton } from "@/components/applications";
+import { ExportButton, ApplicationCard, ApplicationFilters } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
 
 const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
@@ -39,53 +38,62 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      {/* ── Header ── */}
+      <header className="db-page-header">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Applications</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage and track your job applications
+          <h1 className="db-page-title">Applications</h1>
+          <p className="db-page-subtitle">
+            Manage and track your job applications with thoughtful intentionality.
           </p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-3">
           <ExportButton />
-          <Link href="/applications/new" className="flex-1 sm:flex-none">
-            <Button className="gap-2 w-full sm:w-auto shadow-sm">
-              <Plus className="h-4 w-4" />
-              New Application
-            </Button>
+          <Link href="/applications/new" className="db-btn-page-primary">
+            <Plus className="h-4 w-4" />
+            New Application
           </Link>
         </div>
-      </div>
+      </header>
 
-      {/* Filters */}
+      {/* ── Filters ── */}
       <ApplicationFilters />
 
-      {/* Applications List */}
-      <div className="space-y-3 sm:space-y-4">
-        {applications && applications.length > 0 ? (
-          applications.map((app) => (
+      {/* ── Cards ── */}
+      {applications && applications.length > 0 ? (
+        <div className="space-y-4">
+          {applications.map((app) => (
             <ApplicationCard key={app.id} application={app} />
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-white py-20 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
-              <FileText className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <h3 className="mt-4 text-base font-semibold">No applications yet</h3>
-            <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
-              Start tracking your job search by logging your first application.
-            </p>
-            <Link href="/applications/new" className="mt-6">
-              <Button className="gap-2 shadow-sm">
-                <Plus className="h-4 w-4" />
-                Add Your First Application
-              </Button>
-            </Link>
+          ))}
+        </div>
+      ) : (
+        /* Empty state */
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="h-14 w-14 rounded-xl bg-[#f4f3f1] flex items-center justify-center mb-4">
+            <FileText className="h-7 w-7 text-[#55433d]/50" />
           </div>
-        )}
-      </div>
+          <h3 className="db-headline text-xl font-semibold text-[#1a1c1b] mt-1">
+            No applications yet
+          </h3>
+          <p className="text-[#55433d] text-sm mt-2 max-w-xs leading-relaxed">
+            Start tracking your job search by logging your first application.
+          </p>
+          <Link href="/applications/new" className="db-btn-page-primary mt-6">
+            <Plus className="h-4 w-4" />
+            Add Your First Application
+          </Link>
+        </div>
+      )}
+
+      {/* ── Footer quote ── */}
+      {applications && applications.length > 0 && (
+        <footer className="mt-20 flex flex-col items-center text-center">
+          <div className="w-12 h-px bg-[#dbc1b9]/30 mb-6" />
+          <p className="db-headline italic text-[#55433d]/50 text-sm mb-1">
+            Refining the search for meaningful contribution.
+          </p>
+        </footer>
+      )}
     </div>
   );
 }

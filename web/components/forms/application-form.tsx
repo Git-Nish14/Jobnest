@@ -22,11 +22,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui";
 
 interface ApplicationFormProps {
@@ -178,16 +173,15 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{isEditing ? "Edit Application" : "New Application"}</CardTitle>
-        <CardDescription>
-          {isEditing
-            ? "Update the details of your job application"
-            : "Track a new job application"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="db-content-card">
+      <div className="mb-6">
+        <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
+          {isEditing ? "Edit Application" : "New Application"}
+        </h2>
+        <p className="text-sm text-[#55433d]/70 mt-1">
+          {isEditing ? "Update the details of your job application" : "Track a new job application"}
+        </p>
+      </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Company & Position */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -322,23 +316,21 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               <Label>Resume (PDF)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg hover:border-primary/50 transition-colors">
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {resumeFile ? (
                       <>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm truncate">{resumeFile.name}</span>
                       </>
                     ) : application?.resume_path ? (
                       <>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm">Current file uploaded</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          Upload PDF
-                        </span>
+                        <Upload className="h-4 w-4 text-[#55433d]/50" />
+                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
                       </>
                     )}
                   </div>
@@ -366,25 +358,23 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               <Label>Cover Letter (PDF)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg hover:border-primary/50 transition-colors">
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {coverLetterFile ? (
                       <>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm truncate">
                           {coverLetterFile.name}
                         </span>
                       </>
                     ) : application?.cover_letter_path ? (
                       <>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm">Current file uploaded</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          Upload PDF
-                        </span>
+                        <Upload className="h-4 w-4 text-[#55433d]/50" />
+                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
                       </>
                     )}
                   </div>
@@ -426,7 +416,6 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

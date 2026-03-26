@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
+import { getUpcomingInterviews, getInterviews } from "@/services";
 
 type InterviewWithApp = {
   id: string;
@@ -13,9 +15,6 @@ type InterviewWithApp = {
   interviewer_names: string[] | null;
   job_applications?: { company?: string; position?: string } | null;
 };
-import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
-import { getUpcomingInterviews, getInterviews } from "@/services";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -30,194 +29,168 @@ export default async function InterviewsPage() {
     (i) => new Date(i.scheduled_at) < new Date() || i.status !== "Scheduled"
   );
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
+      weekday: "long", month: "long", day: "numeric", year: "numeric",
     });
-  };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const formatTime = (dateString: string) =>
+    new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Scheduled":
-        return "bg-blue-100 text-blue-700";
-      case "Completed":
-        return "bg-green-100 text-green-700";
-      case "Cancelled":
-        return "bg-red-100 text-red-700";
-      case "Rescheduled":
-        return "bg-yellow-100 text-yellow-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  // Atelier-toned type badge
+  function typeBadge(type: string) {
+    const map: Record<string, string> = {
+      "Phone Screen": "bg-[#99462a]/10 text-[#99462a]",
+      "Technical":    "bg-[#006d34]/10 text-[#006d34]",
+      "Behavioral":   "bg-[#d97757]/15 text-[#7a2f15]",
+      "On-site":      "bg-[#55433d]/10 text-[#55433d]",
+      "Final":        "bg-[#006d34]/18 text-[#003d1b]",
+    };
+    return map[type] ?? "bg-[#55433d]/8 text-[#55433d]";
+  }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Phone Screen":
-        return "bg-purple-100 text-purple-700";
-      case "Technical":
-        return "bg-orange-100 text-orange-700";
-      case "Behavioral":
-        return "bg-cyan-100 text-cyan-700";
-      case "On-site":
-        return "bg-indigo-100 text-indigo-700";
-      case "Final":
-        return "bg-pink-100 text-pink-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  function statusBadge(status: string) {
+    const map: Record<string, string> = {
+      "Scheduled":   "bg-[#006d34]/10 text-[#006d34]",
+      "Completed":   "bg-[#55433d]/10 text-[#55433d]",
+      "Cancelled":   "bg-[#ba1a1a]/10 text-[#ba1a1a]",
+      "Rescheduled": "bg-amber-500/10 text-amber-700",
+    };
+    return map[status] ?? "bg-[#55433d]/8 text-[#55433d]";
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      {/* ── Header ── */}
+      <header className="db-page-header">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Interviews</h1>
-          <p className="text-muted-foreground">
-            Manage your upcoming and past interviews
+          <h1 className="db-page-title">Interviews</h1>
+          <p className="db-page-subtitle">
+            Manage your upcoming and past interviews with clarity.
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Upcoming Interviews */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
+      {/* ── Upcoming ── */}
+      <section className="mb-10">
+        <div className="flex items-center gap-3 mb-5">
+          <Calendar className="h-5 w-5 text-[#99462a]" />
+          <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
             Upcoming Interviews
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {upcoming.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No upcoming interviews scheduled</p>
-              <p className="text-sm mt-1">
-                Add interviews from your application details page
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {(upcoming as InterviewWithApp[]).map((interview) => (
-                <div
-                  key={interview.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  {/* Clickable content area navigates to the application */}
-                  <Link
-                    href={`/applications/${interview.application_id}`}
-                    className="flex-1 min-w-0"
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">
-                        {interview.job_applications?.position || "Interview"}
-                      </h3>
-                      <span className={`text-xs px-2 py-0.5 rounded ${getTypeColor(interview.type)}`}>
-                        {interview.type}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
-                        Round {interview.round}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {interview.job_applications?.company}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
-                      </span>
-                      {interview.duration_minutes && (
-                        <span>{interview.duration_minutes} min</span>
-                      )}
-                      {interview.meeting_url && (
-                        <span className="flex items-center gap-1">
-                          <Video className="h-4 w-4" />
-                          Video Call
-                        </span>
-                      )}
-                      {interview.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {interview.location}
-                        </span>
-                      )}
-                      {interview.interviewer_names && interview.interviewer_names.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {interview.interviewer_names.join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-
-                  {/* Join button is a sibling to the Link — no stopPropagation needed */}
-                  {interview.meeting_url && (
-                    <a
-                      href={interview.meeting_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0"
-                    >
-                      <Button size="sm" className="gap-2">
-                        <Video className="h-4 w-4" />
-                        Join
-                      </Button>
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
+          </h2>
+          {upcoming.length > 0 && (
+            <span className="text-sm text-[#55433d] font-medium">({upcoming.length})</span>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Past Interviews */}
+        {upcoming.length === 0 ? (
+          <div className="db-content-card flex flex-col items-center py-16 text-center">
+            <Calendar className="h-10 w-10 text-[#55433d]/30 mb-3" />
+            <p className="text-[#55433d] font-medium">No upcoming interviews scheduled</p>
+            <p className="text-sm text-[#55433d]/60 mt-1">
+              Add interviews from your application details page
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {(upcoming as InterviewWithApp[]).map((interview) => (
+              <div key={interview.id} className="db-app-card flex flex-col sm:flex-row sm:items-start gap-4">
+                <Link href={`/applications/${interview.application_id}`} className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="db-headline text-xl font-semibold text-[#1a1c1b]">
+                      {interview.job_applications?.position || "Interview"}
+                    </span>
+                    <span className={`db-status-badge ${typeBadge(interview.type)}`}>
+                      {interview.type}
+                    </span>
+                    <span className="text-xs text-[#55433d]/60 font-medium">
+                      Round {interview.round}
+                    </span>
+                  </div>
+                  <p className="text-[#55433d] font-medium text-sm mb-3">
+                    {interview.job_applications?.company}
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm text-[#55433d]/80">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
+                    </span>
+                    {interview.duration_minutes && (
+                      <span>{interview.duration_minutes} min</span>
+                    )}
+                    {interview.meeting_url && (
+                      <span className="flex items-center gap-1.5">
+                        <Video className="h-3.5 w-3.5 shrink-0" />
+                        Video Call
+                      </span>
+                    )}
+                    {interview.location && (
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {interview.location}
+                      </span>
+                    )}
+                    {interview.interviewer_names && interview.interviewer_names.length > 0 && (
+                      <span className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        {interview.interviewer_names.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+
+                {interview.meeting_url && (
+                  <a
+                    href={interview.meeting_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="db-btn-page-primary shrink-0 self-start"
+                  >
+                    <Video className="h-4 w-4" />
+                    Join
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Past ── */}
       {past.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Past Interviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(past as InterviewWithApp[]).slice(0, 10).map((interview) => (
-                <Link
-                  key={interview.id}
-                  href={`/applications/${interview.application_id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
+              Past Interviews
+            </h2>
+            <span className="text-sm text-[#55433d] font-medium">({past.length})</span>
+          </div>
+          <div className="space-y-2">
+            {(past as InterviewWithApp[]).slice(0, 10).map((interview) => (
+              <Link
+                key={interview.id}
+                href={`/applications/${interview.application_id}`}
+                className="db-app-row block"
+              >
+                <div className="flex items-center justify-between gap-4 w-full">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[#1a1c1b] text-sm">
                         {interview.job_applications?.company || "Company"}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(interview.status)}`}>
+                      <span className={`db-status-badge ${statusBadge(interview.status)}`}>
                         {interview.status}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {interview.type} - Round {interview.round} •{" "}
-                      {formatDate(interview.scheduled_at)}
+                    <p className="text-xs text-[#55433d]/70 mt-0.5">
+                      {interview.type} · Round {interview.round} · {formatDate(interview.scheduled_at)}
                     </p>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

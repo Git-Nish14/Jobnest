@@ -7,7 +7,6 @@ import { Mail, Phone, Linkedin, Star, Trash2, MoreVertical, Building } from "luc
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
-  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -51,32 +50,36 @@ export function ContactList({ contacts }: ContactListProps) {
       {contacts.map((contact) => (
         <div
           key={contact.id}
-          className="p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+          className="p-4 rounded-xl border border-[#dbc1b9]/15 bg-[#f4f3f1] hover:bg-[#e9e8e6] transition-colors"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-medium truncate">{contact.name}</h3>
+                <h3 className="font-semibold text-[#1a1c1b] truncate">{contact.name}</h3>
                 {contact.is_primary && (
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                  <Star className="h-3.5 w-3.5 text-[#99462a] fill-[#99462a] flex-shrink-0" />
                 )}
               </div>
               {contact.title && (
-                <p className="text-sm text-muted-foreground truncate">{contact.title}</p>
+                <p className="text-sm text-[#55433d]/70 truncate mt-0.5">{contact.title}</p>
               )}
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                <button
+                  type="button"
+                  aria-label="Contact options"
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors shrink-0"
+                >
                   <MoreVertical className="h-4 w-4" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {confirmingId === contact.id ? (
                   <DropdownMenuItem
                     onClick={() => handleDeleteConfirm(contact.id)}
-                    className="text-destructive font-medium"
+                    className="text-[#ba1a1a] font-semibold"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Confirm delete
@@ -85,7 +88,7 @@ export function ContactList({ contacts }: ContactListProps) {
                   <DropdownMenuItem
                     onClick={() => handleDeleteClick(contact.id)}
                     disabled={deletingId === contact.id}
-                    className="text-destructive"
+                    className="text-[#ba1a1a]"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     {deletingId === contact.id ? "Deleting..." : "Delete"}
@@ -99,9 +102,9 @@ export function ContactList({ contacts }: ContactListProps) {
             {contact.email && (
               <a
                 href={`mailto:${contact.email}`}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+                className="flex items-center gap-2 text-sm text-[#55433d]/70 hover:text-[#99462a] transition-colors"
               >
-                <Mail className="h-4 w-4" />
+                <Mail className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{contact.email}</span>
               </a>
             )}
@@ -109,9 +112,9 @@ export function ContactList({ contacts }: ContactListProps) {
             {contact.phone && (
               <a
                 href={`tel:${contact.phone}`}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+                className="flex items-center gap-2 text-sm text-[#55433d]/70 hover:text-[#99462a] transition-colors"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-3.5 w-3.5 shrink-0" />
                 <span>{contact.phone}</span>
               </a>
             )}
@@ -121,9 +124,9 @@ export function ContactList({ contacts }: ContactListProps) {
                 href={contact.linkedin_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+                className="flex items-center gap-2 text-sm text-[#55433d]/70 hover:text-[#99462a] transition-colors"
               >
-                <Linkedin className="h-4 w-4" />
+                <Linkedin className="h-3.5 w-3.5 shrink-0" />
                 <span>LinkedIn Profile</span>
               </a>
             )}
@@ -131,18 +134,16 @@ export function ContactList({ contacts }: ContactListProps) {
             {contact.application_id && contact.job_applications && (
               <Link
                 href={`/applications/${contact.application_id}`}
-                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                className="flex items-center gap-2 text-sm text-[#99462a] hover:underline underline-offset-2"
               >
-                <Building className="h-4 w-4" />
-                <span className="truncate">
-                  {contact.job_applications.company}
-                </span>
+                <Building className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{contact.job_applications.company}</span>
               </Link>
             )}
           </div>
 
           {contact.notes && (
-            <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
+            <p className="mt-3 text-sm text-[#55433d]/60 italic line-clamp-2 leading-relaxed">
               {contact.notes}
             </p>
           )}

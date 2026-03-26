@@ -1,16 +1,13 @@
 import { Mail, FileText } from "lucide-react";
 import { getEmailTemplates } from "@/services";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { TemplateForm, TemplateList, TemplateGallery } from "@/components/templates";
 
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
   const { data: templates } = await getEmailTemplates();
-
   const allTemplates = templates || [];
 
-  // Group templates by category
   const groupedTemplates = allTemplates.reduce((acc, template) => {
     const category = template.category || "General";
     if (!acc[category]) acc[category] = [];
@@ -19,78 +16,67 @@ export default async function TemplatesPage() {
   }, {} as Record<string, typeof allTemplates>);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      {/* ── Header ── */}
+      <header className="db-page-header">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Email Templates</h1>
-          <p className="text-muted-foreground">
-            Save and reuse email templates for your job search
+          <h1 className="db-page-title">Email Templates</h1>
+          <p className="db-page-subtitle">
+            Save and reuse email templates for your job search communications.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <TemplateGallery />
           <TemplateForm />
         </div>
-      </div>
+      </header>
 
-      {/* Template Variables Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Available Variables</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <code className="px-2 py-1 bg-muted rounded">{"{{company}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{position}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{contact_name}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{date}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{your_name}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{your_email}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{your_phone}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{your_linkedin}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{interview_date}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{start_date}}"}</code>
-            <code className="px-2 py-1 bg-muted rounded">{"{{salary}}"}</code>
+      <div className="space-y-8">
+        {/* ── Variable reference ── */}
+        <section className="db-content-card">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#55433d]/60 mb-3">Available Variables</p>
+          <div className="flex flex-wrap gap-2">
+            {["{{company}}", "{{position}}", "{{contact_name}}", "{{date}}", "{{your_name}}",
+              "{{your_email}}", "{{your_phone}}", "{{your_linkedin}}", "{{interview_date}}",
+              "{{start_date}}", "{{salary}}"].map((v) => (
+              <code key={v} className="px-2.5 py-1 bg-[#f4f3f1] text-[#99462a] text-xs rounded-lg font-mono">
+                {v}
+              </code>
+            ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Replace these placeholders with actual values before sending your email
+          <p className="text-xs text-[#55433d]/50 mt-3">
+            Replace these placeholders with actual values before sending your email.
           </p>
-        </CardContent>
-      </Card>
+        </section>
 
-      {/* Templates by Category */}
-      {Object.entries(groupedTemplates).length === 0 ? (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">No templates yet</p>
-              <p className="text-sm mt-1 mb-4">
-                Create your own templates or browse our pre-built collection
-              </p>
-              <div className="flex justify-center gap-2">
-                <TemplateGallery />
-                <TemplateForm />
-              </div>
+        {/* ── Templates by category ── */}
+        {Object.entries(groupedTemplates).length === 0 ? (
+          <div className="db-content-card flex flex-col items-center py-16 text-center">
+            <Mail className="h-10 w-10 text-[#55433d]/30 mb-3" />
+            <p className="text-[#55433d] font-medium">No templates yet</p>
+            <p className="text-sm text-[#55433d]/60 mt-1 mb-6">
+              Create your own templates or browse our pre-built collection
+            </p>
+            <div className="flex gap-3">
+              <TemplateGallery />
+              <TemplateForm />
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        Object.entries(groupedTemplates).map(([category, categoryTemplates]) => (
-          <Card key={category}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                {category}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TemplateList templates={categoryTemplates} />
-            </CardContent>
-          </Card>
-        ))
-      )}
+          </div>
+        ) : (
+          Object.entries(groupedTemplates).map(([category, categoryTemplates]) => (
+            <section key={category}>
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="h-5 w-5 text-[#99462a]" />
+                <h2 className="db-headline text-xl font-semibold text-[#1a1c1b]">{category}</h2>
+                <span className="text-sm text-[#55433d]">({categoryTemplates.length})</span>
+              </div>
+              <div className="db-content-card">
+                <TemplateList templates={categoryTemplates} />
+              </div>
+            </section>
+          ))
+        )}
+      </div>
     </div>
   );
 }
