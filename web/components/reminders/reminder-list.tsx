@@ -7,7 +7,6 @@ import { Clock, CheckCircle2, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
-  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,32 +48,19 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const formatTime = (dateString: string) =>
+    new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   const handleComplete = async (id: string) => {
     setLoadingId(id);
     const supabase = createClient();
-
     const { error } = await supabase
       .from("reminders")
-      .update({
-        is_completed: true,
-        completed_at: new Date().toISOString(),
-      })
+      .update({ is_completed: true, completed_at: new Date().toISOString() })
       .eq("id", id);
 
-    if (error) {
-      toast.error("Failed to complete reminder");
-    } else {
-      toast.success("Reminder completed");
-      router.refresh();
-    }
-
+    if (error) toast.error("Failed to complete reminder");
+    else { toast.success("Reminder completed"); router.refresh(); }
     setLoadingId(null);
   };
 
@@ -87,70 +73,62 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
     setConfirmingId(null);
     setLoadingId(id);
     const supabase = createClient();
-
     const { error } = await supabase.from("reminders").delete().eq("id", id);
-
-    if (error) {
-      toast.error("Failed to delete reminder");
-    } else {
-      toast.success("Reminder deleted");
-      router.refresh();
-    }
-
+    if (error) toast.error("Failed to delete reminder");
+    else { toast.success("Reminder deleted"); router.refresh(); }
     setLoadingId(null);
   };
 
-  const getReminderTypeColor = (type: string) => {
-    switch (type) {
-      case "Follow Up":
-        return "bg-blue-100 text-blue-700";
-      case "Interview":
-        return "bg-purple-100 text-purple-700";
-      case "Deadline":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  // Atelier-toned type badges
+  function typeBadge(type: string) {
+    const map: Record<string, string> = {
+      "Follow Up":  "bg-[#99462a]/10 text-[#99462a]",
+      "Interview":  "bg-[#006d34]/10 text-[#006d34]",
+      "Deadline":   "bg-[#ba1a1a]/10 text-[#ba1a1a]",
+      "Offer":      "bg-[#006d34]/14 text-[#005225]",
+    };
+    return map[type] ?? "bg-[#55433d]/10 text-[#55433d]";
+  }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {reminders.map((reminder) => (
         <div
           key={reminder.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border ${
-            showCompleted ? "opacity-60" : "hover:bg-muted/50"
-          } transition-colors`}
+          className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${
+            showCompleted
+              ? "bg-[#f4f3f1]/60 opacity-60"
+              : "bg-[#f4f3f1] hover:bg-[#e9e8e6]"
+          }`}
         >
           {!showCompleted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 mt-0.5"
+            <button
+              type="button"
+              className="db-complete-btn shrink-0 mt-0.5"
               onClick={() => handleComplete(reminder.id)}
               disabled={loadingId === reminder.id}
               title="Mark as complete"
             >
-              <CheckCircle2 className="h-5 w-5 text-muted-foreground hover:text-primary" />
-            </Button>
+              <CheckCircle2 className="h-3.5 w-3.5 text-[#dbc1b9]" />
+            </button>
           )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className={`font-medium ${showCompleted ? "line-through" : ""}`}>
+              <div className="min-w-0">
+                <p className={`font-semibold text-[#1a1c1b] text-sm ${showCompleted ? "line-through" : ""}`}>
                   {reminder.title}
                 </p>
                 {reminder.job_applications && (
                   <Link
                     href={`/applications/${reminder.application_id}`}
-                    className="text-sm text-primary hover:underline"
+                    className="text-xs text-[#99462a] hover:underline underline-offset-2"
                   >
-                    {reminder.job_applications.company} - {reminder.job_applications.position}
+                    {reminder.job_applications.company} — {reminder.job_applications.position}
                   </Link>
                 )}
                 {reminder.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-[#55433d]/70 mt-1 leading-relaxed">
                     {reminder.description}
                   </p>
                 )}
@@ -158,15 +136,19 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <button
+                    type="button"
+                    aria-label="Reminder options"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors shrink-0"
+                  >
                     <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {confirmingId === reminder.id ? (
                     <DropdownMenuItem
                       onClick={() => handleDeleteConfirm(reminder.id)}
-                      className="text-destructive font-medium"
+                      className="text-[#ba1a1a] font-semibold"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Confirm delete
@@ -175,7 +157,7 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
                     <DropdownMenuItem
                       onClick={() => handleDeleteClick(reminder.id)}
                       disabled={loadingId === reminder.id}
-                      className="text-destructive"
+                      className="text-[#ba1a1a]"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       {loadingId === reminder.id ? "Deleting..." : "Delete"}
@@ -185,12 +167,12 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
               </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-3 mt-2">
-              <span className={`text-xs px-2 py-0.5 rounded ${getReminderTypeColor(reminder.type)}`}>
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              <span className={`db-status-badge text-[10px] ${typeBadge(reminder.type)}`}>
                 {reminder.type}
               </span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+              <span className="text-xs text-[#55433d]/60 flex items-center gap-1">
+                <Clock className="h-3 w-3 shrink-0" />
                 {formatDate(reminder.remind_at)} at {formatTime(reminder.remind_at)}
               </span>
             </div>

@@ -277,7 +277,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
               {...register("interviewer_names")}
               className={errors.interviewer_names ? "border-destructive" : ""}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-[#55433d]/50">
               Separate multiple names with commas
             </p>
             {errors.interviewer_names && (

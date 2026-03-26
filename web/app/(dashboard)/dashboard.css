@@ -1,0 +1,547 @@
+/* ── Dashboard — Intellectual Atelier Design ──────────────────────────────────
+   Design tokens for the dashboard. Same palette as auth.css / landing.css.
+   All component styling for the dashboard lives here.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --atelier-bg:              #faf9f7;
+  --atelier-surface:         #ffffff;
+  --atelier-surface-low:     #f4f3f1;
+  --atelier-surface-high:    #e9e8e6;
+  --atelier-surface-highest: #e3e2e0;
+  --atelier-primary:         #99462a;
+  --atelier-primary-hover:   #d97757;
+  --atelier-primary-soft:    #ffdbd0;
+  --atelier-on-surface:      #1a1c1b;
+  --atelier-on-surface-var:  #55433d;
+  --atelier-outline-var:     #dbc1b9;
+  --atelier-tertiary:        #006d34;
+  --atelier-error:           #ba1a1a;
+}
+
+/* ── Stat cards ────────────────────────────────────────────────────────────── */
+.db-stat-card {
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 176px;
+}
+
+.db-stat-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--atelier-on-surface-var);
+}
+
+.db-stat-value {
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--atelier-on-surface);
+  margin-top: 0.5rem;
+}
+
+/* ── Chart + task panel ────────────────────────────────────────────────────── */
+.db-panel {
+  background-color: var(--atelier-surface);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 1px solid rgba(219, 193, 185, 0.15);
+  box-shadow: 0 2px 16px rgba(26, 28, 27, 0.04);
+}
+
+.db-panel-title {
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-size: 1.5rem;
+  color: var(--atelier-on-surface);
+}
+
+/* ── Application list rows ─────────────────────────────────────────────────── */
+.db-app-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--atelier-surface-low);
+  border-radius: 0.75rem;
+  transition: background-color 150ms;
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (min-width: 768px) {
+  .db-app-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.db-app-row:hover {
+  background-color: var(--atelier-surface-high);
+}
+
+/* ── Status badges ─────────────────────────────────────────────────────────── */
+.db-badge {
+  padding: 0.3rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.db-badge-interview {
+  background-color: rgba(217, 119, 87, 0.18);
+  color: var(--atelier-primary);
+}
+
+.db-badge-screen {
+  background-color: rgba(30, 100, 200, 0.10);
+  color: #1e4a8a;
+}
+
+.db-badge-offer {
+  background-color: rgba(0, 109, 52, 0.12);
+  color: var(--atelier-tertiary);
+}
+
+.db-badge-rejected {
+  background-color: rgba(186, 26, 26, 0.10);
+  color: var(--atelier-error);
+}
+
+.db-badge-accepted {
+  background-color: rgba(0, 109, 52, 0.18);
+  color: var(--atelier-tertiary);
+}
+
+.db-badge-neutral {
+  background-color: rgba(219, 193, 185, 0.4);
+  color: var(--atelier-on-surface-var);
+}
+
+/* ── Reminder / task item dots ─────────────────────────────────────────────── */
+.db-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+}
+
+.db-dot-primary   { background-color: var(--atelier-primary); }
+.db-dot-muted     { background-color: var(--atelier-outline-var); }
+.db-dot-success   { background-color: var(--atelier-tertiary); }
+.db-dot-error     { background-color: var(--atelier-error); }
+
+/* ── Quote block ───────────────────────────────────────────────────────────── */
+.db-quote-block {
+  background-color: var(--atelier-surface-low);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface-var);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ── Section headings (h2/h3) using Newsreader ─────────────────────────────── */
+.db-headline {
+  font-family: var(--font-newsreader, Georgia, serif);
+}
+
+/* ── Layout root ───────────────────────────────────────────────────────────── */
+.db-root {
+  background-color: var(--atelier-bg);
+  color: var(--atelier-on-surface);
+  font-family: var(--font-manrope, system-ui), sans-serif;
+}
+
+/* ── Bar chart area ────────────────────────────────────────────────────────── */
+.db-chart-area {
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+/* ── Bar chart bars ────────────────────────────────────────────────────────── */
+.db-bar {
+  border-radius: 4px 4px 0 0;
+  transition: opacity 150ms;
+}
+.db-bar:hover { opacity: 0.8; }
+.db-bar-normal    { background-color: var(--atelier-surface-high); }
+.db-bar-highlight { background-color: var(--atelier-primary-hover); }
+.db-bar-active    { background-color: rgba(153, 70, 42, 0.75); }
+
+/* ── Company avatar (initial circle) ──────────────────────────────────────── */
+.db-company-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.625rem;
+  background-color: var(--atelier-surface-highest);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--atelier-primary);
+  flex-shrink: 0;
+}
+
+/* ── Primary action button (pill) ─────────────────────────────────────────── */
+.db-btn-primary {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.db-btn-primary:hover { background-color: var(--atelier-primary-hover); }
+
+/* ── Link button ───────────────────────────────────────────────────────────── */
+.db-link-primary {
+  color: var(--atelier-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.db-link-primary:hover { opacity: 0.7; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Reminder complete button ─────────────────────────────────────────────── */
+.db-complete-btn {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--atelier-outline-var);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  transition: border-color 0.2s, background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.db-complete-btn:hover {
+  border-color: var(--atelier-primary);
+  background-color: var(--atelier-primary-soft);
+}
+
+/* ── Skeleton panels (shared shadow + border, no padding — set in markup) ── */
+.db-skel-panel {
+  background-color: var(--atelier-surface);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(219, 193, 185, 0.15);
+  box-shadow: 0 2px 16px rgba(26, 28, 27, 0.04);
+}
+
+/* Stat card skeleton — min-height matches real stat card */
+.db-skel-stat {
+  min-height: 176px;
+}
+
+/* ── NESTAi chat container ─────────────────────────────────────────────────── */
+/*
+  Height = 100dvh  minus  everything that sits above/below the container:
+    - Navbar:            h-14 (3.5rem) on mobile, h-16 (4rem) on sm+
+    - main top padding:  py-6 (1.5rem) on mobile, py-8 (2rem) on sm+
+    - main bottom pad:   pb-32 (8rem) on mobile/sm, pb-8 (2rem) on md+
+  100dvh adjusts for the collapsible browser chrome on iOS/Android.
+*/
+/* nestai-page: full-page layout — negative margins in the TSX cancel the
+   dashboard's py/px padding so this fills exactly (100dvh - navbar).
+   overflow-x:hidden prevents any accidental horizontal bleed;
+   overflow-y is intentionally left as visible so the inner flex-1
+   overflow-y-auto messages div handles vertical scrolling itself. */
+.nestai-page {
+  height: calc(100dvh - 3.5rem); /* mobile: h-14 navbar */
+  overflow-x: hidden;
+}
+@media (min-width: 640px) { .nestai-page { height: calc(100dvh - 4rem); } } /* sm+: h-16 navbar */
+
+.nestai-root         { background-color: var(--atelier-bg); }
+.nestai-sidebar-header { background-color: rgba(244, 243, 241, 0.85); }
+
+/* Input area — fixed floating pill at bottom on mobile for easy thumb reach.
+   Switches back to inline flex item on md+ where the layout has enough room. */
+.nestai-input-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: 0.75rem 1rem;
+  /* safe-area-inset-bottom keeps it above the iOS home indicator */
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  background-color: rgba(250, 249, 247, 0.96);
+  border-top: 1px solid rgba(219, 193, 185, 0.20);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+@media (min-width: 768px) {
+  .nestai-input-area {
+    /* Back to normal flow on desktop */
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
+    flex-shrink: 0;
+    padding: 0.5rem 1rem 1.5rem;
+    background-color: transparent;
+    border-top: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.nestai-sidebar { background-color: var(--atelier-surface-low); border-color: rgba(219,193,185,0.2); }
+.nestai-topbar  { border-color: rgba(219,193,185,0.2); }
+/* Input uses surface-container-highest (#e3e2e0) — matches design's elevated pill */
+.nestai-input   { border-color: rgba(219,193,185,0.25); background-color: #e3e2e0; }
+.nestai-input:focus-within { border-color: rgba(153,70,42,0.30); box-shadow: 0 8px 32px rgba(26,28,27,0.08); }
+/* Override the global blue :focus-visible ring inside the nestai input */
+.nestai-input textarea:focus,
+.nestai-input textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.nestai-user-bubble { background-color: var(--atelier-surface-low); }
+.nestai-pill    { border-color: rgba(219,193,185,0.35); background-color: var(--atelier-surface-low); color: var(--atelier-on-surface-var); }
+.nestai-pill:hover { background-color: var(--atelier-surface-high); color: var(--atelier-on-surface); }
+.nestai-session-active   { background-color: rgba(153,70,42,0.10); color: #99462a; }
+.nestai-session-inactive { color: var(--atelier-on-surface-var); }
+.nestai-session-inactive:hover { background-color: rgba(217,119,87,0.08); color: var(--atelier-on-surface); }
+.nestai-modal  { background-color: var(--atelier-bg); }
+
+/* ── Atelier page headers ──────────────────────────────────────────────────── */
+.db-page-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+@media (min-width: 768px) {
+  .db-page-header { flex-direction: row; align-items: flex-end; margin-bottom: 3rem; }
+}
+
+.db-page-title {
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-size: clamp(2.5rem, 6vw, 3.75rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--atelier-on-surface);
+}
+
+.db-page-subtitle {
+  color: var(--atelier-on-surface-var);
+  font-size: 1rem;
+  max-width: 32rem;
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+/* ── Page action buttons ───────────────────────────────────────────────────── */
+.db-btn-page-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 9999px;
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.db-btn-page-primary:hover { background-color: var(--atelier-primary-hover); }
+
+.db-btn-page-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(219, 193, 185, 0.4);
+  color: var(--atelier-on-surface);
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.db-btn-page-secondary:hover { background-color: var(--atelier-surface-low); }
+
+/* ── Atelier application card ──────────────────────────────────────────────── */
+.db-app-card {
+  background-color: var(--atelier-surface);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(219, 193, 185, 0.12);
+  box-shadow: 0 4px 20px rgba(26, 28, 27, 0.025);
+  transition: box-shadow 0.2s;
+}
+@media (min-width: 640px) { .db-app-card { padding: 2rem; } }
+.db-app-card:hover { box-shadow: 0 8px 30px rgba(26, 28, 27, 0.06); }
+
+/* Company initial avatars */
+.db-company-avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.625rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-newsreader, Georgia, serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (min-width: 640px) {
+  .db-company-avatar-lg { width: 4rem; height: 4rem; border-radius: 0.75rem; }
+}
+
+/* Status colour tokens */
+.db-status-interview  { background: rgba(0,109,52,0.10); color: #006d34; }
+.db-status-phone      { background: rgba(153,70,42,0.10); color: #99462a; }
+.db-status-applied    { background: rgba(180,120,0,0.10); color: #7c5200; }
+.db-status-offer      { background: rgba(0,109,52,0.14); color: #005225; }
+.db-status-accepted   { background: rgba(0,109,52,0.18); color: #003d1b; }
+.db-status-rejected   { background: rgba(186,26,26,0.10); color: #ba1a1a; }
+.db-status-withdrawn  { background: rgba(85,67,61,0.10); color: #55433d; }
+.db-status-default    { background: rgba(153,70,42,0.10); color: #99462a; }
+
+/* Application status badge */
+.db-status-badge {
+  padding: 0.3rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Card notes (italic quote at bottom) */
+.db-card-notes {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(219, 193, 185, 0.18);
+  color: var(--atelier-on-surface-var);
+  font-style: italic;
+  font-size: 0.875rem;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ── Filter bar ────────────────────────────────────────────────────────────── */
+.db-filter-bar {
+  background-color: var(--atelier-surface-low);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 1024px) {
+  .db-filter-bar { flex-direction: row; align-items: center; gap: 1rem; }
+}
+
+.db-filter-search {
+  width: 100%;
+  background-color: var(--atelier-surface);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  font-size: 0.875rem;
+  color: var(--atelier-on-surface);
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+.db-filter-search:focus { box-shadow: 0 0 0 1.5px rgba(153,70,42,0.35); }
+.db-filter-search::placeholder { color: rgba(85,67,61,0.45); }
+
+.db-filter-pill {
+  padding: 0.4rem 1.1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+.db-filter-pill-active {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+.db-filter-pill-inactive {
+  background-color: var(--atelier-surface-highest);
+  color: var(--atelier-on-surface-var);
+}
+.db-filter-pill-inactive:hover { background-color: var(--atelier-surface-high); }
+
+.db-filter-sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--atelier-surface);
+  border-radius: 0.5rem;
+  border: none;
+  color: var(--atelier-on-surface-var);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* ── Generic atelier content card (interviews, reminders, etc.) ─────────────── */
+.db-content-card {
+  background-color: var(--atelier-surface);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(219, 193, 185, 0.12);
+  box-shadow: 0 2px 12px rgba(26, 28, 27, 0.03);
+}
+
+/* ── Floating action button ────────────────────────────────────────────────── */
+.db-fab {
+  background-color: var(--atelier-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 24px rgba(153, 70, 42, 0.30);
+  transition: transform 150ms, background-color 0.2s;
+}
+.db-fab:hover  { background-color: var(--atelier-primary-hover); transform: scale(1.05); }
+.db-fab:active { transform: scale(0.95); }

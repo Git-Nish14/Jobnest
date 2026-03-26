@@ -45,6 +45,19 @@ Modelled after AWS / GitHub — accounts are never immediately destroyed.
 6. After 30 days, a daily cron job permanently deletes the account and all data via RLS cascade
 7. IP address + optional user-provided reason recorded for audit
 
+### Design System — Intellectual Atelier
+A warm, editorial design language used consistently across every page of the application.
+
+- **Palette** — terracotta primary `#99462a`, warm parchment surfaces `#faf9f7` / `#f4f3f1`, on-surface `#1a1c1b`
+- **Typography** — Newsreader (serif, headings + italic accents) + Manrope (sans-serif, body)
+- **Buttons** — pill-shaped (`rounded-full`), terracotta filled or outlined variants
+- **Inputs** — warm surface `#f4f3f1`, terracotta focus ring, atelier border
+- **Cards** — `db-content-card` (white + subtle warm shadow), `db-app-card` (with left-edge accent bar per status)
+- **Dialogs / dropdowns** — `bg-[#faf9f7]`, `rounded-2xl` / `rounded-xl`, soft `backdrop-blur` overlay
+- **Status badges** — tonal atelier colours per status (Interview, Phone Screen, Applied, Offer, Rejected, Withdrawn)
+- **Loading skeletons** — warm `#e3e2e0` shimmer blocks matching real card structure
+- **Page headers** — Newsreader large title (`db-page-title`) + subtitle + right-aligned pill action button
+
 ### Dashboard
 - Overview stats — total applications, this week/month, active pipeline
 - Weekly application trend bar chart
@@ -127,9 +140,9 @@ Modelled after AWS / GitHub — accounts are never immediately destroyed.
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email/password + Google/GitHub OAuth) |
 | AI | Groq API (`llama-3.3-70b-versatile`) |
 | Email | Nodemailer (SMTP) |
-| Font | Geist Sans / Geist Mono (dashboard) · Newsreader + Manrope (auth pages) via `next/font/google` |
-| Styling | Tailwind CSS 4 (light-only) |
-| UI | Radix UI primitives + custom components |
+| Font | Geist Sans / Geist Mono (public/root) · Newsreader + Manrope (auth + dashboard) via `next/font/google` |
+| Styling | Tailwind CSS 4 (light-only) — Intellectual Atelier design system |
+| UI | Radix UI primitives + custom atelier-themed components |
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Notifications | Sonner |

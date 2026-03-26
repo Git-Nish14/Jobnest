@@ -94,8 +94,8 @@ function RateLimitCounter({
           : remaining <= 1 && windowActive
           ? "border-amber-300/60 bg-amber-50 text-amber-700"
           : windowActive
-          ? "border-border bg-muted/40 text-muted-foreground"
-          : "border-transparent text-muted-foreground/50"
+          ? "border-[#dbc1b9]/60 bg-[#f4f3f1] text-[#55433d]"
+          : "border-transparent text-[#55433d]/50"
       )}
       title={`${remaining} of ${max} requests remaining.`}
     >
@@ -106,7 +106,7 @@ function RateLimitCounter({
             className={cn(
               "h-1.5 w-1.5 rounded-full transition-all duration-300",
               i < remaining
-                ? isRateLimited ? "bg-destructive/50" : remaining <= 1 ? "bg-amber-400" : "bg-primary/60"
+                ? isRateLimited ? "bg-destructive/50" : remaining <= 1 ? "bg-amber-400" : "bg-[#99462a]/60"
                 : "bg-muted-foreground/20"
             )}
           />
@@ -127,7 +127,7 @@ function RateLimitCounter({
 
 function AssistantAvatar() {
   return (
-    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
+    <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 atelier-avatar">
       <Sparkles className="h-3.5 w-3.5 text-white" />
     </div>
   );
@@ -342,7 +342,7 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
     <div className="space-y-1">
       {elements}
       {isStreaming && (
-        <span className="inline-block w-0.5 h-[1.1em] bg-primary/70 align-text-bottom animate-pulse ml-0.5" />
+        <span className="inline-block w-0.5 h-[1.1em] bg-[#99462a]/70 align-text-bottom animate-pulse ml-0.5" />
       )}
     </div>
   );
@@ -365,9 +365,9 @@ export default function NestAiPage() {
   // Sessions
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(
-    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
-  );
+  // Always start closed — avoids the server(true) vs mobile-client(false) hydration mismatch.
+  // useEffect sets the correct value after mount (open on lg+, closed on mobile).
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -389,6 +389,11 @@ export default function NestAiPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // ── Open sidebar on desktop after mount (avoids hydration mismatch) ─────
+  useEffect(() => {
+    if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
 
   // ── Scroll ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -457,6 +462,8 @@ export default function NestAiPage() {
   };
 
   const loadSession = async (sessionId: string) => {
+    // Close sidebar on mobile so the chat is immediately visible
+    if (window.innerWidth < 1024) setSidebarOpen(false);
     try {
       const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`);
       if (res.ok) {
@@ -785,30 +792,34 @@ export default function NestAiPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-    <div className="flex h-[calc(100vh-4rem)] sm:h-[calc(100vh-4.5rem)] overflow-hidden rounded-xl border bg-white shadow-sm">
+    {/* Negative margins escape the dashboard layout padding so NESTAi fills the full viewport below the Navbar */}
+    <div className="flex nestai-root nestai-page -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 sm:-mt-8 -mb-32 md:-mb-8">
 
-      {/* Mobile sidebar backdrop */}
+      {/* Mobile sidebar backdrop — starts below the sticky Navbar (top-14 / sm:top-16) */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+        <div className="fixed top-14 sm:top-16 inset-x-0 bottom-0 z-20 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
       )}
 
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside className={cn(
-        "flex flex-col border-r bg-muted/30 transition-all duration-300 shrink-0",
+        "flex flex-col nestai-sidebar transition-all duration-300 shrink-0",
         sidebarOpen
-          ? "w-64 fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto rounded-l-xl"
+          ? "w-72 fixed lg:relative top-14 sm:top-16 bottom-0 left-0 z-30 lg:top-auto lg:bottom-auto lg:z-auto"
           : "w-0 overflow-hidden border-r-0"
       )}>
         {/* Sidebar header */}
-        <div className="flex items-center justify-between px-3 py-3 border-b shrink-0">
-          <span className="text-sm font-semibold text-foreground pl-1">NESTAi</span>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={startNewChat} title="New chat">
+        <div className="flex items-center justify-between px-3 py-3.5 shrink-0 nestai-sidebar-header">
+          <div className="flex items-center gap-1.5 pl-1">
+            <span className="db-headline italic text-lg text-[#99462a] leading-none">NESTAi</span>
+            <Sparkles className="h-3.5 w-3.5 text-[#d97757]" />
+          </div>
+          <div className="flex items-center gap-0.5">
+            <button type="button" className="h-7 w-7 flex items-center justify-center rounded-lg text-[#55433d] hover:bg-[#99462a]/8 transition-colors" onClick={startNewChat} title="New chat">
               <Plus className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)} title="Close sidebar">
+            </button>
+            <button type="button" className="h-7 w-7 flex items-center justify-center rounded-lg text-[#55433d] hover:bg-[#99462a]/8 transition-colors" onClick={() => setSidebarOpen(false)} title="Close sidebar">
               <PanelLeftClose className="h-4 w-4" />
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -887,60 +898,80 @@ export default function NestAiPage() {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b shrink-0">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b nestai-topbar shrink-0">
           <div className="flex items-center gap-2">
             {!sidebarOpen && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setSidebarOpen(true)} title="Open sidebar">
-                <PanelLeft className="h-4 w-4" />
-              </Button>
+              <button
+                type="button"
+                className="p-2 -ml-1.5 rounded-full hover:bg-[#99462a]/5 transition-colors text-[#55433d]"
+                onClick={() => setSidebarOpen(true)}
+                title="Open sidebar"
+              >
+                <PanelLeft className="h-5 w-5" />
+              </button>
             )}
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                <Sparkles className="h-3 w-3 text-white" />
-              </div>
-              <span className="text-sm font-semibold">NESTAi</span>
-              <span className="hidden sm:inline text-xs text-muted-foreground border rounded-full px-2 py-0.5">Job search assistant</span>
+            {/* Brand — serif italic like landing page */}
+            <div className="flex items-center gap-1.5">
+              <span className="db-headline italic text-xl sm:text-2xl text-[#99462a] tracking-tight leading-none">
+                NESTAi
+              </span>
+              <Sparkles className="h-4 w-4 text-[#d97757]" />
             </div>
           </div>
+
           <div className="flex items-center gap-2">
             <RateLimitCounter remaining={remaining} max={MAX_REQUESTS} resetCountdown={resetCountdown} isRateLimited={isRateLimited} />
             {messages.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={startNewChat} className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs text-[#55433d] hover:text-[#1a1c1b] hover:bg-[#f4f3f1] rounded-full transition-colors"
+              >
                 <Plus className="h-3.5 w-3.5" /> New chat
-              </Button>
+              </button>
             )}
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Messages — overflow-x-hidden clips glow blobs that extend outside;
+               pb-32 on mobile makes room for the fixed input bar */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32 md:pb-0">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center px-4 py-8">
-              <div className="w-full max-w-xl">
-                <div className="text-center mb-8">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-4">
-                    <BrainCircuit className="h-7 w-7 text-primary" />
-                  </div>
-                  <h2 className="text-xl font-semibold tracking-tight">How can I help you?</h2>
-                  <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
-                    Ask me anything about your applications, interviews, or job search progress.
+            /* mobile: min-h-full so content can scroll via parent overflow-y-auto
+               md+: h-full overflow-hidden — content always fits, no scroll needed */
+            <div className="relative min-h-full md:h-full md:overflow-hidden flex flex-col items-center justify-center px-6 py-8">
+              {/* Decorative background glows — fixed to the chat area */}
+              <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[#99462a]/5 blur-[120px] pointer-events-none" />
+              <div className="absolute top-[40%] -right-[5%] w-[30%] h-[30%] rounded-full bg-[#006d34]/5 blur-[100px] pointer-events-none" />
+              <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[30%] bg-[#d97757]/5 blur-[120px] pointer-events-none" />
+
+              <div className="relative w-full max-w-2xl flex flex-col items-center text-center space-y-6">
+                {/* Hero headline */}
+                <div className="space-y-4">
+                  <h2 className="db-headline text-4xl sm:text-5xl text-[#1a1c1b] tracking-tight leading-tight">
+                    How can I{" "}
+                    <span className="italic text-[#99462a]">help</span>{" "}
+                    you?
+                  </h2>
+                  <p className="text-[#55433d] text-base sm:text-lg max-w-md mx-auto leading-relaxed">
+                    Your intelligent partner for career growth, application tracking, and interview preparation.
                   </p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {SUGGESTED_PROMPTS.map((item) => (
+
+                {/* Bento prompt cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-2">
+                  {SUGGESTED_PROMPTS.slice(0, 4).map((item) => (
                     <button
                       key={item.label}
                       type="button"
                       onClick={() => handleSubmit(undefined, item.prompt)}
-                      className="flex items-start gap-3 rounded-xl border bg-muted/30 p-3.5 text-left transition-all hover:bg-muted/60 hover:border-border/80 group"
+                      className="group flex flex-col items-start p-5 bg-[#f4f3f1] rounded-xl text-left transition-all duration-300 hover:bg-[#e9e8e6] hover:-translate-y-0.5 active:scale-[0.98]"
                     >
-                      <div className="mt-0.5 shrink-0 h-7 w-7 rounded-lg bg-background border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-colors">
-                        <item.icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <div className="p-2.5 bg-[#99462a]/10 rounded-lg mb-3 text-[#99462a] group-hover:bg-[#99462a] group-hover:text-white transition-colors duration-200">
+                        <item.icon className="h-4 w-4" />
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{item.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.prompt}</p>
-                      </div>
+                      <p className="text-sm font-bold text-[#1a1c1b] mb-1">{item.label}</p>
+                      <p className="text-xs text-[#55433d] leading-relaxed">{item.prompt}</p>
                     </button>
                   ))}
                 </div>
@@ -998,7 +1029,7 @@ export default function NestAiPage() {
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <div className="max-w-[80%] bg-muted rounded-2xl rounded-tr-sm px-4 py-2.5">
+                          <div className="max-w-[80%] nestai-user-bubble rounded-2xl rounded-tr-sm px-4 py-2.5">
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                           </div>
                         </div>
@@ -1025,7 +1056,7 @@ export default function NestAiPage() {
                                     type="button"
                                     onClick={() => handleSubmit(undefined, s)}
                                     disabled={isLoading || isRateLimited}
-                                    className="text-xs px-3 py-1.5 rounded-full border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="text-xs px-3 py-1.5 rounded-full border nestai-pill transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
                                     {s}
                                   </button>
@@ -1045,9 +1076,9 @@ export default function NestAiPage() {
                 <div className="flex gap-3">
                   <AssistantAvatar />
                   <div className="flex items-center gap-1 pt-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:300ms]" />
                   </div>
                 </div>
               )}
@@ -1057,21 +1088,20 @@ export default function NestAiPage() {
           )}
         </div>
 
-        {/* Error banner */}
-        {error && (
-          <div className="px-4 pb-2 max-w-2xl mx-auto w-full">
-            <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/8 border border-destructive/20 text-destructive text-sm">
-              <span>{error}</span>
-              <button type="button" aria-label="Dismiss error" onClick={() => setError(null)} className="hover:opacity-70 shrink-0">
-                <X className="h-4 w-4" />
-              </button>
+        {/* Input area — fixed at bottom on mobile, inline on desktop (nestai-input-area in dashboard.css) */}
+        <div className="nestai-input-area">
+          {/* Error banner — rendered above the input pill */}
+          {error && (
+            <div className="pb-2 max-w-3xl mx-auto w-full">
+              <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/8 border border-destructive/20 text-destructive text-sm">
+                <span>{error}</span>
+                <button type="button" aria-label="Dismiss error" onClick={() => setError(null)} className="hover:opacity-70 shrink-0">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Input area */}
-        <div className="px-4 pb-4 pt-2 shrink-0">
-          <div className="max-w-2xl mx-auto">
+          )}
+          <div className="max-w-3xl mx-auto">
             {isRateLimited && resetCountdown ? (
               <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-4">
                 <div className="h-1 w-full rounded-full bg-destructive/15 mb-3 overflow-hidden">
@@ -1106,7 +1136,7 @@ export default function NestAiPage() {
                       ? "bg-destructive/8 border-destructive/25 text-destructive"
                       : attachedFile.loading
                       ? "bg-muted border-border text-muted-foreground"
-                      : "bg-primary/8 border-primary/20 text-primary"
+                      : "bg-[#99462a]/8 border-[#99462a]/20 text-[#99462a]"
                   )}>
                     {attachedFile.loading
                       ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
@@ -1132,16 +1162,17 @@ export default function NestAiPage() {
                     </button>
                   </div>
                 )}
-                <div className="relative flex items-end gap-2 rounded-2xl border bg-background shadow-sm focus-within:shadow-md focus-within:border-border/80 transition-all px-3 py-2">
+                {/* Full pill input — matches design's rounded-[2rem] */}
+                <div className="relative flex items-end gap-2 rounded-[2rem] border shadow-lg transition-all px-3 py-2.5 nestai-input">
                   {/* File attach button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 shrink-0 pb-1.5"
+                    className="p-3 rounded-full text-[#55433d] hover:bg-[#99462a]/8 transition-colors disabled:opacity-40 shrink-0"
                     title="Attach file (PDF, DOCX, TXT — max 5 MB)"
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Paperclip className="h-5 w-5" />
                   </button>
                   <input
                     ref={fileInputRef}
@@ -1158,46 +1189,44 @@ export default function NestAiPage() {
                     value={input}
                     onChange={autoResize}
                     onKeyDown={handleKeyDown}
-                    placeholder="Message NESTAi…"
+                    placeholder="Ask NESTAi anything..."
                     rows={1}
                     disabled={isLoading}
-                    className="flex-1 resize-none bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/50 py-1.5 min-h-9 max-h-[200px] leading-relaxed disabled:opacity-50"
+                    className="flex-1 resize-none bg-transparent text-sm focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-[#55433d]/50 py-2.5 min-h-10 max-h-[200px] leading-relaxed disabled:opacity-50 text-[#1a1c1b]"
                   />
 
-                  {/* Stop button while streaming, send button otherwise */}
+                  {/* Stop / Send — circular like design */}
                   {isLoading ? (
                     <button
                       type="button"
                       onClick={stopStreaming}
-                      className="h-8 w-8 rounded-xl shrink-0 bg-foreground/10 hover:bg-foreground/20 flex items-center justify-center transition-colors"
+                      className="h-10 w-10 rounded-full shrink-0 bg-[#1a1c1b]/10 hover:bg-[#1a1c1b]/20 flex items-center justify-center transition-colors"
                       title="Stop generating"
                     >
-                      <Square className="h-3.5 w-3.5 fill-current" />
+                      <Square className="h-4 w-4 fill-current text-[#1a1c1b]" />
                     </button>
                   ) : (
-                    <Button
+                    <button
                       type="submit"
-                      size="icon"
+                      title="Send message"
+                      aria-label="Send message"
                       disabled={(!input.trim() && !attachedFile) || isLoading}
                       className={cn(
-                        "h-8 w-8 rounded-xl shrink-0 transition-all",
+                        "h-10 w-10 rounded-full shrink-0 flex items-center justify-center transition-all active:scale-90",
                         (input.trim() || attachedFile) && !isLoading
-                          ? "bg-primary hover:bg-primary/90"
-                          : "bg-muted text-muted-foreground"
+                          ? "bg-[#99462a] hover:bg-[#d97757] text-white shadow-md"
+                          : "bg-[#c8c6c3] text-[#88726c]"
                       )}
                     >
-                      <Send className="h-3.5 w-3.5" />
-                    </Button>
+                      <Send className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
               </form>
             )}
 
-            <p className="text-[11px] text-muted-foreground/60 text-center mt-2">
-              {resetCountdown !== null
-                ? `${remaining}/${MAX_REQUESTS} requests remaining · resets in ${resetCountdown}s`
-                : `${MAX_REQUESTS} requests per minute · Responses based on your Jobnest data`
-              }
+            <p className="text-[10px] text-[#55433d]/40 text-center mt-3 uppercase tracking-widest font-medium">
+              AI can make mistakes. Check important information.
             </p>
           </div>
         </div>
@@ -1212,7 +1241,7 @@ export default function NestAiPage() {
         aria-label="Close document preview"
       >
         <div
-          className="bg-background rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[82vh] flex flex-col"
+          className="nestai-modal rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[82vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -1308,7 +1337,7 @@ function SessionRow({
   return (
     <div className={cn(
       "group relative flex items-center gap-1 rounded-lg transition-colors cursor-pointer",
-      isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+      isActive ? "nestai-session-active" : "nestai-session-inactive"
     )}>
       {session.is_pinned && (
         <Pin className="absolute left-1.5 top-2 h-2.5 w-2.5 text-primary/40 shrink-0" />

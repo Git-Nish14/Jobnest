@@ -334,6 +334,97 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* ── Pricing ── */}
+        <section className="max-w-5xl mx-auto px-6 py-24">
+          <div className="text-center mb-14">
+            <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
+              Pricing
+            </p>
+            <h2 className="text-4xl landing-serif">Simple, transparent pricing</h2>
+            <p className="text-lg text-[#55433d] mt-4 max-w-md mx-auto leading-relaxed">
+              Every feature, every application, no credit card required.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Free plan */}
+            <div className="relative bg-[#f4f3f1] rounded-2xl p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#55433d] mb-2">Free</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold text-[#1a1c1b] landing-serif">$0</span>
+                  <span className="text-[#55433d]">/ forever</span>
+                </div>
+                <p className="text-sm text-[#55433d] mt-2">Everything you need to land your dream job.</p>
+              </div>
+              <ul className="space-y-3 flex-1 mb-8">
+                {[
+                  "Unlimited job applications",
+                  "AI-powered assistant (NESTAi)",
+                  "Interview tracking & reminders",
+                  "Document storage & management",
+                  "Salary comparison tracker",
+                  "Email templates library",
+                  "Contact relationship manager",
+                  "Data export (CSV & JSON)",
+                ].map((f) => (
+                  <li key={f} className="flex items-center gap-3 text-sm text-[#55433d]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#99462a] shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/signup"
+                className="block text-center px-8 py-3.5 rounded-full font-bold text-white bg-[#99462a] hover:bg-[#d97757] transition-colors"
+              >
+                Get Started Free
+              </Link>
+            </div>
+
+            {/* Pro plan — coming soon */}
+            <div className="relative bg-[#1a1c1b] rounded-2xl p-8 flex flex-col overflow-hidden">
+              <div className="absolute top-4 right-4">
+                <span className="px-3 py-1 rounded-full bg-[#d97757]/20 text-[#d97757] text-xs font-bold uppercase tracking-widest">
+                  Coming Soon
+                </span>
+              </div>
+              {/* Subtle glow */}
+              <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-[#99462a]/15 blur-3xl" />
+              <div className="mb-6 relative">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#d97757] mb-2">Pro</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold text-white landing-serif">$?</span>
+                  <span className="text-white/50">/ month</span>
+                </div>
+                <p className="text-sm text-white/60 mt-2">Advanced features for power users.</p>
+              </div>
+              <ul className="space-y-3 flex-1 mb-8 relative">
+                {[
+                  "Everything in Free",
+                  "Advanced analytics & insights",
+                  "Priority support",
+                  "Custom integrations",
+                  "Team collaboration",
+                  "Bulk import & advanced export",
+                ].map((f) => (
+                  <li key={f} className="flex items-center gap-3 text-sm text-white/70">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#d97757] shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                disabled
+                className="relative block text-center w-full px-8 py-3.5 rounded-full font-bold text-[#1a1c1b] bg-[#d97757]/60 cursor-not-allowed"
+              >
+                Join Waitlist
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* ── Final CTA ── */}
         <section className="max-w-4xl mx-auto px-6 py-32 text-center">
           <h2 className="text-4xl md:text-5xl mb-8 leading-tight landing-serif">

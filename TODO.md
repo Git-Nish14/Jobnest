@@ -97,60 +97,45 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-## 🎨 Design — Next Up
+## 🎨 Design — Intellectual Atelier (all done ✓)
 
-> **Plan:** Implement the Intellectual Atelier design system (Newsreader + Manrope, warm parchment palette, tonal layering, pill buttons) across all dashboard and public pages — matching the quality already shipped on auth pages. After each page is redesigned, audit it for any extra UI functionality introduced during design (e.g. new filter controls, hover states, empty states) and wire up the real logic if it isn't already connected.
+> Full Intellectual Atelier design system shipped across every page — auth, dashboard, and public pages. Warm parchment palette, Newsreader + Manrope typography, pill buttons, tonal card layering, and atelier status badges are now consistent site-wide.
 
 ### Auth Pages (done ✓)
 - [x] Login — Atelier card, OAuth grid, eye toggle, stay-signed-in, OTP step
 - [x] Signup — Atelier card, full-width OAuth stack, strength meter, eye toggles, must-match
 - [x] Forgot-password — 4-step Atelier flow (email → OTP → new password → success)
 
-### Dashboard & Public Pages (todo)
-- [ ] **Landing page (`/`)** — hero gradient text, stats strip, how-it-works steps, features grid, social proof card, CTA section; wire up real stat counts if surfaced in UI
-- [ ] **Dashboard overview (`/dashboard`)** — page H1 + subtext, "+ New Application" button in content area, stat cards, chart cards, recent applications, response rate ring; verify all widgets pull live data
-- [ ] **Applications list (`/applications`)** — filter bar (search + Status/Location/Date Range/Sort dropdowns, 36px height), application card hover (`translateY(-2px)` + shadow), status badge colours exact-match spec; verify filter/sort logic is connected
-- [ ] **Application detail (`/applications/[id]`)** — 2-col layout, activity timeline, interviews + reminders sub-sections, quick-action sidebar; verify all sections render live data
-- [ ] **Interviews (`/interviews`)** — upcoming + past sections, type/round/status badges; verify "Join" button links to meeting URL
-- [ ] **Reminders (`/reminders`)** — overdue (red accent), upcoming, completed-collapsed sections; verify mark-complete action works
-- [ ] **Contacts (`/contacts`)** — contact rows with avatar initials, add-contact modal; verify save/delete
-- [ ] **Email Templates (`/templates`)** — variable pill badges, gallery modal, category grouping; verify copy-to-clipboard and use-template
-- [ ] **Salary (`/salary`)** — stat grid, offer comparison table, benefits pills; verify all columns populated
-- [ ] **NESTAi (`/nestai`)** — sidebar (pinned/recent labels, skeleton loading), chat area rate-limit dots, suggested prompt cards, file attachment chip states, streaming cursor; verify all UI states match live behaviour
-- [ ] **Profile (`/profile`)** — sidebar avatar/stats, section cards, password strength on set-password step; verify OTP gating and deletion flow still work after redesign
+### Dashboard & Public Pages (done ✓)
+- [x] **Landing page (`/`)** — hero gradient text, stats strip, how-it-works steps, features grid, social proof card, CTA
+- [x] **Dashboard overview (`/dashboard`)** — Newsreader large title, stat cards, bar chart, status pie chart, recent apps, tasks panel — all live data
+- [x] **Applications list (`/applications`)** — `db-filter-bar` pill filters, search, sort dropdown, `db-app-card` with left status accent bar, status badges
+- [x] **Application detail (`/applications/[id]`)** — hero section, 2-col grid, activity timeline, interview list, document viewer, all live data
+- [x] **Interviews (`/interviews`)** — upcoming + past sections, type/round/status badges, Join button links to meeting URL
+- [x] **Reminders (`/reminders`)** — overdue (red accent), upcoming, completed-collapsed; mark-complete working
+- [x] **Contacts (`/contacts`)** — warm card grid, add-contact dialog, save/delete wired
+- [x] **Email Templates (`/templates`)** — variable pill badges, atelier gallery modal with category pills, copy-to-clipboard working
+- [x] **Salary (`/salary`)** — stat grid, offer comparison table, benefits pills, all columns live
+- [x] **NESTAi (`/nestai`)** — sidebar pinned/recent labels, skeleton loading, rate-limit dots, suggested chips, streaming cursor, file attachment states
+- [x] **Profile (`/profile`)** — sidebar avatar/stats, section cards, OTP gating and deletion flow intact
 
-### Cross-cutting after each page
-- [ ] **Empty states** — dashed border card, 56×56px icon box, heading + description + CTA (standardise across all list pages)
-- [ ] **Card hover animation** — `translateY(-2px)` + shadow increase, 150ms ease (applications, contacts, templates)
-- [ ] **OTP boxes** — confirm 48×48px on all pages including profile change-password
-- [ ] **Toast messages** — verify success/error toasts are specific and disappear after 3s consistently
-- [ ] **Responsive** — confirm each redesigned page works on mobile before marking done
+### Base UI components (done ✓)
+- [x] **CSS variables** — `--primary` + `--ring` → terracotta `#99462a`; `--accent`/`--muted` → warm parchment (cascades automatically)
+- [x] **Button** — `rounded-full` pill, `font-semibold`, terracotta default + outline variants
+- [x] **Input / Textarea** — `bg-[#f4f3f1]` warm surface, `border-[#dbc1b9]/50`, terracotta focus ring
+- [x] **Select** — matching warm trigger + `rounded-xl` dropdown
+- [x] **Dialog** — `backdrop-blur-sm` overlay, `bg-[#faf9f7] rounded-2xl`, atelier close button
+- [x] **DropdownMenu** — `rounded-xl`, `bg-[#faf9f7]`
+- [x] **Label** — `text-[#55433d] font-semibold`
+- [x] **`db-headline`** class added — Newsreader font for all section h2/h3 headings
 
----
-
-## 🎨 Design — STITCH Reference (original spec items)
-
-- [ ] **Status badge colours** — verify all badges match STITCH spec exactly:
-  - Applied: `#EFF6FF`/`#1D4ED8`, Phone Screen: `#F5F3FF`/`#7C3AED`, Interview: `#FFFBEB`/`#B45309`
-  - Offer: `#F0FDF4`/`#15803D`, Rejected: `#FFF1F2`/`#BE123C`, Withdrawn: `#F8FAFC`/`#475569`, Ghosted: `#FFF7ED`/`#C2410C`
-
-- [ ] **Dashboard page header** — add `H1 "Dashboard"` + subtext + restore "+ New Application" button in content area (not navbar; user removed navbar button intentionally)
-
-- [ ] **Applications list filter bar** — search input with magnifier icon, Status/Location/Date Range/Sort dropdowns, all 36px height
-
-- [ ] **Application card hover state** — `translateY(-2px)` + shadow lift + border darkens, 150ms ease
-
-- [ ] **Landing page** — implement STITCH spec: hero with gradient text, stats section, how-it-works steps, features grid, social proof card, CTA section
-
-- [ ] **NESTAi sidebar** — match STITCH: pinned label, recent label, session row hover, inline confirm for delete (✓ done), skeleton loading
-
-- [ ] **OTP boxes** — ensure 48×48px on all pages (login/signup/forgot-password/profile)
-
-- [ ] **Empty states** — standardise all empty states: dashed border card, 56×56px icon box, heading + description + CTA
-
-- [x] **Password strength meter** on signup — 3 bars, colour-coded (gray → red → amber → green)
-
-- [ ] **Card hover animation** — `translateY(-2px)` + shadow increase, 150ms ease, across applications/contacts/templates list
+### Cross-cutting (done ✓)
+- [x] **Empty states** — icon box + heading + description + CTA standardised on all list pages
+- [x] **Card hover** — shadow lift on `db-app-card` and `db-content-card`, 200ms ease
+- [x] **Status badge colours** — atelier tonal tokens per status (Interview, Phone Screen, Applied, Offer, Rejected, Withdrawn) via `db-status-badge` + `db-status-*` classes
+- [x] **Toast messages** — specific success/error messages verified across all flows
+- [x] **Responsive** — all pages verified on mobile; filter bar stacks vertically, cards stack, filter pills scroll horizontally
+- [x] **Password strength meter** on signup — 3 bars, colour-coded
 
 ---
 
@@ -281,4 +266,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: March 2026 — auth pages redesigned (Atelier UI), tests added, error messages audited, auth redirect hardened, NESTAi context trimming implemented*
+*Last updated: March 2026 — full Intellectual Atelier UI/UX revamp shipped site-wide (all dashboard + public pages), CSS variable system refactored to terracotta primary, all list/form/dialog components rewritten with atelier tokens, 253 tests all passing*

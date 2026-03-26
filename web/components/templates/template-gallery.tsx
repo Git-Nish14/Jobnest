@@ -4,34 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Copy,
-  Plus,
-  Mail,
-  UserPlus,
-  MessageSquare,
-  Gift,
-  Briefcase,
-  ChevronDown,
-  Check,
-  Loader2,
+  Copy, Plus, Mail, UserPlus, MessageSquare,
+  Gift, Briefcase, ChevronDown, Check, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { EMAIL_TEMPLATES, type EmailTemplateData } from "@/lib/data/email-templates";
 import {
-  EMAIL_TEMPLATES,
-  type EmailTemplateData,
-} from "@/lib/data/email-templates";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui";
 
 const categoryIcons = {
@@ -42,12 +21,13 @@ const categoryIcons = {
   Networking: UserPlus,
 };
 
-const categoryColors = {
-  "Follow Up": "bg-blue-100 text-blue-700",
-  "Thank You": "bg-green-100 text-green-700",
-  Offer: "bg-purple-100 text-purple-700",
-  General: "bg-gray-100 text-gray-700",
-  Networking: "bg-orange-100 text-orange-700",
+// Atelier-toned category tokens
+const categoryTokens: Record<string, string> = {
+  "Follow Up":  "bg-[#99462a]/10 text-[#99462a]",
+  "Thank You":  "bg-[#006d34]/10 text-[#006d34]",
+  "Offer":      "bg-[#55433d]/10 text-[#55433d]",
+  "General":    "bg-[#dbc1b9]/40 text-[#55433d]",
+  "Networking": "bg-amber-500/10 text-amber-700",
 };
 
 interface TemplateGalleryProps {
@@ -71,17 +51,10 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
 
   const handleSaveTemplate = async (template: EmailTemplateData) => {
     setSavingTemplate(template.name);
-
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast.error("Please sign in to save templates");
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Please sign in to save templates"); return; }
 
       const { error } = await supabase.from("email_templates").insert({
         user_id: user.id,
@@ -92,11 +65,8 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
       });
 
       if (error) {
-        if (error.code === "23505") {
-          toast.error("You already have a template with this name");
-        } else {
-          throw error;
-        }
+        if (error.code === "23505") toast.error("You already have a template with this name");
+        else throw error;
         return;
       }
 
@@ -111,13 +81,10 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
   };
 
   const handleCopyToClipboard = async (template: EmailTemplateData) => {
-    const content = `Subject: ${template.subject}\n\n${template.body}`;
-
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(`Subject: ${template.subject}\n\n${template.body}`);
       setCopiedTemplate(template.name);
       toast.success("Template copied to clipboard!");
-
       setTimeout(() => setCopiedTemplate(null), 2000);
     } catch {
       toast.error("Failed to copy template");
@@ -127,144 +94,120 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <button type="button" className="db-btn-page-secondary">
           <Mail className="h-4 w-4" />
           Browse Templates
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+          <DialogTitle className="db-headline flex items-center gap-2 text-[#1a1c1b]">
+            <Mail className="h-5 w-5 text-[#99462a]" />
             Email Template Gallery
           </DialogTitle>
         </DialogHeader>
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2 pb-4 border-b">
+        {/* Category filter pills */}
+        <div className="flex flex-wrap gap-2 pb-4 border-b border-[#dbc1b9]/20">
           {categories.map((category) => (
-            <Button
+            <button
               key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
+              type="button"
               onClick={() => setSelectedCategory(category)}
-              className="capitalize"
+              className={`db-filter-pill text-xs ${
+                selectedCategory === category ? "db-filter-pill-active" : "db-filter-pill-inactive"
+              }`}
             >
               {category === "all" ? "All Templates" : category}
-            </Button>
+            </button>
           ))}
         </div>
 
-        {/* Templates List */}
-        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+        {/* Templates list */}
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
           {filteredTemplates.map((template) => {
-            const Icon = categoryIcons[template.category];
+            const Icon = categoryIcons[template.category as keyof typeof categoryIcons] ?? Mail;
             const isExpanded = expandedTemplate === template.name;
             const isSaving = savingTemplate === template.name;
             const isCopied = copiedTemplate === template.name;
+            const token = categoryTokens[template.category] ?? categoryTokens["General"];
 
             return (
-              <Card key={template.name} className="overflow-hidden">
-                <CardHeader
-                  className="cursor-pointer py-3"
-                  onClick={() =>
-                    setExpandedTemplate(isExpanded ? null : template.name)
-                  }
+              <div key={template.name} className="rounded-xl border border-[#dbc1b9]/12 bg-[#f4f3f1] overflow-hidden">
+                {/* Header row */}
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between gap-4 px-4 py-3.5 text-left hover:bg-[#e9e8e6] transition-colors"
+                  onClick={() => setExpandedTemplate(isExpanded ? null : template.name)}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${categoryColors[template.category]}`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{template.name}</CardTitle>
-                        <CardDescription className="text-sm mt-1 line-clamp-1">
-                          {template.subject}
-                        </CardDescription>
-                      </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`p-2 rounded-lg shrink-0 ${token}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <ChevronDown
-                      className={`h-5 w-5 text-muted-foreground transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#1a1c1b] text-sm">{template.name}</p>
+                      <p className="text-xs text-[#55433d]/60 mt-0.5 truncate">{template.subject}</p>
+                    </div>
                   </div>
-                </CardHeader>
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#55433d]/50 transition-transform shrink-0 ${isExpanded ? "rotate-180" : ""}`}
+                  />
+                </button>
 
+                {/* Expanded body */}
                 {isExpanded && (
-                  <CardContent className="pt-0 pb-4">
-                    <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                        Subject:
-                      </p>
-                      <p className="text-sm mb-4 font-mono bg-background p-2 rounded">
+                  <div className="px-4 pb-4 border-t border-[#dbc1b9]/15 bg-white">
+                    <div className="mt-4 mb-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#55433d]/50 mb-1.5">Subject</p>
+                      <p className="text-sm text-[#1a1c1b] font-mono bg-[#f4f3f1] px-3 py-2 rounded-lg">
                         {template.subject}
                       </p>
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                        Body:
-                      </p>
-                      <pre className="text-sm whitespace-pre-wrap font-sans bg-background p-3 rounded max-h-64 overflow-y-auto">
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#55433d]/50 mb-1.5">Body</p>
+                      <pre className="text-sm whitespace-pre-wrap font-sans text-[#55433d] bg-[#f4f3f1] px-3 py-3 rounded-lg max-h-52 overflow-y-auto leading-relaxed">
                         {template.body}
                       </pre>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      <span className="font-medium">Placeholders:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded">
-                        {"{{company}}"}
-                      </code>
-                      <code className="bg-muted px-1.5 py-0.5 rounded">
-                        {"{{position}}"}
-                      </code>
-                      <code className="bg-muted px-1.5 py-0.5 rounded">
-                        {"{{contact_name}}"}
-                      </code>
+                    <div className="flex items-center gap-2 text-xs text-[#55433d]/60 mb-4 flex-wrap">
+                      <span className="font-semibold">Placeholders:</span>
+                      {["{{company}}", "{{position}}", "{{contact_name}}"].map((p) => (
+                        <code key={p} className="bg-[#f4f3f1] text-[#99462a] px-1.5 py-0.5 rounded font-mono">{p}</code>
+                      ))}
                       <span>etc.</span>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
+                      <button
+                        type="button"
                         onClick={() => handleSaveTemplate(template)}
                         disabled={isSaving}
-                        className="gap-2"
+                        className="db-btn-page-primary text-xs px-4 py-2"
                       >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Plus className="h-4 w-4" />
-                        )}
+                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         Save to My Templates
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleCopyToClipboard(template)}
-                        className="gap-2"
+                        className="db-btn-page-secondary text-xs px-4 py-2"
                       >
-                        {isCopied ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
+                        {isCopied ? <Check className="h-3.5 w-3.5 text-[#006d34]" /> : <Copy className="h-3.5 w-3.5" />}
                         {isCopied ? "Copied!" : "Copy"}
-                      </Button>
+                      </button>
                     </div>
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
+              </div>
             );
           })}
         </div>
 
-        <div className="pt-4 border-t text-sm text-muted-foreground">
-          <p>
-            <strong>Tip:</strong> Replace placeholders like{" "}
-            <code className="bg-muted px-1 py-0.5 rounded">{"{{company}}"}</code> with
-            actual values before sending.
-          </p>
+        <div className="pt-3 border-t border-[#dbc1b9]/20 text-xs text-[#55433d]/60">
+          Replace placeholders like{" "}
+          <code className="bg-[#f4f3f1] text-[#99462a] px-1.5 py-0.5 rounded font-mono">{"{{company}}"}</code>
+          {" "}with actual values before sending.
         </div>
       </DialogContent>
     </Dialog>

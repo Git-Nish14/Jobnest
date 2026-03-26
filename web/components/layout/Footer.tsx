@@ -37,7 +37,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/logo_1.png"
+                  src="/new_logo_1.png"
                   alt="Jobnest Logo"
                   width={32}
                   height={32}
@@ -206,7 +206,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
             <Image
-              src="/logo_1.png"
+              src="/new_logo_1.png"
               alt="Jobnest Logo"
               width={24}
               height={24}
