@@ -63,6 +63,12 @@ export const signupFormSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    ageConfirmed: z.boolean().refine((v) => v === true, {
+      message: "You must confirm you are 18 years of age or older",
+    }),
+    termsAccepted: z.boolean().refine((v) => v === true, {
+      message: "You must accept the Terms of Service and Privacy Policy",
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",

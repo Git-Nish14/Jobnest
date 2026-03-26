@@ -11,8 +11,10 @@ A modern, secure platform to organise and manage your entire job search. Built w
 ### Authentication & Security
 - Email/Password login with **6-digit OTP verification** (via Nodemailer — not Supabase Auth emails)
 - **Google & GitHub OAuth** — one-click sign-in/sign-up, `/auth/callback` exchanges the code and sets the session
+- **Age verification** — users must confirm they are **18 years of age or older** at sign-up (checkbox required before email/OAuth registration proceeds)
+- **Terms & Privacy acceptance** — users must explicitly accept the Terms of Service and Privacy Policy before creating an account; OAuth sign-up is also blocked until both boxes are checked
 - Secure signup, password reset, and **change password** via OTP
-- **Stay signed in** checkbox — unchecked sessions are terminated on next browser start via `sessionStorage` + `sb_rm` cookie
+- **Stay signed in for 30 days** checkbox — checked (default): `sb_rm=1`, 30-day persistent session; unchecked: `sb_rm=0`, session terminated on next browser start via `sessionStorage` + `sb_rm` cookie
 - **Cross-tab logout sync** — `AuthSync` component listens to `onAuthStateChange`; signing out in one tab redirects all open tabs instantly
 - **Auto-redirect** — authenticated users visiting `/`, `/login`, `/signup`, or `/forgot-password` are redirected to `/dashboard`; `sb_rm=0` (session-only) sessions are exempt to prevent an AuthSync redirect loop
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
@@ -292,6 +294,7 @@ Run the migration files in order from `supabase/migrations/` via the Supabase SQ
 | 8 | `20240101000007_pending_deletions_improvements.sql` | Fixes UNIQUE constraint bug, adds audit columns, `delete_account` OTP purpose |
 | 9 | `20240101000008_chat_pin.sql` | Adds `is_pinned` to `chat_sessions` |
 | 10 | `20240101000009_chat_message_metadata.sql` | Adds `metadata` JSONB to `chat_messages` (file attachment cards) |
+| 11 | `20240101000010_subscriptions.sql` | Stripe billing: `subscriptions` table (plan, status, period dates) |
 
 ### Installation
 
@@ -331,8 +334,8 @@ npm run test:coverage # Coverage report
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities (errors, rate-limit, OTP, fetch-retry, Zod schemas), every API route handler, proxy redirect logic |
-| E2E flows | `tests/flows/` | Full user journeys: login, signup, forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload |
+| Unit | `tests/unit/` | lib utilities (errors, rate-limit, OTP, fetch-retry, Zod schemas including age/terms validation), every API route handler, proxy redirect logic |
+| E2E flows | `tests/flows/` | Full user journeys: login (incl. remember-me cookie), signup (incl. age + terms pre-conditions), forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload |
 
 All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` required to run tests.
 

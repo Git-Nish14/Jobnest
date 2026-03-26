@@ -30,15 +30,25 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **OAuth — Google & GitHub sign-in/sign-up**
   - Buttons on login and signup pages (inline SVG icons, no extra deps)
   - `supabase.auth.signInWithOAuth()` client-side; `/auth/callback` exchanges code + sets `sb_rm=1` cookie
+  - OAuth on signup page is **blocked** until user has checked both the age (18+) and terms checkboxes
   - **Required**: Enable Google and GitHub providers in Supabase dashboard → Authentication → Providers
+
+- [x] **Age verification + Terms acceptance on signup**
+  - Two required checkboxes added to signup form before "Create Account" can be submitted:
+    - "I am 18 years of age or older" (required; blocks both email and OAuth signup)
+    - "I accept the Terms of Service and Privacy Policy" (required; blocks both email and OAuth signup)
+  - Enforced via Zod `signupFormSchema` (`ageConfirmed: z.literal(true)`, `termsAccepted: z.literal(true)`)
+  - OAuth buttons show an error and abort if either checkbox is unchecked
+  - Terms of Service page updated: Section 2 "Age Requirement" added, Section 1 updated to mention OAuth, new NESTAi and Stripe sections added
 
 - [x] **Session sync across tabs**
   - `AuthSync` component in dashboard layout; `SIGNED_OUT` event redirects all open tabs to `/login`
 
-- [x] **Stay signed in / session-only sessions**
-  - "Stay signed in" checkbox on login (default: checked)
-  - `sb_rm=0` (7-day) → `AuthSync` detects new browser session and signs out automatically
-  - `sb_rm=1` (30-day) → stays signed in; OAuth always sets `sb_rm=1`
+- [x] **Stay signed in for 30 days / session-only sessions**
+  - "Stay signed in for 30 days" checkbox on login (default: checked)
+  - `rememberMe=true`  → `sb_rm=1` cookie, 30-day Max-Age
+  - `rememberMe=false` → `sb_rm=0` cookie, 7-day Max-Age; `AuthSync` detects new browser session and signs out automatically
+  - OAuth always sets `sb_rm=1` (30-day persistent)
 
 - [x] **Auto-redirect authenticated users from auth pages → dashboard**
   - `proxy.ts`: extended auth page set to `/login`, `/signup`, `/forgot-password`
@@ -171,16 +181,22 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
     - Contact information for data requests
   - Add "Last updated" date at the top
 
-- [ ] **Terms of Service page upgrade** (`/terms`)
-  - Current page has placeholder text — needs full content:
-    - Acceptance of terms
-    - Permitted use (personal job search tracking, not commercial resale)
-    - Account responsibility (user is responsible for their credentials)
-    - Content ownership (user retains ownership of their data)
-    - Service availability (no uptime guarantee for free tier)
-    - Termination (account deletion flow, 30-day grace)
-    - Limitation of liability
-    - Governing law
+- [x] **Terms of Service page upgrade** (`/terms`)
+  - Updated with full content (14 sections):
+    - 1. Acceptance of terms (mentions OAuth)
+    - 2. **Age requirement** — 18+ enforced at registration (email + OAuth); accounts under 18 may be terminated
+    - 3. Description of service (NESTAi, Pro plan)
+    - 4. User accounts (age requirement listed)
+    - 5. Acceptable use (added: no commercial resale)
+    - 6. User content
+    - 7. AI features / NESTAi disclaimer
+    - 8. Service availability
+    - 9. Disclaimer of warranties
+    - 10. Limitation of liability
+    - 11. Account termination (30-day grace period described)
+    - 12. Changes to terms
+    - 13. Governing law
+    - 14. Contact
 
 - [ ] **Cookie Policy page** (`/cookies`) — new page
   - List every cookie set by the app with: name, purpose, type (essential/preference), duration
@@ -251,9 +267,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - `pdf-parse` 1.x → 2.x (major API change)
 - [ ] **Move document parse cache to Redis** — in-memory cache lost on cold starts
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [x] **Vitest tests — 253 tests, 24 files, 100% pass (no browser, fully automated)**
-  - Unit tests: `tests/unit/` — lib utilities, all API route handlers, proxy
-  - E2E flow tests: `tests/flows/` — full user journeys (login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload)
+- [x] **Vitest tests — 261 tests, 24 files, 100% pass (no browser, fully automated)**
+  - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms), all API route handlers, proxy
+  - E2E flow tests: `tests/flows/` — full user journeys (login incl. remember-me, signup incl. age/terms pre-conditions, forgot-password, change-password, delete+reactivate, NESTAi chat+upload)
   - No Playwright — all tests run via `npm test` in any CI/CD environment
 
 ---

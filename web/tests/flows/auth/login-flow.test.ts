@@ -4,6 +4,12 @@
  * Full journey: credentials submitted → OTP sent → OTP verified → session cookie set.
  * Chains the real route handlers back-to-back with only external services mocked
  * (Supabase, email). Zero browser required.
+ *
+ * Remember-me (30-day) behaviour:
+ *   - "Stay signed in for 30 days" checkbox on the login page (default: checked)
+ *   - rememberMe=true  → sb_rm=1 cookie with 30-day Max-Age
+ *   - rememberMe=false → sb_rm=0 cookie with 7-day Max-Age; AuthSync signs out
+ *     on next browser session start (sessionStorage cleared)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "crypto";

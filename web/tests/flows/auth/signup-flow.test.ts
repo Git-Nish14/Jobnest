@@ -2,6 +2,14 @@
  * E2E flow: Signup
  *
  * Journey: send OTP (signup) → verify OTP → account marked as email-verified.
+ *
+ * Pre-conditions (enforced client-side before API calls are made):
+ *   - User must confirm they are 18+ (ageConfirmed checkbox)
+ *   - User must accept Terms of Service & Privacy Policy (termsAccepted checkbox)
+ *   - OAuth buttons (Google/GitHub) are blocked until both checkboxes are checked
+ *
+ * These pre-conditions are validated by signupFormSchema (Zod) and tested in
+ * tests/unit/lib/validations/auth.test.ts — "signupFormSchema — age and terms requirements".
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "crypto";

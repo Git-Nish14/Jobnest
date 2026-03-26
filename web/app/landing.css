@@ -121,6 +121,53 @@
   box-shadow: 0 12px 40px rgba(26, 28, 27, 0.10);
 }
 
+/* ── Hero dashboard mockup ─────────────────────────────────────────────────── */
+.landing-hero-mockup {
+  background: linear-gradient(145deg, #2a1a12 0%, #1a1c1b 45%, #0f1210 100%);
+  box-shadow: 0 32px 80px rgba(26, 28, 27, 0.30), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.landing-hero-chrome {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-hero-app-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-hero-stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.landing-hero-app-row {
+  background: rgba(255, 255, 255, 0.03);
+  transition: background-color 150ms;
+}
+.landing-hero-app-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.landing-hero-nestai {
+  background: rgba(153, 70, 42, 0.12);
+  border: 1px solid rgba(153, 70, 42, 0.22);
+}
+
+/* Status badge colours — fixed per status (avoids inline styles) */
+.landing-hero-badge-interview {
+  color: #22c55e;
+  background-color: #22c55e22;
+}
+.landing-hero-badge-applied {
+  color: #60a5fa;
+  background-color: #60a5fa22;
+}
+.landing-hero-badge-offer {
+  color: #d97757;
+  background-color: #d9775722;
+}
+
 /* ── Features ──────────────────────────────────────────────────────────────── */
 .landing-accent-card-subtext {
   color: rgba(255, 255, 255, 0.80);
