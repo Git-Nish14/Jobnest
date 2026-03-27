@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
   LogOut,
+  Loader2,
   Calendar,
   Bell,
   Users,
@@ -21,6 +22,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { signOutAction } from "@/actions/auth";
 import {
   Button,
   Avatar,
@@ -50,10 +52,10 @@ const dashboardLinks = [
 
 export function Navbar({ user: initialUser }: NavbarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(initialUser);
+  const [isPending, startTransition] = useTransition();
 
   const isDashboardPage =
     pathname.startsWith("/dashboard") ||
@@ -99,17 +101,25 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   const isAuthenticated = !!user;
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+  /**
+   * Sign out via server action.
+   *
+   * useTransition gives us isPending for free — no extra state needed.
+   * The server action clears the session cookies and issues a server-side
+   * redirect to /login in one round-trip, with no timing gap or RSC cache
+   * races. isPending stays true until the redirect lands.
+   */
+  const handleSignOut = () => {
+    sessionStorage.removeItem("jobnest_session");
+    startTransition(async () => {
+      await signOutAction();
+    });
   };
 
   const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
   const userEmail = user?.email || "";
 
-  // Authenticated dashboard navbar
+  // ── Authenticated dashboard navbar ─────────────────────────────────────────
   if (isAuthenticated && isDashboardPage) {
     return (
       <>
@@ -157,16 +167,19 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 </nav>
               </div>
 
-              {/* Right: Actions + Profile */}
+              {/* Right: Profile dropdown */}
               <div className="flex items-center gap-2">
-                {/* Profile Dropdown */}
                 {mounted && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-[#dbc1b9] transition-all focus:outline-none">
+                      <button
+                        type="button"
+                        className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-[#dbc1b9] transition-all focus:outline-none"
+                        disabled={isPending}
+                      >
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="atelier-avatar text-sm font-semibold">
-                            {userInitial}
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : userInitial}
                           </AvatarFallback>
                         </Avatar>
                       </button>
@@ -203,10 +216,13 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                       <div className="p-1">
                         <DropdownMenuItem
                           onClick={handleSignOut}
+                          disabled={isPending}
                           className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
                         >
-                          <LogOut className="h-4 w-4" />
-                          Sign out
+                          {isPending
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <LogOut className="h-4 w-4" />}
+                          {isPending ? "Signing out…" : "Sign out"}
                         </DropdownMenuItem>
                       </div>
                     </DropdownMenuContent>
@@ -219,6 +235,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-[#dbc1b9]/20 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
+                  disabled={isPending}
                 >
                   <Menu className="h-5 w-5" />
                 </button>
@@ -230,16 +247,12 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         {/* Mobile Slide-out Menu */}
         {mobileMenuOpen && (
           <>
-            {/* Backdrop */}
             <div
               className="fixed inset-0 z-50 bg-black/50 lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-
-            {/* Slide-out Panel */}
             <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs lg:hidden db-root atelier-slide-panel">
               <div className="flex flex-col h-full">
-                {/* Header */}
                 <div className="flex items-center justify-between px-4 h-14 border-b atelier-dropdown-header">
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                   <button
@@ -252,7 +265,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   </button>
                 </div>
 
-                {/* Navigation Links */}
                 <nav className="flex-1 overflow-y-auto py-4">
                   <ul className="space-y-1 px-3">
                     {dashboardLinks.map((link) => {
@@ -273,9 +285,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                           >
                             <Icon className="h-5 w-5" />
                             {link.label}
-                            {isActive && (
-                              <ChevronRight className="h-4 w-4 ml-auto" />
-                            )}
+                            {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
                           </Link>
                         </li>
                       );
@@ -283,7 +293,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   </ul>
                 </nav>
 
-                {/* Footer with User Info */}
                 <div className="border-t p-4">
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-10 w-10 shrink-0">
@@ -300,9 +309,12 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                     variant="outline"
                     className="w-full justify-center gap-2"
                     onClick={handleSignOut}
+                    disabled={isPending}
                   >
-                    <LogOut className="h-4 w-4" />
-                    Sign out
+                    {isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <LogOut className="h-4 w-4" />}
+                    {isPending ? "Signing out…" : "Sign out"}
                   </Button>
                 </div>
               </div>
@@ -313,7 +325,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     );
   }
 
-  // Public navbar (contact, privacy, terms pages etc.)
+  // ── Public navbar (contact, privacy, terms, pricing pages) ─────────────────
   return (
     <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
@@ -334,20 +346,27 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {isAuthenticated ? (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" disabled={isPending}>
                   Dashboard
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sign out
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                disabled={isPending}
+                className="gap-2"
+              >
+                {isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <LogOut className="h-4 w-4" />}
+                {isPending ? "Signing out…" : "Sign out"}
               </Button>
             </>
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  Log in
-                </Button>
+                <Button variant="ghost" size="sm">Log in</Button>
               </Link>
               <Link href="/signup">
                 <Button size="sm" className="shadow-sm">Get Started</Button>
@@ -363,11 +382,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
@@ -377,24 +392,26 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block">
-                <Button variant="ghost" className="w-full justify-start">
+                <Button variant="ghost" className="w-full justify-start" disabled={isPending}>
                   Dashboard
                 </Button>
               </Link>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full gap-2"
                 onClick={handleSignOut}
+                disabled={isPending}
               >
-                Sign out
+                {isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <LogOut className="h-4 w-4" />}
+                {isPending ? "Signing out…" : "Sign out"}
               </Button>
             </>
           ) : (
             <>
               <Link href="/login" className="block">
-                <Button variant="ghost" className="w-full justify-start">
-                  Log in
-                </Button>
+                <Button variant="ghost" className="w-full justify-start">Log in</Button>
               </Link>
               <Link href="/signup" className="block">
                 <Button className="w-full">Get Started</Button>

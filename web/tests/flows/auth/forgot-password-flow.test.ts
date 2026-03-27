@@ -11,9 +11,10 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 vi.mock("@/lib/email/nodemailer", () => ({ sendOTPEmail: vi.fn() }));
-vi.mock("@/lib/security/otp", () => ({
-  generateOTP: vi.fn(() => ({ code: "778899", expiresAt: new Date(Date.now() + 600_000) })),
-}));
+vi.mock("@/lib/security/otp", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security/otp")>();
+  return { ...actual, generateOTP: vi.fn(() => ({ code: "778899", expiresAt: new Date(Date.now() + 600_000) })) };
+});
 
 import { POST as sendOtp } from "@/app/api/auth/send-otp/route";
 import { POST as verifyOtp } from "@/app/api/auth/verify-otp/route";
@@ -55,8 +56,9 @@ function makeAdminForVerify(otpRecord: unknown = storedOtp) {
   };
 }
 
-/** Admin for reset-password: single() returns usedRecord (already-verified, used=true) */
-function makeAdminForReset(usedRecord: unknown, users: unknown[] = [], updateErr: unknown = null) {
+/** Admin for reset-password: single() returns usedRecord (already-verified, used=true).
+ *  No longer mocks listUsers — the route now uses fetch() for email-filtered lookup. */
+function makeAdminForReset(usedRecord: unknown, updateErr: unknown = null) {
   const otpChain = makeChain({ data: usedRecord, error: usedRecord ? null : { message: "not found" } });
   return {
     from: vi.fn((table: string) => {
@@ -74,15 +76,22 @@ function makeAdminForReset(usedRecord: unknown, users: unknown[] = [], updateErr
     }),
     auth: {
       admin: {
-        listUsers: vi.fn().mockResolvedValue({ data: { users }, error: null }),
         updateUserById: vi.fn().mockResolvedValue({ data: {}, error: updateErr }),
       },
     },
   };
 }
 
+function stubUserFetch(users: Array<{ id: string; email: string }>) {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ users }),
+  }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   mockCheckRL.mockReturnValue({ allowed: true, remaining: 4, resetTime: Date.now() + 60_000 });
   mockSendEmail.mockResolvedValue({ success: true });
   mockCreateClient.mockResolvedValue({
@@ -91,6 +100,8 @@ beforeEach(() => {
       updateUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
     },
   } as never);
+  // Default: user lookup via fetch returns a valid user
+  stubUserFetch([{ id: "uid", email: "user@test.com" }]);
 });
 
 describe("Forgot password — Step 1: send OTP", () => {
@@ -143,7 +154,8 @@ describe("Forgot password — Step 3: reset password", () => {
   const user = { id: "uid", email: "user@test.com" };
 
   it("updates password and returns 200 with valid token", async () => {
-    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp, [user]) as never);
+    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp) as never);
+    stubUserFetch([user]);
     const res = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "user@test.com", newPassword: "NewPass1!", resetToken: OTP_ID,
     }) as never);
@@ -153,8 +165,7 @@ describe("Forgot password — Step 3: reset password", () => {
   });
 
   it("returns 400 on invalid/missing reset_token (not found in DB)", async () => {
-    // usedRecord = null → DB returns not-found → 400
-    mockAdminClient.mockReturnValue(makeAdminForReset(null, [user]) as never);
+    mockAdminClient.mockReturnValue(makeAdminForReset(null) as never);
     const res = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "user@test.com", newPassword: "NewPass1!", resetToken: "bad-token",
     }) as never);
@@ -165,7 +176,8 @@ describe("Forgot password — Step 3: reset password", () => {
 
   it("returns 400 for expired reset session (token created >20 min ago)", async () => {
     const oldRecord = { ...usedOtp, created_at: new Date(Date.now() - 25 * 60_000).toISOString() };
-    mockAdminClient.mockReturnValue(makeAdminForReset(oldRecord, [user]) as never);
+    mockAdminClient.mockReturnValue(makeAdminForReset(oldRecord) as never);
+    stubUserFetch([user]);
     const res = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "user@test.com", newPassword: "NewPass1!", resetToken: OTP_ID,
     }) as never);
@@ -175,7 +187,8 @@ describe("Forgot password — Step 3: reset password", () => {
   });
 
   it("does not expose 'user not found' when email has no account", async () => {
-    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp, []) as never);
+    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp) as never);
+    stubUserFetch([]); // no users returned → generic error, not "user not found"
     const res = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "ghost@test.com", newPassword: "NewPass1!", resetToken: OTP_ID,
     }) as never);
@@ -184,7 +197,7 @@ describe("Forgot password — Step 3: reset password", () => {
   });
 
   it("returns 422 for weak new password", async () => {
-    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp, [user]) as never);
+    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp) as never);
     const res = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "user@test.com", newPassword: "weak", resetToken: OTP_ID,
     }) as never);
@@ -210,7 +223,8 @@ describe("Forgot password — full 3-step happy path", () => {
     const { reset_token } = await verify.json() as { reset_token: string };
 
     // Step 3
-    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp, [user]) as never);
+    stubUserFetch([user]);
+    mockAdminClient.mockReturnValue(makeAdminForReset(usedOtp) as never);
     const reset = await resetPassword(makeRequest("/api/auth/reset-password", {
       email: "user@test.com", newPassword: "NewPass1!", resetToken: reset_token,
     }) as never);

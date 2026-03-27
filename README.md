@@ -354,14 +354,20 @@ All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` 
 | Feature | Detail |
 |---|---|
 | OTP delivery | Sent via your own SMTP server (Nodemailer) — not Supabase Auth emails |
-| OTP storage | SHA-256 hashed, service role only access |
-| OTP comparison | Timing-safe (`crypto.timingSafeEqual`) |
+| OTP storage | SHA-256 hashed (`hashOTP` in `lib/security/otp.ts`), service role only access |
+| OTP comparison | Timing-safe (`crypto.timingSafeEqual`) via `secureCompare` in `lib/security/otp.ts` |
 | OTP purposes | `login`, `signup`, `password_reset`, `change_password`, `delete_account` |
 | OTP gating | Password fields only shown after OTP is verified server-side (pre-verify endpoint) |
-| Rate limiting | In-memory per-key limits on all auth, profile, and AI endpoints |
+| Rate limiting — auth | Dual-layer: **IP-level** (10/min) + **per-email** (3/min) on send-otp; prevents inbox flooding of arbitrary victims |
+| Rate limiting — general | In-memory per-key limits on all auth, profile, and AI endpoints; store capped at 10 000 keys to prevent memory exhaustion |
+| IP extraction | `x-real-ip` preferred; last entry in `x-forwarded-for` chain used as fallback (first entry is user-controlled and spoofable) |
+| Open redirect protection | `proxy.ts` validates the `redirect` param — rejects protocol-relative (`//evil.com`) and scheme-like paths |
+| Prefix collision fix | `/api/contact` matched exactly (not as a prefix) — prevents accidentally exposing unrelated routes as public |
+| Password reset lookup | Uses targeted Supabase REST `filter=email=eq.{email}` fetch — replaces `listUsers()` O(n) scan that silently failed beyond page 1 |
 | Security headers | HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
+| Document serving | Content-Type derived from file extension; `Content-Disposition: attachment` forced — prevents stored XSS via uploaded HTML/SVG |
 | RLS | Every table enforces row-level security tied to `auth.uid()` |
-| CSRF | Token-based protection on mutating API routes |
+| CSRF | `SameSite=Lax` on all Supabase session cookies; CSRF module in `lib/security/csrf.ts` for future explicit token use |
 | Cron auth | `Authorization: Bearer <CRON_SECRET>` required — **fail-closed** (endpoint locked if env var not set) |
 | Account deletion | OTP re-authentication required before scheduling deletion |
 | Audit trail | IP address + optional reason recorded on every deletion request |

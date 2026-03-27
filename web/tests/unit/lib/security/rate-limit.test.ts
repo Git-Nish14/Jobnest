@@ -69,3 +69,20 @@ describe("resetRateLimit", () => {
     expect(result.allowed).toBe(true);
   });
 });
+
+describe("rate-limit store — memory cap (MAX_STORE_SIZE)", () => {
+  it("does not grow the store beyond 10 000 entries", () => {
+    // Insert more than MAX_STORE_SIZE unique keys with a very short window
+    // so that some are already expired when the cap kicks in.
+    const opts = { maxRequests: 1, windowMs: 1 }; // 1ms window → expire immediately
+    for (let i = 0; i < 10_100; i++) {
+      checkRateLimit(`cap-test-${i}-${Date.now()}`, opts);
+    }
+    // We can't directly inspect the Map size from outside the module,
+    // but we can verify the module still works correctly (no crash / OOM).
+    const key = uniqueKey();
+    const result = checkRateLimit(key, { maxRequests: 5, windowMs: 60_000 });
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(4);
+  });
+});

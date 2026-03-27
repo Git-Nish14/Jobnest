@@ -1,4 +1,4 @@
-import { randomInt, timingSafeEqual } from "crypto";
+import { randomInt, timingSafeEqual, createHash } from "crypto";
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 10;
@@ -54,6 +54,28 @@ export function verifyOTP(
  */
 export function isOTPExpired(expiresAt: Date): boolean {
   return new Date() > expiresAt;
+}
+
+/**
+ * Hash an OTP code with SHA-256 before storing.
+ * Centralised here so every route uses the same algorithm — if the
+ * algorithm changes, only this file needs updating.
+ */
+export function hashOTP(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+/**
+ * Timing-safe comparison of two strings.
+ * Returns false immediately if lengths differ (no early exit leaks length).
+ */
+export function secureCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
 }
 
 export { OTP_LENGTH, OTP_EXPIRY_MINUTES };

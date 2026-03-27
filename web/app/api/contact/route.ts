@@ -7,8 +7,15 @@ import { sanitizeForEmail, escapeHtml } from "@/lib/security/sanitize";
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting by IP - prevent spam
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    // Rate limiting by IP — prefer x-real-ip (set by trusted reverse proxy/Vercel).
+    // When falling back to x-forwarded-for, take the LAST entry — this is the
+    // IP added by the outermost trusted proxy, making it harder to spoof.
+    // Taking the first entry (x-forwarded-for[0]) is user-controlled and can
+    // be forged to bypass rate limits.
+    const ip =
+      request.headers.get("x-real-ip") ||
+      request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
+      "unknown";
     const rateLimitResult = checkRateLimit(`contact:${ip}`, {
       maxRequests: 5,
       windowMs: 60 * 60 * 1000, // 5 messages per hour

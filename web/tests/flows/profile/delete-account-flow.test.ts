@@ -18,9 +18,10 @@ vi.mock("@/lib/email/nodemailer", () => ({
   sendDeletionScheduledEmail: vi.fn().mockResolvedValue({ success: true }),
   sendAccountReactivatedEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
-vi.mock("@/lib/security/otp", () => ({
-  generateOTP: vi.fn(() => ({ code: "991122", expiresAt: new Date(Date.now() + 600_000) })),
-}));
+vi.mock("@/lib/security/otp", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security/otp")>();
+  return { ...actual, generateOTP: vi.fn(() => ({ code: "991122", expiresAt: new Date(Date.now() + 600_000) })) };
+});
 
 import { POST as sendOtp } from "@/app/api/auth/send-otp/route";
 import { POST as deleteAccount } from "@/app/api/profile/delete-account/route";

@@ -4,9 +4,10 @@ import { makeRequest, makeChain } from "@/tests/helpers/supabase-mock";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
-vi.mock("@/lib/security/otp", () => ({
-  generateOTP: vi.fn(() => ({ code: "654321", expiresAt: new Date(Date.now() + 600_000) })),
-}));
+vi.mock("@/lib/security/otp", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security/otp")>();
+  return { ...actual, generateOTP: vi.fn(() => ({ code: "654321", expiresAt: new Date(Date.now() + 600_000) })) };
+});
 vi.mock("@/lib/email/nodemailer", () => ({ sendOTPEmail: vi.fn() }));
 
 import { POST } from "@/app/api/profile/verify-password-send-otp/route";

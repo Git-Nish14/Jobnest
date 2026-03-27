@@ -17,8 +17,12 @@ const publicRoutes = new Set([
   "/pricing",
 ]);
 
-// API routes that don't require authentication
-const publicApiPrefixes = ["/api/auth/", "/api/contact"];
+// API routes that don't require authentication.
+// Use exact strings or explicit trailing slashes — never bare prefixes that
+// could accidentally match unrelated routes (e.g. "/api/contact" would also
+// match a hypothetical "/api/contact-admin").
+const publicApiRoutes = new Set(["/api/contact"]);
+const publicApiPrefixes = ["/api/auth/"];
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -57,10 +61,26 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
 function isPublicPath(pathname: string): boolean {
   if (publicRoutes.has(pathname)) return true;
+  if (publicApiRoutes.has(pathname)) return true;
   for (const prefix of publicApiPrefixes) {
     if (pathname.startsWith(prefix)) return true;
   }
   return false;
+}
+
+/**
+ * Validate a redirect destination so the proxy cannot be abused as an open
+ * redirector.  Only allow paths that:
+ *   - start with a single "/" (rules out "//evil.com" protocol-relative URLs)
+ *   - contain no protocol separator (rules out "javascript:" and similar)
+ *   - are not absolute URLs
+ */
+function isSafeRedirect(path: string): boolean {
+  if (!path) return false;
+  if (!path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;       // protocol-relative URL
+  if (/^\/[a-z][a-z0-9+\-.]*:/i.test(path)) return false; // scheme-like
+  return true;
 }
 
 export async function proxy(request: NextRequest) {
@@ -114,10 +134,14 @@ export async function proxy(request: NextRequest) {
 
   const isPublic = isPublicPath(pathname);
 
-  // Redirect unauthenticated users to login (preserve intended destination)
+  // Redirect unauthenticated users to login (preserve intended destination).
+  // Only attach the redirect param if the path is a safe internal path to
+  // prevent this endpoint being used as an open redirector.
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    if (isSafeRedirect(pathname)) {
+      loginUrl.searchParams.set("redirect", pathname);
+    }
     return addSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 

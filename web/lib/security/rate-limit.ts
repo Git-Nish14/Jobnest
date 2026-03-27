@@ -1,11 +1,17 @@
-// Simple in-memory rate limiter for development
-// In production, use Redis or similar
+// Simple in-memory rate limiter.
+// NOTE: resets on cold-start and is not shared across serverless instances.
+// For production at scale replace with Upstash Redis or Vercel KV.
 
 interface RateLimitEntry {
   count: number;
   resetTime: number;
 }
 
+// Hard cap: prevent unbounded memory growth if an attacker generates a huge
+// number of unique keys (e.g. rotating source IPs). When the cap is reached,
+// the oldest expired entries are evicted first; if none exist, the oldest
+// entry regardless of expiry is removed (LRU-lite).
+const MAX_STORE_SIZE = 10_000;
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 interface RateLimitOptions {
@@ -25,13 +31,24 @@ export function checkRateLimit(
   const opts = { ...defaultOptions, ...options };
   const now = Date.now();
 
-  // Clean up expired entries periodically
+  // Periodic cleanup of expired entries (1% chance per call)
   if (Math.random() < 0.01) {
     for (const [key, entry] of rateLimitStore.entries()) {
       if (now > entry.resetTime) {
         rateLimitStore.delete(key);
       }
     }
+  }
+
+  // Hard cap: evict if store exceeds MAX_STORE_SIZE
+  if (rateLimitStore.size >= MAX_STORE_SIZE) {
+    // Prefer removing an expired entry; fall back to the oldest (first) entry
+    let evictKey: string | undefined;
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) { evictKey = key; break; }
+      if (!evictKey) evictKey = key; // remember first as fallback
+    }
+    if (evictKey) rateLimitStore.delete(evictKey);
   }
 
   const entry = rateLimitStore.get(identifier);

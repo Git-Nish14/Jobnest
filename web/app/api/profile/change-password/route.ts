@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { createHash, timingSafeEqual } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { hashOTP, secureCompare } from "@/lib/security/otp";
 import { passwordSchema, otpSchema } from "@/lib/validations/auth";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 
@@ -11,19 +11,6 @@ const schema = z.object({
   otp: otpSchema,
   newPassword: passwordSchema,
 });
-
-function hashOTP(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-function secureCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
