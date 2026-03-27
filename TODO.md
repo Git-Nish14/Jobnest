@@ -247,6 +247,14 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Next.js upgraded 16.1.6 → 16.2.1** — fixes HTTP request smuggling (GHSA-ggv3-7p47-pfv8), CSRF bypass (GHSA-mq59-m269-xvcx), DoS (GHSA-h27x-g6w4-24gq), dev HMR CSRF (GHSA-jcc7-9wpm-mj36)
 - [x] **flatted prototype pollution fixed** — `npm audit fix` (GHSA-rf6f-7fwh-wjgh)
 - [x] **CRON_SECRET guard fail-closed** — previously skipped auth entirely if `CRON_SECRET` env var was not set; now always enforces (endpoint returns 401 if secret missing or mismatched)
+- [x] **Dual-layer rate limiting on send-otp** — IP-level (10/min) + per-email (3/min) gates prevent inbox flooding of arbitrary victims by rotating source emails
+- [x] **IP extraction hardened** — `x-real-ip` preferred; last entry in `x-forwarded-for` used as fallback (first entry is user-controlled)
+- [x] **Open redirect fixed** — `proxy.ts` now validates the `redirect` param; rejects `//evil.com` and scheme-like paths
+- [x] **publicApiPrefixes collision fixed** — `/api/contact` matched exactly, not as a bare prefix
+- [x] **Password reset user lookup** — replaces `listUsers()` O(n) scan (silently failed for users beyond page 1) with targeted REST fetch filtered by email
+- [x] **hashOTP / secureCompare consolidated** — moved to `lib/security/otp.ts`; removed 4 inline duplicate definitions across route files
+- [x] **Rate-limit store capped at 10 000 entries** — prevents unbounded memory growth under high cardinality key attacks
+- [x] **Document Content-Type fixed** — extension-derived MIME type; `Content-Disposition: attachment` forced on all downloads (prevents stored XSS via uploaded HTML/SVG)
 - [ ] **Redis-backed rate limiting** — in-memory rate limiter resets on every Vercel cold start; multiple instances don't share state → attacker can abuse across instances. Replace with Upstash Redis or Vercel KV
 - [ ] **`pdf-parse` upgrade 1.1.1 → 2.x** — current version has Turbopack issues; 2.x is a breaking API change, needs testing
 - [ ] **Environment variable validation on startup** — throw clear error at boot if `GROQ_API_KEY`, `SMTP_HOST`, `CRON_SECRET` etc. are missing (instead of silent failures)

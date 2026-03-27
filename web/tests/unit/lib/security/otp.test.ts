@@ -3,6 +3,8 @@ import {
   generateOTP,
   verifyOTP,
   isOTPExpired,
+  hashOTP,
+  secureCompare,
   OTP_LENGTH,
   OTP_EXPIRY_MINUTES,
 } from "@/lib/security/otp";
@@ -78,5 +80,41 @@ describe("isOTPExpired", () => {
 
   it("returns true for past date", () => {
     expect(isOTPExpired(new Date(Date.now() - 1))).toBe(true);
+  });
+});
+
+describe("hashOTP", () => {
+  it("returns a 64-char hex string (SHA-256)", () => {
+    const h = hashOTP("123456");
+    expect(h).toHaveLength(64);
+    expect(/^[0-9a-f]+$/.test(h)).toBe(true);
+  });
+
+  it("is deterministic — same input produces same hash", () => {
+    expect(hashOTP("999999")).toBe(hashOTP("999999"));
+  });
+
+  it("different codes produce different hashes", () => {
+    expect(hashOTP("111111")).not.toBe(hashOTP("222222"));
+  });
+});
+
+describe("secureCompare", () => {
+  it("returns true for identical strings", () => {
+    expect(secureCompare("abc", "abc")).toBe(true);
+  });
+
+  it("returns false for different strings of same length", () => {
+    expect(secureCompare("abc", "xyz")).toBe(false);
+  });
+
+  it("returns false immediately when lengths differ", () => {
+    expect(secureCompare("abc", "abcd")).toBe(false);
+  });
+
+  it("works with full SHA-256 hashes", () => {
+    const h = hashOTP("123456");
+    expect(secureCompare(h, h)).toBe(true);
+    expect(secureCompare(h, hashOTP("654321"))).toBe(false);
   });
 });

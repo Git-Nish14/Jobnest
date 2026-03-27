@@ -44,15 +44,34 @@ export async function POST(request: NextRequest) {
       throw ApiError.badRequest("Reset session expired. Please request a new code.");
     }
 
-    // Find the user by email
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+    // Find the user by email using a targeted admin API call (not a full listUsers scan).
+    // listUsers() without filtering fetches only the first page (~50 users) and would
+    // silently fail for users beyond page 1. Using the Supabase REST admin endpoint with
+    // an email filter is O(1) and safe.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (userError) {
-      console.error("Failed to list users:", userError);
+    if (!supabaseUrl || !serviceRoleKey) {
       throw ApiError.internal("Failed to reset password");
     }
 
-    const user = userData.users.find((u) => u.email?.toLowerCase() === email);
+    const userLookupRes = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?filter=${encodeURIComponent(`email=eq.${email}`)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+        },
+      }
+    );
+
+    if (!userLookupRes.ok) {
+      console.error("Failed to look up user by email:", userLookupRes.status);
+      throw ApiError.internal("Failed to reset password");
+    }
+
+    const userLookupData = await userLookupRes.json();
+    const user = (userLookupData.users as Array<{ id: string; email: string }> | undefined)?.[0];
 
     if (!user) {
       // Don't reveal whether the email exists in our system

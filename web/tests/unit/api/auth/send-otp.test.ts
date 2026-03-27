@@ -9,6 +9,7 @@ vi.mock("@/lib/security/otp", () => ({
     code: "123456",
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
   })),
+  hashOTP: (code: string) => `hash(${code})`,
 }));
 vi.mock("@/lib/email/nodemailer", () => ({ sendOTPEmail: vi.fn() }));
 
@@ -33,7 +34,8 @@ function makeAdminWithChain(insertResult = { error: null }) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockCheckRL.mockReturnValue({ allowed: true, remaining: 2, resetTime: Date.now() + 60_000 });
+  // Default: both IP and email rate limit checks pass
+  mockCheckRL.mockReturnValue({ allowed: true, remaining: 4, resetTime: Date.now() + 60_000 });
   mockSendEmail.mockResolvedValue({ success: true });
 });
 
@@ -45,8 +47,11 @@ describe("POST /api/auth/send-otp", () => {
     expect(res.status).toBe(422);
   });
 
-  it("returns 429 when rate limited", async () => {
-    mockCheckRL.mockReturnValue({ allowed: false, remaining: 0, resetTime: Date.now() + 45_000 });
+  it("returns 429 when rate limited (email limit)", async () => {
+    // First call (IP check) allowed; second call (email check) blocked
+    mockCheckRL
+      .mockReturnValueOnce({ allowed: true, remaining: 9, resetTime: Date.now() + 60_000 })
+      .mockReturnValueOnce({ allowed: false, remaining: 0, resetTime: Date.now() + 45_000 });
     mockAdminClient.mockReturnValue(makeAdminWithChain() as never);
     const req = makeRequest("/api/auth/send-otp", { email: "a@b.com", purpose: "login" });
     const res = await POST(req as never);
@@ -55,12 +60,29 @@ describe("POST /api/auth/send-otp", () => {
     expect(body.error).toMatch(/seconds/i);
   });
 
-  it("returns 200 and sends email on success", async () => {
+  it("returns 429 when IP rate limit hit (blocks before email check)", async () => {
+    // IP limit check fires first and blocks
+    mockCheckRL.mockReturnValueOnce({ allowed: false, remaining: 0, resetTime: Date.now() + 45_000 });
+    mockAdminClient.mockReturnValue(makeAdminWithChain() as never);
+    const req = makeRequest("/api/auth/send-otp", { email: "a@b.com", purpose: "login" });
+    const res = await POST(req as never);
+    expect(res.status).toBe(429);
+    // IP-blocked, so the email rate limit should NOT have been called
+    expect(mockCheckRL).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 200 and sends email on success (both rate limit checks pass)", async () => {
+    // checkRateLimit is called twice: once for IP, once for email — both allowed
+    mockCheckRL.mockReturnValue({ allowed: true, remaining: 4, resetTime: Date.now() + 60_000 });
     mockAdminClient.mockReturnValue(makeAdminWithChain() as never);
     const req = makeRequest("/api/auth/send-otp", { email: "a@b.com", purpose: "login" });
     const res = await POST(req as never);
     expect(res.status).toBe(200);
     expect(mockSendEmail).toHaveBeenCalledWith("a@b.com", "123456", "login");
+    // Verify both rate limit checks (IP + email) were called
+    expect(mockCheckRL).toHaveBeenCalledTimes(2);
+    expect(mockCheckRL).toHaveBeenCalledWith(expect.stringContaining("ip:"), expect.anything());
+    expect(mockCheckRL).toHaveBeenCalledWith(expect.stringContaining("otp:a@b.com"), expect.anything());
   });
 
   it("returns 503 if email sending fails", async () => {

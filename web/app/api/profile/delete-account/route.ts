@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { createHash, timingSafeEqual } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { hashOTP, secureCompare } from "@/lib/security/otp";
 import { otpSchema } from "@/lib/validations/auth";
 import { sendDeletionScheduledEmail } from "@/lib/email/nodemailer";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
@@ -14,19 +14,6 @@ const schema = z.object({
   otp: otpSchema,
   reason: z.string().max(500).optional(),
 });
-
-function hashOTP(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-function secureCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
-  } catch {
-    return false;
-  }
-}
 
 function getClientIp(request: NextRequest): string {
   return (

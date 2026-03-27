@@ -166,6 +166,58 @@ describe("proxy — authenticated with sb_rm=0 (session-only)", () => {
   });
 });
 
+describe("proxy — open redirect protection", () => {
+  beforeEach(() => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+  });
+
+  it("attaches safe redirect param for normal paths", async () => {
+    const res = await proxy(req("/applications"));
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("redirect=%2Fapplications");
+  });
+
+  it("does NOT attach redirect param for protocol-relative path //evil.com", async () => {
+    const res = await proxy(req("//evil.com/steal"));
+    // Either the path is not matched (static-file heuristic) or redirects to login without the dangerous redirect
+    const location = res.headers.get("location") ?? "";
+    expect(location).not.toContain("evil.com");
+    if (location.includes("redirect")) {
+      expect(location).not.toContain("//evil.com");
+    }
+  });
+
+  it("does NOT attach redirect param for path starting with //", async () => {
+    // Simulate a crafted pathname
+    const url = new URL("http://localhost//sneaky");
+    const r = new NextRequest(url.toString());
+    const res = await proxy(r);
+    const location = res.headers.get("location") ?? "";
+    // Should redirect to login but NOT carry a dangerous redirect
+    if (location.includes("redirect")) {
+      const redirectVal = new URL(location).searchParams.get("redirect") ?? "";
+      expect(redirectVal.startsWith("//")).toBe(false);
+    }
+  });
+});
+
+describe("proxy — publicApiRoutes exact-match (no prefix bleed)", () => {
+  beforeEach(() => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+  });
+
+  it("allows unauthenticated POST to /api/contact (exact match)", async () => {
+    const res = await proxy(req("/api/contact"));
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("blocks unauthenticated access to /api/contact-admin (not in public set)", async () => {
+    const res = await proxy(req("/api/contact-admin"));
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("/login");
+  });
+});
+
 describe("proxy — security headers", () => {
   beforeEach(() => {
     mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);

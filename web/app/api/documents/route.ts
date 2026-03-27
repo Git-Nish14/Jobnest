@@ -86,13 +86,28 @@ export async function GET(request: NextRequest) {
       throw ApiError.notFound("File not found");
     }
 
-    // Return the file with appropriate headers
+    // Return the file with appropriate headers.
+    // Content-Type is derived from the file extension so we never serve
+    // a DOCX or TXT with "application/pdf" (wrong MIME breaks some clients).
+    // All files are forced to download (attachment) to prevent browsers from
+    // rendering arbitrary content in-page, which could enable stored XSS via
+    // an uploaded HTML/SVG file if the bucket is ever misconfigured.
+    const filename = pathParts[2];
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+    const MIME: Record<string, string> = {
+      pdf:  "application/pdf",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      doc:  "application/msword",
+      txt:  "text/plain; charset=utf-8",
+      md:   "text/plain; charset=utf-8",
+    };
+    const contentType = MIME[ext] ?? "application/octet-stream";
     const arrayBuffer = await data.arrayBuffer();
 
     return new NextResponse(arrayBuffer, {
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": "inline",
+        "Content-Type": contentType,
+        "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
         "Cache-Control": "private, max-age=3600",
         "X-Content-Type-Options": "nosniff",
       },
