@@ -43,8 +43,8 @@ export default function PrivacyPage() {
             <Section title="1. Introduction">
               <p>
                 Welcome to Jobnest, a product of{" "}
-                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
-                  Techifive
+                <a href="https://nishpatel.dev" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                  Nish Patel
                 </a>
                 . We are committed to protecting your personal information and your right to privacy.
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our
@@ -143,7 +143,7 @@ export default function PrivacyPage() {
                   contact us
                 </Link>
                 {" "}or visit us on{" "}
-                <a href="https://github.com/techifive" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                <a href="https://github.com/Git-Nish14/Jobnest" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
                   GitHub
                 </a>
                 .

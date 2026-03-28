@@ -20,7 +20,6 @@ interface ApplicationCardProps {
   application: JobApplication;
 }
 
-// Status → colour tokens
 function statusTokens(status: string) {
   const map: Record<string, { accent: string; avatar: string; badge: string }> = {
     "Interview":    { accent: "bg-[#006d34]",  avatar: "db-status-interview", badge: "db-status-interview" },
@@ -71,19 +70,15 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
 
   return (
     <div className="db-app-card group relative overflow-hidden pl-5 sm:pl-6">
-      {/* ── Status accent bar (left edge) ── */}
       <div className={cn("absolute left-0 inset-y-0 w-1.5 rounded-l-xl", accent)} />
 
       <div className="flex items-start gap-4 sm:gap-5">
-        {/* Company avatar */}
         <div className={cn("db-company-avatar-lg shrink-0", avatar)}>
           {initial}
         </div>
 
-        {/* Main content */}
         <div className="flex-1 min-w-0">
 
-          {/* Top row: title + badge + actions */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <Link
@@ -102,13 +97,13 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                 {application.status}
               </span>
 
-              {/* Actions — appear on hover */}
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 {application.job_url && (
                   <a
                     href={application.job_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
                     className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
                   >
@@ -120,6 +115,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     <button
                       type="button"
                       className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                      aria-label={`Options for ${application.position} at ${application.company}`}
                       title="More options"
                     >
                       <MoreHorizontal className="h-3.5 w-3.5" />
@@ -157,12 +153,10 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             </div>
           </div>
 
-          {/* Mobile status badge */}
           <span className={cn("db-status-badge sm:hidden mt-2 inline-block", badge)}>
             {application.status}
           </span>
 
-          {/* Metadata row */}
           <div className="flex flex-wrap gap-3 sm:gap-5 mt-2.5 text-xs sm:text-sm text-[#55433d]/75">
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 shrink-0" />
@@ -184,7 +178,6 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
         </div>
       </div>
 
-      {/* Notes */}
       {application.notes && (
         <p className="db-card-notes ml-0 sm:ml-21 line-clamp-2 mt-1">
           &ldquo;{application.notes}&rdquo;

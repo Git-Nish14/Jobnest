@@ -501,12 +501,12 @@ export default async function Home() {
             <p className="mt-3 text-xs landing-footer-links">
               A product of{" "}
               <a
-                href="https://techifive.com"
+                href="https://nishpatel.dev"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="landing-techifive-link"
+                className="landing-creator-link"
               >
-                Techifive
+                Nish Patel
               </a>
             </p>
           </div>
@@ -592,12 +592,12 @@ export default async function Home() {
           <p className="text-xs landing-copyright">
             © {new Date().getFullYear()} Jobnest — a{" "}
             <a
-              href="https://techifive.com"
+              href="https://nishpatel.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="landing-techifive-link text-xs font-semibold"
+              className="landing-creator-link text-xs font-semibold"
             >
-              Techifive
+              Nish Patel
             </a>{" "}
             product. All rights reserved.
           </p>

@@ -147,12 +147,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ── FAB: New Application ──
-           Mobile: bottom-6 (no bottom-nav bar in current app)
-           Desktop: bottom-10 ── */}
       <Link
         href="/applications/new"
-        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-14 h-14 rounded-full flex items-center justify-center z-40 db-fab"
+        className="hidden md:flex fixed md:bottom-10 md:right-10 w-14 h-14 rounded-full items-center justify-center z-40 db-fab"
         title="New Application"
       >
         <Plus className="w-6 h-6" />

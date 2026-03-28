@@ -75,7 +75,8 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           <span className="hidden sm:inline">Back to Applications</span>
           <span className="sm:hidden">Back</span>
         </Link>
-        <Link href={`/applications/${id}/edit`} className="db-btn-page-primary">
+        {/* Edit button — visible on sm+ in the header; hidden on mobile (uses sticky bar below) */}
+        <Link href={`/applications/${id}/edit`} className="hidden sm:inline-flex db-btn-page-primary">
           <Pencil className="h-4 w-4" />
           Edit
         </Link>
@@ -146,7 +147,8 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       </section>
 
       {/* ── Content Grid ── */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Extra bottom padding on mobile so the sticky edit bar doesn't cover content */}
+      <div className="grid gap-6 lg:grid-cols-3 pb-20 sm:pb-0">
 
         {/* ── Main column ── */}
         <div className="lg:col-span-2 space-y-6">
@@ -263,6 +265,21 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           {/* Activity Timeline */}
           <ActivityTimeline activities={activityLogs || []} />
         </div>
+      </div>
+
+      {/* ── Mobile sticky action bar (sm+ uses the header Edit button instead) ── */}
+      <div className="db-mobile-action-bar sm:hidden">
+        <Link
+          href="/applications"
+          className="db-btn-page-secondary flex-1 justify-center"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+        <Link href={`/applications/${id}/edit`} className="db-btn-page-primary flex-1 justify-center">
+          <Pencil className="h-4 w-4" />
+          Edit Application
+        </Link>
       </div>
     </div>
   );

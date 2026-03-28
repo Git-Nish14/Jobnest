@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     "resume tracker",
     "interview tracker",
   ],
-  authors: [{ name: "Techifive", url: "https://techifive.com" }],
-  creator: "Techifive",
-  publisher: "Techifive",
+  authors: [{ name: "Nish Patel", url: "https://nishpatel.dev" }],
+  creator: "Nish Patel",
+  publisher: "Nish Patel",
   formatDetection: {
     email: false,
     address: false,
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     description:
       "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
     images: ["/new_logo_1.png"],
-    creator: "@techifive",
+    creator: "@Git-Nish14",
   },
   robots: {
     index: true,
@@ -95,6 +95,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  // Allows content to extend into the notch/home-indicator area so that
+  // env(safe-area-inset-*) values are non-zero and our fixed bars sit correctly.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

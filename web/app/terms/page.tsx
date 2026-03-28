@@ -68,8 +68,8 @@ export default function TermsPage() {
             <Section title="3. Description of Service">
               <p>
                 Jobnest is a web application developed by{" "}
-                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
-                  Techifive
+                <a href="https://nishpatel.dev" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                  Nish Patel
                 </a>{" "}
                 that allows users to track and manage their job applications. Our service includes features for
                 logging applications, storing documents, AI-assisted job search (NESTAi), managing contacts and
@@ -140,7 +140,7 @@ export default function TermsPage() {
 
             <Section title="10. Limitation of Liability">
               <p>
-                To the maximum extent permitted by law, Jobnest and its creators (Techifive) shall not be liable for
+                To the maximum extent permitted by law, Jobnest and its creators (Nish Patel) shall not be liable for
                 any indirect, incidental, special, consequential, or punitive damages, including loss of data, profits,
                 or business opportunities, arising from your use of the service.
               </p>
@@ -178,7 +178,7 @@ export default function TermsPage() {
                   contact us
                 </Link>
                 {" "}or visit us on{" "}
-                <a href="https://github.com/techifive" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                <a href="https://github.com/Git-Nish14/Jobnest" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
                   GitHub
                 </a>
                 .

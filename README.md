@@ -2,7 +2,9 @@
 
 A modern, secure platform to organise and manage your entire job search. Built with Next.js 16, Supabase, and TypeScript.
 
-**Live:** [jobnest.nishpatel.dev](https://jobnest.nishpatel.dev) · **A [Techifive](https://techifive.com) Product**
+**Live:** [jobnest.nishpatel.dev](https://jobnest.nishpatel.dev) · **By [Nish Patel](https://nishpatel.dev)**
+
+> Found a bug or have a suggestion? [Open an issue](https://github.com/Git-Nish14/Jobnest/issues) · [View on GitHub](https://github.com/Git-Nish14/Jobnest)
 
 ---
 
@@ -60,6 +62,15 @@ A warm, editorial design language used consistently across every page of the app
 - **Loading skeletons** — warm `#e3e2e0` shimmer blocks matching real card structure
 - **Page headers** — Newsreader large title (`db-page-title`) + subtitle + right-aligned pill action button
 
+### Mobile Responsive System
+Full mobile-first responsive implementation across all pages:
+
+- **Bottom tab bar** — fixed `BottomTabBar` (Overview, Applications, Interviews, NESTAi) on mobile only (`md:hidden`), Atelier-styled with safe-area-inset-bottom support
+- **NESTAi sidebar** — full-screen drawer on mobile (`w-full`), stops above the bottom tab bar; collapses to inline panel on desktop
+- **Application detail sticky bar** — Edit + Back actions in a fixed bar above the tab bar on mobile (`db-mobile-action-bar`)
+- **Salary table** — horizontal scroll with `db-scroll-x` and `min-w` to prevent column squishing on small screens
+- **Viewport** — `viewport-fit=cover` for correct `env(safe-area-inset-*)` on notched devices (iPhone, Android)
+
 ### Dashboard
 - Overview stats — total applications, this week/month, active pipeline
 - Weekly application trend bar chart
@@ -71,12 +82,13 @@ A warm, editorial design language used consistently across every page of the app
 
 ### Applications
 - Full CRUD for job applications
-- Filter by status, company, location, and date range
-- Sort by date, company, or position
+- Filter by status, company, location, and date range with **400ms debounced live search** (no Enter required)
+- Sort by date, company, or position (with icon-per-sort visual indicator)
 - Per-application details: company, position, status, applied date, location, salary range, job URL, notes, tags
 - Resume & cover letter upload (Supabase Storage)
 - Export to CSV or JSON
 - Company initial avatar on every card
+- Card actions (Edit, Delete, External link) always visible on mobile
 
 ### Interviews
 - Schedule and track interviews per application
@@ -182,13 +194,14 @@ web/
 │   ├── auth/
 │   │   └── callback/             # OAuth code exchange
 │   ├── contact/
+│   ├── pricing/
 │   ├── privacy/
 │   └── terms/
 ├── components/
 │   ├── ui/                       # Base UI: Button, Card, Badge, Skeleton, …
 │   ├── auth/                     # AuthSync (cross-tab logout + remember-me)
 │   ├── common/                   # Loading, ErrorBoundary, skeleton screens
-│   ├── layout/                   # Navbar, Footer, LayoutWrapper
+│   ├── layout/                   # Navbar, Footer, BottomTabBar, LayoutWrapper
 │   ├── profile/                  # ProfileClient, DeletionBanner
 │   ├── applications/
 │   ├── dashboard/
@@ -335,6 +348,7 @@ npm run test:coverage # Coverage report
 | Suite | Location | What it covers |
 |---|---|---|
 | Unit | `tests/unit/` | lib utilities (errors, rate-limit, OTP, fetch-retry, Zod schemas including age/terms validation), every API route handler, proxy redirect logic |
+| Mobile / UX | `tests/unit/mobile/` | Structural tests for responsive layout (BottomTabBar, NESTAi drawer, sticky action bar), aria labels, skeleton sync, CSS tokens, prefers-reduced-motion |
 | E2E flows | `tests/flows/` | Full user journeys: login (incl. remember-me cookie), signup (incl. age + terms pre-conditions), forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload |
 
 All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` required to run tests.
@@ -344,7 +358,7 @@ All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
 1. **Typecheck** — `tsc --noEmit`
-2. **Test** — `vitest run` (all 253 tests)
+2. **Test** — `vitest run` (all 325 tests)
 3. **Build** — `next build` (depends on steps 1 + 2 passing)
 
 ---
@@ -398,10 +412,16 @@ Vercel automatically picks up `vercel.json` and schedules the cron job (`/api/cr
 
 ---
 
+## Contributing / Issues
+
+Found a bug or have a suggestion? [Open an issue on GitHub](https://github.com/Git-Nish14/Jobnest/issues).
+
+---
+
 ## License
 
 Private — All rights reserved
 
 ---
 
-Built with precision by [Techifive](https://techifive.com)
+Built by [Nish Patel](https://nishpatel.dev)

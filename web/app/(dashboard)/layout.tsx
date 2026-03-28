@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Newsreader, Manrope } from "next/font/google";
-import { Navbar } from "@/components/layout";
+import { Navbar, BottomTabBar } from "@/components/layout";
 import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
 import { redirect } from "next/navigation";
@@ -36,7 +36,6 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Check for a pending account deletion (soft-delete grace period)
   let pendingDeletion: { scheduled_deletion_at: string } | null = null;
   try {
     const supabaseAdmin = createAdminClient();
@@ -48,7 +47,7 @@ export default async function DashboardLayout({
       .single();
     pendingDeletion = pd ?? null;
   } catch {
-    // Non-critical — don't block the page if this query fails
+    // non-critical
   }
 
   return (
@@ -58,9 +57,11 @@ export default async function DashboardLayout({
       {pendingDeletion && (
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />
       )}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-32 md:pb-8">
+      {/* pb-36: clears bottom tab bar (4rem) + NESTAi fixed input on mobile */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 md:pb-8">
         {children}
       </main>
+      <BottomTabBar />
     </div>
   );
 }

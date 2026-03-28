@@ -117,7 +117,7 @@ export default function ContactPage() {
                     ) : (
                       <p className="mt-1 text-sm text-[#55433d]">
                         Found a bug?{" "}
-                        <a href="https://github.com/techifive" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                        <a href="https://github.com/Git-Nish14/Jobnest" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
                           Report on GitHub
                         </a>
                       </p>
@@ -143,8 +143,8 @@ export default function ContactPage() {
 
               <p className="text-sm text-[#55433d]/70">
                 Jobnest is a product of{" "}
-                <a href="https://techifive.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#99462a] hover:underline">
-                  Techifive
+                <a href="https://nishpatel.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-[#99462a] hover:underline">
+                  Nish Patel
                 </a>
               </p>
             </div>

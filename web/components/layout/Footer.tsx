@@ -52,12 +52,12 @@ export function Footer({ variant = "simple" }: FooterProps) {
               <p className="mt-2 text-xs text-muted-foreground">
                 A{" "}
                 <a
-                  href="https://techifive.com"
+                  href="https://nishpatel.dev"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-primary hover:underline"
                 >
-                  Techifive
+                  Nish Patel
                 </a>{" "}
                 Product
               </p>
@@ -146,17 +146,17 @@ export function Footer({ variant = "simple" }: FooterProps) {
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>
                   <a
-                    href="https://techifive.com"
+                    href="https://nishpatel.dev"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition-colors hover:text-foreground"
                   >
-                    Techifive
+                    Nish Patel
                   </a>
                 </li>
                 <li>
                   <a
-                    href="https://github.com/techifive"
+                    href="https://github.com/Git-Nish14/Jobnest"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="transition-colors hover:text-foreground inline-flex items-center gap-1"
@@ -173,18 +173,18 @@ export function Footer({ variant = "simple" }: FooterProps) {
             <p className="text-xs text-muted-foreground sm:text-sm">
               © {currentYear}{" "}
               <a
-                href="https://techifive.com"
+                href="https://nishpatel.dev"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium hover:text-foreground transition-colors"
               >
-                Techifive
+                Nish Patel
               </a>
               . All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <a
-                href="https://github.com/techifive"
+                href="https://github.com/Git-Nish14/Jobnest"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -216,12 +216,12 @@ export function Footer({ variant = "simple" }: FooterProps) {
             <span className="text-xs text-muted-foreground">
               — A{" "}
               <a
-                href="https://techifive.com"
+                href="https://nishpatel.dev"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-primary hover:underline"
               >
-                Techifive
+                Nish Patel
               </a>{" "}
               Product
             </span>
@@ -246,7 +246,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
               Terms
             </Link>
             <a
-              href="https://github.com/techifive"
+              href="https://github.com/Git-Nish14/Jobnest"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors hover:text-foreground inline-flex items-center gap-1"
@@ -259,12 +259,12 @@ export function Footer({ variant = "simple" }: FooterProps) {
         <div className="mt-4 text-center text-xs text-muted-foreground sm:text-left">
           © {currentYear}{" "}
           <a
-            href="https://techifive.com"
+            href="https://nishpatel.dev"
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium hover:text-foreground transition-colors"
           >
-            Techifive
+            Nish Patel
           </a>
           . All rights reserved.
         </div>

@@ -12,8 +12,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 interface MessageAttachment {
   name: string;
   fileType: string; // 'pdf' | 'docx' | 'doc' | 'txt' | 'md'
@@ -45,13 +43,9 @@ interface AttachedFile {
   error?: string;
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 const MAX_REQUESTS = 5;
 const WINDOW_MS = 60_000;
 const FOLLOW_UPS_MARKER = "\nFOLLOW_UPS:";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseFollowUps(fullText: string): { content: string; suggestions: string[] } {
   const idx = fullText.lastIndexOf(FOLLOW_UPS_MARKER);
@@ -65,8 +59,6 @@ function parseFollowUps(fullText: string): { content: string; suggestions: strin
     .slice(0, 3);
   return { content, suggestions };
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 const SUGGESTED_PROMPTS = [
   { icon: TrendingUp, label: "Application stats", prompt: "How many applications have I submitted this month?" },
@@ -152,8 +144,6 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-// ── File attachment card (shown inside user messages) ─────────────────────────
-
 const FILE_TYPE_META: Record<string, { label: string; bg: string; text: string; border: string }> = {
   pdf:  { label: "PDF",  bg: "bg-red-50",    text: "text-red-700",    border: "border-red-200" },
   docx: { label: "DOCX", bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200" },
@@ -183,7 +173,6 @@ function FileAttachmentCard({ attachment, onView }: { attachment: MessageAttachm
       tabIndex={onView ? 0 : undefined}
       onKeyDown={onView ? (e) => { if (e.key === "Enter" || e.key === " ") onView(); } : undefined}
     >
-      {/* File icon block */}
       <div className={cn("flex h-9 w-7 shrink-0 flex-col items-center justify-between rounded-md border py-1", meta.border, "bg-white/70")}>
         <div className={cn("text-[7px] font-bold tracking-tight leading-none mt-0.5", meta.text)}>{meta.label}</div>
         <div className="flex gap-px mb-0.5">
@@ -192,7 +181,6 @@ function FileAttachmentCard({ attachment, onView }: { attachment: MessageAttachm
           ))}
         </div>
       </div>
-      {/* Name */}
       <div className="min-w-0">
         <p className={cn("text-xs font-semibold truncate leading-tight", meta.text)}>{displayName}</p>
         <p className={cn("text-[11px] mt-0.5 opacity-70", meta.text)}>{attachment.name.split(".").pop()?.toUpperCase()} document</p>
@@ -200,8 +188,6 @@ function FileAttachmentCard({ attachment, onView }: { attachment: MessageAttachm
     </div>
   );
 }
-
-// ── Markdown renderer ─────────────────────────────────────────────────────────
 
 type InlineNode = string | React.ReactElement;
 
@@ -348,21 +334,17 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function NestAiPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Rate limit
   const [remaining, setRemaining] = useState<number>(MAX_REQUESTS);
   const [windowEndAt, setWindowEndAt] = useState<number | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
 
-  // Sessions
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   // Always start closed — avoids the server(true) vs mobile-client(false) hydration mismatch.
@@ -374,33 +356,26 @@ export default function NestAiPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // File attachment
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Message editing
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState("");
 
-  // Document preview modal
   const [previewDoc, setPreviewDoc] = useState<MessageAttachment | null>(null);
 
-  // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ── Open sidebar on desktop after mount (avoids hydration mismatch) ─────
   useEffect(() => {
     if (window.innerWidth >= 1024) setSidebarOpen(true);
   }, []);
 
-  // ── Scroll ───────────────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ── Rate-limit countdown ─────────────────────────────────────────────────
   useEffect(() => {
     if (!windowEndAt) { setResetCountdown(null); return; }
     const tick = () => {
@@ -417,7 +392,6 @@ export default function NestAiPage() {
     return () => clearInterval(timer);
   }, [windowEndAt]);
 
-  // ── Close dropdown on outside click ─────────────────────────────────────
   useEffect(() => {
     if (!menuOpenId) return;
     const handler = () => { setMenuOpenId(null); setDeleteConfirmId(null); };
@@ -425,7 +399,6 @@ export default function NestAiPage() {
     return () => document.removeEventListener("click", handler);
   }, [menuOpenId]);
 
-  // ── Sessions ─────────────────────────────────────────────────────────────
   const loadSessions = useCallback(async () => {
     setSessionsLoading(true);
     try {
@@ -462,7 +435,6 @@ export default function NestAiPage() {
   };
 
   const loadSession = async (sessionId: string) => {
-    // Close sidebar on mobile so the chat is immediately visible
     if (window.innerWidth < 1024) setSidebarOpen(false);
     try {
       const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`);
@@ -562,7 +534,6 @@ export default function NestAiPage() {
     }
   };
 
-  // ── Edit message ─────────────────────────────────────────────────────────
   const handleEditSubmit = async (messageId: string) => {
     const trimmed = editInput.trim();
     if (!trimmed || isLoading) return;
@@ -570,12 +541,10 @@ export default function NestAiPage() {
     const msgIndex = messages.findIndex((m) => m.id === messageId);
     if (msgIndex === -1) return;
 
-    // Truncate local state from the edited message onwards
     setMessages((prev) => prev.slice(0, msgIndex));
     setEditingMessageId(null);
     setEditInput("");
 
-    // Delete from DB: the message and all after it (fire and forget)
     if (currentSessionId) {
       fetchWithRetry(
         `/api/nesta-ai/sessions/${currentSessionId}/messages?from=${messageId}`,
@@ -584,11 +553,9 @@ export default function NestAiPage() {
       ).catch((err) => console.error("Failed to delete messages from edit point:", err));
     }
 
-    // Submit the edited content through the normal flow
     await handleSubmit(undefined, trimmed);
   };
 
-  // ── File attachment — non-blocking ───────────────────────────────────────
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -600,13 +567,11 @@ export default function NestAiPage() {
     const ext = file.name.split(".").pop()?.toLowerCase();
 
     if (ext === "txt" || ext === "md") {
-      // Instant — read in browser, no server trip
       const text = await file.text();
       setAttachedFile({ name: file.name, text: text.slice(0, 10000), loading: false });
       return;
     }
 
-    // PDF / DOCX — show chip immediately, parse in background
     setAttachedFile({ name: file.name, text: null, loading: true });
 
     try {
@@ -624,7 +589,6 @@ export default function NestAiPage() {
     }
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const startNewChat = () => {
     setMessages([]); setCurrentSessionId(null); setError(null);
     setAttachedFile(null);
@@ -678,7 +642,6 @@ export default function NestAiPage() {
     setIsLoading(true);
     setError(null);
 
-    // Optimistic rate limit decrement
     setRemaining((prev) => Math.max(0, prev - 1));
     setWindowEndAt((prev) => prev ?? Date.now() + WINDOW_MS);
 
@@ -692,7 +655,6 @@ export default function NestAiPage() {
     }
     if (sessionId) saveMessage(sessionId, "user", baseQuestion, msgAttachment);
 
-    // Placeholder streaming message
     const assistantMsgId = `${Date.now() + 1}`;
     setMessages((prev) => [...prev, { id: assistantMsgId, role: "assistant", content: "", timestamp: new Date(), isStreaming: true }]);
 
@@ -716,14 +678,12 @@ export default function NestAiPage() {
         throw new Error(data.error || "Failed to get response");
       }
 
-      // Sync rate limit from headers
       const rlRemaining = parseInt(res.headers.get("X-RateLimit-Remaining") ?? String(MAX_REQUESTS), 10);
       const rlResetIn = parseInt(res.headers.get("X-RateLimit-Reset-In") ?? "0", 10);
       setRemaining(rlRemaining);
       if (rlResetIn > 0) setWindowEndAt(Date.now() + rlResetIn * 1000);
       if (rlRemaining === 0) setIsRateLimited(true);
 
-      // Stream body
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
@@ -749,7 +709,6 @@ export default function NestAiPage() {
       if (sessionId) saveMessage(sessionId, "assistant", content);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
-        // User stopped — keep whatever was streamed so far
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsgId
@@ -785,29 +744,27 @@ export default function NestAiPage() {
     return new Date(dateStr).toLocaleDateString();
   };
 
-  // ── Derived sidebar groups ────────────────────────────────────────────────
   const pinnedSessions = sessions.filter((s) => s.is_pinned);
   const unpinnedSessions = sessions.filter((s) => !s.is_pinned);
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-    {/* Negative margins escape the dashboard layout padding so NESTAi fills the full viewport below the Navbar */}
-    <div className="flex nestai-root nestai-page -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 sm:-mt-8 -mb-32 md:-mb-8">
+    <div className="flex nestai-root nestai-page -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 sm:-mt-8 -mb-36 md:-mb-8">
 
-      {/* Mobile sidebar backdrop — starts below the sticky Navbar (top-14 / sm:top-16) */}
       {sidebarOpen && (
-        <div className="fixed top-14 sm:top-16 inset-x-0 bottom-0 z-20 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+        <div
+          className="fixed top-14 sm:top-16 inset-x-0 bottom-16 md:bottom-0 z-20 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
       )}
 
-      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside className={cn(
         "flex flex-col nestai-sidebar transition-all duration-300 shrink-0",
         sidebarOpen
-          ? "w-72 fixed lg:relative top-14 sm:top-16 bottom-0 left-0 z-30 lg:top-auto lg:bottom-auto lg:z-auto"
+          ? "w-full sm:w-80 fixed lg:relative top-14 sm:top-16 bottom-16 md:bottom-0 left-0 z-30 lg:top-auto lg:bottom-auto lg:z-auto lg:w-72"
           : "w-0 overflow-hidden border-r-0"
       )}>
-        {/* Sidebar header */}
         <div className="flex items-center justify-between px-3 py-3.5 shrink-0 nestai-sidebar-header">
           <div className="flex items-center gap-1.5 pl-1">
             <span className="db-headline italic text-lg text-[#99462a] leading-none">NESTAi</span>
@@ -823,7 +780,6 @@ export default function NestAiPage() {
           </div>
         </div>
 
-        {/* Sessions list */}
         <div className="flex-1 overflow-y-auto p-2">
           {sessionsLoading ? (
             <div className="space-y-1 p-1">
@@ -894,10 +850,8 @@ export default function NestAiPage() {
         </div>
       </aside>
 
-      {/* ── Main chat area ────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b nestai-topbar shrink-0">
           <div className="flex items-center gap-2">
             {!sidebarOpen && (
@@ -910,7 +864,6 @@ export default function NestAiPage() {
                 <PanelLeft className="h-5 w-5" />
               </button>
             )}
-            {/* Brand — serif italic like landing page */}
             <div className="flex items-center gap-1.5">
               <span className="db-headline italic text-xl sm:text-2xl text-[#99462a] tracking-tight leading-none">
                 NESTAi
@@ -933,20 +886,14 @@ export default function NestAiPage() {
           </div>
         </div>
 
-        {/* Messages — overflow-x-hidden clips glow blobs that extend outside;
-               pb-32 on mobile makes room for the fixed input bar */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32 md:pb-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-52 md:pb-0">
           {messages.length === 0 ? (
-            /* mobile: min-h-full so content can scroll via parent overflow-y-auto
-               md+: h-full overflow-hidden — content always fits, no scroll needed */
             <div className="relative min-h-full md:h-full md:overflow-hidden flex flex-col items-center justify-center px-6 py-8">
-              {/* Decorative background glows — fixed to the chat area */}
               <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[#99462a]/5 blur-[120px] pointer-events-none" />
               <div className="absolute top-[40%] -right-[5%] w-[30%] h-[30%] rounded-full bg-[#006d34]/5 blur-[100px] pointer-events-none" />
               <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[30%] bg-[#d97757]/5 blur-[120px] pointer-events-none" />
 
               <div className="relative w-full max-w-2xl flex flex-col items-center text-center space-y-6">
-                {/* Hero headline */}
                 <div className="space-y-4">
                   <h2 className="db-headline text-4xl sm:text-5xl text-[#1a1c1b] tracking-tight leading-tight">
                     How can I{" "}
@@ -958,7 +905,6 @@ export default function NestAiPage() {
                   </p>
                 </div>
 
-                {/* Bento prompt cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-2">
                   {SUGGESTED_PROMPTS.slice(0, 4).map((item) => (
                     <button
@@ -1071,7 +1017,6 @@ export default function NestAiPage() {
                 </div>
               ))}
 
-              {/* Typing indicator — only while loading before first token arrives */}
               {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex gap-3">
                   <AssistantAvatar />
@@ -1088,9 +1033,7 @@ export default function NestAiPage() {
           )}
         </div>
 
-        {/* Input area — fixed at bottom on mobile, inline on desktop (nestai-input-area in dashboard.css) */}
         <div className="nestai-input-area">
-          {/* Error banner — rendered above the input pill */}
           {error && (
             <div className="pb-2 max-w-3xl mx-auto w-full">
               <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/8 border border-destructive/20 text-destructive text-sm">
@@ -1128,7 +1071,6 @@ export default function NestAiPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
-                {/* Attached file chip */}
                 {attachedFile && (
                   <div className={cn(
                     "mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border w-fit max-w-full",
@@ -1162,9 +1104,7 @@ export default function NestAiPage() {
                     </button>
                   </div>
                 )}
-                {/* Full pill input — matches design's rounded-[2rem] */}
                 <div className="relative flex items-end gap-2 rounded-[2rem] border shadow-lg transition-all px-3 py-2.5 nestai-input">
-                  {/* File attach button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -1195,7 +1135,6 @@ export default function NestAiPage() {
                     className="flex-1 resize-none bg-transparent text-sm focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-[#55433d]/50 py-2.5 min-h-10 max-h-[200px] leading-relaxed disabled:opacity-50 text-[#1a1c1b]"
                   />
 
-                  {/* Stop / Send — circular like design */}
                   {isLoading ? (
                     <button
                       type="button"
@@ -1233,7 +1172,6 @@ export default function NestAiPage() {
       </div>
     </div>
 
-    {/* ── Document preview modal ──────────────────────────────────────── */}
     {previewDoc && (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
@@ -1244,7 +1182,6 @@ export default function NestAiPage() {
           className="nestai-modal rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[82vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
             <div className="flex items-center gap-3">
               <div className={cn(
@@ -1282,7 +1219,6 @@ export default function NestAiPage() {
             </button>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {previewDoc.preview ? (
               <pre className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-foreground break-words">
@@ -1309,8 +1245,6 @@ export default function NestAiPage() {
     </>
   );
 }
-
-// ── SessionRow ────────────────────────────────────────────────────────────────
 
 function SessionRow({
   session, isActive, isEditing, editTitle, menuOpenId, deleteConfirmId,

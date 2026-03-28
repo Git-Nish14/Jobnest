@@ -94,7 +94,7 @@ ${message}
 
     <p style="margin: 20px 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
       This message was sent from the Jobnest contact form.<br>
-      <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product
+      <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product
     </p>
   </div>
 </body>
@@ -123,7 +123,7 @@ ${message}
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel Product
       `,
       html: `
 <!DOCTYPE html>
@@ -148,12 +148,12 @@ A Techifive Product
       <div style="background: #f3f4f6; padding: 15px; border-radius: 6px; white-space: pre-wrap; font-size: 14px;">${safeMessage}</div>
     </div>
 
-    <p style="margin: 0;">Best regards,<br><strong>The Jobnest Team</strong><br><span style="font-size: 12px; color: #6b7280;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span></p>
+    <p style="margin: 0;">Best regards,<br><strong>The Jobnest Team</strong><br><span style="font-size: 12px; color: #6b7280;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span></p>
   </div>
 
   <p style="margin: 20px 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
     This is an automated confirmation email. Please do not reply directly to this message.<br>
-    &copy; ${new Date().getFullYear()} <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a>. All rights reserved.
+    &copy; ${new Date().getFullYear()} <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a>. All rights reserved.
   </p>
 </body>
 </html>
