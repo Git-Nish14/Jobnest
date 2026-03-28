@@ -1,7 +1,4 @@
-/* ── Dashboard — Intellectual Atelier Design ──────────────────────────────────
-   Design tokens for the dashboard. Same palette as auth.css / landing.css.
-   All component styling for the dashboard lives here.
-   ─────────────────────────────────────────────────────────────────────────── */
+/* ── Dashboard — Intellectual Atelier ─────────────────────────────────────── */
 
 :root {
   --atelier-bg:              #faf9f7;
@@ -257,19 +254,35 @@
   min-height: 176px;
 }
 
+/* ── Bottom tab bar ────────────────────────────────────────────────────────── */
+.bottom-tab-bar {
+  background-color: rgba(250, 249, 247, 0.97);
+  border-top: 1px solid rgba(219, 193, 185, 0.25);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-tab-active {
+  color: var(--atelier-primary);
+}
+
+.bottom-tab-inactive {
+  color: var(--atelier-on-surface-var);
+  opacity: 0.65;
+}
+.bottom-tab-inactive:hover {
+  color: var(--atelier-on-surface);
+  opacity: 1;
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+}
+
 /* ── NESTAi chat container ─────────────────────────────────────────────────── */
-/*
-  Height = 100dvh  minus  everything that sits above/below the container:
-    - Navbar:            h-14 (3.5rem) on mobile, h-16 (4rem) on sm+
-    - main top padding:  py-6 (1.5rem) on mobile, py-8 (2rem) on sm+
-    - main bottom pad:   pb-32 (8rem) on mobile/sm, pb-8 (2rem) on md+
-  100dvh adjusts for the collapsible browser chrome on iOS/Android.
-*/
-/* nestai-page: full-page layout — negative margins in the TSX cancel the
-   dashboard's py/px padding so this fills exactly (100dvh - navbar).
-   overflow-x:hidden prevents any accidental horizontal bleed;
-   overflow-y is intentionally left as visible so the inner flex-1
-   overflow-y-auto messages div handles vertical scrolling itself. */
+/* Negative margins in the TSX (-mt-6/-mt-8, -mb-36/-mb-8) cancel the
+   dashboard padding so NESTAi fills exactly (100dvh - navbar height). */
 .nestai-page {
   height: calc(100dvh - 3.5rem); /* mobile: h-14 navbar */
   overflow-x: hidden;
@@ -279,17 +292,13 @@
 .nestai-root         { background-color: var(--atelier-bg); }
 .nestai-sidebar-header { background-color: rgba(244, 243, 241, 0.85); }
 
-/* Input area — fixed floating pill at bottom on mobile for easy thumb reach.
-   Switches back to inline flex item on md+ where the layout has enough room. */
 .nestai-input-area {
   position: fixed;
-  bottom: 0;
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); /* sits above the bottom tab bar */
   left: 0;
   right: 0;
   z-index: 40;
-  padding: 0.75rem 1rem;
-  /* safe-area-inset-bottom keeps it above the iOS home indicator */
-  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.75rem 1rem 0.875rem;
   background-color: rgba(250, 249, 247, 0.96);
   border-top: 1px solid rgba(219, 193, 185, 0.20);
   -webkit-backdrop-filter: blur(16px);
@@ -298,7 +307,6 @@
 
 @media (min-width: 768px) {
   .nestai-input-area {
-    /* Back to normal flow on desktop */
     position: relative;
     bottom: auto;
     left: auto;
@@ -465,41 +473,66 @@
 /* ── Filter bar ────────────────────────────────────────────────────────────── */
 .db-filter-bar {
   background-color: var(--atelier-surface-low);
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border-radius: 0.875rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
+  border: 1px solid rgba(219, 193, 185, 0.12);
 }
 @media (min-width: 1024px) {
-  .db-filter-bar { flex-direction: row; align-items: center; gap: 1rem; }
+  .db-filter-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+  }
 }
 
 .db-filter-search {
   width: 100%;
   background-color: var(--atelier-surface);
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem 0.75rem 3rem;
+  border: 1px solid rgba(219, 193, 185, 0.25);
+  border-radius: 0.625rem;
+  padding: 0.65rem 1rem 0.65rem 2.75rem;
   font-size: 0.875rem;
   color: var(--atelier-on-surface);
   outline: none;
-  transition: box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.db-filter-search:focus { box-shadow: 0 0 0 1.5px rgba(153,70,42,0.35); }
-.db-filter-search::placeholder { color: rgba(85,67,61,0.45); }
+.db-filter-search:focus {
+  border-color: rgba(153, 70, 42, 0.35);
+  box-shadow: 0 0 0 3px rgba(153, 70, 42, 0.08);
+}
+.db-filter-search::placeholder { color: rgba(85, 67, 61, 0.4); }
+
+/* Pills row — horizontal scroll, no scrollbar */
+.db-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.3125rem;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 1px; /* avoids shadow clip */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.db-filter-pills::-webkit-scrollbar { display: none; }
 
 .db-filter-pill {
-  padding: 0.4rem 1.1rem;
+  padding: 0.375rem 0.875rem;
   border-radius: 9999px;
   font-size: 0.8125rem;
   font-weight: 500;
   border: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, color 0.15s, transform 0.1s;
+  flex-shrink: 0;
 }
+.db-filter-pill:active { transform: scale(0.96); }
 .db-filter-pill-active {
   background-color: var(--atelier-primary);
   color: #ffffff;
@@ -509,22 +542,35 @@
   background-color: var(--atelier-surface-highest);
   color: var(--atelier-on-surface-var);
 }
-.db-filter-pill-inactive:hover { background-color: var(--atelier-surface-high); }
+.db-filter-pill-inactive:hover {
+  background-color: var(--atelier-surface-high);
+  color: var(--atelier-on-surface);
+}
 
+/* Sort trigger button */
 .db-filter-sort {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
   background-color: var(--atelier-surface);
-  border-radius: 0.5rem;
-  border: none;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(219, 193, 185, 0.25);
   color: var(--atelier-on-surface-var);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  width: 100%;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.db-filter-sort:hover {
+  background-color: var(--atelier-surface-high);
+  border-color: rgba(219, 193, 185, 0.45);
+  color: var(--atelier-on-surface);
+}
+@media (min-width: 1024px) {
+  .db-filter-sort { min-width: 10.5rem; justify-content: space-between; }
 }
 
 /* ── Generic atelier content card (interviews, reminders, etc.) ─────────────── */
@@ -541,7 +587,58 @@
   background-color: var(--atelier-primary);
   color: #ffffff;
   box-shadow: 0 4px 24px rgba(153, 70, 42, 0.30);
-  transition: transform 150ms, background-color 0.2s;
+  transition: transform 150ms, background-color 0.2s, box-shadow 0.2s;
+  will-change: transform;
 }
-.db-fab:hover  { background-color: var(--atelier-primary-hover); transform: scale(1.05); }
+.db-fab:hover  {
+  background-color: var(--atelier-primary-hover);
+  transform: scale(1.05);
+  box-shadow: 0 8px 32px rgba(153, 70, 42, 0.38);
+}
 .db-fab:active { transform: scale(0.95); }
+
+/* ── Reduced motion ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .db-fab,
+  .db-filter-pill,
+  .bottom-tab-bar,
+  .nestai-input-area,
+  .db-mobile-action-bar {
+    transition: none;
+  }
+  .db-fab:hover  { transform: none; }
+  .db-fab:active { transform: none; }
+  .db-filter-pill:active { transform: none; }
+}
+
+/* ── Horizontal scroll (tables on small screens) ───────────────────────────── */
+.db-scroll-x {
+  overflow-x: auto;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent 100%);
+  mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent 100%);
+}
+@media (min-width: 768px) {
+  .db-scroll-x {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* ── Mobile sticky action bar ──────────────────────────────────────────────── */
+.db-mobile-action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: rgba(250, 249, 247, 0.96);
+  border-top: 1px solid rgba(219, 193, 185, 0.20);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+@media (min-width: 768px) {
+  .db-mobile-action-bar { display: none; }
+}

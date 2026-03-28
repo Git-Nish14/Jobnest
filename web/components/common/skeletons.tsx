@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Atelier shimmer block — warm parchment tone
 function AtelierShimmer({ className }: { className?: string }) {
   return <Skeleton className={`bg-[#e3e2e0] ${className ?? ""}`} />;
 }
@@ -9,18 +8,16 @@ function AtelierShimmer({ className }: { className?: string }) {
 const SKEL_BAR_HEIGHTS = ["h-[40%]", "h-[65%]", "h-[90%]", "h-[55%]", "h-[75%]", "h-[45%]", "h-[60%]"] as const;
 const SKEL_STAT_BG = ["bg-[#f4f3f1]", "bg-[#e9e8e6]", "bg-[#ffdbd0]/40"] as const;
 
-// ── Dashboard page skeleton — mirrors the new Atelier bento grid layout ──────
+// ── DashboardSkeleton
 export function DashboardSkeleton() {
   return (
     <div className="space-y-8">
 
-      {/* Welcome header */}
       <div className="space-y-3">
         <AtelierShimmer className="h-12 w-72 md:h-16 md:w-96 rounded-lg" />
         <AtelierShimmer className="h-5 w-80 rounded" />
       </div>
 
-      {/* Row 1 — 3 stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {SKEL_STAT_BG.map((bg, i) => (
           <div key={i} className={`${bg} rounded-xl p-8 flex flex-col justify-between db-skel-stat`}>
@@ -34,16 +31,13 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
-      {/* Row 2 — chart (col-8) + tasks panel (col-4) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-        {/* Chart panel */}
         <div className="md:col-span-8 p-8 db-skel-panel">
           <div className="flex justify-between items-center mb-8">
             <AtelierShimmer className="h-7 w-48 rounded" />
             <AtelierShimmer className="h-4 w-32 rounded" />
           </div>
-          {/* Bar chart — db-chart-area provides height:200px + flex-end */}
           <div className="db-chart-area">
             {SKEL_BAR_HEIGHTS.map((h, i) => (
               <div key={i} className={`flex-1 bg-[#e9e8e6] animate-pulse rounded-t ${h}`} />
@@ -56,7 +50,6 @@ export function DashboardSkeleton() {
           </div>
         </div>
 
-        {/* Tasks panel */}
         <div className="md:col-span-4 p-8 db-skel-panel flex flex-col gap-6">
           <AtelierShimmer className="h-7 w-36 rounded" />
           <div className="space-y-5 flex-1">
@@ -74,10 +67,8 @@ export function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Row 3 — status chart (col-4) + recent apps (col-8) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-        {/* Status chart */}
         <div className="md:col-span-4 p-8 db-skel-panel flex flex-col gap-5">
           <div className="space-y-1">
             <AtelierShimmer className="h-7 w-44 rounded" />
@@ -105,7 +96,6 @@ export function DashboardSkeleton() {
           </div>
         </div>
 
-        {/* Recent apps */}
         <div className="md:col-span-8 flex flex-col gap-5">
           <div className="flex justify-between items-end">
             <div className="space-y-1">
@@ -140,14 +130,12 @@ export function DashboardSkeleton() {
   );
 }
 
-// ── NESTAi page skeleton ─────────────────────────────────────────────────────
+// ── NestAiSkeleton
 export function NestAiSkeleton() {
   return (
-    <div className="flex nestai-root nestai-page -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 sm:-mt-8 -mb-32 md:-mb-8">
+    <div className="flex nestai-root nestai-page -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 sm:-mt-8 -mb-36 md:-mb-8">
 
-      {/* Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r nestai-sidebar shrink-0">
-        {/* Sidebar header */}
         <div className="flex items-center justify-between px-3 py-3 border-b atelier-dropdown-header">
           <AtelierShimmer className="h-5 w-20 rounded" />
           <div className="flex gap-1">
@@ -155,7 +143,6 @@ export function NestAiSkeleton() {
             <AtelierShimmer className="h-7 w-7 rounded" />
           </div>
         </div>
-        {/* Session list */}
         <div className="flex-1 p-2 space-y-1">
           <AtelierShimmer className="h-3 w-12 rounded mb-2 mx-2" />
           {[...Array(6)].map((_, i) => (
@@ -166,10 +153,8 @@ export function NestAiSkeleton() {
         </div>
       </aside>
 
-      {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b nestai-topbar">
           <div className="flex items-center gap-2">
             <AtelierShimmer className="h-6 w-6 rounded-full" />
@@ -178,7 +163,6 @@ export function NestAiSkeleton() {
           <AtelierShimmer className="h-6 w-24 rounded-full" />
         </div>
 
-        {/* Empty state — hero headline + 4 cards */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
           <div className="w-full max-w-2xl flex flex-col items-center text-center space-y-8">
             <div className="space-y-4 w-full flex flex-col items-center">
@@ -197,7 +181,6 @@ export function NestAiSkeleton() {
           </div>
         </div>
 
-        {/* Input bar */}
         <div className="px-4 pb-4 pt-2 shrink-0">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center gap-2 rounded-2xl border nestai-input px-3 py-2.5">
@@ -212,11 +195,10 @@ export function NestAiSkeleton() {
   );
 }
 
-// ── Applications list skeleton — matches Atelier card design ─────────────────
+// ── ApplicationsSkeleton
 export function ApplicationsSkeleton() {
   return (
     <div>
-      {/* Header */}
       <div className="db-page-header">
         <div className="space-y-2">
           <AtelierShimmer className="h-14 w-56 rounded-lg" />
@@ -228,18 +210,19 @@ export function ApplicationsSkeleton() {
         </div>
       </div>
 
-      {/* Filter bar */}
-      <div className="bg-[#f4f3f1] rounded-xl p-4 flex flex-col lg:flex-row gap-3 mb-6">
-        <AtelierShimmer className="h-11 grow rounded-lg" />
-        <div className="flex gap-2">
-          {[...Array(4)].map((_, i) => (
-            <AtelierShimmer key={i} className="h-9 w-20 rounded-full" />
-          ))}
+      {/* Filter bar — 2-row on mobile (search / pills+sort), 1-row on lg+ */}
+      <div className="bg-[#f4f3f1] rounded-[0.875rem] p-3 flex flex-col lg:flex-row gap-2 mb-6 border border-[#dbc1b9]/12">
+        <AtelierShimmer className="h-10 w-full lg:w-72 rounded-[0.625rem] lg:shrink-0" />
+        <div className="flex items-center gap-2 min-w-0 lg:flex-1">
+          <div className="flex gap-1.5 flex-1 overflow-hidden">
+            {[...Array(4)].map((_, i) => (
+              <AtelierShimmer key={i} className="h-8 w-16 rounded-full shrink-0" />
+            ))}
+          </div>
+          <AtelierShimmer className="h-9 w-24 rounded-[0.625rem] shrink-0" />
         </div>
-        <AtelierShimmer className="h-11 w-44 rounded-lg" />
       </div>
 
-      {/* Cards — with left accent bar */}
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="db-app-card relative overflow-hidden pl-5 sm:pl-6">
@@ -268,17 +251,15 @@ export function ApplicationsSkeleton() {
   );
 }
 
-// ── Application detail skeleton — matches Atelier hero + grid ─────────────────
+// ── ApplicationDetailSkeleton
 export function ApplicationDetailSkeleton() {
   return (
     <div>
-      {/* Nav row */}
       <div className="flex items-center justify-between mb-8">
         <AtelierShimmer className="h-5 w-32 rounded" />
         <AtelierShimmer className="h-10 w-24 rounded-full" />
       </div>
 
-      {/* Hero */}
       <div className="bg-[#f4f3f1] rounded-2xl p-6 sm:p-8 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-start gap-6">
           <AtelierShimmer className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl shrink-0" />
@@ -294,11 +275,8 @@ export function ApplicationDetailSkeleton() {
         </div>
       </div>
 
-      {/* Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main col */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Details card */}
           <div className="db-content-card">
             <AtelierShimmer className="h-6 w-44 rounded mb-6" />
             <div className="grid sm:grid-cols-2 gap-5">
@@ -310,7 +288,6 @@ export function ApplicationDetailSkeleton() {
               ))}
             </div>
           </div>
-          {/* Interviews placeholder */}
           <div className="db-content-card space-y-3">
             <AtelierShimmer className="h-6 w-36 rounded mb-4" />
             {[...Array(2)].map((_, i) => (
@@ -325,7 +302,6 @@ export function ApplicationDetailSkeleton() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
           <div className="db-content-card space-y-4">
             <AtelierShimmer className="h-6 w-28 rounded mb-2" />
@@ -347,11 +323,10 @@ export function ApplicationDetailSkeleton() {
   );
 }
 
-// ── Generic page skeleton — Atelier style (interviews, reminders, contacts…) ──
+// ── GenericPageSkeleton
 export function GenericPageSkeleton() {
   return (
     <div>
-      {/* Atelier header */}
       <div className="db-page-header">
         <div className="space-y-2">
           <AtelierShimmer className="h-14 w-52 rounded-lg" />
@@ -360,13 +335,11 @@ export function GenericPageSkeleton() {
         <AtelierShimmer className="h-10 w-36 rounded-full" />
       </div>
 
-      {/* Section heading */}
       <div className="flex items-center gap-3 mb-5">
         <AtelierShimmer className="h-5 w-5 rounded" />
         <AtelierShimmer className="h-6 w-40 rounded" />
       </div>
 
-      {/* Content card */}
       <div className="db-content-card space-y-3">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="flex items-center gap-4 py-2">

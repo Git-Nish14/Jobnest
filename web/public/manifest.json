@@ -1,9 +1,9 @@
 {
   "name": "Jobnest - Track Your Job Applications",
   "short_name": "Jobnest",
-  "description": "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster. A product by Techifive.",
+  "description": "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster. A product by Nish Patel.",
   "start_url": "/",
-  "id": "jobnest-techifive",
+  "id": "jobnest-nishpatel",
   "display": "standalone",
   "background_color": "#faf9f7",
   "theme_color": "#99462a",

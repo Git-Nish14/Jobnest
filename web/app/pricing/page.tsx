@@ -422,12 +422,12 @@ export default async function PricingPage({
           <p className="text-xs landing-copyright">
             © {new Date().getFullYear()} Jobnest — a{" "}
             <a
-              href="https://techifive.com"
+              href="https://nishpatel.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="landing-techifive-link text-xs font-semibold"
+              className="landing-creator-link text-xs font-semibold"
             >
-              Techifive
+              Nish Patel
             </a>{" "}
             product. All rights reserved.
           </p>

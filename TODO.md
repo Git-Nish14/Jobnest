@@ -4,25 +4,6 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-## 🚨 Before Next Deploy — Run These First
-
-- [ ] **Run Supabase migrations 7, 8 + 9**
-  - Open Supabase dashboard → SQL editor
-  - Run `supabase/migrations/20240101000007_pending_deletions_improvements.sql` — fixes UNIQUE constraint, adds `delete_account` OTP purpose
-  - Run `supabase/migrations/20240101000008_chat_pin.sql` — adds `is_pinned` to `chat_sessions`
-  - Run `supabase/migrations/20240101000009_chat_message_metadata.sql` — adds `metadata` JSONB to `chat_messages` (for file attachment cards)
-
-- [ ] **Update `web/.env.local`**
-  - Add `NEXT_PUBLIC_APP_URL=https://jobnest.nishpatel.dev`
-  - Add `CRON_SECRET=<generate: openssl rand -hex 32>`
-  - Confirm `NEXT_PUBLIC_SITE_URL=https://jobnest.nishpatel.dev`
-
-- [ ] **Update Vercel environment variables** (Settings → Environment Variables)
-  - `NEXT_PUBLIC_APP_URL=https://jobnest.nishpatel.dev`
-  - `NEXT_PUBLIC_SITE_URL=https://jobnest.nishpatel.dev`
-  - `CRON_SECRET=<same value as .env.local>`
-  - Redeploy after adding
-
 ---
 
 ## 🔐 Auth
@@ -151,11 +132,11 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 📱 Responsive Design
 
-- [ ] **Mobile navigation** — bottom tab bar for most-used sections (Overview, Applications, Interviews, NESTAi)
-- [ ] **NESTAi sidebar on mobile** — full-screen drawer, swipe-to-open
-- [ ] **Application detail mobile layout** — stack two-column vertically, sticky action buttons
-- [ ] **Forms — mobile keyboard handling** — inputs not obscured by on-screen keyboard
-- [ ] **Table / list views** — horizontal scroll on small screens (interviews, salary, templates)
+- [x] **Mobile navigation** — bottom tab bar for most-used sections (Overview, Applications, Interviews, NESTAi)
+- [x] **NESTAi sidebar on mobile** — full-screen drawer, swipe-to-open
+- [x] **Application detail mobile layout** — stack two-column vertically, sticky action buttons
+- [x] **Forms — mobile keyboard handling** — viewport-fit=cover + safe-area insets applied
+- [x] **Table / list views** — horizontal scroll on small screens (salary table, template/interview views)
 
 ---
 
@@ -228,10 +209,153 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-## 📊 Analytics & Export
+## 🗄️ Application Sanctuary — Document Storage
+
+> Current: single `documents` bucket, PDF-only, 2 hard-coded slots (`resume_path` + `cover_letter_path`) per application, `upsert: true` destroys previous file, 1-hour signed URLs, no library.
+
+### Document Types & Formats
+- [ ] **Expand allowed MIME types** — add `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (DOCX), `text/plain`, `text/markdown`, `image/png`, `image/jpeg` to the storage bucket's `allowed_mime_types`; update `uploadFile` in `storage.ts` to validate client-side before upload
+- [ ] **Additional document slots** — beyond resume + cover letter, allow attaching: **Portfolio** (PDF/image), **Offer Letter**, **NDA / Contract**, **Take-home Assessment**, **Reference Letter**, **Background Check**; store as `application_documents` join table (`id`, `application_id`, `user_id`, `label`, `storage_path`, `mime_type`, `size_bytes`, `uploaded_at`) rather than hard-coded columns on `job_applications`
+- [ ] **Custom document label** — let the user name any uploaded file freely (e.g. "Senior Dev Resume v3", "Tailored CL for Google") instead of the fixed "resume" / "cover_letter" keys; 80-char max, shown on the document card
+
+### Document Versioning
+- [ ] **Version history** — change `upsert: true` → `upsert: false`; store each upload as a new path `{user_id}/{application_id}/{label}/{timestamp}_{filename}`; keep previous versions in DB with `is_current boolean`; show a "Versions" dropdown on the document card (latest + up to 5 previous)
+- [ ] **Version restore** — "Make this version current" action sets `is_current = true` on the chosen version row and flips all others to false; no file is ever deleted until user explicitly purges
+- [ ] **Version purge** — "Delete old versions" clears non-current versions from Supabase Storage + DB; show freed storage amount before confirming
+
+### Master Document Library (`/documents`)
+- [ ] **Global document library page** — new `/documents` route listing every file the user has ever uploaded across all applications; columns: name, type, application (linked), uploaded date, size; searchable + filterable by type
+- [ ] **Reusable document templates** — user uploads a "master" resume/cover letter once to the library (`is_master = true`, no `application_id`); when adding a new application, a "Use from library" picker auto-copies (no re-upload) the selected master to that application's slot via Supabase Storage `copy()` API
+- [ ] **Storage quota widget** — show `X MB used of Y MB total` (free: 50 MB, Pro: 2 GB) as a progress bar on the `/documents` page and in the profile sidebar; query Supabase `storage.objects` `metadata.size` sum per user
+- [ ] **Orphan cleanup** — cron job (weekly) identifies Storage objects whose `application_id` no longer exists (application deleted without cascading Storage delete); surface these to user as "unclaimed files" with a bulk-delete option
+
+### In-Browser Document Viewer
+- [ ] **Inline PDF viewer** — replace the current download-only `DocumentViewer` with an embedded viewer using `react-pdf` (PDF.js wrapper); render the PDF directly in a modal without leaving the page; page navigation controls (← 1/4 →), zoom slider
+- [ ] **Text document preview** — for DOCX/TXT/MD files, show extracted text in a styled scrollable panel (already have `document-parser.ts`); syntax highlight MD with a lightweight renderer
+- [ ] **Document annotation** — highlight and add sticky notes on PDF pages (stored in `document_annotations` table: `page`, `x`, `y`, `width`, `height`, `text`); useful for marking sections to reference in interviews
+
+### Access & Sharing
+- [ ] **Extend signed URL TTL** — increase default `createSignedUrl` expiry from 1 hour to 24 hours for download links; add a `/api/documents/refresh-url` endpoint that regenerates the URL on-demand when the link expires (called automatically when viewer gets a 403)
+- [ ] **Shareable document link** — "Share" button generates a time-limited public URL (via Supabase `createSignedUrl` with a long TTL + a `shared_links` DB table); user sets expiry (1 day / 7 days / 30 days); link can be revoked; useful for sending a resume directly to a recruiter
+- [ ] **Link analytics** — track how many times a shared link was accessed (`shared_link_views` table: `link_id`, `accessed_at`, `ip_hash`); show view count on the document card ("Viewed 3 times")
+
+### Smart Document Features
+- [ ] **ATS keyword scan** — on upload, run the resume text through a keyword extraction API (or NESTAi); compare against the application's job description (if stored); highlight missing keywords; show a match score badge on the document card
+- [ ] **Document diff** — compare two versions of a resume or cover letter side-by-side; show added (green) / removed (red) lines; helps users understand what changed between submissions
+- [ ] **Auto-fill from resume** — on new application creation, if user selects a resume from the library, parse it server-side (`document-parser.ts`) and pre-fill `position` inference, `skills` tags, and `salary_range` fields from the extracted text via NESTAi
+- [ ] **Cover letter variable substitution preview** — show a live preview of the cover letter with `{{company}}`, `{{position}}`, `{{contact_name}}` replaced by the actual application data; copy finalised text to clipboard
+
+### Cloud Import
+- [ ] **Google Drive import** — "Import from Google Drive" OAuth flow (scope: `drive.readonly`); file picker; download selected file to Supabase Storage directly server-side; no local download required
+- [ ] **Dropbox import** — Dropbox Chooser SDK; same server-side download pattern
+- [ ] **URL-based import** — paste a publicly accessible PDF URL (e.g. a Google Docs "export as PDF" link); server fetches and stores it; validate Content-Type is PDF before saving
+
+### Storage-Level Security
+- [ ] **Virus scan on upload** — pipe uploaded file bytes through ClamAV (via a Supabase Edge Function or a dedicated microservice) before writing to Storage; reject and delete if infected; surface "File failed security scan" error to user
+- [ ] **File content validation** — beyond MIME type check, verify PDF magic bytes (`%PDF`) server-side in `document-parser.ts` to prevent extension-spoofing attacks (e.g. a malicious `.js` renamed to `.pdf`)
+- [ ] **Per-application Storage RLS** — tighten Storage policy to also verify `application_id` in the path belongs to the authenticated user (currently only checks `user_id` folder prefix); requires a DB lookup in the policy or a pre-signed upload URL flow
+
+---
+
+## 🇺🇸 US Market — Entry & Junior Software Developer
+
+> These features are purpose-built for the specific reality of a new/junior US software developer job search: visa status, ATS-optimised resumes, technical interview prep, total compensation math, and the networking-heavy US hiring culture.
+
+---
+
+### 🛂 Work Authorization & Sponsorship
+
+- [ ] **Work authorization field on profile** — dropdown: US Citizen, Green Card, H1B, OPT (F-1), CPT, TN Visa, EAD (Other); stored in `user_metadata`; surfaced as a badge on the profile sidebar
+- [ ] **OPT expiry tracker** — if user selects OPT: prompt for OPT start date + 12-month expiry; show a countdown banner in the dashboard `X days until OPT expires`; STEM extension flag (+24 months); alert reminder 60/30/7 days before expiry
+- [ ] **Sponsorship flag per application** — boolean `requires_sponsorship` on `job_applications`; filter applications list by "Needs sponsorship"; companies that don't sponsor can be tagged automatically and warned on entry
+- [ ] **Sponsorship status on application card** — show a small "Visa" badge on application cards where sponsorship was required; lets users track sponsor-friendly companies
+- [ ] **H1B cap tracker** — informational card showing H1B lottery date (April each year), current cap status, and a reminder to set up petitions early; linked from the dashboard for OPT users
+
+---
+
+### 💰 US Total Compensation (TC) Calculator
+
+> The current `salary_details` table has `base_salary`, `bonus`, `equity`, `signing_bonus`, `401k`. None of these are combined into a true TC calculation anywhere.
+
+- [ ] **TC calculator card on `/salary`** — auto-compute annual TC = base + annual bonus + (equity / 4-year vest) + prorated signing bonus; displayed as the primary number on each row
+- [ ] **Equity / RSU vesting schedule** — structured input for RSU grants: total shares, grant date, cliff (1 year), vesting period (4 years), current stock price; computes Year 1–4 equity value; updates when price changes; store as `equity_details JSONB` on `salary_details`
+- [ ] **401(k) match calculator** — add `retirement_match_percent` + `retirement_match_cap` fields; calculate employer contribution at max; add to TC total; show "You're leaving $X on the table" if user doesn't max out match
+- [ ] **Cost of Living (CoL) normaliser** — for each application, store city + state; integrate with a free CoL API (Teleport / Numbeo); adjust TC to a common baseline (e.g. "equivalent to $X in Austin TX"); makes cross-city offer comparison meaningful
+- [ ] **Effective hourly rate** — TC ÷ (annual work hours - PTO days × 8); surface on salary comparison table; exposes that 15 days PTO at one company vs 25 at another is a meaningful TC difference
+- [ ] **State income tax estimator** — select state of work; estimate take-home after federal + state income tax using standard brackets (no API needed, just hard-coded 2025 tax tables); show net take-home on each offer row
+- [ ] **Benefits dollar value** — assign dollar values to benefits: health insurance (employer premium ~$7k/year), dental (~$500), vision (~$200), free meals, gym, commuter; add to TC total; source: IRS / KFF benchmark data
+- [ ] **Offer comparison PDF export** — generate a formatted 1-page PDF showing two offers side by side with TC breakdown, CoL adjustment, net take-home, and benefits; shareable with family / mentors
+
+---
+
+### 💻 Technical Interview Prep Hub (`/prep`)
+
+> Junior devs spend 50-70% of their job search time on technical prep. There is currently zero dedicated prep infrastructure.
+
+- [ ] **New `/prep` dashboard page** — central hub with progress rings for: DSA problems solved, system design topics covered, behavioral questions drafted, mock interviews completed
+- [ ] **LeetCode problem tracker** — `coding_problems` table: `title`, `url`, `difficulty` (Easy/Medium/Hard), `topic` (Array/String/Tree/Graph/DP/Heap/Backtracking/…), `status` (Todo/Attempted/Solved/Review), `company_tags TEXT[]`, `time_to_solve_minutes`, `notes`, `solution_url`, `last_reviewed_at`; filterable by topic, difficulty, company, status; spaced repetition "Review" queue (problems marked for review that haven't been visited in 7+ days float to top)
+- [ ] **Topic progress rings** — visualise DSA coverage: X/20 Array problems, X/15 Tree problems, X/10 DP problems solved; ring chart per topic; identifies weak areas
+- [ ] **Company question bank** — when user adds a `company_tag` on an application, `/prep` shows a filtered view of problems tagged for that company; sourced from user's own log + community-contributed common questions (curated, not scraped)
+- [ ] **Take-home assessment tracker** — `assessments` table: `application_id`, `platform` (HackerRank/CodeSignal/Codility/Custom), `assigned_at`, `deadline`, `time_limit_hours`, `tech_stack TEXT[]`, `status` (Pending/In Progress/Submitted/Passed/Failed), `score`, `feedback`, `time_spent_minutes`; deadline reminder auto-created; overdue detection on dashboard
+- [ ] **System design study log** — checklist of core topics (Load Balancer, CDN, Database Sharding, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL); mark each as Not Started / Reading / Comfortable; link to free resources (GitHub: system-design-primer)
+- [ ] **Behavioral question bank (STAR)** — `behavioral_answers` table: `question` (pre-seeded with top 30 behaviorals), `situation`, `task`, `action`, `result`, `word_count`, `last_updated`; NESTAi integration: "Improve my answer" polishes the STAR response; filter by competency (Leadership, Conflict, Failure, Achievement, Teamwork)
+- [ ] **Interview question log** — after each interview, user logs the actual questions asked (per interview record); over time builds a personal "question bank" by company and role type; NESTAi can suggest prep based on upcoming interview company's historical questions
+- [ ] **Mock interview scheduler** — schedule a mock interview session (date, partner contact, type: DSA / Behavioral / System Design); post-session: record score (1-5), key feedback, topics to revisit; feeds into `/prep` progress metrics
+- [ ] **Daily prep streak** — track consecutive days with at least 1 problem solved or 1 prep activity logged; streak counter on `/prep` header and dashboard widget; streak freeze (grace day) if user has an interview that day
+
+---
+
+### 🐙 Developer Portfolio & Identity
+
+- [ ] **GitHub integration** — OAuth scope `read:user,repo`; pull: username, avatar, bio, public repo count, top 6 pinned repos (name, description, language, stars, forks, URL); display as a "GitHub Profile" card on the user profile page; update daily via cron
+- [ ] **Project showcase** — `projects` table: `name`, `description`, `tech_stack TEXT[]`, `github_url`, `live_url`, `thumbnail_url` (Supabase Storage), `status` (In Progress/Complete), `is_featured`, `built_at`; show on profile; when adding an application, select which projects are most relevant and link them (stored as `application_projects` junction)
+- [ ] **Skills inventory** — `skills` table: `name`, `category` (Language/Framework/Database/Cloud/Tool/Soft), `proficiency` (Beginner/Intermediate/Advanced/Expert), `years_experience`, `last_used_at`; skill picker in profile; map against job description requirements in NESTAi's ATS scan
+- [ ] **Certifications tracker** — `certifications` table: `name` (AWS SAA, Google Cloud ACE, Meta React, etc.), `provider`, `credential_id`, `credential_url`, `issued_at`, `expires_at`; expiry reminders 60 days before; show on profile card
+- [ ] **Education section** — `education` table: `institution`, `degree` (BS/MS/Bootcamp/Associate/Self-taught), `field_of_study`, `gpa` (optional), `start_date`, `end_date`, `is_current`, `activities TEXT[]`; GPA only shown if ≥ 3.5 (user toggle); relevant for entry-level where GPA still matters to recruiters
+- [ ] **LinkedIn profile sync** — store LinkedIn profile URL (already in contacts schema); prompt user to add their own LinkedIn URL in profile; "LinkedIn Strength" score checklist (headline, summary, 3+ experiences, 5+ skills, photo, 500+ connections)
+- [ ] **Portfolio public page** — opt-in shareable `/p/{username}` page listing: name, title, GitHub stats, featured projects, skills, education, certifications; no job application data is visible; used as a link to share with recruiters instead of a personal website
+
+---
+
+### 🏢 Company Intelligence
+
+- [ ] **Company tier tagging** — enum on `job_applications`: FAANG/MAANG, Tier 2 (Stripe/Databricks/Figma/OpenAI tier), Tier 3 (mid-size), Startup (Series A-C), Startup (Pre-seed/Seed), Government/Non-profit; filter and analytics by tier
+- [ ] **Sponsorship reputation** — community-sourced boolean per company: "Sponsors H1B" (Yes / No / Unknown); pre-seeded list of top 500 US tech employers; user can flag/correct; surfaced as a badge when adding an application to a known company
+- [ ] **Interview process wiki** — after completing an interview loop, user can contribute their anonymised process (rounds, question types, timeline, outcome) to a per-company wiki visible to all users; e.g. "Google SWE E3: 1 phone screen, 5 onsite, 1 Googleyness round, 4-6 week timeline"
+- [ ] **Glassdoor / Blind sentiment** — link company name to Glassdoor search results page; show overall Glassdoor rating (fetched from a free public data source or user-input); "Work-life balance" and "CEO approval" sub-ratings for quick filtering
+- [ ] **Response rate by company tier** — dashboard analytics card: your average days-to-response for FAANG vs Tier 2 vs Startup; helps calibrate follow-up timing per tier
+
+---
+
+### 🤝 Networking & Referrals
+
+- [ ] **Referral tracker** — `referrals` table: `application_id`, `referrer_contact_id`, `referral_status` (Requested/Submitted/Pending/Converted), `referral_date`, `notes`; show "Referred" badge on application cards; analytics: referred applications have X% higher response rate vs cold applications
+- [ ] **LinkedIn outreach log** — per contact: track outreach status (Not Contacted / Connection Request Sent / Connected / Message Sent / Replied / Coffee Chat Scheduled / Referral Requested); templated outreach messages in email templates (new category "Networking")
+- [ ] **Alumni mapper** — user inputs their school(s) / bootcamp; system highlights contacts who attended the same institution (match on `education.institution` vs contact notes); alumni connections are prioritised in outreach suggestions
+- [ ] **Coffee chat tracker** — `coffee_chats` table: `contact_id`, `scheduled_at`, `medium` (Zoom/Phone/In-person), `status`, `agenda`, `notes`, `follow_up_sent`; reminder auto-created 1 hour before; post-chat: log key takeaways and referral outcome
+- [ ] **Connection goal widget** — set a weekly LinkedIn outreach goal (e.g. "5 new connections this week"); track against it in the dashboard; prompt with suggested contacts from target companies in the user's application list
+
+---
+
+### 🎯 Application Quality & ATS
+
+- [ ] **Job description store** — `job_description TEXT` field on `job_applications` (currently only `job_url` exists); paste or import the full JD text; powers ATS scan, keyword extraction, and NESTAi tailoring
+- [ ] **ATS compatibility score** — on resume upload: parse resume text + stored JD text → compute keyword overlap score (0-100); show as a score badge on the application card and document card; list top 5 missing keywords with suggested insertion points
+- [ ] **Resume tailoring checklist** — per application: checkbox list auto-generated from JD: "Mention React (in JD, not in resume)", "Quantify your impact at Company X", "Remove unrelated experience"; persist completion state in `application_metadata JSONB`
+- [ ] **Application completeness score** — score each application out of 10: +1 resume, +1 cover letter, +1 JD stored, +1 salary range, +1 contact linked, +1 job URL, +1 tags, +1 follow-up reminder set, +1 interview scheduled, +1 notes; display as a ring on the application card; incomplete apps surfaced on dashboard
+- [ ] **Follow-up cadence enforcer** — after application submitted: auto-create follow-up reminders at Day 7 and Day 14 if no status change; if status still "Applied" at Day 21, surface a "No response" nudge with suggested next action (connect on LinkedIn, email recruiter, mark as ghosted)
+- [ ] **"Ghosted" status** — add `Ghosted` to `application_status` enum; auto-suggest after 30 days with no activity; analytics: % ghosted by company tier, job board source, season
+- [ ] **Application source tracking** — `source` field on `job_applications`: LinkedIn Easy Apply, Indeed, Company Website, Referral, Recruiter Outreach, Job Fair, Wellfound, Dice, Handshake, Other; analytics: which source has highest response rate for this user
+
+---
+
+### 📊 Analytics & Export
 
 - [ ] **Richer dashboard analytics** — avg time to first response, interview-to-offer rate, most common rejection stage
-- [ ] **Export improvements** — salary + tags in CSV/JSON, PDF summary per application
+- [ ] **US job search funnel** — visualise: Applied → Responded → Phone Screen → Technical → Onsite → Offer → Accepted; industry benchmark overlays (average conversion rates for entry-level SWE in the US); compare user's funnel vs benchmark
+- [ ] **Weekly cadence report** — how many applications submitted this week vs goal; response rate trend; interview velocity (interviews per week); productivity chart; exportable as PDF
+- [ ] **Salary benchmarking** — compare user's offers vs aggregated anonymised salary data from other Jobnest Pro users (same role, same city, same YOE range); "Your offer is in the Xth percentile for SWE-1 in San Francisco" — requires consent opt-in
+- [ ] **Export improvements** — salary + tags in CSV/JSON, PDF summary per application; **new**: export entire job search history as a single PDF report with charts (application funnel, salary breakdown, timeline)
 
 ---
 
@@ -282,6 +406,176 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## 💳 Billing & Payments (Stripe)
+
+> Subscriptions table + pricing page exist. Stripe webhooks and plan enforcement are not yet wired.
+
+- [ ] **Stripe Checkout / Payment Links** — wire "Upgrade to Pro" button through `stripe.checkout.sessions.create`; redirect to `/api/stripe/checkout` then back to `/pricing?success=1`
+- [ ] **Stripe webhook handler** (`/api/stripe/webhook`) — verify `stripe-signature`, handle events:
+  - `checkout.session.completed` → upsert `subscriptions` row, set `plan=pro`, `status=active`
+  - `customer.subscription.updated` → sync `status`, `current_period_end`, `cancel_at_period_end`
+  - `customer.subscription.deleted` → downgrade to `plan=free`
+  - `invoice.payment_failed` → set `status=past_due`, send dunning email
+- [ ] **Plan enforcement middleware** — check `subscriptions.plan` server-side before serving Pro-only features; return 402 if free user hits a gated route
+- [ ] **Billing portal** — `stripe.billingPortal.sessions.create` link on profile page so users can cancel, update card, or download invoices themselves
+- [ ] **Dunning emails** — send payment failed + retry reminder emails (day 1, 3, 7) before downgrading
+- [ ] **Trial period** — `trial_end` column on subscriptions; enforce 14-day trial for new Pro signups; email 3 days before expiry
+- [ ] **Student discount flow** — verify `.edu` email or upload proof; apply coupon via `stripe.promotionCodes`; surface on pricing page
+- [ ] **Annual plan toggle** — `STRIPE_PRO_ANNUAL_PRICE_ID` env var already referenced in `isStripeAnnualConfigured`; wire monthly ↔ annual toggle on pricing page to use the correct Price ID
+- [ ] **Proration handling** — mid-cycle upgrades/downgrades should prorate correctly; test with Stripe CLI
+
+---
+
+## 📈 Scalability & Infrastructure (1 M+ users)
+
+- [ ] **Redis-backed rate limiting** — replace `lib/security/rate-limit.ts` in-memory store with [Upstash Redis](https://upstash.com) (`@upstash/ratelimit`); share state across all Vercel function instances and survive cold starts
+- [ ] **Redis document-parse cache** — move `document-parser.ts` LRU cache to Upstash Redis; `CACHE_TTL=1h`; key = SHA-256 of file bytes
+- [ ] **Database connection pooling** — route Supabase connections through **PgBouncer** (Supabase's built-in pooler at port 6543) to prevent connection exhaustion at high concurrency
+- [ ] **CDN & asset optimisation** — ensure `next/image` uses Vercel Image Optimisation CDN; add far-future `Cache-Control` headers on `/public` static assets; consider Cloudflare in front of Vercel for global edge caching
+- [ ] **Cursor-based pagination** — replace `OFFSET` queries in `/applications`, `/interviews`, `/contacts` with `WHERE id < $cursor ORDER BY id DESC LIMIT 25`; add infinite-scroll or "Load more" UI
+- [ ] **Full-text search** — add `tsvector` column on `job_applications(company, position, notes)` with `GIN` index; expose `/api/search?q=` endpoint for fast keyword search across all user data
+- [ ] **Background job queue** — move heavy operations (PDF parse, email sending, AI calls) off the request path; use [Trigger.dev](https://trigger.dev) or Vercel Queue; prevents Vercel 10s timeout on large uploads
+- [ ] **Vercel Edge Config** — store feature flags and plan limits in Edge Config for zero-latency reads without a DB round-trip
+- [ ] **Supabase read replica** — enable read replica in Supabase dashboard for analytics queries; route dashboard stat queries to replica to offload primary
+
+---
+
+## 🔭 Observability & Reliability
+
+- [ ] **Sentry** — integrate `@sentry/nextjs`; capture unhandled server errors, client errors, and slow API routes (> 2s); set `tracesSampleRate: 0.1` in production
+- [ ] **Structured server logging** — replace `console.log` with [Pino](https://github.com/pinojs/pino); emit JSON logs to Vercel Log Drains → Datadog / Logtail / Better Stack
+- [ ] **Web Vitals dashboard** — send `reportWebVitals` data to a `/api/vitals` collector or Vercel Speed Insights; alert if LCP > 2.5 s
+- [ ] **Uptime monitoring** — add external synthetic checks on `/api/health` (Checkly / Better Uptime / UptimeRobot); page on-call channel if p99 > 3 s or error rate > 1%
+- [ ] **`/api/health` endpoint** — liveness + readiness probe; checks: Supabase ping, SMTP connectivity, Groq API reachability; returns `{ ok: true, checks: {...} }`
+- [ ] **Alerting** — Slack / PagerDuty alerts for: Stripe webhook failures, cron job failures, error rate spikes, DB connection pool exhaustion
+- [ ] **Audit log table** — structured `audit_events` table (actor, action, resource_type, resource_id, ip, timestamp); capture all mutating API calls for compliance and debugging
+
+---
+
+## 🚀 Performance
+
+- [ ] **Static public pages** — convert `/`, `/pricing`, `/privacy`, `/terms`, `/contact` to SSG (`export const dynamic = "force-static"`); currently `force-dynamic` on pricing due to auth check — split into static shell + client-side auth hydration
+- [ ] **Bundle analysis** — run `ANALYZE=true npm run build` (via `@next/bundle-analyzer`); identify and code-split any chunk > 100 kB
+- [ ] **Partial Prerendering (PPR)** — enable Next.js PPR on dashboard pages; static shell renders instantly, dynamic data streams in
+- [ ] **Image optimisation** — compress and convert all landing page illustrations to WebP/AVIF; add `width`/`height` to all `<Image>` tags to eliminate CLS
+- [ ] **Preload critical fonts** — verify Newsreader + Manrope `font-display: swap` is preventing FOIT; add `<link rel="preload">` for above-the-fold font weights
+- [ ] **Service Worker / PWA** — add `next-pwa` or `@ducanh2912/next-pwa`; cache shell + static assets offline; add `manifest.json` install prompt; enables "Add to Home Screen" on mobile
+
+---
+
+## 🤖 NESTAi — AI Enhancements
+
+- [ ] **Model fallback chain** — if Groq is unavailable / rate-limited, fall back to `llama-3.1-8b-instant` (faster) then surface a "degraded mode" banner; prevents total AI outage
+- [ ] **Per-plan AI rate limits** — free: 5 req/min (current), Pro: 30 req/min; enforce server-side based on `subscriptions.plan`
+- [ ] **Cost guardrails** — track token usage per user per day in `ai_usage` table; hard-cap at 100k tokens/day for free, 2M for Pro; alert when approaching 80%
+- [ ] **RAG over user data** — generate `pgvector` embeddings for applications, interview notes, and contacts; semantic similarity search at query time gives NESTAi far richer context than flat JSON injection
+- [ ] **Resume analyser** — dedicated flow: user uploads resume → NESTAi grades it against ATS criteria, suggests improvements, extracts skills/experience to pre-fill application fields
+- [ ] **Job description parser** — paste a JD URL or text → NESTAi extracts company, role, salary range, requirements; auto-fills a new application; highlights skill gaps vs. user profile
+- [ ] **Interview prep mode** — given an application + job description, NESTAi generates role-specific STAR questions, evaluates user's draft answers, and suggests improvements
+- [ ] **Email draft assistant** — given a contact + template category, NESTAi drafts a personalised follow-up or thank-you email; user can copy or send directly
+- [ ] **Conversation export** — download a chat session as PDF or Markdown; useful for saving interview prep sessions
+- [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
+
+---
+
+## 🌱 Growth & Retention
+
+- [ ] **Onboarding flow** — first-login wizard (3 steps: add first application → set "About Me" → invite contact); `onboarding_completed` flag in user metadata; skip option
+- [ ] **Empty state CTAs** — when `/applications` is empty and user is new, show a guided "Add your first application" walkthrough card instead of the standard empty state
+- [ ] **Referral system** — `referrals` table; unique referral link per user; referred user gets 1-month Pro trial; referrer gets 1 free month after referee converts; track in dashboard
+- [ ] **Feature flags** — integrate Vercel Edge Config or [Unleash](https://www.getunleash.io/) for runtime feature toggles; enable gradual rollout of new features to % of users without redeploy
+- [ ] **A/B testing** — use Vercel Experiments or custom `x-variant` cookie + Edge Config; start with pricing page CTA button copy and plan layout
+- [ ] **Weekly digest email** — prefs toggle already exists; build the actual cron (`/api/cron/weekly-digest`) that sends a personalised summary: applications this week, upcoming interviews, overdue reminders
+- [ ] **Re-engagement emails** — if user hasn't logged in for 14 days, send "Your job search is waiting" email with dashboard stats snapshot; unsubscribe link required
+- [ ] **NPS / in-app feedback** — show a 1-question NPS survey after 7 days of use and after major events (first offer recorded, account upgrade); store responses in `feedback` table
+- [ ] **Changelog / "What's new"** — badge on nav when there's an unseen update; modal with release notes; dismisses per-user via `localStorage`
+
+---
+
+## 🔗 Integrations & Ecosystem
+
+- [ ] **Chrome / Edge browser extension** — "Save to Jobnest" button on LinkedIn, Indeed, Glassdoor job pages; scrapes title, company, URL, salary; opens pre-filled "Add Application" side-panel via the Jobnest API
+- [ ] **LinkedIn job import** — paste LinkedIn job URL → server-side fetch + parse (company, role, description, location, salary) → pre-fill application form
+- [ ] **Google Calendar sync** — OAuth scope `calendar.events`; on interview creation, create a Google Calendar event with meeting URL and notes; sync updates/cancellations
+- [ ] **Public REST API** (`/api/v1/`) — JWT-authenticated CRUD for applications, interviews, contacts; documented with OpenAPI 3.1; rate-limited per API key; enables Zapier / Make / n8n integrations
+- [ ] **Zapier / Make native integration** — publish a Jobnest app on Zapier; triggers: "New Application", "Interview Scheduled"; actions: "Add Application", "Update Status"
+- [ ] **CSV bulk import** — upload a CSV of applications (from LinkedIn "Applied Jobs" export or spreadsheet); map columns wizard; validate + preview before commit
+
+---
+
+## 🎨 Feature Expansion
+
+- [ ] **Kanban board view** — drag-and-drop Kanban across application statuses (Applied → Phone Screen → Interview → Offer → Accepted/Rejected); alternative to the current list view; toggle between views
+- [ ] **Dark mode** — CSS variable swap (dark parchment palette); `prefers-color-scheme` media query + manual toggle; persist preference in `localStorage`; currently light-only
+- [ ] **Application status timeline** — visual swimlane showing days elapsed at each stage across all active applications; identify bottlenecks
+- [ ] **Company research panel** — in application detail, pull company info (size, industry, Glassdoor rating, news) from a public API (Clearbit, Crunchbase, or OpenCorporates); display as a collapsible sidebar panel
+- [ ] **Offer decision helper** — compare up to 3 offers side-by-side with weighted scoring (salary, benefits, location, culture, growth); helps users make data-driven decisions
+- [ ] **Document versioning** — keep previous resume/cover letter versions per application; label each version (v1, v2, tailored); view diff; avoids overwriting working documents
+- [ ] **Reminder recurrence** — weekly / biweekly recurring reminders (e.g. "Check LinkedIn connections every Monday"); `rrule` column on reminders table
+- [ ] **Global command palette** — `⌘K` / `Ctrl+K` opens a Spotlight-style palette; search across all applications, contacts, sessions; quick-navigate to any page; add new application / interview inline
+- [ ] **Bulk actions** — checkboxes on applications list; bulk status-change, bulk delete, bulk export; essential once users have 100+ applications
+- [ ] **Application duplication** — "Duplicate application" action; useful for re-applying to the same role at a different company branch or after a failed attempt
+
+---
+
+## ♿ Accessibility & Internationalisation
+
+- [ ] **WCAG 2.1 AA audit** — run [axe-core](https://github.com/dequelabs/axe-core) automated scan + manual keyboard-nav pass on every page; fix all critical / serious violations before launch
+- [ ] **Skip-to-content link** — `<a href="#main-content">` as first focusable element; critical for screen reader and keyboard-only users
+- [ ] **Focus management on route change** — on SPA navigation, move focus to the new `<h1>` so screen readers announce the new page
+- [ ] **ARIA live regions** — toast notifications and streaming NESTAi responses should be wrapped in `role="status"` / `aria-live="polite"` so screen readers announce them
+- [ ] **Colour contrast audit** — verify terracotta `#99462a` on parchment `#faf9f7` meets AA (4.5:1 for normal text, 3:1 for large); fix any failing combinations
+- [ ] **i18n foundation** — add `next-intl`; externalise all UI strings to `messages/en.json`; add locale routing (`/en/`, `/es/`) even if only English ships initially — retrofitting i18n later is expensive
+- [ ] **RTL support** — once i18n is in place, add `dir="rtl"` CSS mirroring for Arabic / Hebrew; Tailwind 4 has RTL utilities
+
+---
+
+## 🛡️ Security — Additional Hardening
+
+- [ ] **Content Security Policy tightening** — current CSP allows `'unsafe-inline'` styles; move to nonce-based or hash-based CSP; eliminates the largest remaining XSS attack surface
+- [ ] **Subresource Integrity (SRI)** — add `integrity` hashes to any third-party `<script>` / `<link>` tags loaded from CDNs
+- [ ] **Secrets scanning in CI** — add [truffleHog](https://github.com/trufflesecurity/trufflehog) or GitHub Advanced Security secret scanning to CI pipeline; block PRs that accidentally commit API keys
+- [ ] **Dependency update automation** — enable Dependabot or Renovate for weekly automated PRs on npm + GitHub Actions dependencies; keep supply chain fresh
+- [ ] **Security.txt** (`/.well-known/security.txt`) — disclose responsible disclosure policy and contact email; required by many bug bounty programs and enterprise customers
+- [ ] **WAF** — put Cloudflare WAF in front of Vercel; enable OWASP Core Rule Set; add geo-blocking for high-abuse regions; bot management for scraping protection
+- [ ] **Penetration test** — engage a third-party pentest firm before reaching 10k users; focus on auth flows, file upload, API, and Stripe webhook signature bypass
+
+---
+
+## 📋 Compliance & Data Governance
+
+- [ ] **GDPR data export** — `/api/profile/export-data` endpoint; returns ZIP of all user data (applications, interviews, contacts, chat history, salary) as JSON + CSV; must respond within 30 days of request (GDPR Art. 20)
+- [ ] **Right to erasure verification** — after account deletion cron runs, verify all user data is purged including Supabase Storage objects, Stripe customer, and any Redis cache keys
+- [ ] **Data Processing Agreement (DPA)** — publish a DPA on the website for EU business customers; required by GDPR when a controller uses a processor
+- [ ] **CCPA compliance** — add "Do Not Sell My Personal Information" link in footer (California requirement); even if you don't sell data, the link + opt-out mechanism is legally required for California users
+- [ ] **Accessibility statement** — publish conformance level, known exceptions, and contact for accommodation requests; required for public-sector customers in many jurisdictions
+- [ ] **Cookie consent banner** — see Legal section above; wire consent to `window.dataLayer` / analytics initialisation so no tracking fires before consent
+- [ ] **SOC 2 Type I** — begin evidence collection (access logs, change management, incident response runbook) for SOC 2 audit; required by enterprise HR/recruiting customers
+
+---
+
+## 🧪 Testing at Scale
+
+- [ ] **Playwright E2E** — add `tests/e2e/` suite covering critical happy paths in a real Chromium browser: sign-up → add application → upgrade to Pro → export CSV → delete account; run in CI against a staging Supabase project
+- [ ] **Visual regression** — integrate [Percy](https://percy.io) or [Chromatic](https://www.chromatic.com) with Playwright snapshots; catch unintended UI regressions on every PR
+- [ ] **Load testing** — run [k6](https://k6.io) or [Artillery](https://www.artillery.io) load tests against staging; target: 500 concurrent users, p95 response < 800ms; run before every major release
+- [ ] **Contract testing** — add [MSW](https://mswjs.io) handlers for Stripe and Groq API responses in tests; ensures the app doesn't break silently when third-party APIs change
+- [ ] **Chaos engineering** — simulate Supabase unavailability, Groq timeout, and Redis eviction in staging; verify graceful degradation and error messages
+- [ ] **Test coverage gate** — enforce minimum 80% statement coverage in CI (`vitest --coverage`); block merges that reduce coverage
+
+---
+
+## 🔍 SEO & Discovery
+
+- [ ] **Sitemap** (`/sitemap.xml`) — auto-generated via `next-sitemap`; include all public pages (`/`, `/pricing`, `/privacy`, `/terms`, `/contact`); exclude all authenticated routes
+- [ ] **`robots.txt`** — disallow `/dashboard`, `/api`, `/auth`; allow all public pages; submit sitemap URL to Google Search Console
+- [ ] **OpenGraph & Twitter Card meta** — custom OG image per page (branded 1200×630 template with Jobnest logo + page title); `og:description`, `og:type`; use `next/og` for dynamic images
+- [ ] **Schema.org structured data** — add `WebApplication`, `SoftwareApplication`, and `FAQPage` JSON-LD on landing and pricing pages; improves rich results in Google
+- [ ] **Core Web Vitals** — target: LCP < 2.5 s, INP < 200 ms, CLS < 0.1 on all public pages; measure with `@vercel/speed-insights`; fix before indexing push
+- [ ] **Blog / content hub** (`/blog`) — 3-5 SEO-targeted articles (e.g. "How to track job applications", "Best job search tools 2026"); drives organic traffic and internal links to pricing
+
+---
+
 ## 🐛 Known Issues
 
 - [ ] Document parse cache is in-memory — lost on server restart
@@ -290,4 +584,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: March 2026 — full Intellectual Atelier UI/UX revamp shipped site-wide (all dashboard + public pages), CSS variable system refactored to terracotta primary, all list/form/dialog components rewritten with atelier tokens, 253 tests all passing*
+*Last updated: March 2026 — 1M+ production roadmap added: Stripe billing wiring, Redis scalability, Sentry observability, RAG for NESTAi, Playwright E2E, GDPR export, browser extension, Kanban view, dark mode, i18n foundation, WCAG audit, SEO/sitemap, SOC 2 evidence collection*

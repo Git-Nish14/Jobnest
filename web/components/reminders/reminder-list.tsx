@@ -107,6 +107,7 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
               className="db-complete-btn shrink-0 mt-0.5"
               onClick={() => handleComplete(reminder.id)}
               disabled={loadingId === reminder.id}
+              aria-label={`Mark "${reminder.title}" as complete`}
               title="Mark as complete"
             >
               <CheckCircle2 className="h-3.5 w-3.5 text-[#dbc1b9]" />

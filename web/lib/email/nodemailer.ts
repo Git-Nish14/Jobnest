@@ -76,7 +76,7 @@ If you didn't request this code, you can safely ignore this email.
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel product
       `,
       html: `
 <!DOCTYPE html>
@@ -112,7 +112,7 @@ A Techifive Product
     <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
       Best regards,<br>
       <strong>The Jobnest Team</strong><br>
-      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
     </p>
   </div>
 </body>
@@ -164,7 +164,7 @@ We'll send you reminders every 7 days until then.
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel product
       `,
       html: `
 <!DOCTYPE html>
@@ -192,7 +192,7 @@ A Techifive Product
     </div>
     <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
       Best regards,<br><strong>The Jobnest Team</strong><br>
-      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
     </p>
   </div>
 </body>
@@ -233,7 +233,7 @@ If you take no action, all your data will be permanently deleted on ${deletionDa
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel product
       `,
       html: `
 <!DOCTYPE html>
@@ -256,7 +256,7 @@ A Techifive Product
     <p style="color: #6b7280; font-size: 14px;">After ${deletionDate}, your account and all data (applications, interviews, contacts, salary data, and more) will be <strong>permanently deleted</strong> and cannot be recovered.</p>
     <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
       Best regards,<br><strong>The Jobnest Team</strong><br>
-      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
     </p>
   </div>
 </body>
@@ -294,7 +294,7 @@ This is your last chance to cancel. Sign in at ${appUrl}/login within the next 2
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel product
       `,
       html: `
 <!DOCTYPE html>
@@ -318,7 +318,7 @@ A Techifive Product
     </div>
     <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
       Best regards,<br><strong>The Jobnest Team</strong><br>
-      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
     </p>
   </div>
 </body>
@@ -353,7 +353,7 @@ Welcome back!
 
 Best regards,
 The Jobnest Team
-A Techifive Product
+A Nish Patel product
       `,
       html: `
 <!DOCTYPE html>
@@ -371,7 +371,7 @@ A Techifive Product
     <p style="color: #6b7280; font-size: 14px;">If you'd like to delete your account again in the future, you can do so from your Profile settings.</p>
     <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
       Best regards,<br><strong>The Jobnest Team</strong><br>
-      <span style="font-size: 11px;">A <a href="https://techifive.com" style="color: #3b82f6;">Techifive</a> Product</span>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
     </p>
   </div>
 </body>

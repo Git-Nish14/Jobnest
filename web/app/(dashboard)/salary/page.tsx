@@ -69,8 +69,8 @@ export default async function SalaryComparisonPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="db-scroll-x">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr>
                       <th className="text-left py-3 px-3 text-xs font-bold uppercase tracking-widest text-[#55433d]/60 border-b border-[#dbc1b9]/20">Company</th>

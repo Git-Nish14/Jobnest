@@ -101,14 +101,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   const isAuthenticated = !!user;
 
-  /**
-   * Sign out via server action.
-   *
-   * useTransition gives us isPending for free — no extra state needed.
-   * The server action clears the session cookies and issues a server-side
-   * redirect to /login in one round-trip, with no timing gap or RSC cache
-   * races. isPending stays true until the redirect lands.
-   */
   const handleSignOut = () => {
     sessionStorage.removeItem("jobnest_session");
     startTransition(async () => {
@@ -119,14 +111,12 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
   const userEmail = user?.email || "";
 
-  // ── Authenticated dashboard navbar ─────────────────────────────────────────
   if (isAuthenticated && isDashboardPage) {
     return (
       <>
         <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
-              {/* Left: Logo + Nav */}
               <div className="flex items-center gap-6">
                 <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
                   <Image
@@ -140,7 +130,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                 </Link>
 
-                {/* Desktop Navigation */}
                 <nav className="hidden lg:flex items-center">
                   <ul className="flex items-center gap-0.5">
                     {dashboardLinks.map((link) => {
@@ -167,7 +156,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 </nav>
               </div>
 
-              {/* Right: Profile dropdown */}
               <div className="flex items-center gap-2">
                 {mounted && (
                   <DropdownMenu>
@@ -229,7 +217,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   </DropdownMenu>
                 )}
 
-                {/* Mobile Menu Button */}
                 <button
                   type="button"
                   className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-[#dbc1b9]/20 transition-colors"
@@ -244,7 +231,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           </div>
         </nav>
 
-        {/* Mobile Slide-out Menu */}
         {mobileMenuOpen && (
           <>
             <div
@@ -325,7 +311,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     );
   }
 
-  // ── Public navbar (contact, privacy, terms, pricing pages) ─────────────────
   return (
     <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
@@ -341,7 +326,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           <span className="text-xl atelier-nav-logo">Jobnest</span>
         </Link>
 
-        {/* Desktop nav */}
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
             <>
@@ -375,7 +359,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           )}
         </div>
 
-        {/* Mobile menu button */}
         <button
           type="button"
           className="sm:hidden p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
@@ -386,7 +369,6 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="sm:hidden border-t border-[#dbc1b9]/20 bg-[#faf9f7] px-4 py-4 space-y-2">
           {isAuthenticated ? (
