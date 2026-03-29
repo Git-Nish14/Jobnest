@@ -7,9 +7,10 @@ import {
 import { getApplicationById, getInterviews, getActivityLogs } from "@/services";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/utils/storage";
-import { DocumentViewer } from "@/components/ui";
 import { InterviewList } from "@/components/interviews";
 import { ActivityTimeline } from "@/components/activity";
+import { DocumentManager } from "@/components/documents";
+import type { LegacyDoc } from "@/components/documents/DocumentManager";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -47,13 +48,18 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
   if (error || !application) notFound();
 
+  // Bridge legacy resume_path / cover_letter_path into LegacyDoc shape so
+  // DocumentManager can display them alongside new application_documents rows.
   const supabase = await createClient();
-  const resumeUrl = application.resume_path
-    ? await getSignedUrl(supabase, application.resume_path)
-    : null;
-  const coverLetterUrl = application.cover_letter_path
-    ? await getSignedUrl(supabase, application.cover_letter_path)
-    : null;
+  const legacyDocs: LegacyDoc[] = [];
+  if (application.resume_path) {
+    const url = await getSignedUrl(supabase, application.resume_path);
+    if (url) legacyDocs.push({ label: "Resume", path: application.resume_path, signedUrl: url, mimeType: "application/pdf" });
+  }
+  if (application.cover_letter_path) {
+    const url = await getSignedUrl(supabase, application.cover_letter_path);
+    if (url) legacyDocs.push({ label: "Cover Letter", path: application.cover_letter_path, signedUrl: url, mimeType: "application/pdf" });
+  }
 
   const formattedDate = new Date(application.applied_date).toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -234,33 +240,8 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         {/* ── Sidebar ── */}
         <div className="space-y-6">
 
-          {/* Documents */}
-          <section className="db-content-card">
-            <h2 className="db-headline text-xl font-semibold text-[#1a1c1b] mb-4">Documents</h2>
-            <div className="space-y-3">
-              {application.resume_path && resumeUrl ? (
-                <DocumentViewer
-                  path={application.resume_path}
-                  downloadUrl={resumeUrl}
-                  title="Resume"
-                  type="resume"
-                />
-              ) : (
-                <p className="text-sm text-[#55433d]/60 italic">No resume uploaded</p>
-              )}
-
-              {application.cover_letter_path && coverLetterUrl ? (
-                <DocumentViewer
-                  path={application.cover_letter_path}
-                  downloadUrl={coverLetterUrl}
-                  title="Cover Letter"
-                  type="cover_letter"
-                />
-              ) : (
-                <p className="text-sm text-[#55433d]/60 italic">No cover letter uploaded</p>
-              )}
-            </div>
-          </section>
+          {/* Documents — versioned, multi-type, with share and preview */}
+          <DocumentManager applicationId={id} legacyDocs={legacyDocs} />
 
           {/* Activity Timeline */}
           <ActivityTimeline activities={activityLogs || []} />
