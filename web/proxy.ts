@@ -14,6 +14,7 @@ const publicRoutes = new Set([
   "/contact",
   "/privacy",
   "/terms",
+  "/cookies",
   "/pricing",
 ]);
 
@@ -22,7 +23,7 @@ const publicRoutes = new Set([
 // could accidentally match unrelated routes (e.g. "/api/contact" would also
 // match a hypothetical "/api/contact-admin").
 const publicApiRoutes = new Set(["/api/contact"]);
-const publicApiPrefixes = ["/api/auth/"];
+const publicApiPrefixes = ["/api/auth/", "/api/documents/shared/"];
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");

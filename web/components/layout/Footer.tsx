@@ -137,6 +137,14 @@ export function Footer({ variant = "simple" }: FooterProps) {
                     Terms of Use
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/cookies"
+                    className="transition-colors hover:text-foreground"
+                  >
+                    Cookie Policy
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -244,6 +252,12 @@ export function Footer({ variant = "simple" }: FooterProps) {
               className="transition-colors hover:text-foreground"
             >
               Terms
+            </Link>
+            <Link
+              href="/cookies"
+              className="transition-colors hover:text-foreground"
+            >
+              Cookies
             </Link>
             <a
               href="https://github.com/Git-Nish14/Jobnest"

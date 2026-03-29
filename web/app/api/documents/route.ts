@@ -2,113 +2,117 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { z } from "zod";
 
-// Document path validation - must be userId/applicationId/filename format
-const pathSchema = z
-  .string()
-  .min(1, "Path is required")
-  .refine(
-    (path) => {
-      const parts = path.split("/");
-      // Must have exactly 3 parts: userId, applicationId, filename
-      if (parts.length !== 3) return false;
-      // Each part must be non-empty
-      if (parts.some((p) => !p)) return false;
-      // Filename must have an extension
-      if (!parts[2].includes(".")) return false;
-      return true;
-    },
-    { message: "Invalid document path format" }
-  );
+/**
+ * Validate and parse a Supabase Storage path for the documents bucket.
+ *
+ * Supported formats:
+ *   Legacy  (3 parts): {userId}/{applicationId}/{filename.ext}
+ *   Versioned (4 parts): {userId}/{applicationId|"library"}/{label}/{timestamp_filename.ext}
+ *
+ * Returns parsed parts or null if invalid.
+ */
+function parsePath(path: string): {
+  userId: string;
+  scope: string;          // applicationId or "library"
+  filename: string;       // last segment (must have an extension)
+  isLibrary: boolean;
+} | null {
+  if (!path) return null;
+  const parts = path.split("/");
+
+  // Allow 3-part legacy paths and 4-part versioned paths only
+  if (parts.length !== 3 && parts.length !== 4) return null;
+  if (parts.some((p) => !p)) return null;
+
+  const filename = parts.at(-1)!;
+  if (!filename.includes(".")) return null;          // must have an extension
+
+  const userId = parts[0];
+  const scope  = parts[1];                           // applicationId or "library"
+  const isLibrary = scope === "library";
+
+  return { userId, scope, filename, isLibrary };
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const path = searchParams.get("path");
 
-    // Validate path exists
-    if (!path) {
-      throw ApiError.badRequest("Path is required");
-    }
+    if (!path) throw ApiError.badRequest("Path is required");
 
-    // Validate path format
-    const validationResult = pathSchema.safeParse(path);
-    if (!validationResult.success) {
-      throw ApiError.badRequest("Invalid document path format");
-    }
+    const parsed = parsePath(path);
+    if (!parsed) throw ApiError.badRequest("Invalid document path format");
 
     const supabase = await createClient();
 
-    // Verify user is authenticated
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      throw ApiError.unauthorized();
-    }
+    if (authError || !user) throw ApiError.unauthorized();
 
-    // Rate limit document access
     const rateLimitResult = checkRateLimit(`docs:${user.id}`, {
       maxRequests: 60,
-      windowMs: 60 * 1000, // 60 requests per minute
+      windowMs: 60 * 1000,
     });
-
     if (!rateLimitResult.allowed) {
       throw ApiError.tooManyRequests("Too many document requests. Please slow down.");
     }
 
-    // SECURITY: Verify the path belongs to the user (path format: userId/applicationId/filename)
-    const pathParts = path.split("/");
-    if (pathParts[0] !== user.id) {
+    // User-folder check (first segment must be this user's ID)
+    if (parsed.userId !== user.id) {
       throw ApiError.forbidden("You don't have permission to access this document");
     }
 
-    // Additional security check: verify the application belongs to the user
-    const applicationId = pathParts[1];
-    const { data: application, error: appError } = await supabase
-      .from("job_applications")
-      .select("id")
-      .eq("id", applicationId)
-      .eq("user_id", user.id)
-      .single();
+    // Application-ownership check (skip for library paths)
+    if (!parsed.isLibrary) {
+      const { data: application, error: appError } = await supabase
+        .from("job_applications")
+        .select("id")
+        .eq("id", parsed.scope)
+        .eq("user_id", user.id)
+        .single();
 
-    if (appError || !application) {
-      throw ApiError.forbidden("You don't have permission to access this document");
+      if (appError || !application) {
+        throw ApiError.forbidden("You don't have permission to access this document");
+      }
     }
 
-    // Download the file from Supabase storage
+    // Download the file
     const { data, error } = await supabase.storage.from("documents").download(path);
+    if (error || !data) throw ApiError.notFound("File not found");
 
-    if (error || !data) {
-      throw ApiError.notFound("File not found");
-    }
-
-    // Return the file with appropriate headers.
-    // Content-Type is derived from the file extension so we never serve
-    // a DOCX or TXT with "application/pdf" (wrong MIME breaks some clients).
-    // All files are forced to download (attachment) to prevent browsers from
-    // rendering arbitrary content in-page, which could enable stored XSS via
-    // an uploaded HTML/SVG file if the bucket is ever misconfigured.
-    const filename = pathParts[2];
-    const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+    // Derive Content-Type from the extension of the actual filename (last segment)
+    const ext = parsed.filename.split(".").pop()?.toLowerCase() ?? "";
     const MIME: Record<string, string> = {
       pdf:  "application/pdf",
       docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       doc:  "application/msword",
       txt:  "text/plain; charset=utf-8",
       md:   "text/plain; charset=utf-8",
+      png:  "image/png",
+      jpg:  "image/jpeg",
+      jpeg: "image/jpeg",
     };
     const contentType = MIME[ext] ?? "application/octet-stream";
+
+    // For PDF and images we want inline display in the preview iframe/img;
+    // for everything else we force a download attachment.
+    const inline = ext === "pdf" || ext === "png" || ext === "jpg" || ext === "jpeg";
+    const disposition = inline
+      ? `inline; filename="${parsed.filename.replace(/"/g, "")}"`
+      : `attachment; filename="${parsed.filename.replace(/"/g, "")}"`;
+
     const arrayBuffer = await data.arrayBuffer();
 
     return new NextResponse(arrayBuffer, {
       headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
-        "Cache-Control": "private, max-age=3600",
+        "Content-Type":        contentType,
+        "Content-Disposition": disposition,
+        "Cache-Control":       "private, max-age=3600",
         "X-Content-Type-Options": "nosniff",
       },
     });
