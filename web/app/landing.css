@@ -345,3 +345,12 @@
 .dark .landing-footer-nav-link { color: rgba(255, 255, 255, 0.35); }
 .dark .landing-footer-nav-link:hover { color: #ccff00; }
 .dark .landing-creator-link   { color: #ccff00; }
+
+/* ── Landing page arbitrary-value Tailwind overrides for dark mode ─────────── */
+.dark .text-\[\#1a1c1b\]           { color: #ffffff !important; }
+.dark .text-\[\#55433d\]           { color: rgba(255,255,255,0.55) !important; }
+.dark .text-\[\#99462a\]           { color: #ccff00 !important; }
+.dark .bg-\[\#f4f3f1\]             { background-color: #1a1a1a !important; }
+.dark .bg-\[\#e3e2e0\]             { background-color: #222222 !important; }
+.dark .bg-\[\#99462a\]             { background-color: #ccff00 !important; }
+.dark .text-white.bg-\[\#99462a\]  { color: #000000 !important; }

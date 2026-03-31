@@ -817,3 +817,161 @@
   border-color: #ccff00;
   background-color: rgba(204, 255, 0, 0.10);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Tailwind arbitrary-value colour overrides
+   These translate ALL hardcoded Atelier light-mode hex values used as inline
+   Tailwind classes throughout every dashboard page/component.
+   Higher specificity (.dark + class = 0,2,0) beats Tailwind's utilities (0,1,0).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Text colours ─────────────────────────────────────────────────────────── */
+.dark .text-\[\#1a1c1b\]           { color: #ffffff !important; }
+.dark .text-\[\#55433d\]           { color: rgba(255,255,255,0.55) !important; }
+.dark .text-\[\#88726c\]           { color: rgba(255,255,255,0.40) !important; }
+.dark .text-\[\#99462a\]           { color: #ccff00 !important; }
+.dark .text-\[\#d97757\]           { color: #b8e600 !important; }
+.dark .text-\[\#006d34\]           { color: #4ade80 !important; }
+.dark .text-\[\#005225\]           { color: #34d399 !important; }
+.dark .text-\[\#003d1b\]           { color: #10b981 !important; }
+.dark .text-\[\#40a45f\]           { color: #4ade80 !important; }
+.dark .text-\[\#ba1a1a\]           { color: #ff5f5f !important; }
+.dark .text-\[\#7a2f15\]           { color: #fbbf24 !important; }
+.dark .text-\[\#7c5200\]           { color: #fbbf24 !important; }
+.dark .text-\[\#1e4a8a\]           { color: #60a5fa !important; }
+.dark .text-\[\#93000a\]           { color: #ff6b6b !important; }
+
+/* ── Background colours ───────────────────────────────────────────────────── */
+.dark .bg-\[\#f4f3f1\]             { background-color: #1a1a1a !important; }
+.dark .bg-\[\#e9e8e6\]             { background-color: #222222 !important; }
+.dark .bg-\[\#faf9f7\]             { background-color: #000000 !important; }
+.dark .bg-\[\#2f3130\]             { background-color: #222222 !important; }
+.dark .bg-white                    { background-color: #0f0f0f !important; }
+.dark .bg-\[\#99462a\]             { background-color: #ccff00 !important; }
+.dark .bg-\[\#99462a\]\/10         { background-color: rgba(204,255,0,0.10) !important; }
+.dark .bg-\[\#99462a\]\/8          { background-color: rgba(204,255,0,0.08) !important; }
+.dark .bg-\[\#99462a\]\/5          { background-color: rgba(204,255,0,0.05) !important; }
+.dark .bg-\[\#006d34\]\/10         { background-color: rgba(74,222,128,0.10) !important; }
+.dark .bg-\[\#006d34\]\/14         { background-color: rgba(74,222,128,0.14) !important; }
+.dark .bg-\[\#006d34\]\/18         { background-color: rgba(74,222,128,0.18) !important; }
+.dark .bg-\[\#ba1a1a\]\/10         { background-color: rgba(255,95,95,0.10) !important; }
+.dark .bg-\[\#55433d\]\/10         { background-color: rgba(255,255,255,0.06) !important; }
+.dark .bg-\[\#55433d\]\/8          { background-color: rgba(255,255,255,0.05) !important; }
+.dark .bg-\[\#dbc1b9\]\/40         { background-color: rgba(255,255,255,0.06) !important; }
+.dark .bg-\[\#1a1c1b\]\/10         { background-color: rgba(255,255,255,0.06) !important; }
+.dark .bg-\[\#1a1c1b\]\/20         { background-color: rgba(255,255,255,0.10) !important; }
+.dark .bg-\[\#d97757\]\/15         { background-color: rgba(251,191,36,0.10) !important; }
+
+/* ── Border colours ───────────────────────────────────────────────────────── */
+.dark .border-\[\#dbc1b9\]         { border-color: rgba(255,255,255,0.10) !important; }
+.dark .border-\[\#dbc1b9\]\/50     { border-color: rgba(255,255,255,0.08) !important; }
+.dark .border-\[\#dbc1b9\]\/20     { border-color: rgba(255,255,255,0.06) !important; }
+.dark .border-\[\#dbc1b9\]\/18     { border-color: rgba(255,255,255,0.06) !important; }
+.dark .border-\[\#dbc1b9\]\/15     { border-color: rgba(255,255,255,0.05) !important; }
+.dark .border-\[\#dbc1b9\]\/12     { border-color: rgba(255,255,255,0.05) !important; }
+.dark .border-\[\#ba1a1a\]\/15     { border-color: rgba(255,95,95,0.20) !important; }
+.dark .border-\[\#99462a\]         { border-color: #ccff00 !important; }
+.dark .border-\[\#99462a\]\/20     { border-color: rgba(204,255,0,0.20) !important; }
+
+/* ── Ring ──────────────────────────────────────────────────────────────────── */
+.dark .focus\:ring-\[\#99462a\]:focus { --tw-ring-color: rgba(204,255,0,0.35) !important; }
+
+/* ── Hover background overrides ───────────────────────────────────────────── */
+.dark .hover\:bg-\[\#f4f3f1\]:hover  { background-color: #222222 !important; }
+.dark .hover\:bg-\[\#e9e8e6\]:hover  { background-color: #2a2a2a !important; }
+.dark .hover\:bg-\[\#faf9f7\]:hover  { background-color: #1a1a1a !important; }
+.dark .hover\:bg-\[\#99462a\]\/8:hover { background-color: rgba(204,255,0,0.08) !important; }
+.dark .hover\:bg-\[\#99462a\]\/5:hover { background-color: rgba(204,255,0,0.05) !important; }
+.dark .hover\:border-\[\#99462a\]:hover { border-color: rgba(204,255,0,0.40) !important; }
+
+/* ── Hover text overrides ─────────────────────────────────────────────────── */
+.dark .hover\:text-\[\#99462a\]:hover  { color: #ccff00 !important; }
+.dark .hover\:text-\[\#1a1c1b\]:hover  { color: #ffffff !important; }
+.dark .group:hover .group-hover\:bg-\[\#99462a\]   { background-color: #ccff00 !important; }
+.dark .group:hover .group-hover\:text-white  { color: #000000 !important; }
+
+/* ── SVG fill ─────────────────────────────────────────────────────────────── */
+.dark .fill-\[\#99462a\]            { fill: #ccff00 !important; }
+
+/* ── Placeholder text ─────────────────────────────────────────────────────── */
+.dark .placeholder\:\text-\[\#55433d\]\/50::placeholder { color: rgba(255,255,255,0.25) !important; }
+
+/* ── bg-white\/70 (NESTAi score widget) ──────────────────────────────────── */
+.dark .bg-white\/70                { background-color: rgba(30,30,30,0.8) !important; }
+
+/* ── Input fields (custom inline inputs in documents page, NESTAi, etc.) ─── */
+.dark input.text-\[\#1a1c1b\],
+.dark textarea.text-\[\#1a1c1b\] { color: #ffffff !important; }
+
+/* ── d97757 hover (Navbar nav links light mode uses this tint) ───────────── */
+.dark .hover\:bg-\[\#d97757\]\/10:hover { background-color: rgba(204,255,0,0.08) !important; }
+.dark .hover\:bg-\[\#dbc1b9\]\/20:hover { background-color: rgba(204,255,0,0.06) !important; }
+.dark .text-\[\#d97757\]             { color: #b8e600 !important; }
+
+/* ── Additional missing overrides ─────────────────────────────────────────── */
+
+/* bg opacity variants not covered above */
+.dark .bg-\[\#99462a\]\/60  { background-color: rgba(204,255,0,0.60) !important; }
+.dark .bg-\[\#99462a\]\/70  { background-color: rgba(204,255,0,0.70) !important; }
+
+/* Send button hover (NESTAi) */
+.dark .hover\:bg-\[\#d97757\]:hover { background-color: #b8e600 !important; }
+
+/* Disabled send button state */
+.dark .bg-\[\#c8c6c3\]  { background-color: #333333 !important; }
+
+/* bg-[#99462a] combined with text-white → black text on lime */
+.dark .bg-\[\#99462a\].text-white   { color: #000000 !important; }
+.dark .hover\:bg-\[\#d97757\].text-white:hover { color: #000000 !important; }
+
+/* group-hover variants */
+.dark .group:hover .group-hover\:text-white { color: #000000 !important; }
+
+/* Placeholder overrides */
+.dark .placeholder\:text-\[\#55433d\]\/50::placeholder { color: rgba(255,255,255,0.25) !important; }
+.dark .placeholder\:text-\[\#55433d\]::placeholder      { color: rgba(255,255,255,0.25) !important; }
+
+/* NESTAi: rate-limit widget active state */
+.dark .border-\[\#dbc1b9\]\/60 { border-color: rgba(255,255,255,0.12) !important; }
+
+/* NESTAi: inline send/stop button */
+.dark .bg-\[\#1a1c1b\]\/10 { background-color: rgba(255,255,255,0.06) !important; }
+.dark .hover\:bg-\[\#1a1c1b\]\/20:hover { background-color: rgba(255,255,255,0.10) !important; }
+.dark .text-\[\#1a1c1b\].fill-current { color: rgba(255,255,255,0.85) !important; }
+
+/* NESTAi: file-type card colours */
+.dark .bg-red-50    { background-color: rgba(185,28,28,0.12) !important; }
+.dark .bg-blue-50   { background-color: rgba(30,64,175,0.12) !important; }
+.dark .bg-zinc-50   { background-color: rgba(63,63,70,0.20) !important; }
+.dark .bg-purple-50 { background-color: rgba(88,28,135,0.12) !important; }
+.dark .border-red-200    { border-color: rgba(252,165,165,0.20) !important; }
+.dark .border-blue-200   { border-color: rgba(147,197,253,0.20) !important; }
+.dark .border-zinc-200   { border-color: rgba(161,161,170,0.20) !important; }
+.dark .border-purple-200 { border-color: rgba(196,181,253,0.20) !important; }
+.dark .text-red-700      { color: #fca5a5 !important; }
+.dark .text-blue-700     { color: #93c5fd !important; }
+.dark .text-zinc-600     { color: #a1a1aa !important; }
+.dark .text-purple-700   { color: #c4b5fd !important; }
+
+/* NESTAi: ambient glow divs */
+.dark .bg-\[\#99462a\]\/5   { background-color: rgba(204,255,0,0.04) !important; }
+.dark .bg-\[\#006d34\]\/5   { background-color: rgba(74,222,128,0.04) !important; }
+.dark .bg-\[\#d97757\]\/5   { background-color: rgba(184,230,0,0.04) !important; }
+
+/* NESTAi: amber state in rate-limit widget */
+.dark .border-amber-300\/60  { border-color: rgba(251,191,36,0.30) !important; }
+.dark .bg-amber-50           { background-color: rgba(251,191,36,0.08) !important; }
+.dark .text-amber-700        { color: #fbbf24 !important; }
+
+/* NESTAi: message pill (session item active) */
+.dark .bg-\[\#99462a\]\/8   { background-color: rgba(204,255,0,0.08) !important; }
+.dark .border-\[\#99462a\]\/20 { border-color: rgba(204,255,0,0.20) !important; }
+
+/* Cursor blink in streaming */
+.dark .bg-\[\#99462a\]\/70  { background-color: rgba(204,255,0,0.70) !important; }
+
+/* Documents page: filter active pill */
+.dark .bg-\[\#99462a\].text-white { color: #000000 !important; }
+
+/* Interview / reminder / contacts: amber-50 */
+.dark .bg-amber-50 { background-color: rgba(251,191,36,0.08) !important; }
