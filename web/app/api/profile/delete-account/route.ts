@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 import { hashOTP, secureCompare } from "@/lib/security/otp";
 import { otpSchema } from "@/lib/validations/auth";
 import { sendDeletionScheduledEmail } from "@/lib/email/nodemailer";
@@ -25,6 +26,7 @@ function getClientIp(request: NextRequest): string {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { otp, reason } = await validateBody(request, schema);
 
     const supabase = await createClient();
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Strict rate limit — max 3 attempts per hour
-    const rateLimitResult = checkRateLimit(`delete-account:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`delete-account:${user.id}`, {
       maxRequests: 3,
       windowMs: 60 * 60 * 1000,
     });

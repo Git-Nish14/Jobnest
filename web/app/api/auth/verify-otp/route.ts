@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting for OTP verification attempts
-    const rateLimitResult = checkRateLimit(`verify:${email}`, {
+    const rateLimitResult = await checkRateLimit(`verify:${email}`, {
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
     });
@@ -100,13 +100,18 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Set remember-me cookies so AuthSync can enforce session-only behaviour.
-      // sb_rm is readable by JS (no HttpOnly) for the AuthSync component to check.
+      // Set remember-me companion cookie so AuthSync can enforce session-only
+      // behaviour. Intentionally not HttpOnly (JS must be able to read it).
+      // __Host- prefix: binds the cookie to the exact host, no Domain attribute
+      // allowed, Path must be /, Secure required — prevents subdomain injection.
       const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
-      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+      const isProduction = process.env.NODE_ENV === "production";
+      // __Host- requires Secure, so only use it in production (localhost is http)
+      const cookieName = isProduction ? "__Host-sb_rm" : "sb_rm";
+      const secure = isProduction ? "; Secure" : "";
       loginResponse.headers.append(
         "Set-Cookie",
-        `sb_rm=${rememberMe ? "1" : "0"}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`
+        `${cookieName}=${rememberMe ? "1" : "0"}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`
       );
 
       return loginResponse;

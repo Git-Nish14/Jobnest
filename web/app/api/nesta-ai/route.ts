@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit check
-    const rateLimit = checkRateLimit(`nesta:${user.id}`, {
+    const rateLimit = await checkRateLimit(`nesta:${user.id}`, {
       maxRequests: MAX_REQUESTS,
       windowMs: WINDOW_MS,
     });

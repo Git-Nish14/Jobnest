@@ -335,6 +335,80 @@ A Nish Patel product
   }
 }
 
+export async function sendDunningEmail(
+  email: string,
+  amountDue: number,
+  currency: string,
+  nextRetryDate: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jobnest.nishpatel.dev";
+
+    const formatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amountDue / 100);
+
+    const retryNote = nextRetryDate
+      ? `We'll automatically retry the charge on ${new Date(nextRetryDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
+      : "Please update your payment method to avoid losing Pro access.";
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Action required: Payment of ${formatted} failed for your Jobnest subscription`,
+      text: `
+Your recent Jobnest Pro payment of ${formatted} was unsuccessful.
+
+${retryNote}
+
+To update your payment method, visit your billing portal: ${appUrl}/api/stripe/portal
+
+If we're unable to collect payment your subscription will be cancelled and you'll be moved to the Free plan. All your data will be kept safe.
+
+Best regards,
+The Jobnest Team
+A Nish Patel product
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">Payment Failed</h1>
+  </div>
+  <div style="background: #fffbeb; padding: 30px; border: 2px solid #f59e0b; border-top: none; border-radius: 0 0 12px 12px;">
+    <p>Your recent Jobnest Pro payment of <strong>${formatted}</strong> was unsuccessful.</p>
+    <div style="background: #fef3c7; border: 1px solid #fcd34d; padding: 16px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0; color: #92400e; font-size: 14px;">${retryNote}</p>
+    </div>
+    <p>To update your payment method and keep your Pro subscription active:</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${appUrl}/api/stripe/portal" style="background: #d97706; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Update Payment Method</a>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">If we're unable to collect payment your Pro subscription will be cancelled and you'll be moved to the Free plan. All your data is always kept safe.</p>
+    <p style="margin: 20px 0 0; text-align: center; font-size: 12px; color: #6b7280;">
+      Best regards,<br><strong>The Jobnest Team</strong><br>
+      <span style="font-size: 11px;">A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product</span>
+    </p>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send dunning email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
 export async function sendAccountReactivatedEmail(
   email: string
 ): Promise<{ success: boolean; error?: string }> {

@@ -415,7 +415,9 @@ export default async function PricingPage({
             <Link href="/pricing" className="landing-footer-nav-link">Pricing</Link>
             <Link href="/privacy" className="landing-footer-nav-link">Privacy</Link>
             <Link href="/terms" className="landing-footer-nav-link">Terms</Link>
+            <Link href="/cookies" className="landing-footer-nav-link">Cookies</Link>
             <Link href="/contact" className="landing-footer-nav-link">Contact</Link>
+            <Link href="/privacy#do-not-sell" className="landing-footer-nav-link">Do Not Sell My Info</Link>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-6 mt-8 pt-6 border-t landing-footer-divider">

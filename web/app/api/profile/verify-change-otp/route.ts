@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 import { hashOTP, secureCompare } from "@/lib/security/otp";
 import { otpSchema } from "@/lib/validations/auth";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
@@ -16,13 +17,14 @@ const schema = z.object({ otp: otpSchema });
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { otp } = await validateBody(request, schema);
 
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user?.email) throw ApiError.unauthorized();
 
-    const rateLimitResult = checkRateLimit(`verify-change-otp:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`verify-change-otp:${user.id}`, {
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
     });

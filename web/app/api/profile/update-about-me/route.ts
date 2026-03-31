@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 const schema = z.object({
   aboutMe: z.string().max(2000, "About Me must be 2000 characters or fewer").trim(),
@@ -10,6 +11,7 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { aboutMe } = await validateBody(request, schema);
 
     const supabase = await createClient();
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) throw ApiError.unauthorized();
 
-    const rateLimitResult = checkRateLimit(`update-about-me:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`update-about-me:${user.id}`, {
       maxRequests: 10,
       windowMs: 60 * 1000,
     });

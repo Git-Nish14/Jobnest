@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`doc-list:${user.id}`, { maxRequests: 120, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-list:${user.id}`, { maxRequests: 120, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Too many requests.");
 
     const { searchParams } = new URL(request.url);

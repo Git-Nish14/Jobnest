@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 import { hashOTP, secureCompare } from "@/lib/security/otp";
 import { passwordSchema, otpSchema } from "@/lib/validations/auth";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
@@ -14,6 +15,7 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { otp, newPassword } = await validateBody(request, schema);
 
     // Get authenticated user
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     const email = user.email;
 
     // Rate limit
-    const rateLimitResult = checkRateLimit(`change-pw-verify:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`change-pw-verify:${user.id}`, {
       maxRequests: 10,
       windowMs: 15 * 60 * 1000,
     });

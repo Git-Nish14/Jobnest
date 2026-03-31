@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`ats-scan:${user.id}`, { maxRequests: 5, windowMs: 60_000 });
+    const rl = await checkRateLimit(`ats-scan:${user.id}`, { maxRequests: 5, windowMs: 60_000 });
     if (!rl.allowed) {
       throw ApiError.tooManyRequests("ATS scan rate limit reached. Please wait a minute before scanning again.");
     }

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { email, newPassword, resetToken } = await validateBody(request, resetPasswordSchema);
 
     // Rate limiting
-    const rateLimitResult = checkRateLimit(`reset:${email}`, {
+    const rateLimitResult = await checkRateLimit(`reset:${email}`, {
       maxRequests: 3,
       windowMs: 60 * 60 * 1000, // 1 hour
     });

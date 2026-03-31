@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOTP } from "@/lib/security/otp";
 import { sendOTPEmail } from "@/lib/email/nodemailer";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 
 const schema = z.object({
@@ -18,6 +19,7 @@ function hashOTP(code: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { currentPassword } = await validateBody(request, schema);
 
     // Get authenticated user
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
     const email = user.email;
 
     // Rate limit per user
-    const rateLimitResult = checkRateLimit(`change-pw-otp:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`change-pw-otp:${user.id}`, {
       maxRequests: 3,
       windowMs: 60 * 1000,
     });

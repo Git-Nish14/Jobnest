@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendDunningEmail } from "@/lib/email/nodemailer";
 import type Stripe from "stripe";
 
 // Disable body parsing — Stripe requires the raw body to verify signature
@@ -94,6 +95,50 @@ export async function POST(request: NextRequest) {
             cancel_at_period_end: false,
           })
           .eq("stripe_subscription_id", sub.id);
+        break;
+      }
+
+      // ── Payment failed — trigger dunning email ─────────────────────────────
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+
+        // Look up the user by Stripe customer ID
+        const { data: sub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("user_id, status")
+          .eq("stripe_customer_id", customerId)
+          .maybeSingle();
+
+        if (!sub?.user_id) break;
+
+        // Mark subscription as past_due
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ status: "past_due" })
+          .eq("stripe_customer_id", customerId);
+
+        // Look up the user's email
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(
+          sub.user_id
+        );
+        if (!authUser.user?.email) break;
+
+        // Calculate next retry date from Stripe's next_payment_attempt
+        const nextRetry = (invoice as unknown as { next_payment_attempt: number | null })
+          .next_payment_attempt;
+        const nextRetryDate = nextRetry
+          ? new Date(nextRetry * 1000).toISOString()
+          : null;
+
+        await sendDunningEmail(
+          authUser.user.email,
+          invoice.amount_due,
+          invoice.currency,
+          nextRetryDate
+        );
+
+        console.log(`[stripe/webhook] Dunning email sent to ${authUser.user.email}`);
         break;
       }
 

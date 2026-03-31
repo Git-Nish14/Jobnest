@@ -59,6 +59,10 @@ export function makeAdminClient(overrides: Record<string, unknown> = {}) {
         updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }),
         deleteUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
         listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+        getUserById: vi.fn().mockResolvedValue({
+          data: { user: { id: "uid-1", email: "user@test.com" } },
+          error: null,
+        }),
       },
       ...((overrides.auth as Record<string, unknown>) ?? {}),
     },

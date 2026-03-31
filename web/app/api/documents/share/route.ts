@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`doc-share:${user.id}`, { maxRequests: 20, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-share:${user.id}`, { maxRequests: 20, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Too many requests.");
 
     const body = await validateBody(request, shareSchema);

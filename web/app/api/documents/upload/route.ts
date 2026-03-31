@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (authError || !user) throw ApiError.unauthorized();
 
     // Rate limit: 20 uploads per minute per user
-    const rl = checkRateLimit(`doc-upload:${user.id}`, { maxRequests: 20, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-upload:${user.id}`, { maxRequests: 20, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Upload rate limit reached. Please wait before uploading more files.");
 
     const formData = await request.formData();

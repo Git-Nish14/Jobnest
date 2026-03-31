@@ -160,7 +160,10 @@ export async function proxy(request: NextRequest) {
   // So we let them through to the auth page and let AuthSync clean up the session.
   const authFormPages = new Set(["/login", "/signup", "/forgot-password"]);
   if (user && authFormPages.has(pathname)) {
-    const sbRm = request.cookies.get("sb_rm")?.value;
+    // __Host- prefix in production, plain name in development
+    const sbRm =
+      request.cookies.get("__Host-sb_rm")?.value ??
+      request.cookies.get("sb_rm")?.value;
     if (sbRm !== "0") {
       return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
     }

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Rate limit exports (expensive operation)
-    const rateLimitResult = checkRateLimit(`export:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`export:${user.id}`, {
       maxRequests: 10,
       windowMs: 60 * 60 * 1000, // 10 exports per hour
     });

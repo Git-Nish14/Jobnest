@@ -79,7 +79,11 @@ jobs:
       SMTP_PASS: placeholder
       CONTACT_EMAIL: contact@example.com
       CRON_SECRET: placeholder-cron-secret
-      CSRF_SECRET: placeholder-csrf-secret
+      CSRF_SECRET: placeholder-csrf-secret-that-is-long-enough-32ch
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_PRO_PRICE_ID: price_placeholder
+      STRIPE_PRO_ANNUAL_PRICE_ID: price_annual_placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

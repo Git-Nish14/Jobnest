@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`doc-import:${user.id}`, { maxRequests: 10, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-import:${user.id}`, { maxRequests: 10, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Import rate limit reached. Please wait before importing more files.");
 
     const body = await validateBody(request, importSchema);

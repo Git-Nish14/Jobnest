@@ -142,23 +142,20 @@ export function DocumentViewer({ path, downloadUrl, title, type }: DocumentViewe
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-3 sm:p-6 gap-2 sm:gap-4">
           <DialogHeader className="flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <DialogTitle className="text-base sm:text-lg truncate pr-8">{title}</DialogTitle>
-              <div className="flex items-center gap-2">
-                <a
-                  href={downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Open in</span> Browser
+            {/* pr-10 clears the Radix absolute close button (right-4 + ~24px wide) */}
+            <div className="flex items-center gap-2 pr-10">
+              <DialogTitle className="flex-1 text-base sm:text-lg truncate">{title}</DialogTitle>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 px-2 sm:px-3">
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden sm:inline text-xs sm:text-sm">Open</span>
                   </Button>
                 </a>
                 <a href={downloadUrl} download>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm h-8 sm:h-9">
-                    <Download className="h-3.5 w-3.5" />
-                    Download
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 px-2 sm:px-3">
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden sm:inline text-xs sm:text-sm">Download</span>
                   </Button>
                 </a>
               </div>
