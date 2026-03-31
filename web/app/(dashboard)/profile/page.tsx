@@ -43,6 +43,7 @@ export default async function ProfilePage() {
         createdAt: user.created_at,
         passwordChangedAt: user.user_metadata?.password_changed_at ?? null,
         aboutMe: user.user_metadata?.about_me ?? "",
+        nestaiContext: user.user_metadata?.nestai_context ?? "",
         hasPassword,
         notificationPrefs: {
           overdueReminders: notificationPrefs.overdue_reminders ?? true,

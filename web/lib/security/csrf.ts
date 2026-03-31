@@ -73,21 +73,36 @@ export { CSRF_TOKEN_NAME, CSRF_HEADER_NAME };
  */
 export function verifyOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  // If there's no Origin header the request is either same-origin (browser
-  // suppresses it on navigations) or from a server-to-server call — allow it.
+  // No Origin header = same-origin browser navigation or server-to-server. Allow.
   if (!origin) return true;
 
-  // If we don't know the app URL we can't verify — fail open in dev,
-  // fail closed in production.
+  // ── Primary check: derive expected origin from the incoming request itself ──
+  // This works correctly on localhost (http://localhost:3000) AND in production
+  // behind Vercel/nginx (https://jobnest.nishpatel.dev) without relying on a
+  // hardcoded env var that may not match the actual request host.
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host");
+
+  if (host) {
+    // x-forwarded-proto is set by Vercel/reverse-proxies; fall back to NODE_ENV
+    const proto =
+      request.headers.get("x-forwarded-proto") ??
+      (process.env.NODE_ENV === "production" ? "https" : "http");
+    if (origin === `${proto}://${host}`) return true;
+  }
+
+  // ── Secondary check: match against NEXT_PUBLIC_APP_URL ────────────────────
+  // Covers edge cases where x-forwarded-host isn't present.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
+    // No URL configured — fail open in dev, fail closed in prod
     return process.env.NODE_ENV !== "production";
   }
 
   try {
-    const expected = new URL(appUrl).origin;
-    return origin === expected;
+    return origin === new URL(appUrl).origin;
   } catch {
     return false;
   }

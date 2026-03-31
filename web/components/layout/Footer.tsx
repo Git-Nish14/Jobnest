@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Github } from "lucide-react";
+import { GithubIcon } from "@/components/ui/brand-icons";
 import { createClient } from "@/lib/supabase/client";
 
 interface FooterProps {
@@ -169,7 +169,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
                     rel="noopener noreferrer"
                     className="transition-colors hover:text-foreground inline-flex items-center gap-1"
                   >
-                    <Github className="h-3 w-3" />
+                    <GithubIcon className="h-3 w-3" />
                     GitHub
                   </a>
                 </li>
@@ -198,7 +198,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="GitHub"
               >
-                <Github className="h-5 w-5" />
+                <GithubIcon className="h-5 w-5" />
               </a>
             </div>
           </div>
@@ -265,7 +265,7 @@ export function Footer({ variant = "simple" }: FooterProps) {
               rel="noopener noreferrer"
               className="transition-colors hover:text-foreground inline-flex items-center gap-1"
             >
-              <Github className="h-3 w-3" />
+              <GithubIcon className="h-3 w-3" />
               GitHub
             </a>
           </div>

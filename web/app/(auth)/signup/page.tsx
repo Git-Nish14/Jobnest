@@ -201,7 +201,7 @@ export default function SignupPage() {
       const { error: signupError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { onboarding_completed: false } },
       });
       if (signupError) { setError(signupError.message); return; }
       setIsSendingOtp(true);

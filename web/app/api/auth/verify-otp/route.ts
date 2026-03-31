@@ -118,19 +118,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (purpose === "signup") {
-      // Mark email as verified in user metadata (best-effort — user may not have a session yet)
-      const supabase = await createClient();
-      const { data: { user: signupUser } } = await supabase.auth.getUser();
-
-      if (signupUser) {
-        await supabase.auth.updateUser({
-          data: {
-            email_verified: true,
-            email_verified_at: new Date().toISOString(),
-          },
-        });
+      // Mark email as verified if a session exists (best-effort).
+      // onboarding_completed: false is set at signUp() time in the signup page
+      // so it doesn't depend on a session being present here.
+      try {
+        const supabase = await createClient();
+        const { data: { user: signupUser } } = await supabase.auth.getUser();
+        if (signupUser) {
+          await supabase.auth.updateUser({
+            data: {
+              email_verified: true,
+              email_verified_at: new Date().toISOString(),
+            },
+          });
+        }
+      } catch {
+        // Non-critical — don't block the response
       }
-      // If no session yet, the metadata will be set on next authenticated request — not a hard failure
 
       return successResponse({
         success: true,

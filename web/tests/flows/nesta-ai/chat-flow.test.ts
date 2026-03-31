@@ -46,6 +46,7 @@ function makeEmptyChain() {
   self.select = method(); self.eq = method(); self.order = method();
   self.in = method(); self.limit = method(); self.is = method();
   self.single = vi.fn().mockResolvedValue({ data: null, error: { message: "not found" } });
+  self.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
   (self as Record<string, unknown>).then = (r: (v: unknown) => void) =>
     Promise.resolve({ data: [], error: null }).then(r);
   return self;

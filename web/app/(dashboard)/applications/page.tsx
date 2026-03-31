@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { getApplications } from "@/services";
-import { ExportButton, ApplicationCard, ApplicationFilters } from "@/components/applications";
+import { ExportButton, ApplicationCard, ApplicationFilters, KanbanBoard, ViewToggle } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
 
 const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
@@ -20,11 +20,14 @@ interface PageProps {
     location?: string;
     dateRange?: string;
     sort?: string;
+    view?: string;
   }>;
 }
 
 export default async function ApplicationsPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const view = params.view === "kanban" ? "kanban" : "list";
+
   const { data: applications, error } = await getApplications({
     search: params.search,
     status: params.status,
@@ -37,6 +40,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
     console.error("Error fetching applications:", error.message);
   }
 
+  const apps = applications ?? [];
+
   return (
     <div>
       {/* ── Header ── */}
@@ -48,6 +53,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <ViewToggle />
           <ExportButton />
           <Link href="/applications/new" className="db-btn-page-primary">
             <Plus className="h-4 w-4" />
@@ -56,16 +62,20 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </div>
       </header>
 
-      {/* ── Filters ── */}
-      <ApplicationFilters />
+      {/* ── Filters (list view only) ── */}
+      {view === "list" && <ApplicationFilters />}
 
-      {/* ── Cards ── */}
-      {applications && applications.length > 0 ? (
-        <div className="space-y-4">
-          {applications.map((app) => (
-            <ApplicationCard key={app.id} application={app} />
-          ))}
-        </div>
+      {/* ── Content ── */}
+      {apps.length > 0 ? (
+        view === "kanban" ? (
+          <KanbanBoard applications={apps} />
+        ) : (
+          <div className="space-y-4">
+            {apps.map((app) => (
+              <ApplicationCard key={app.id} application={app} />
+            ))}
+          </div>
+        )
       ) : (
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -85,8 +95,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* ── Footer quote ── */}
-      {applications && applications.length > 0 && (
+      {/* ── Footer quote (list view only) ── */}
+      {apps.length > 0 && view === "list" && (
         <footer className="mt-20 flex flex-col items-center text-center">
           <div className="w-12 h-px bg-[#dbc1b9]/30 mb-6" />
           <p className="db-headline italic text-[#55433d]/50 text-sm mb-1">

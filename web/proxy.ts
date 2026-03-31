@@ -153,6 +153,18 @@ export async function proxy(request: NextRequest) {
     return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
   }
 
+  // First-time users: redirect to /onboarding.
+  // We check === false (not !value) so only NEW accounts that explicitly have
+  // onboarding_completed: false are redirected. Existing accounts that were
+  // created before onboarding was introduced have undefined → not redirected.
+  const skipOnboarding =
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/auth");
+  if (user && !skipOnboarding && !isPublic && user.user_metadata?.onboarding_completed === false) {
+    return addSecurityHeaders(NextResponse.redirect(new URL("/onboarding", request.url)));
+  }
+
   // Auth form pages (login / signup / forgot-password): redirect unless sb_rm=0.
   // When sb_rm=0 the user opted out of persistence; AuthSync will sign them out
   // the moment they hit the dashboard, causing an infinite redirect loop:
