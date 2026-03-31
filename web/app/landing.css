@@ -249,3 +249,99 @@
 .landing-creator-link:hover {
   opacity: 0.7;
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Black + #ccff00 (lime)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.dark {
+  --atelier-bg:             #000000;
+  --atelier-surface:        #0f0f0f;
+  --atelier-surface-low:    #0a0a0a;
+  --atelier-surface-high:   #1a1a1a;
+  --atelier-primary:        #ccff00;
+  --atelier-primary-hover:  #b8e600;
+  --atelier-on-surface:     #ffffff;
+  --atelier-on-surface-var: rgba(255, 255, 255, 0.55);
+  --atelier-outline-var:    rgba(255, 255, 255, 0.10);
+}
+
+.dark .landing-root {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* ── Header ── */
+.dark .landing-header {
+  background-color: rgba(0, 0, 0, 0.88);
+  border-color: rgba(204, 255, 0, 0.08);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+}
+
+.dark .landing-logo-text { color: #ccff00; }
+.dark .landing-nav-active { color: #ccff00; }
+.dark .landing-nav-link  { color: rgba(255, 255, 255, 0.5); }
+.dark .landing-nav-link:hover { background-color: rgba(204, 255, 0, 0.08); color: #ccff00; }
+.dark .landing-login-link { color: rgba(255, 255, 255, 0.6); }
+.dark .landing-login-link:hover { color: #ccff00; }
+
+/* ── Buttons ── */
+.dark .landing-btn-primary { background-color: #ccff00; color: #000000; }
+.dark .landing-btn-primary:hover { background-color: #b8e600; }
+
+.dark .landing-btn-hero-cta {
+  background-color: #ccff00;
+  color: #000000;
+  box-shadow: 0 8px 24px rgba(204, 255, 0, 0.20);
+}
+.dark .landing-btn-hero-cta:hover { background-color: #b8e600; }
+
+.dark .landing-btn-hero-ghost {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+.dark .landing-btn-hero-ghost:hover { background-color: #1a1a1a; }
+
+.dark .landing-btn-cta-primary {
+  background-color: #ccff00;
+  color: #000000;
+  box-shadow: 0 12px 32px rgba(204, 255, 0, 0.20);
+}
+.dark .landing-btn-cta-primary:hover { background-color: #b8e600; }
+
+.dark .landing-btn-cta-secondary {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  background-color: #0a0a0a;
+}
+.dark .landing-btn-cta-secondary:hover { background-color: #1a1a1a; }
+
+/* ── Hero ── */
+.dark .landing-gradient-text {
+  background: linear-gradient(90deg, #ccff00, #b8e600);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.dark .landing-subtext       { color: rgba(255, 255, 255, 0.55); }
+.dark .landing-verified-text { color: rgba(255, 255, 255, 0.35); }
+
+/* ── Testimonials ── */
+.dark .landing-testimonial-card {
+  background-color: #0f0f0f;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Footer ── */
+.dark .landing-footer {
+  background-color: #0a0a0a;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.dark .landing-footer-links   { color: rgba(255, 255, 255, 0.45); }
+.dark .landing-footer-divider { border-color: rgba(255, 255, 255, 0.06); }
+.dark .landing-footer-signup  { background-color: #ccff00; color: #000000; }
+.dark .landing-footer-signup:hover { background-color: #b8e600; }
+.dark .landing-copyright      { color: rgba(255, 255, 255, 0.30); }
+.dark .landing-footer-nav-link { color: rgba(255, 255, 255, 0.35); }
+.dark .landing-footer-nav-link:hover { color: #ccff00; }
+.dark .landing-creator-link   { color: #ccff00; }

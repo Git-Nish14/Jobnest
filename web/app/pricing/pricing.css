@@ -322,3 +322,112 @@
 .pricing-faq-card:hover {
   border-color: rgba(153, 70, 42, 0.25);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Black + #ccff00 (lime)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Plan cards ── */
+.dark .pricing-card:hover { box-shadow: 0 20px 48px rgba(0,0,0,0.6); }
+.dark .pricing-card-dark:hover { box-shadow: 0 20px 56px rgba(204,255,0,0.12); }
+
+/* ── Popular badge ── */
+.dark .pricing-popular-badge {
+  border-color: rgba(204, 255, 0, 0.30);
+  color: #ccff00;
+}
+
+/* ── Billing toggle ── */
+.dark .pricing-billing-toggle {
+  background: #1a1a1a;
+  border-color: rgba(255,255,255,0.08);
+}
+.dark .pricing-toggle-btn         { color: rgba(255,255,255,0.45); }
+.dark .pricing-toggle-btn:hover   { color: rgba(255,255,255,0.75); }
+.dark .pricing-toggle-btn-active  { background: #ccff00; color: #000000; }
+.dark .pricing-toggle-btn-active:hover { color: #000000; }
+
+/* ── Save badge ── */
+.dark .pricing-save-badge { background: rgba(204,255,0,0.15); color: #ccff00; }
+
+/* ── Pro button ── */
+.dark .pricing-pro-btn {
+  color: #000000;
+  background: linear-gradient(135deg, #ccff00 0%, #b8e600 100%);
+}
+
+/* ── Student card ── */
+.dark .pricing-student-card {
+  background: linear-gradient(135deg, #0a0a0a 0%, #111111 100%);
+  border-color: rgba(204, 255, 0, 0.15);
+}
+.dark .pricing-student-icon-wrap {
+  background: rgba(204, 255, 0, 0.08);
+  border-color: rgba(204, 255, 0, 0.15);
+}
+.dark .pricing-no-commitment-badge {
+  background: rgba(204, 255, 0, 0.10);
+  color: #ccff00;
+}
+.dark .pricing-student-btn {
+  color: #000000;
+  background: linear-gradient(135deg, #ccff00 0%, #b8e600 100%);
+}
+
+/* ── Trust items ── */
+.dark .pricing-trust-item {
+  background: #0f0f0f;
+  border-color: rgba(255,255,255,0.06);
+}
+.dark .pricing-trust-item:hover { border-color: rgba(204,255,0,0.20); }
+.dark .pricing-trust-icon {
+  background: rgba(204, 255, 0, 0.08);
+  border-color: rgba(204, 255, 0, 0.12);
+}
+
+/* ── Table ── */
+.dark .pricing-table-wrapper {
+  border-color: rgba(255,255,255,0.06);
+  background: #0f0f0f;
+}
+.dark .pricing-th-feature,
+.dark .pricing-th-plan {
+  background: #1a1a1a;
+  color: rgba(255,255,255,0.45);
+  border-bottom-color: rgba(255,255,255,0.06);
+}
+.dark .pricing-th-pro           { color: #ccff00; }
+.dark .pricing-td-group {
+  background: #0a0a0a;
+  color: rgba(255,255,255,0.25);
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+.dark .pricing-tr:hover .pricing-td-name,
+.dark .pricing-tr:hover .pricing-td-cell { background: rgba(255,255,255,0.03); }
+.dark .pricing-td-name {
+  color: rgba(255,255,255,0.55);
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+.dark .pricing-td-cell          { border-bottom-color: rgba(255,255,255,0.04); }
+.dark .pricing-td-pro-col       { background: rgba(204,255,0,0.02); }
+.dark .pricing-td-dash          { color: rgba(255,255,255,0.18); }
+.dark .pricing-td-text          { color: rgba(255,255,255,0.55); }
+.dark .pricing-td-pro-text      { color: #ccff00; }
+
+/* ── Enterprise card ── */
+.dark .pricing-enterprise-card {
+  background: linear-gradient(135deg, #0a0a0a 0%, #111111 100%);
+  border-color: rgba(204, 255, 0, 0.12);
+}
+.dark .pricing-enterprise-icon {
+  background: rgba(204, 255, 0, 0.08);
+  border-color: rgba(204, 255, 0, 0.15);
+}
+.dark .pricing-enterprise-btn {
+  color: #000000;
+  background: linear-gradient(135deg, #ccff00 0%, #b8e600 100%);
+}
+
+/* ── FAQ ── */
+.dark .pricing-faq-card          { border-color: rgba(255,255,255,0.06); }
+.dark .pricing-faq-card:hover    { border-color: rgba(204,255,0,0.20); }

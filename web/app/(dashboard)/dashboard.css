@@ -642,3 +642,178 @@
 @media (min-width: 768px) {
   .db-mobile-action-bar { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Black + #ccff00 (lime)
+   These rules must be at the END of the file so they beat the :root vars above.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Override all --atelier-* design tokens ──────────────────────────────── */
+.dark {
+  --atelier-bg:              #000000;
+  --atelier-surface:         #0f0f0f;
+  --atelier-surface-low:     #0a0a0a;
+  --atelier-surface-high:    #1a1a1a;
+  --atelier-surface-highest: #222222;
+  --atelier-primary:         #ccff00;
+  --atelier-primary-hover:   #b8e600;
+  --atelier-primary-soft:    rgba(204, 255, 0, 0.10);
+  --atelier-on-surface:      #ffffff;
+  --atelier-on-surface-var:  rgba(255, 255, 255, 0.55);
+  --atelier-outline-var:     rgba(255, 255, 255, 0.10);
+  --atelier-tertiary:        #4ade80;   /* keep green readable on black */
+  --atelier-error:           #ff5f5f;
+}
+
+/* ── Root background ─────────────────────────────────────────────────────── */
+.dark .db-root {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────────── */
+.dark .db-panel {
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+.dark .db-skel-panel {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .db-app-card {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .db-content-card {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Stat card value — lime accent in dark ───────────────────────────────── */
+.dark .db-stat-value {
+  color: #ccff00;
+}
+
+/* ── Bar chart ───────────────────────────────────────────────────────────── */
+.dark .db-bar-active {
+  background-color: rgba(204, 255, 0, 0.75);
+}
+
+/* ── Status badges — brighter on black ──────────────────────────────────── */
+.dark .db-status-interview  { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
+.dark .db-status-phone      { background: rgba(204, 255, 0, 0.10);  color: #ccff00; }
+.dark .db-status-applied    { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+.dark .db-status-offer      { background: rgba(74, 222, 128, 0.16); color: #34d399; }
+.dark .db-status-accepted   { background: rgba(74, 222, 128, 0.20); color: #10b981; }
+.dark .db-status-rejected   { background: rgba(255, 95, 95, 0.12);  color: #ff5f5f; }
+.dark .db-status-withdrawn  { background: rgba(255, 255, 255, 0.08); color: rgba(255,255,255,0.45); }
+.dark .db-status-default    { background: rgba(204, 255, 0, 0.10);  color: #ccff00; }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.dark .db-badge-interview   { background-color: rgba(204,255,0,0.10); color: #ccff00; }
+.dark .db-badge-screen      { background-color: rgba(96,165,250,0.12); color: #60a5fa; }
+.dark .db-badge-offer       { background-color: rgba(74,222,128,0.12); color: #4ade80; }
+.dark .db-badge-rejected    { background-color: rgba(255,95,95,0.12); color: #ff5f5f; }
+.dark .db-badge-accepted    { background-color: rgba(74,222,128,0.16); color: #34d399; }
+.dark .db-badge-neutral     { background-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); }
+
+/* ── Primary buttons — black text on lime ────────────────────────────────── */
+.dark .db-btn-primary       { color: #000000; box-shadow: 0 1px 4px rgba(204,255,0,0.20); }
+.dark .db-btn-primary:hover { background-color: #b8e600; }
+
+.dark .db-btn-page-primary       { color: #000000; }
+.dark .db-btn-page-primary:hover { background-color: #b8e600; }
+
+.dark .db-btn-page-secondary {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+.dark .db-btn-page-secondary:hover { background-color: #1a1a1a; }
+
+/* ── Link ────────────────────────────────────────────────────────────────── */
+.dark .db-link-primary { color: #ccff00; }
+
+/* ── FAB ─────────────────────────────────────────────────────────────────── */
+.dark .db-fab {
+  color: #000000;
+  box-shadow: 0 4px 24px rgba(204, 255, 0, 0.25);
+}
+.dark .db-fab:hover {
+  background-color: #b8e600;
+  box-shadow: 0 8px 32px rgba(204, 255, 0, 0.35);
+}
+
+/* ── Card notes ──────────────────────────────────────────────────────────── */
+.dark .db-card-notes {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+.dark .db-filter-bar {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.dark .db-filter-search {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.dark .db-filter-search:focus {
+  border-color: rgba(204, 255, 0, 0.35);
+  box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.08);
+}
+.dark .db-filter-search::placeholder { color: rgba(255, 255, 255, 0.25); }
+.dark .db-filter-sort {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark .db-filter-sort:hover {
+  background-color: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Bottom tab bar ──────────────────────────────────────────────────────── */
+.dark .bottom-tab-bar {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-top-color: rgba(204, 255, 0, 0.08);
+}
+
+/* ── Mobile action bar ───────────────────────────────────────────────────── */
+.dark .db-mobile-action-bar {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-top-color: rgba(204, 255, 0, 0.08);
+}
+
+/* ── NESTAi ──────────────────────────────────────────────────────────────── */
+.dark .nestai-root         { background-color: #000000; }
+.dark .nestai-sidebar-header { background-color: rgba(10, 10, 10, 0.90); }
+.dark .nestai-sidebar      { border-color: rgba(255, 255, 255, 0.06); }
+.dark .nestai-topbar       { border-color: rgba(255, 255, 255, 0.06); }
+.dark .nestai-input-area {
+  background-color: rgba(0, 0, 0, 0.96);
+  border-top-color: rgba(204, 255, 0, 0.08);
+}
+.dark .nestai-input {
+  border-color: rgba(255, 255, 255, 0.08);
+  background-color: #1a1a1a;
+}
+.dark .nestai-input:focus-within {
+  border-color: rgba(204, 255, 0, 0.30);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.dark .nestai-user-bubble  { background-color: #0a0a0a; }
+.dark .nestai-pill {
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.55);
+}
+.dark .nestai-pill:hover   { background-color: #1a1a1a; color: #ffffff; }
+.dark .nestai-session-active   { background-color: rgba(204,255,0,0.10); color: #ccff00; }
+.dark .nestai-session-inactive { color: rgba(255,255,255,0.55); }
+.dark .nestai-session-inactive:hover { background-color: rgba(255,255,255,0.06); color: #ffffff; }
+.dark .nestai-modal        { background-color: #000000; }
+
+/* ── Complete (reminder) button ──────────────────────────────────────────── */
+.dark .db-complete-btn {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.dark .db-complete-btn:hover {
+  border-color: #ccff00;
+  background-color: rgba(204, 255, 0, 0.10);
+}

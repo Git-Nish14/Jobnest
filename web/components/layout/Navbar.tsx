@@ -145,7 +145,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                               "px-3 py-1.5 text-sm rounded-lg transition-all duration-150",
                               isActive
                                 ? "font-semibold atelier-nav-link-active"
-                                : "hover:bg-[#d97757]/10 atelier-nav-link-inactive"
+                                : "hover:bg-foreground/5 atelier-nav-link-inactive"
                             )}
                           >
                             {link.label}
@@ -164,7 +164,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-[#dbc1b9] transition-all focus:outline-none"
+                        className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-border transition-all focus:outline-none"
                         disabled={isPending}
                       >
                         <Avatar className="h-8 w-8">
@@ -183,8 +183,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-[#1a1c1b] break-all leading-tight">{userEmail}</p>
-                            <p className="text-xs text-[#55433d] mt-0.5">Free Plan</p>
+                            <p className="text-sm font-medium text-foreground break-all leading-tight">{userEmail}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Free Plan</p>
                           </div>
                         </div>
                       </div>
@@ -221,7 +221,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
                 <button
                   type="button"
-                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-[#dbc1b9]/20 transition-colors"
+                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-foreground/8 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                   disabled={isPending}
@@ -236,7 +236,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         {mobileMenuOpen && (
           <>
             <div
-              className="fixed inset-0 z-50 bg-black/50 lg:hidden"
+              className="fixed inset-0 z-50 bg-black/60 lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
             <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs lg:hidden db-root atelier-slide-panel">
@@ -245,7 +245,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                   <button
                     type="button"
-                    className="p-2 -mr-2 rounded-md hover:bg-[#dbc1b9]/20 transition-colors"
+                    className="p-2 -mr-2 rounded-md hover:bg-foreground/8 transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-label="Close menu"
                   >
@@ -267,8 +267,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                             className={cn(
                               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                               isActive
-                                ? "bg-[#99462a]/10 atelier-nav-link-active"
-                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10"
+                                ? "bg-primary/10 atelier-nav-link-active"
+                                : "atelier-nav-link-inactive hover:bg-foreground/5"
                             )}
                           >
                             <Icon className="h-5 w-5" />
@@ -289,8 +289,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#1a1c1b] break-all leading-tight">{userEmail}</p>
-                      <p className="text-xs text-[#55433d] mt-0.5">Free Plan</p>
+                      <p className="text-sm font-medium text-foreground break-all leading-tight">{userEmail}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Free Plan</p>
                     </div>
                   </div>
                   <Button
@@ -372,7 +372,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
       </div>
 
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-[#dbc1b9]/20 bg-[#faf9f7] px-4 py-4 space-y-2">
+        <div className="sm:hidden border-t border-border/20 bg-background px-4 py-4 space-y-2">
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block">

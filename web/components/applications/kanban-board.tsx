@@ -8,12 +8,12 @@ import { ExternalLink, MapPin, Calendar } from "lucide-react";
 import type { JobApplication } from "@/types";
 import type { ApplicationStatus } from "@/config/constants";
 
-const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string }[] = [
-  { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50 dark:bg-amber-950/20" },
-  { status: "Phone Screen", label: "Phone Screen", accent: "#99462a", bg: "bg-[#fdf6f3] dark:bg-[#99462a]/10" },
-  { status: "Interview",    label: "Interview",    accent: "#006d34", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-  { status: "Offer",        label: "Offer",        accent: "#1d4ed8", bg: "bg-blue-50 dark:bg-blue-950/20" },
-  { status: "Rejected",     label: "Rejected",     accent: "#ba1a1a", bg: "bg-red-50 dark:bg-red-950/20" },
+const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string; darkBg: string }[] = [
+  { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50",             darkBg: "dark:bg-amber-950/20" },
+  { status: "Phone Screen", label: "Phone Screen", accent: "#ccff00", bg: "bg-[#fdf6f3]",            darkBg: "dark:bg-[#ccff00]/5" },
+  { status: "Interview",    label: "Interview",    accent: "#4ade80", bg: "bg-emerald-50",            darkBg: "dark:bg-emerald-950/20" },
+  { status: "Offer",        label: "Offer",        accent: "#60a5fa", bg: "bg-blue-50",              darkBg: "dark:bg-blue-950/20" },
+  { status: "Rejected",     label: "Rejected",     accent: "#ff5f5f", bg: "bg-red-50",               darkBg: "dark:bg-red-950/20" },
 ];
 
 interface KanbanBoardProps {
@@ -31,7 +31,6 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
 
   async function moveCard(id: string, newStatus: ApplicationStatus) {
     const prev = items;
-    // Optimistic update
     setItems((cur) =>
       cur.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
     );
@@ -59,7 +58,6 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
   function onDragStart(e: React.DragEvent, id: string) {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
-    // Use two formats so it works across browsers
     e.dataTransfer.setData("text/plain", id);
     e.dataTransfer.setData("application/x-kanban-id", id);
   }
@@ -75,7 +73,6 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    // Try both formats
     const id =
       e.dataTransfer.getData("application/x-kanban-id") ||
       e.dataTransfer.getData("text/plain");
@@ -94,38 +91,35 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
     setDragOverCol(null);
   }
 
-  // While a card is being dragged, neutralise pointer-events on all other
-  // cards so they don't intercept dragover/drop as competing drag sources.
   const isDragging = draggingId !== null;
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
-      {COLUMNS.map(({ status, label, accent, bg }) => {
+    /* Mobile: horizontal-scroll flex  |  Desktop (lg+): full-width 5-column grid */
+    <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-x-visible">
+      {COLUMNS.map(({ status, label, accent, bg, darkBg }) => {
         const cards = byStatus(status);
         const isOver = dragOverCol === status;
         return (
-          <div key={status} className="flex flex-col shrink-0 w-64 sm:w-72">
+          <div key={status} className="flex flex-col shrink-0 w-64 sm:w-72 lg:w-auto lg:shrink lg:min-w-0">
             {/* Column header */}
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: accent }} />
-                <span className="text-sm font-semibold text-[#1a1c1b] dark:text-[#e8ddd9]">{label}</span>
+                <span className="text-sm font-semibold text-foreground">{label}</span>
               </div>
-              <span className="text-xs text-[#88726c] bg-[#f4f3f1] dark:bg-white/10 rounded-full px-2 py-0.5">
+              <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
                 {cards.length}
               </span>
             </div>
 
-            {/* Drop zone — this is the drop target, not the outer column div */}
+            {/* Drop zone */}
             <div
-              className={`flex flex-col gap-2 flex-1 min-h-[200px] rounded-xl p-2 transition-colors ${bg} ${
-                isOver ? "ring-2 ring-[#99462a]/30" : ""
+              className={`flex flex-col gap-2 flex-1 min-h-50 rounded-xl p-2 transition-colors ${bg} ${darkBg} ${
+                isOver ? "ring-2 ring-[#ccff00]/40 dark:ring-[#ccff00]/30" : ""
               }`}
               onDragOver={(e) => onDragOver(e, status)}
               onDragEnter={(e) => { e.preventDefault(); setDragOverCol(status); }}
               onDragLeave={(e) => {
-                // Only clear when the cursor leaves the drop zone entirely,
-                // not when it enters a child element.
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                   setDragOverCol(null);
                 }
@@ -137,8 +131,6 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
                   key={app.id}
                   app={app}
                   isDragging={draggingId === app.id}
-                  // While board is in drag mode, neutralise other cards so they
-                  // don't swallow dragover/drop events as competing drag sources.
                   neutralised={isDragging && draggingId !== app.id}
                   onDragStart={(e) => onDragStart(e, app.id)}
                   onDragEnd={onDragEnd}
@@ -147,7 +139,7 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
 
               {cards.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-[#88726c]/60 text-center px-2">Drop a card here</p>
+                  <p className="text-xs text-muted-foreground/60 text-center px-2">Drop a card here</p>
                 </div>
               )}
             </div>
@@ -174,8 +166,7 @@ function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: Ka
       draggable={!neutralised}
       onDragStart={neutralised ? undefined : onDragStart}
       onDragEnd={onDragEnd}
-      // pointer-events-none on neutralised cards so dragover bubbles to the column
-      className={`group bg-white dark:bg-[#1e1a18] rounded-xl p-3.5 border border-[#dbc1b9]/20 shadow-sm transition-all select-none ${
+      className={`group bg-white dark:bg-[#111111] rounded-xl p-3.5 border border-border/30 dark:border-white/6 shadow-sm transition-all select-none ${
         neutralised
           ? "pointer-events-none"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
@@ -183,36 +174,36 @@ function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: Ka
     >
       {/* Company + avatar */}
       <div className="flex items-start gap-2.5 mb-2">
-        <div className="h-8 w-8 rounded-lg bg-[#f4f3f1] dark:bg-white/10 flex items-center justify-center text-xs font-bold text-[#99462a] shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-muted dark:bg-[#ccff00]/10 flex items-center justify-center text-xs font-bold text-primary dark:text-[#ccff00] shrink-0">
           {initial}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[#1a1c1b] dark:text-[#e8ddd9] truncate leading-tight">
+          <p className="text-sm font-semibold text-foreground truncate leading-tight">
             {app.company}
           </p>
-          <p className="text-xs text-[#55433d] dark:text-[#a08880] truncate">{app.position}</p>
+          <p className="text-xs text-muted-foreground truncate">{app.position}</p>
         </div>
       </div>
 
       {/* Meta */}
       <div className="flex flex-col gap-1">
         {app.location && (
-          <span className="flex items-center gap-1 text-xs text-[#88726c]">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3 shrink-0" />
             {app.location}
           </span>
         )}
-        <span className="flex items-center gap-1 text-xs text-[#88726c]">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3 shrink-0" />
           {new Date(app.applied_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </span>
       </div>
 
       {/* Action link */}
-      <div className="mt-2.5 pt-2.5 border-t border-[#dbc1b9]/15 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mt-2.5 pt-2.5 border-t border-border/20 dark:border-white/6 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
         <Link
           href={`/applications/${app.id}`}
-          className="flex items-center gap-1 text-xs text-[#99462a] hover:underline"
+          className="flex items-center gap-1 text-xs text-primary dark:text-[#ccff00] hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           <ExternalLink className="h-3 w-3" />

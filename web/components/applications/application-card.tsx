@@ -23,14 +23,14 @@ interface ApplicationCardProps {
 function statusTokens(status: string) {
   const map: Record<string, { accent: string; avatar: string; badge: string }> = {
     "Interview":    { accent: "bg-[#006d34]",  avatar: "db-status-interview", badge: "db-status-interview" },
-    "Phone Screen": { accent: "bg-[#99462a]",  avatar: "db-status-phone",    badge: "db-status-phone" },
-    "Applied":      { accent: "bg-amber-500",  avatar: "db-status-applied",  badge: "db-status-applied" },
-    "Offer":        { accent: "bg-[#006d34]",  avatar: "db-status-offer",    badge: "db-status-offer" },
-    "Accepted":     { accent: "bg-[#006d34]",  avatar: "db-status-accepted", badge: "db-status-accepted" },
-    "Rejected":     { accent: "bg-[#ba1a1a]",  avatar: "db-status-rejected", badge: "db-status-rejected" },
-    "Withdrawn":    { accent: "bg-[#88726c]",  avatar: "db-status-withdrawn",badge: "db-status-withdrawn" },
+    "Phone Screen": { accent: "bg-primary",     avatar: "db-status-phone",    badge: "db-status-phone" },
+    "Applied":      { accent: "bg-amber-500",   avatar: "db-status-applied",  badge: "db-status-applied" },
+    "Offer":        { accent: "bg-[#006d34]",   avatar: "db-status-offer",    badge: "db-status-offer" },
+    "Accepted":     { accent: "bg-[#006d34]",   avatar: "db-status-accepted", badge: "db-status-accepted" },
+    "Rejected":     { accent: "bg-[#ba1a1a]",   avatar: "db-status-rejected", badge: "db-status-rejected" },
+    "Withdrawn":    { accent: "bg-muted-foreground", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
   };
-  return map[status] ?? { accent: "bg-[#dbc1b9]", avatar: "db-status-default", badge: "db-status-default" };
+  return map[status] ?? { accent: "bg-border", avatar: "db-status-default", badge: "db-status-default" };
 }
 
 export function ApplicationCard({ application }: ApplicationCardProps) {
@@ -83,11 +83,11 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/applications/${application.id}`}
-                className="db-headline text-lg sm:text-xl font-semibold text-[#1a1c1b] hover:text-[#99462a] transition-colors leading-tight line-clamp-2 block"
+                className="db-headline text-lg sm:text-xl font-semibold text-foreground hover:text-primary transition-colors leading-tight line-clamp-2 block"
               >
                 {application.position}
               </Link>
-              <p className="text-[#55433d] text-sm font-medium mt-0.5 truncate">
+              <p className="text-muted-foreground text-sm font-medium mt-0.5 truncate">
                 {application.company}
               </p>
             </div>
@@ -105,7 +105,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     rel="noopener noreferrer"
                     aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
-                    className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/8 transition-colors"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -114,7 +114,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="p-1.5 rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/8 transition-colors"
                       aria-label={`Options for ${application.position} at ${application.company}`}
                       title="More options"
                     >
@@ -157,7 +157,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             {application.status}
           </span>
 
-          <div className="flex flex-wrap gap-3 sm:gap-5 mt-2.5 text-xs sm:text-sm text-[#55433d]/75">
+          <div className="flex flex-wrap gap-3 sm:gap-5 mt-2.5 text-xs sm:text-sm text-muted-foreground/75">
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 shrink-0" />
               {formattedDate}

@@ -33,8 +33,6 @@ function dueLabel(dateStr: string): string {
 
 export function AtelierTasksPanel({ reminders }: AtelierTasksPanelProps) {
   const shown = reminders.slice(0, 3);
-  // Use stable index on SSR (avoids server-UTC vs client-local hydration mismatch).
-  // Update to the actual day's quote after mount.
   const [quote, setQuote] = useState(QUOTES[0]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -67,7 +65,7 @@ export function AtelierTasksPanel({ reminders }: AtelierTasksPanelProps) {
       </div>
 
       {shown.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-[#55433d] text-sm text-center gap-2">
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-sm text-center gap-2">
           <p>No pending reminders.</p>
           <Link href="/reminders" className="db-link-primary text-xs">Add one</Link>
         </div>
@@ -82,10 +80,10 @@ export function AtelierTasksPanel({ reminders }: AtelierTasksPanelProps) {
                 type="button"
               />
               <div className={`${r.is_completed ? "opacity-40" : ""}`}>
-                <p className={`text-sm font-semibold text-[#1a1c1b] ${r.is_completed ? "line-through" : ""}`}>
+                <p className={`text-sm font-semibold text-foreground ${r.is_completed ? "line-through" : ""}`}>
                   {r.title}
                 </p>
-                <p className="text-xs text-[#55433d] mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {r.is_completed ? "Completed" : dueLabel(r.remind_at)}
                   {r.job_applications && ` · ${r.job_applications.company}`}
                 </p>

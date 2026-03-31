@@ -174,7 +174,7 @@ export default async function Home() {
                     <span>NESTAi</span>
                     <span>Profile</span>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-[#99462a]/70 flex items-center justify-center text-[11px] text-white font-bold">
+                  <div className="w-7 h-7 rounded-full bg-primary/70 flex items-center justify-center text-[11px] text-primary-foreground font-bold">
                     N
                   </div>
                 </div>
@@ -274,8 +274,8 @@ export default async function Home() {
                 {/* NESTAi snippet */}
                 <div className="mx-5 mb-5 rounded-xl p-3.5 landing-hero-nestai">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#d97757]" />
-                    <span className="text-[10px] font-bold text-[#d97757]">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] font-bold text-primary">
                       NESTAi
                     </span>
                   </div>
@@ -292,17 +292,17 @@ export default async function Home() {
         {/* ── Features Bento ── */}
         <section id="features" className="max-w-7xl mx-auto px-6 mb-32">
           <div className="mb-16">
-            <h2 className="text-3xl md:text-4xl mb-4 landing-serif text-[#1a1c1b]">
+            <h2 className="text-3xl md:text-4xl mb-4 landing-serif text-foreground dark:text-white">
               Everything your career journey needs
             </h2>
-            <div className="h-1 w-20 rounded-full bg-[#d97757]" />
+            <div className="h-1 w-20 rounded-full bg-primary" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Large card */}
-            <div className="md:col-span-2 rounded-xl p-10 flex flex-col justify-between min-h-95 bg-[#f4f3f1]">
+            <div className="md:col-span-2 rounded-xl p-10 flex flex-col justify-between min-h-95 bg-[#f4f3f1] dark:bg-[#0f0f0f] dark:border dark:border-white/6">
               <div>
-                <LayoutDashboard className="w-10 h-10 text-[#99462a] mb-6" />
+                <LayoutDashboard className="w-10 h-10 text-primary mb-6" />
                 <h3 className="text-3xl mb-4 landing-serif">
                   One home for your entire search
                 </h3>
@@ -317,7 +317,7 @@ export default async function Home() {
                   (tag) => (
                     <span
                       key={tag}
-                      className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-tighter bg-[#e3e2e0]"
+                      className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-tighter bg-[#e3e2e0] dark:bg-[#222222] dark:text-white/70"
                     >
                       {tag}
                     </span>
@@ -358,8 +358,8 @@ export default async function Home() {
                 desc: "Your career story is private. Your data is encrypted, never sold, and always under your control.",
               },
             ].map(({ Icon, title, desc }) => (
-              <div key={title} className="rounded-xl p-10 bg-[#f4f3f1]">
-                <Icon className="w-7 h-7 text-[#99462a] mb-6" />
+              <div key={title} className="rounded-xl p-10 bg-[#f4f3f1] dark:bg-[#0f0f0f] dark:border dark:border-white/6">
+                <Icon className="w-7 h-7 text-primary mb-6" />
                 <h3 className="text-2xl mb-2 landing-serif">{title}</h3>
                 <p className="text-sm leading-relaxed landing-subtext">
                   {desc}
@@ -370,10 +370,10 @@ export default async function Home() {
         </section>
 
         {/* ── Testimonials ── */}
-        <section id="testimonials" className="py-24 bg-[#f4f3f1]">
+        <section id="testimonials" className="py-24 bg-[#f4f3f1] dark:bg-[#0a0a0a]">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
-              <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
+              <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-primary">
                 From our community
               </p>
               <h2 className="text-4xl landing-serif">What people are saying</h2>
@@ -411,7 +411,7 @@ export default async function Home() {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className="w-4 h-4 fill-[#99462a] text-[#99462a]"
+                        className="w-4 h-4 fill-primary text-primary"
                       />
                     ))}
                   </div>
@@ -419,7 +419,7 @@ export default async function Home() {
                     &ldquo;{quote}&rdquo;
                   </p>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shrink-0 bg-[#99462a]">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-primary-foreground shrink-0 bg-primary">
                       {initial}
                     </div>
                     <div>
@@ -435,13 +435,13 @@ export default async function Home() {
 
         {/* ── Pricing teaser ── */}
         <section className="max-w-4xl mx-auto px-6 py-16 text-center">
-          <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-[#99462a]">
+          <p className="text-xs uppercase tracking-[0.2em] mb-4 font-bold text-primary">
             Pricing
           </p>
           <h2 className="text-4xl landing-serif mb-4">
             Free to start. Pro when you&apos;re ready.
           </h2>
-          <p className="text-lg text-[#55433d] max-w-md mx-auto leading-relaxed mb-8">
+          <p className="text-lg landing-subtext max-w-md mx-auto leading-relaxed mb-8">
             Full access to every feature on the Free plan — upgrade to Pro for
             advanced analytics, team tools, and priority support.
           </p>
