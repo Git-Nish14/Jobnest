@@ -6,16 +6,16 @@ interface AtelierStatusChartProps {
   total: number;
 }
 
-// Status pipeline colours — visible on both light and dark backgrounds
+// Status pipeline colours — original Atelier warm palette (light mode)
 const STATUS_META: Record<string, { color: string; label: string }> = {
-  Applied:        { color: "#a89080", label: "Applied" },
-  "Phone Screen": { color: "#ccff00", label: "Phone Screen" },
-  "In Review":    { color: "#f59e0b", label: "In Review" },
-  Interview:      { color: "#4ade80", label: "Interviewing" },
-  Offer:          { color: "#34d399", label: "Offer Received" },
-  Accepted:       { color: "#10b981", label: "Accepted" },
-  Rejected:       { color: "#ff5f5f", label: "Rejected" },
-  Withdrawn:      { color: "#6b7280", label: "Withdrawn" },
+  Applied:        { color: "#dbc1b9", label: "Applied" },
+  "Phone Screen": { color: "#88726c", label: "Phone Screen" },
+  "In Review":    { color: "#d97757", label: "In Review" },
+  Interview:      { color: "#99462a", label: "Interviewing" },
+  Offer:          { color: "#006d34", label: "Offer Received" },
+  Accepted:       { color: "#40a45f", label: "Accepted" },
+  Rejected:       { color: "#ba1a1a", label: "Rejected" },
+  Withdrawn:      { color: "#c8c6c3", label: "Withdrawn" },
 };
 
 function getMeta(status: string) {

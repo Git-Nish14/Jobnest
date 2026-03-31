@@ -145,7 +145,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                               "px-3 py-1.5 text-sm rounded-lg transition-all duration-150",
                               isActive
                                 ? "font-semibold atelier-nav-link-active"
-                                : "hover:bg-foreground/5 atelier-nav-link-inactive"
+                                : "hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8 atelier-nav-link-inactive"
                             )}
                           >
                             {link.label}
@@ -221,7 +221,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
                 <button
                   type="button"
-                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-foreground/8 transition-colors"
+                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                   disabled={isPending}
@@ -245,7 +245,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                   <button
                     type="button"
-                    className="p-2 -mr-2 rounded-md hover:bg-foreground/8 transition-colors"
+                    className="p-2 -mr-2 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-label="Close menu"
                   >
@@ -267,8 +267,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                             className={cn(
                               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                               isActive
-                                ? "bg-primary/10 atelier-nav-link-active"
-                                : "atelier-nav-link-inactive hover:bg-foreground/5"
+                                ? "bg-[#99462a]/10 dark:bg-[#ccff00]/10 atelier-nav-link-active"
+                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
                             )}
                           >
                             <Icon className="h-5 w-5" />
