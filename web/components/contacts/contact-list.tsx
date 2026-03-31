@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Phone, Linkedin, Star, Trash2, MoreVertical, Building } from "lucide-react";
+import { Mail, Phone, Star, Trash2, MoreVertical, Building } from "lucide-react";
+import { LinkedinIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -126,7 +127,7 @@ export function ContactList({ contacts }: ContactListProps) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-sm text-[#55433d]/70 hover:text-[#99462a] transition-colors"
               >
-                <Linkedin className="h-3.5 w-3.5 shrink-0" />
+                <LinkedinIcon className="h-3.5 w-3.5 shrink-0" />
                 <span>LinkedIn Profile</span>
               </a>
             )}

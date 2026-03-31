@@ -5,38 +5,87 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractAllDocuments } from "@/lib/utils/document-parser";
 
-const MAX_REQUESTS = 5;
-const WINDOW_MS = 60 * 1000;
+// Rate limits per plan
+const RATE_LIMITS = {
+  free: { maxRequests: 5,  windowMs: 60_000 },
+  pro:  { maxRequests: 30, windowMs: 60_000 },
+} as const;
 
-// ── Document parse cache (per user, 5-minute TTL) ────────────────────────────
-const DOC_CACHE_TTL = 5 * 60 * 1000;
+// ── Document parse cache (5-minute TTL) ─────────────────────────────────────
+// Uses Upstash Redis when configured, falls back to in-memory Map.
+// Redis survives cold starts and is shared across all function instances.
+const DOC_CACHE_TTL_SECONDS = 5 * 60;
+const DOC_CACHE_TTL_MS = DOC_CACHE_TTL_SECONDS * 1000;
 
-interface DocCacheEntry {
-  texts: Awaited<ReturnType<typeof extractAllDocuments>>;
-  parsedAt: number;
-}
+type DocTexts = Awaited<ReturnType<typeof extractAllDocuments>>;
 
-const docCache = new Map<string, DocCacheEntry>();
+// ── In-memory fallback ────────────────────────────────────────────────────────
+interface MemEntry { texts: DocTexts; parsedAt: number; }
+const memDocCache = new Map<string, MemEntry>();
 
-function getDocCache(userId: string): DocCacheEntry["texts"] | null {
-  const entry = docCache.get(userId);
+function memGetDocCache(userId: string): DocTexts | null {
+  const entry = memDocCache.get(userId);
   if (!entry) return null;
-  if (Date.now() - entry.parsedAt > DOC_CACHE_TTL) {
-    docCache.delete(userId);
-    return null;
-  }
+  if (Date.now() - entry.parsedAt > DOC_CACHE_TTL_MS) { memDocCache.delete(userId); return null; }
   return entry.texts;
 }
-
-function setDocCache(userId: string, texts: DocCacheEntry["texts"]): void {
-  docCache.set(userId, { texts, parsedAt: Date.now() });
-  // Opportunistic cleanup — remove entries older than TTL
+function memSetDocCache(userId: string, texts: DocTexts): void {
+  memDocCache.set(userId, { texts, parsedAt: Date.now() });
   if (Math.random() < 0.05) {
-    const cutoff = Date.now() - DOC_CACHE_TTL;
-    for (const [key, val] of docCache) {
-      if (val.parsedAt < cutoff) docCache.delete(key);
+    const cutoff = Date.now() - DOC_CACHE_TTL_MS;
+    for (const [k, v] of memDocCache) { if (v.parsedAt < cutoff) memDocCache.delete(k); }
+  }
+}
+
+// ── Redis helpers ─────────────────────────────────────────────────────────────
+function isDocCacheRedisReady() {
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+}
+
+async function redisGet(key: string): Promise<string | null> {
+  const url = process.env.UPSTASH_REDIS_REST_URL!;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
+  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Redis GET failed: ${res.status}`);
+  const json = await res.json();
+  return json.result ?? null;
+}
+
+async function redisSetEx(key: string, ttlSec: number, value: string): Promise<void> {
+  const url = process.env.UPSTASH_REDIS_REST_URL!;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
+  await fetch(`${url}/setex/${encodeURIComponent(key)}/${ttlSec}/${encodeURIComponent(value)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+}
+
+// ── Public cache API ──────────────────────────────────────────────────────────
+async function getDocCache(userId: string): Promise<DocTexts | null> {
+  if (isDocCacheRedisReady()) {
+    try {
+      const raw = await redisGet(`doc-cache:${userId}`);
+      return raw ? (JSON.parse(raw) as DocTexts) : null;
+    } catch (err) {
+      console.warn("[doc-cache] Redis GET error, falling back:", err);
     }
   }
+  return memGetDocCache(userId);
+}
+
+async function setDocCache(userId: string, texts: DocTexts): Promise<void> {
+  if (isDocCacheRedisReady()) {
+    try {
+      await redisSetEx(`doc-cache:${userId}`, DOC_CACHE_TTL_SECONDS, JSON.stringify(texts));
+      return;
+    } catch (err) {
+      console.warn("[doc-cache] Redis SET error, falling back:", err);
+    }
+  }
+  memSetDocCache(userId, texts);
 }
 
 export async function POST(request: NextRequest) {
@@ -52,23 +101,30 @@ export async function POST(request: NextRequest) {
       throw ApiError.unauthorized();
     }
 
+    // Look up plan — runs in parallel with rate-limit check below
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const isPro = sub?.plan === "pro" && sub?.status === "active";
+    const limits = isPro ? RATE_LIMITS.pro : RATE_LIMITS.free;
+
     // Rate limit check
-    const rateLimit = await checkRateLimit(`nesta:${user.id}`, {
-      maxRequests: MAX_REQUESTS,
-      windowMs: WINDOW_MS,
-    });
+    const rateLimit = await checkRateLimit(`nesta:${user.id}`, limits);
 
     if (!rateLimit.allowed) {
       const resetInSeconds = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Rate limit reached. You can send ${MAX_REQUESTS} messages per minute.`,
+          error: `Rate limit reached. You can send ${limits.maxRequests} messages per minute.${!isPro ? " Upgrade to Pro for 30 messages/min." : ""}`,
           resetIn: resetInSeconds,
         },
         {
           status: 429,
           headers: {
-            "X-RateLimit-Limit": String(MAX_REQUESTS),
+            "X-RateLimit-Limit": String(limits.maxRequests),
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetTime / 1000)),
           },
@@ -159,14 +215,14 @@ export async function POST(request: NextRequest) {
 
     // ── Extract full text from uploaded resumes & cover letters ─────────────
     // Cache per user for 5 minutes — avoids re-parsing on every message
-    let documentTexts: DocCacheEntry["texts"] = [];
+    let documentTexts: DocTexts = [];
     if (applications && applications.length > 0) {
-      const cached = getDocCache(user.id);
+      const cached = await getDocCache(user.id);
       if (cached) {
         documentTexts = cached;
       } else {
         documentTexts = await extractAllDocuments(supabase, applications);
-        setDocCache(user.id, documentTexts);
+        await setDocCache(user.id, documentTexts);
       }
     }
 
@@ -193,14 +249,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Inject user's "About Me" context if they've set it
-    const aboutMe: string = user.user_metadata?.about_me ?? "";
+    // NESTAi context: use the dedicated nestai_context field if set,
+    // otherwise fall back to the general about_me profile bio.
+    const nestaiContext: string =
+      user.user_metadata?.nestai_context ??
+      user.user_metadata?.about_me ??
+      "";
 
     const buildSystemPrompt = (context: string) =>
       `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-${aboutMe ? `\n=== ABOUT THIS USER ===\n${aboutMe}\n=== END USER CONTEXT ===\n` : ""}
+${nestaiContext ? `\n=== ABOUT THIS USER ===\n${nestaiContext}\n=== END USER CONTEXT ===\n` : ""}
 === USER'S COMPLETE JOB SEARCH DATA ===
 ${context}
 === END OF DATA ===
@@ -341,7 +401,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
         "X-Accel-Buffering": "no",
         "X-RateLimit-Remaining": String(rateLimit.remaining),
         "X-RateLimit-Reset-In": String(resetInSeconds),
-        "X-RateLimit-Limit": String(MAX_REQUESTS),
+        "X-RateLimit-Limit": String(limits.maxRequests),
       },
     });
   } catch (error) {

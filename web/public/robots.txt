@@ -3,9 +3,18 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://jobnest.app/sitemap.xml
+Sitemap: https://jobnest.nishpatel.dev/sitemap.xml
 
-# Disallow private routes
+# Disallow all authenticated / private routes
 Disallow: /dashboard
 Disallow: /applications
+Disallow: /interviews
+Disallow: /reminders
+Disallow: /contacts
+Disallow: /templates
+Disallow: /salary
+Disallow: /documents
+Disallow: /nestai
+Disallow: /profile
+Disallow: /auth/
 Disallow: /api/

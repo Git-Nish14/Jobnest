@@ -30,7 +30,7 @@ function req(pathname: string, cookies: Record<string, string> = {}): NextReques
   });
 }
 
-const authedUser = { id: "uid", email: "a@b.com" };
+const authedUser = { id: "uid", email: "a@b.com", user_metadata: { onboarding_completed: true } };
 
 beforeEach(() => {
   vi.clearAllMocks();

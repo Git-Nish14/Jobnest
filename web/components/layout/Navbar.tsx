@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface NavbarProps {
   user?: { email?: string } | null;
@@ -157,6 +158,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               </div>
 
               <div className="flex items-center gap-2">
+                <ThemeToggle />
                 {mounted && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

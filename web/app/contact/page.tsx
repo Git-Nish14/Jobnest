@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2, Github } from "lucide-react";
+import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2 } from "lucide-react";
+import { GithubIcon } from "@/components/ui/brand-icons";
 import { fetchWithRetry, getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { Navbar, Footer } from "@/components/layout";
 import { useForm } from "react-hook-form";
@@ -34,7 +35,7 @@ const INFO_ITEMS = [
     body: "Your feedback helps us improve Jobnest for everyone.",
   },
   {
-    icon: Github,
+    icon: GithubIcon,
     title: "Report Issues",
     body: null,
   },

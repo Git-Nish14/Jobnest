@@ -28,6 +28,7 @@ interface ProfileUser {
   createdAt: string;
   passwordChangedAt: string | null;
   aboutMe: string;
+  nestaiContext: string;
   hasPassword: boolean;
   notificationPrefs: {
     overdueReminders: boolean;
@@ -131,6 +132,33 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       setAboutMeError("Failed to save. Please try again.");
     } finally {
       setAboutMeSaving(false);
+    }
+  };
+
+  // ── NESTAi Context (separate from About Me) ───────────────────────────────
+  const [nestaiInput, setNestaiInput] = useState(user.nestaiContext);
+  const [nestaiSaving, setNestaiSaving] = useState(false);
+  const [nestaiError, setNestaiError] = useState<string | null>(null);
+  const [nestaiSuccess, setNestaiSuccess] = useState(false);
+
+  const handleNestaiSave = async () => {
+    setNestaiError(null);
+    setNestaiSuccess(false);
+    setNestaiSaving(true);
+    try {
+      const res = await fetchWithRetry("/api/profile/update-nestai-context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nestaiContext: nestaiInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setNestaiError(data.error || "Failed to save"); return; }
+      setNestaiSuccess(true);
+      setTimeout(() => setNestaiSuccess(false), 3000);
+    } catch {
+      setNestaiError("Failed to save. Please try again.");
+    } finally {
+      setNestaiSaving(false);
     }
   };
 
@@ -571,6 +599,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold px-4 pt-3 pb-1.5">Settings</p>
               {[
                 { label: "Display Name", href: "#display-name", icon: User },
+                { label: "About You", href: "#about", icon: User },
                 { label: "NESTAi Context", href: "#nestai", icon: BrainCircuit },
                 { label: "Notifications", href: "#notifications", icon: Bell },
                 { label: hasPw ? "Change Password" : "Set Password", href: "#password", icon: Shield },
@@ -601,7 +630,10 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 </div>
                 Display Name
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">How your name appears across the app</p>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                How your name appears across the app — set during onboarding.
+                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">display_name</code> in your account.
+              </p>
             </CardHeader>
             <CardContent className="pt-4">
               {nameError && <Callout type="error">{nameError}</Callout>}
@@ -618,7 +650,43 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
             </CardContent>
           </Card>
 
-          {/* NESTAi Context */}
+          {/* About You — profile bio from onboarding */}
+          <Card id="about" className="shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
+                <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <User className="h-3.5 w-3.5" />
+                </div>
+                About You
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                Your profile bio — shown on your account and filled in during onboarding.
+                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">about_me</code> in your account.
+              </p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {aboutMeError && <Callout type="error">{aboutMeError}</Callout>}
+              {aboutMeSuccess && <Callout type="success">Bio updated.</Callout>}
+              <textarea
+                id="aboutMe"
+                value={aboutMeInput}
+                onChange={(e) => setAboutMeInput(e.target.value)}
+                maxLength={2000}
+                rows={4}
+                placeholder="e.g. Software engineer with 3 years of experience, targeting senior roles at product companies in NYC."
+                className="w-full rounded-xl border bg-muted/20 px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none transition-shadow"
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{aboutMeInput.length} / 2000</p>
+                <Button onClick={handleAboutMeSave} disabled={aboutMeSaving || aboutMeInput === user.aboutMe} size="sm">
+                  {aboutMeSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* NESTAi Context — separate AI-specific context */}
           <Card id="nestai" className="shadow-sm">
             <CardHeader className="pb-0">
               <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
@@ -627,20 +695,28 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 </div>
                 NESTAi Context
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">Background about you that NESTAi uses on every message for smarter answers</p>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                Custom instructions injected into every NESTAi conversation — separate from your bio above.
+                If blank, NESTAi falls back to your About You bio.
+                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">nestai_context</code> in your account.
+              </p>
             </CardHeader>
             <CardContent className="pt-4">
-              {aboutMeError && <Callout type="error">{aboutMeError}</Callout>}
-              {aboutMeSuccess && <Callout type="success">Saved — NESTAi will use this in every conversation.</Callout>}
-              <textarea id="aboutMe" value={aboutMeInput} onChange={(e) => setAboutMeInput(e.target.value)}
-                maxLength={2000} rows={5}
-                placeholder="e.g. Senior frontend engineer, 5 years experience. Targeting remote fintech/SaaS roles. Open to senior IC or lead. Preferred salary £90k–£110k, UK-based."
+              {nestaiError && <Callout type="error">{nestaiError}</Callout>}
+              {nestaiSuccess && <Callout type="success">Saved — NESTAi will use this in every conversation.</Callout>}
+              <textarea
+                id="nestaiContext"
+                value={nestaiInput}
+                onChange={(e) => setNestaiInput(e.target.value)}
+                maxLength={2000}
+                rows={4}
+                placeholder="e.g. I am applying to senior frontend roles. Always refer to me by first name. Focus on React, TypeScript, and system design when reviewing my materials."
                 className="w-full rounded-xl border bg-muted/20 px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none transition-shadow"
               />
               <div className="mt-3 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{aboutMeInput.length} / 2000</p>
-                <Button onClick={handleAboutMeSave} disabled={aboutMeSaving || aboutMeInput === user.aboutMe} size="sm">
-                  {aboutMeSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <p className="text-xs text-muted-foreground">{nestaiInput.length} / 2000</p>
+                <Button onClick={handleNestaiSave} disabled={nestaiSaving || nestaiInput === user.nestaiContext} size="sm">
+                  {nestaiSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Context
                 </Button>
               </div>

@@ -461,3 +461,145 @@ A Nish Patel product
     };
   }
 }
+
+export interface WeeklyDigestData {
+  email: string;
+  displayName: string;
+  appUrl: string;
+  stats: {
+    applicationsThisWeek: number;
+    totalActive: number;
+    upcomingInterviews: number;
+    overdueReminders: number;
+  };
+  recentApplications: { company: string; position: string; status: string }[];
+  upcomingInterviews: { company: string; position: string; scheduledAt: string }[];
+}
+
+export async function sendWeeklyDigestEmail(
+  data: WeeklyDigestData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const { email, displayName, appUrl, stats, recentApplications, upcomingInterviews } = data;
+    const name = displayName || "there";
+
+    const formatDate = (iso: string) =>
+      new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Your weekly job search digest — ${stats.applicationsThisWeek} application${stats.applicationsThisWeek !== 1 ? "s" : ""} this week`,
+      text: `
+Hi ${name},
+
+Here's your Jobnest weekly digest:
+
+📊 This week
+• Applications submitted: ${stats.applicationsThisWeek}
+• Active pipeline: ${stats.totalActive}
+• Upcoming interviews: ${stats.upcomingInterviews}
+• Overdue reminders: ${stats.overdueReminders}
+
+${recentApplications.length > 0 ? `Recent applications:\n${recentApplications.map(a => `• ${a.company} — ${a.position} (${a.status})`).join("\n")}` : ""}
+
+${upcomingInterviews.length > 0 ? `Upcoming interviews:\n${upcomingInterviews.map(i => `• ${i.company} — ${i.position} on ${formatDate(i.scheduledAt)}`).join("\n")}` : ""}
+
+Keep going — every application is a step forward.
+
+Log in to your dashboard: ${appUrl}/dashboard
+
+Best regards,
+The Jobnest Team
+      `,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb;">
+  <div style="background: linear-gradient(135deg, #99462a 0%, #7a3521 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">Your Weekly Digest</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0; font-size: 14px;">Hi ${name} — here's how your search is going</p>
+  </div>
+
+  <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+
+    <!-- Stats grid -->
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px;">
+      ${[
+        { label: "Applied this week", value: stats.applicationsThisWeek, color: "#99462a" },
+        { label: "Active pipeline", value: stats.totalActive, color: "#1d4ed8" },
+        { label: "Upcoming interviews", value: stats.upcomingInterviews, color: "#059669" },
+        { label: "Overdue reminders", value: stats.overdueReminders, color: stats.overdueReminders > 0 ? "#dc2626" : "#6b7280" },
+      ].map(s => `
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: ${s.color};">${s.value}</div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${s.label}</div>
+        </div>
+      `).join("")}
+    </div>
+
+    <!-- Recent applications -->
+    ${recentApplications.length > 0 ? `
+    <h2 style="font-size: 16px; font-weight: 700; color: #1a1c1b; margin: 0 0 12px;">Recent applications</h2>
+    <div style="margin-bottom: 24px;">
+      ${recentApplications.map(a => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+          <div>
+            <div style="font-weight: 600; font-size: 14px; color: #1a1c1b;">${a.company}</div>
+            <div style="font-size: 12px; color: #6b7280;">${a.position}</div>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: #f4f3f1; color: #55433d;">${a.status}</span>
+        </div>
+      `).join("")}
+    </div>
+    ` : ""}
+
+    <!-- Upcoming interviews -->
+    ${upcomingInterviews.length > 0 ? `
+    <h2 style="font-size: 16px; font-weight: 700; color: #1a1c1b; margin: 0 0 12px;">Upcoming interviews</h2>
+    <div style="margin-bottom: 24px;">
+      ${upcomingInterviews.map(i => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+          <div>
+            <div style="font-weight: 600; font-size: 14px; color: #1a1c1b;">${i.company}</div>
+            <div style="font-size: 12px; color: #6b7280;">${i.position}</div>
+          </div>
+          <span style="font-size: 12px; color: #55433d;">${formatDate(i.scheduledAt)}</span>
+        </div>
+      `).join("")}
+    </div>
+    ` : ""}
+
+    <!-- CTA -->
+    <div style="text-align: center; padding: 20px 0 8px;">
+      <p style="color: #55433d; font-size: 14px; margin: 0 0 16px; font-style: italic;">Keep going — every application is a step forward.</p>
+      <a href="${appUrl}/dashboard" style="background: #99462a; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Open Dashboard →</a>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+      <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+        You're receiving this because weekly digest is enabled in your <a href="${appUrl}/profile" style="color: #99462a;">notification preferences</a>.<br>
+        To unsubscribe, turn off "Weekly digest" in your profile settings.
+      </p>
+      <p style="margin: 8px 0 0; font-size: 11px; color: #9ca3af;">
+        A <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a> Product
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send weekly digest email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}

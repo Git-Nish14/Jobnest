@@ -4,6 +4,7 @@ import { Newsreader, Manrope } from "next/font/google";
 import { Navbar, BottomTabBar } from "@/components/layout";
 import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { redirect } from "next/navigation";
 import "./dashboard.css";
 
@@ -53,6 +54,7 @@ export default async function DashboardLayout({
   return (
     <div className={`${newsreader.variable} ${manrope.variable} min-h-screen db-root`}>
       <AuthSync />
+      <CommandPalette />
       <Navbar user={{ email: user.email }} />
       {pendingDeletion && (
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />
