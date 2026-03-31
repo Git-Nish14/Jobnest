@@ -12,7 +12,7 @@ html {
 }
 
 :root {
-  /* Light — warm parchment Atelier palette */
+  /* Light — warm parchment Atelier palette (unchanged) */
   --background: 0 0% 100%;
   --foreground: 15 5% 11%;
   --card: 0 0% 100%;
@@ -36,26 +36,26 @@ html {
 }
 
 .dark {
-  /* Dark — deep warm slate, primary stays terracotta */
-  --background: 20 8% 10%;
-  --foreground: 30 15% 92%;
-  --card: 20 8% 13%;
-  --card-foreground: 30 15% 92%;
-  --popover: 20 8% 12%;
-  --popover-foreground: 30 15% 92%;
-  --primary: 15 57% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 20 8% 18%;
-  --secondary-foreground: 30 15% 85%;
-  --muted: 20 8% 18%;
-  --muted-foreground: 30 10% 55%;
-  --accent: 20 8% 20%;
-  --accent-foreground: 30 15% 85%;
-  --destructive: 0 72% 51%;
+  /* ── Black + #ccff00 (lime) dark theme ── */
+  --background: 0 0% 0%;           /* pure black */
+  --foreground: 0 0% 96%;          /* near white */
+  --card: 0 0% 5%;                 /* #0d0d0d */
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 4%;              /* #0a0a0a */
+  --popover-foreground: 0 0% 96%;
+  --primary: 72 100% 50%;          /* #ccff00 */
+  --primary-foreground: 0 0% 0%;   /* black text on lime */
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 85%;
+  --muted: 0 0% 8%;
+  --muted-foreground: 0 0% 50%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 85%;
+  --destructive: 0 72% 55%;
   --destructive-foreground: 0 0% 98%;
-  --border: 20 8% 22%;
-  --input: 20 8% 18%;
-  --ring: 15 57% 50%;
+  --border: 0 0% 14%;
+  --input: 0 0% 10%;
+  --ring: 72 100% 50%;             /* #ccff00 ring */
 }
 
 @theme inline {
@@ -128,7 +128,7 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
-/* ── Atelier Navbar ────────────────────────────────────────────────────────── */
+/* ── Atelier Navbar — light defaults ───────────────────────────────────────── */
 .atelier-nav {
   background-color: rgba(250, 249, 247, 0.82);
   border-color: rgba(219, 193, 185, 0.18);
@@ -161,4 +161,39 @@ body {
 
 .atelier-slide-panel {
   box-shadow: 0 8px 40px rgba(26, 28, 27, 0.18);
+}
+
+/* ── Atelier Navbar — dark overrides ───────────────────────────────────────── */
+.dark .atelier-nav {
+  background-color: rgba(0, 0, 0, 0.92);
+  border-color: rgba(204, 255, 0, 0.08);
+  box-shadow: 0 1px 24px rgba(0, 0, 0, 0.8);
+}
+
+.dark .atelier-nav-logo {
+  color: #ccff00;
+}
+
+.dark .atelier-nav-link-active {
+  color: #ccff00;
+}
+
+.dark .atelier-nav-link-inactive {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dark .atelier-avatar {
+  background-color: #ccff00;
+  color: #000000;
+  font-weight: 700;
+}
+
+.dark .atelier-dropdown-header {
+  border-color: rgba(204, 255, 0, 0.08);
+  background-color: rgba(10, 10, 10, 0.95);
+}
+
+.dark .atelier-slide-panel {
+  background-color: #0a0a0a;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9);
 }

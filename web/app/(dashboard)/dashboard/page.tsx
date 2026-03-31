@@ -58,10 +58,10 @@ export default async function DashboardPage() {
 
       {/* ── Welcome header ── */}
       <header>
-        <h1 className="db-headline text-5xl md:text-6xl text-[#1a1c1b] mb-3">
+        <h1 className="db-headline text-5xl md:text-6xl text-foreground mb-3">
           Welcome back, {firstName}.
         </h1>
-        <p className="text-lg text-[#55433d]">
+        <p className="text-lg text-muted-foreground">
           {activeCount > 0 || upcomingCount > 0
             ? `You have ${upcomingCount > 0 ? `${upcomingCount} interview${upcomingCount !== 1 ? "s" : ""} upcoming` : "no upcoming interviews"}${activeCount > 0 ? ` and ${activeCount} active application${activeCount !== 1 ? "s" : ""}` : ""}.`
             : "Your career workspace is ready. Start tracking your applications."}
@@ -77,9 +77,9 @@ export default async function DashboardPage() {
             label="Total Applications"
             value={stats.totalApplications.toString().padStart(2, "0")}
             icon={<BarChart3 className="w-5 h-5" />}
-            bgClass="bg-[#f4f3f1]"
+            bgClass="bg-[#f4f3f1] dark:bg-[#0f0f0f]"
             footer={
-              <span className="flex items-center gap-1.5 text-[#006d34] text-sm font-semibold">
+              <span className="flex items-center gap-1.5 text-[#006d34] dark:text-[#4ade80] text-sm font-semibold">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8" />
                 </svg>
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
             label="Upcoming Interviews"
             value={upcomingCount.toString().padStart(2, "0")}
             icon={<Calendar className="w-5 h-5" />}
-            bgClass="bg-[#e9e8e6]"
+            bgClass="bg-[#e9e8e6] dark:bg-[#1a1a1a]"
             footer={
               nextInterviewLabel ? (
                 <p className="text-sm text-[#55433d]">
@@ -112,7 +112,7 @@ export default async function DashboardPage() {
             label="Offers Received"
             value={offerCount.toString().padStart(2, "0")}
             icon={<Mail className="w-5 h-5" />}
-            bgClass="bg-[#ffdbd0]/40"
+            bgClass="bg-[#ffdbd0]/40 dark:bg-[#ccff00]/5"
             footer={
               offerCount > 0 ? (
                 <Link href="/applications?status=Offer" className="db-btn-primary">

@@ -23,13 +23,11 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  // Lazy initialiser: runs on the client only (SSR renders with "light" default)
   const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Read the stored preference after mount so SSR output matches
     const stored = readStoredTheme();
     if (stored !== theme) setTheme(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,7 +46,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggle}
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors hover:bg-[#dbc1b9]/20 text-[#55433d] dark:text-[#c4a99f] dark:hover:bg-white/10 ${className ?? ""}`}
+      className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors
+        hover:bg-foreground/8 text-muted-foreground
+        dark:hover:bg-[#ccff00]/10 dark:text-[#ccff00]/70 dark:hover:text-[#ccff00]
+        ${className ?? ""}`}
     >
       {theme === "dark" ? (
         <Sun className="h-4 w-4" />

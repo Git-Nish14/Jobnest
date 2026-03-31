@@ -18,8 +18,8 @@ export function AtelierChart({ data }: AtelierChartProps) {
       <div className="flex justify-between items-center mb-8">
         <h2 className="db-panel-title">Application Velocity</h2>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#99462a]/30" />
-          <span className="text-xs text-[#55433d] font-medium">Weekly Submissions</span>
+          <span className="w-3 h-3 rounded-full bg-primary/30" />
+          <span className="text-xs text-muted-foreground font-medium">Weekly Submissions</span>
         </div>
       </div>
 
@@ -33,7 +33,7 @@ export function AtelierChart({ data }: AtelierChartProps) {
               return (
                 <div key={i} className="flex-1 relative group">
                   {/* Tooltip on hover */}
-                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[#2f3130] text-white text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
                     {item.count}
                   </div>
                   <div
@@ -50,7 +50,7 @@ export function AtelierChart({ data }: AtelierChartProps) {
             {data.map((item, i) => (
               <span
                 key={i}
-                className="flex-1 text-center text-[10px] text-[#55433d] uppercase font-semibold truncate"
+                className="flex-1 text-center text-[10px] text-muted-foreground uppercase font-semibold truncate"
               >
                 {item.week}
               </span>
@@ -58,7 +58,7 @@ export function AtelierChart({ data }: AtelierChartProps) {
           </div>
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-[#55433d] text-sm">
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
           No applications tracked yet — start adding!
         </div>
       )}
