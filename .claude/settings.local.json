@@ -5,7 +5,9 @@
       "Bash(npm run:*)",
       "Bash(npx vitest:*)",
       "Bash(cat c:/Users/nish1/Documents/GitHub/jobnest/web/app/\\\\\\(auth\\\\\\)/signup/page.tsx)",
-      "Bash(grep -l \"activity_log\" c:/Users/nish1/Documents/GitHub/jobnest/supabase/migrations/*.sql)"
+      "Bash(grep -l \"activity_log\" c:/Users/nish1/Documents/GitHub/jobnest/supabase/migrations/*.sql)",
+      "Bash(rm -rf c:/Users/nish1/Documents/GitHub/jobnest/web/jobs)",
+      "Bash(rm -f c:/Users/nish1/Documents/GitHub/jobnest/web/trigger.config.ts)"
     ]
   }
 }

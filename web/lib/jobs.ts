@@ -1,26 +1,33 @@
+/**
+ * Background job dispatcher — inline implementation.
+ *
+ * All heavy work (PDF parsing, email sending) runs synchronously in the
+ * same serverless function for now.  When you are ready to add Trigger.dev,
+ * replace the bodies of queueDocumentParse() and queueEmail() with:
+ *
+ *   const { tasks } = await import("@trigger.dev/sdk/v3");
+ *   await tasks.trigger("parse-document", payload);
+ *
+ * NOTE: @trigger.dev/sdk currently requires zod ^3 which conflicts with this
+ * project's zod ^4. Upgrade the SDK once it publishes zod-v4 support.
+ */
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import nodemailer from "nodemailer";
 
-/**
- * Background job dispatcher.
- *
- * When TRIGGER_API_KEY is set, tasks are dispatched to Trigger.dev and run
- * asynchronously — no Vercel timeout risk.
- *
- * When TRIGGER_API_KEY is not set (local dev, CI), tasks run inline
- * synchronously as a graceful fallback so nothing is broken.
- */
+// ── Document parsing ──────────────────────────────────────────────────────────
 
-function isTriggerConfigured(): boolean {
-  return Boolean(process.env.TRIGGER_API_KEY && process.env.TRIGGER_PROJECT_ID);
-}
-
-// ── Inline implementations (used as fallback when Trigger.dev is absent) ─────
-
-async function runDocumentParseInline(payload: { userId: string; filePath: string; documentId: string }) {
+export async function queueDocumentParse(payload: {
+  userId: string;
+  filePath: string;
+  documentId: string;
+}): Promise<void> {
   const { userId, filePath, documentId } = payload;
   const admin = createAdminClient();
-  const { data: fileData, error } = await admin.storage.from("documents").download(filePath);
+
+  const { data: fileData, error } = await admin.storage
+    .from("documents")
+    .download(filePath);
   if (error || !fileData) return;
 
   const buffer = Buffer.from(await fileData.arrayBuffer());
@@ -33,48 +40,21 @@ async function runDocumentParseInline(payload: { userId: string; filePath: strin
     text = (await pdfParse(buffer)).text.replace(/\s{3,}/g, "\n").trim().slice(0, 50_000) || null;
   } else if (ext === "docx" || ext === "doc") {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mammoth = require("mammoth") as { extractRawText: (o: { buffer: Buffer }) => Promise<{ value: string }> };
+    const mammoth = require("mammoth") as {
+      extractRawText: (o: { buffer: Buffer }) => Promise<{ value: string }>;
+    };
     text = (await mammoth.extractRawText({ buffer })).value.trim().slice(0, 50_000) || null;
   } else if (ext === "txt" || ext === "md") {
     text = buffer.toString("utf-8").trim().slice(0, 50_000) || null;
   }
 
   if (text) {
-    await admin.from("application_documents").update({ extracted_text: text }).eq("id", documentId).eq("user_id", userId);
+    await admin
+      .from("application_documents")
+      .update({ extracted_text: text })
+      .eq("id", documentId)
+      .eq("user_id", userId);
   }
-}
-
-async function runEmailInline(payload: { to: string; subject: string; text: string; html: string }) {
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT = "587" } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return;
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: parseInt(SMTP_PORT),
-    secure: SMTP_PORT === "465",
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-  await transporter.sendMail({ from: `"Jobnest" <${SMTP_USER}>`, ...payload });
-}
-
-// ── Document parsing ──────────────────────────────────────────────────────────
-
-export async function queueDocumentParse(payload: {
-  userId: string;
-  filePath: string;
-  documentId: string;
-}): Promise<void> {
-  if (isTriggerConfigured()) {
-    try {
-      const { tasks } = await import("@trigger.dev/sdk/v3");
-      await tasks.trigger("parse-document", payload);
-      return;
-    } catch (err) {
-      console.warn("[jobs] Trigger.dev unavailable, running inline:", err);
-    }
-  }
-
-  // Inline fallback — run the logic directly in this function
-  await runDocumentParseInline(payload);
 }
 
 // ── Email sending ─────────────────────────────────────────────────────────────
@@ -85,16 +65,18 @@ export async function queueEmail(payload: {
   text: string;
   html: string;
 }): Promise<void> {
-  if (isTriggerConfigured()) {
-    try {
-      const { tasks } = await import("@trigger.dev/sdk/v3");
-      await tasks.trigger("send-email", payload);
-      return;
-    } catch (err) {
-      console.warn("[jobs] Trigger.dev unavailable for email, running inline:", err);
-    }
-  }
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT = "587" } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return;
 
-  // Inline fallback — send synchronously
-  await runEmailInline(payload);
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: parseInt(SMTP_PORT),
+    secure: SMTP_PORT === "465",
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+
+  await transporter.sendMail({
+    from: `"Jobnest" <${SMTP_USER}>`,
+    ...payload,
+  });
 }
