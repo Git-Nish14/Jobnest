@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+html {
+  /* Always reserve the vertical scrollbar channel so content width never
+     changes when the scrollbar appears or disappears during navigation
+     (skeleton → short page on Windows where scrollbars take up space).
+     overflow-y: scroll is more reliable than scrollbar-gutter: stable
+     across Chrome/Edge/Firefox on Windows because it works regardless of
+     which element Chrome picks as the scroll container.
+     On macOS / iOS the scrollbar is an overlay so this has no visual effect. */
+  overflow-y: scroll;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 15 5% 11%;

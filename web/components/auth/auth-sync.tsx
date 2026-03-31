@@ -35,7 +35,9 @@ export function AuthSync() {
       })
     );
 
-    const rememberMe = cookies["sb_rm"]; // "1" | "0" | undefined
+    // In production the cookie uses the __Host- prefix for subdomain-injection
+    // protection. Fall back to the unprefixed name in development (http).
+    const rememberMe = cookies["__Host-sb_rm"] ?? cookies["sb_rm"]; // "1" | "0" | undefined
     const sessionActive = sessionStorage.getItem("jobnest_session");
 
     if (rememberMe === "0" && !sessionActive) {

@@ -20,7 +20,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`doc-purge:${user.id}`, { maxRequests: 10, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-purge:${user.id}`, { maxRequests: 10, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Too many requests.");
 
     // Get the anchor document so we know which group to purge

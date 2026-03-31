@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
       "unknown";
 
-    const ipLimit = checkRateLimit(`otp:ip:${ip}`, {
+    const ipLimit = await checkRateLimit(`otp:ip:${ip}`, {
       maxRequests: 10,
       windowMs: 60 * 1000, // 10 OTPs per minute from a single IP
     });
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // ── Per-email rate limit (secondary gate) ──────────────────────────────
     // Prevents flooding a single target's inbox.
-    const rateLimitResult = checkRateLimit(`otp:${email}`, {
+    const rateLimitResult = await checkRateLimit(`otp:${email}`, {
       maxRequests: 3,
       windowMs: 60 * 1000,
     });

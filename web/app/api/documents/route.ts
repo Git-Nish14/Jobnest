@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rateLimitResult = checkRateLimit(`docs:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`docs:${user.id}`, {
       maxRequests: 60,
       windowMs: 60 * 1000,
     });

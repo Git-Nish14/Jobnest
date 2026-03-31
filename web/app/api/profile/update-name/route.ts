@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 
 const schema = z.object({
@@ -13,6 +14,7 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const { displayName } = await validateBody(request, schema);
 
     const supabase = await createClient();
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
       throw ApiError.unauthorized("You must be logged in");
     }
 
-    const rateLimitResult = checkRateLimit(`update-name:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`update-name:${user.id}`, {
       maxRequests: 10,
       windowMs: 60 * 1000,
     });

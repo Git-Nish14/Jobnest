@@ -15,7 +15,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rl = checkRateLimit(`doc-restore:${user.id}`, { maxRequests: 30, windowMs: 60_000 });
+    const rl = await checkRateLimit(`doc-restore:${user.id}`, { maxRequests: 30, windowMs: 60_000 });
     if (!rl.allowed) throw ApiError.tooManyRequests("Too many requests.");
 
     // Fetch target version

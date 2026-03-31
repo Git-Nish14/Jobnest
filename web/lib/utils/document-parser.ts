@@ -10,6 +10,11 @@ interface ParseResult {
   error: string | null;
 }
 
+// pdf-parse v2 ships ESM + CJS. Import the package directly — the v2 API is
+// identical to v1 (async function that accepts a Buffer and returns { text }).
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+
 /**
  * Downloads a file from Supabase Storage and extracts its plain text.
  * Supports: .pdf, .docx, .doc, .txt
@@ -29,9 +34,6 @@ export async function extractDocumentText(
 
     // ── PDF ───────────────────────────────────────────────────────────────
     if (ext === "pdf") {
-      // Import the low-level parser directly to avoid pdf-parse's test-file side effect
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse/lib/pdf-parse.js");
       const result = await pdfParse(buffer);
       const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
       return text
@@ -78,8 +80,6 @@ export async function extractTextFromBuffer(
 
   try {
     if (ext === "pdf") {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse/lib/pdf-parse.js");
       const result = await pdfParse(buffer);
       const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
       return text

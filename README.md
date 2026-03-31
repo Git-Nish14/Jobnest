@@ -16,7 +16,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Age verification** — users must confirm they are **18 years of age or older** at sign-up (checkbox required before email/OAuth registration proceeds)
 - **Terms & Privacy acceptance** — users must explicitly accept the Terms of Service and Privacy Policy before creating an account; OAuth sign-up is also blocked until both boxes are checked
 - Secure signup, password reset, and **change password** via OTP
-- **Stay signed in for 30 days** checkbox — checked (default): `sb_rm=1`, 30-day persistent session; unchecked: `sb_rm=0`, session terminated on next browser start via `sessionStorage` + `sb_rm` cookie
+- **Stay signed in for 30 days** checkbox — checked (default): `sb_rm=1`, 30-day persistent session; unchecked: `sb_rm=0`, session terminated on next browser start via `sessionStorage` + `sb_rm` cookie. In production the cookie uses the `__Host-` prefix (binds to exact host, blocks subdomain injection)
 - **Cross-tab logout sync** — `AuthSync` component listens to `onAuthStateChange`; signing out in one tab redirects all open tabs instantly
 - **Auto-redirect** — authenticated users visiting `/`, `/login`, `/signup`, or `/forgot-password` are redirected to `/dashboard`; `sb_rm=0` (session-only) sessions are exempt to prevent an AuthSync redirect loop
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
@@ -37,6 +37,8 @@ Two-column layout — sticky sidebar (avatar, stats, quick nav) + settings secti
   - "Forgot current password?" link bypasses current-password check
   - On success: 5-second countdown → signs out all devices → redirects to `/login`
 - **Delete account** — OTP-confirmed soft delete with 30-day grace period
+- **Download your data** — GDPR Art. 20 data portability; exports all personal data as a dated JSON file (rate-limited to 3/day)
+- **Billing portal** — Pro subscribers can manage their plan, update payment method, and view invoices via the Stripe customer portal (GET `/api/stripe/portal`)
 
 ### Account Deletion (Grace Period)
 Modelled after AWS / GitHub — accounts are never immediately destroyed.
@@ -47,7 +49,8 @@ Modelled after AWS / GitHub — accounts are never immediately destroyed.
 4. **24-hour final warning** email before permanent deletion
 5. User can **cancel at any time** — button on profile page and dashboard banner
 6. After 30 days, a daily cron job permanently deletes the account and all data via RLS cascade
-7. IP address + optional user-provided reason recorded for audit
+7. Post-deletion **right-to-erasure verification** — cron queries 9 data tables to confirm no orphaned rows remain; logs a warning if any are found
+8. IP address + optional user-provided reason recorded for audit
 
 ### Design System — Intellectual Atelier
 A warm, editorial design language used consistently across every page of the application.
@@ -154,6 +157,7 @@ Full mobile-first responsive implementation across all pages:
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email/password + Google/GitHub OAuth) |
 | AI | Groq API (`llama-3.3-70b-versatile`) |
 | Email | Nodemailer (SMTP) |
+| Billing | Stripe (checkout sessions, webhooks, customer portal, dunning) |
 | Font | Geist Sans / Geist Mono (public/root) · Newsreader + Manrope (auth + dashboard) via `next/font/google` |
 | Styling | Tailwind CSS 4 (light-only) — Intellectual Atelier design system |
 | UI | Radix UI primitives + custom atelier-themed components |
@@ -184,12 +188,14 @@ web/
 │   │   ├── auth/                 # send-otp, verify-otp, reset-password
 │   │   ├── profile/              # update-name, change-password, delete-account,
 │   │   │                         # reactivate-account, verify-password-send-otp,
-│   │   │                         # update-about-me, update-notifications, verify-change-otp
+│   │   │                         # update-about-me, update-notifications, verify-change-otp,
+│   │   │                         # export-data (GDPR data portability)
 │   │   ├── cron/
 │   │   │   └── process-deletions/ # Daily cron: 7-day reminders, 24h final warning, permanent deletion
 │   │   ├── nesta-ai/             # Chat API (streaming), sessions, messages, parse-file
 │   │   ├── export/
 │   │   ├── documents/
+│   │   ├── stripe/               # checkout, webhook (4 events), portal
 │   │   └── contact/
 │   ├── auth/
 │   │   └── callback/             # OAuth code exchange
@@ -213,8 +219,10 @@ web/
 │   └── tags/
 ├── lib/
 │   ├── api/                      # Error handling, response helpers
-│   ├── email/                    # Nodemailer — OTP + deletion lifecycle emails
-│   ├── security/                 # OTP generation, rate-limit, sanitization, CSRF
+│   ├── email/                    # Nodemailer — OTP, deletion lifecycle, dunning emails
+│   ├── env.ts                    # Startup env validation (fails loudly on missing vars)
+│   ├── security/                 # OTP, Redis rate-limit, sanitization, CSRF + verifyOrigin
+│   ├── stripe.ts                 # Stripe singleton + isStripeConfigured helpers
 │   ├── supabase/                 # Client, server, admin Supabase clients
 │   ├── utils/
 │   │   ├── document-parser.ts    # PDF/DOCX/TXT text extraction + extractTextFromBuffer
@@ -226,6 +234,7 @@ web/
 ├── config/                       # Constants, env validation, routes
 ├── types/                        # TypeScript type definitions
 ├── vercel.json                   # Cron job schedule
+├── instrumentation.ts            # Next.js startup hook — calls validateEnv() on server start
 └── proxy.ts                      # Route protection + security headers (Next.js 16 proxy convention)
 
 supabase/
@@ -243,6 +252,8 @@ supabase/
 - Supabase project
 - SMTP server (for OTP and lifecycle emails)
 - Groq API key (for NESTAi)
+- Stripe account with a Pro product + price (for billing — the app degrades gracefully without it)
+- Upstash Redis database (optional — rate limiter falls back to in-memory without it)
 - Google OAuth credentials (optional, for Google sign-in)
 - GitHub OAuth app (optional, for GitHub sign-in)
 
@@ -273,9 +284,31 @@ CONTACT_EMAIL=contact@yourdomain.com
 
 # NESTAi (Groq)
 GROQ_API_KEY=gsk_your_groq_api_key
+
+# Stripe (billing — omit to disable; app shows "Coming Soon" on pricing page)
+STRIPE_SECRET_KEY=sk_test_your_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret   # GET from Stripe dashboard after adding endpoint
+STRIPE_PRO_PRICE_ID=price_your_monthly_price_id
+STRIPE_PRO_ANNUAL_PRICE_ID=price_your_annual_price_id   # optional — enables annual toggle
+
+# Upstash Redis (optional — enables persistent cross-instance rate limiting)
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_token
 ```
 
 > **Tip:** Generate secrets with `openssl rand -hex 32`
+
+#### Stripe Setup
+
+1. Create a product in [Stripe Dashboard](https://dashboard.stripe.com/products) → add a recurring monthly price (and optionally annual)
+2. Copy the **Price IDs** into `STRIPE_PRO_PRICE_ID` / `STRIPE_PRO_ANNUAL_PRICE_ID`
+3. Add a webhook endpoint in Stripe Dashboard → Developers → Webhooks:
+   - URL: `https://yourdomain.com/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+4. Copy the **Webhook signing secret** into `STRIPE_WEBHOOK_SECRET`
+5. Enable the **Customer Portal** in Stripe Dashboard → Settings → Billing → Customer portal
+
+For local testing: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
 
 ### OAuth Setup (Google & GitHub)
 
@@ -347,18 +380,18 @@ npm run test:coverage # Coverage report
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities (errors, rate-limit, OTP, fetch-retry, Zod schemas including age/terms validation), every API route handler, proxy redirect logic |
+| Unit | `tests/unit/` | lib utilities (errors, rate-limit async/Redis, OTP, CSRF verifyOrigin, fetch-retry, Zod schemas), every API route handler (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure verification), proxy redirect logic |
 | Mobile / UX | `tests/unit/mobile/` | Structural tests for responsive layout (BottomTabBar, NESTAi drawer, sticky action bar), aria labels, skeleton sync, CSS tokens, prefers-reduced-motion |
-| E2E flows | `tests/flows/` | Full user journeys: login (incl. remember-me cookie), signup (incl. age + terms pre-conditions), forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload |
+| E2E flows | `tests/flows/` | Full user journeys: login (remember-me cookie), signup (age + terms), forgot-password (3-step), change-password (3-step OTP), delete + reactivate account, NESTAi chat + file upload, **Stripe billing** (checkout → webhook activation → portal → payment failure dunning → cancellation) |
 
-All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` required to run tests.
+All external dependencies (Supabase, Nodemailer, Groq, Stripe) are mocked — no `.env` required to run tests.
 
 ### CI (GitHub Actions)
 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
 1. **Typecheck** — `tsc --noEmit`
-2. **Test** — `vitest run` (all 325 tests)
+2. **Test** — `vitest run` (36 test files, 423 tests)
 3. **Build** — `next build` (depends on steps 1 + 2 passing)
 
 ---
@@ -373,7 +406,7 @@ All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` 
 | OTP purposes | `login`, `signup`, `password_reset`, `change_password`, `delete_account` |
 | OTP gating | Password fields only shown after OTP is verified server-side (pre-verify endpoint) |
 | Rate limiting — auth | Dual-layer: **IP-level** (10/min) + **per-email** (3/min) on send-otp; prevents inbox flooding of arbitrary victims |
-| Rate limiting — general | In-memory per-key limits on all auth, profile, and AI endpoints; store capped at 10 000 keys to prevent memory exhaustion |
+| Rate limiting — general | **Redis-backed** (Upstash REST API) when `UPSTASH_REDIS_REST_URL` is set; falls back to in-memory with a 10 000-key cap. Redis survives cold starts and is shared across all function instances |
 | IP extraction | `x-real-ip` preferred; last entry in `x-forwarded-for` chain used as fallback (first entry is user-controlled and spoofable) |
 | Open redirect protection | `proxy.ts` validates the `redirect` param — rejects protocol-relative (`//evil.com`) and scheme-like paths |
 | Prefix collision fix | `/api/contact` matched exactly (not as a prefix) — prevents accidentally exposing unrelated routes as public |
@@ -381,13 +414,14 @@ All external dependencies (Supabase, Nodemailer, Groq) are mocked — no `.env` 
 | Security headers | HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy |
 | Document serving | Content-Type derived from file extension; `Content-Disposition: attachment` forced — prevents stored XSS via uploaded HTML/SVG |
 | RLS | Every table enforces row-level security tied to `auth.uid()` |
-| CSRF | `SameSite=Lax` on all Supabase session cookies; CSRF module in `lib/security/csrf.ts` for future explicit token use |
+| CSRF | `SameSite=Lax` on all Supabase session cookies + `verifyOrigin()` on all 8 profile mutation routes (blocks cross-origin POST if `Origin` header is present and doesn't match `NEXT_PUBLIC_APP_URL`) |
 | Cron auth | `Authorization: Bearer <CRON_SECRET>` required — **fail-closed** (endpoint locked if env var not set) |
 | Account deletion | OTP re-authentication required before scheduling deletion |
 | Audit trail | IP address + optional reason recorded on every deletion request |
 | Password change | Signs out all devices on success; `password_changed_at` saved via admin client (bypasses invalidated session) |
-| OAuth sessions | `sb_rm` cookie controls remember-me behaviour; `AuthSync` enforces session-only mode on browser restart |
-| CVEs patched | Next.js 16.2.1 fixes HTTP request smuggling, CSRF bypass, DoS (from 16.1.6) |
+| OAuth sessions | `sb_rm` cookie controls remember-me behaviour; uses `__Host-` prefix in production (binds to exact host, prevents subdomain injection); `AuthSync` enforces session-only mode on browser restart |
+| Startup validation | `instrumentation.ts` calls `lib/env.ts` on server start — throws immediately if required env vars are missing rather than failing silently on first request |
+| CVEs patched | Next.js 16.2.1 fixes HTTP request smuggling, CSRF bypass, DoS (from 16.1.6); pdf-parse upgraded 1.x → 2.x |
 
 ---
 
@@ -406,8 +440,8 @@ Vercel automatically picks up `vercel.json` and schedules the cron job (`/api/cr
 
 | Area | Limitation | Fix |
 |---|---|---|
-| Rate limiting | In-memory — resets on every cold start; multiple instances don't share state | Replace `lib/security/rate-limit.ts` with [Upstash Redis](https://upstash.com) or Vercel KV |
-| NESTAi doc cache | In-memory — not shared across function instances | Same — use Vercel KV or Redis |
+| Rate limiting | Falls back to in-memory when `UPSTASH_REDIS_REST_URL` is not set — resets on cold starts | Set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (free tier on [upstash.com](https://upstash.com)) |
+| NESTAi doc cache | In-memory — not shared across function instances | Use Vercel KV or the same Upstash Redis database |
 | Sessions on deletion | Only current session is invalidated on account deletion request | Acceptable for current scale |
 
 ---

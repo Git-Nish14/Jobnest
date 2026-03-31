@@ -54,6 +54,42 @@ export async function GET(request: NextRequest) {
         // Remove the pending_deletions row now that auth.users is gone
         await supabaseAdmin.from("pending_deletions").delete().eq("id", record.id);
 
+        // ── Right-to-erasure verification ─────────────────────────────────
+        // Supabase cascade deletes and RLS should have wiped these rows.
+        // We verify explicitly and log any orphans for manual review.
+        const TABLES_TO_CHECK = [
+          "job_applications",
+          "contacts",
+          "interviews",
+          "reminders",
+          "salary_entries",
+          "email_templates",
+          "application_documents",
+          "nesta_ai_sessions",
+          "subscriptions",
+        ] as const;
+
+        const orphanChecks = await Promise.all(
+          TABLES_TO_CHECK.map((table) =>
+            supabaseAdmin
+              .from(table)
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", record.user_id)
+              .then(({ count }) => ({ table, count: count ?? 0 }))
+          )
+        );
+
+        const orphaned = orphanChecks.filter((c) => c.count > 0);
+        if (orphaned.length > 0) {
+          const summary = orphaned.map((c) => `${c.table}:${c.count}`).join(", ");
+          console.error(
+            `[cron] ERASURE WARNING — orphaned rows after deleting ${record.email}: ${summary}`
+          );
+          results.errors.push(`erasure-check ${record.email}: orphans in ${summary}`);
+        } else {
+          console.log(`[cron] erasure verified for ${record.email}`);
+        }
+
         results.permanentlyDeleted++;
         console.log(`[cron] permanently deleted ${record.email}`);
       } catch (err) {

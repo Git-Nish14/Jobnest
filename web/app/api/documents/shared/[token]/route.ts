@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const ip = request.headers.get("x-real-ip")
     ?? request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()
     ?? "unknown";
-  const rl = checkRateLimit(`shared-doc:${ip}`, { maxRequests: 100, windowMs: 60_000 });
+  const rl = await checkRateLimit(`shared-doc:${ip}`, { maxRequests: 100, windowMs: 60_000 });
   if (!rl.allowed) {
     return new NextResponse("Too many requests", { status: 429 });
   }

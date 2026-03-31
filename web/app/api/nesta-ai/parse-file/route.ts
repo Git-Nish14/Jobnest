@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) throw ApiError.unauthorized();
 
-    const rateLimitResult = checkRateLimit(`parse-file:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`parse-file:${user.id}`, {
       maxRequests: 10,
       windowMs: 60 * 1000,
     });

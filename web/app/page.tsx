@@ -567,6 +567,16 @@ export default async function Home() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link href="/privacy#do-not-sell" className="landing-footer-nav-link">
+                  Do Not Sell My Info
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" className="landing-footer-nav-link">
+                  Cookie Policy
+                </Link>
+              </li>
             </ul>
           </div>
 

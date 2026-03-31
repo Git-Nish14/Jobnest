@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", display: "swap", style: ["normal", "italic"], weight: ["400", "500", "600", "700"] });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="border-b border-[#dbc1b9]/20 pb-8 last:border-0">
+    <section id={id} className="border-b border-[#dbc1b9]/20 pb-8 last:border-0">
       <h2 className="landing-serif text-xl sm:text-2xl font-semibold text-[#1a1c1b] mb-4">{title}</h2>
       {children}
     </section>
@@ -299,7 +299,7 @@ export default function PrivacyPage() {
               </p>
             </Section>
 
-            <Section title="13. California Privacy Rights (CCPA / CPRA)">
+            <Section title="13. California Privacy Rights (CCPA / CPRA)" id="do-not-sell">
               <p className="mb-3">California residents have the following rights:</p>
               <ul className="space-y-2 pl-5 list-disc">
                 <li>

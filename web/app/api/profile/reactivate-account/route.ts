@@ -1,10 +1,14 @@
+import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAccountReactivatedEmail } from "@/lib/email/nodemailer";
 import { ApiError, errorResponse, successResponse } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
+
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 

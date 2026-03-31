@@ -100,3 +100,81 @@ describe("GET /api/cron/process-deletions — auth", () => {
     process.env.CRON_SECRET = original;
   });
 });
+
+describe("GET /api/cron/process-deletions — erasure verification", () => {
+  it("reports no errors when all orphan checks return 0 rows", async () => {
+    // One due-for-deletion record → deleteUser succeeds → all table checks return count=0
+    const dueRecord = { id: "del-1", user_id: "uid-1", email: "user@test.com" };
+    const admin = makeAdmin([dueRecord], []);
+
+    // Override from() to return count: 0 for erasure table queries
+    const originalFrom = admin.from;
+    let callIdx = 0;
+    admin.from = vi.fn((table: string) => {
+      callIdx++;
+      // First call = pending_deletions lte query, second = pending_deletions delete
+      if (callIdx <= 2) return originalFrom(table);
+      // Subsequent calls are erasure checks — return count: 0
+      const chain = makeChain({ count: 0, data: null, error: null });
+      return chain;
+    });
+
+    mockAdminClient.mockReturnValue(admin as never);
+    const req = makeGetRequest(`Bearer ${CRON_SECRET}`);
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.permanentlyDeleted).toBe(1);
+    // No erasure-check errors
+    const erasureErrors = body.errors.filter((e: string) => e.includes("erasure-check"));
+    expect(erasureErrors).toHaveLength(0);
+  });
+
+  it("adds to errors when orphaned rows remain after deletion", async () => {
+    const dueRecord = { id: "del-1", user_id: "uid-1", email: "orphan@test.com" };
+    const admin = makeAdmin([dueRecord], []);
+
+    // Simulate orphaned rows in job_applications (count: 3)
+    let callIdx = 0;
+    admin.from = vi.fn((table: string) => {
+      callIdx++;
+      if (callIdx <= 2) return makeChain({ data: [dueRecord], error: null });
+      // Return count > 0 for job_applications only, 0 for all others
+      const orphanCount = table === "job_applications" ? 3 : 0;
+      return makeChain({ count: orphanCount, data: null, error: null });
+    });
+    admin.auth.admin.deleteUser = vi.fn().mockResolvedValue({ error: null });
+
+    mockAdminClient.mockReturnValue(admin as never);
+    const req = makeGetRequest(`Bearer ${CRON_SECRET}`);
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    // Still counts as permanently deleted (auth deletion succeeded)
+    expect(body.permanentlyDeleted).toBe(1);
+    // Erasure warning is recorded
+    const erasureErrors = body.errors.filter((e: string) => e.includes("erasure-check"));
+    expect(erasureErrors.length).toBeGreaterThan(0);
+    expect(erasureErrors[0]).toContain("orphan@test.com");
+  });
+
+  it("does not perform erasure check when deleteUser fails", async () => {
+    const dueRecord = { id: "del-1", user_id: "uid-1", email: "fail@test.com" };
+    const admin = makeAdmin([dueRecord], []);
+    admin.auth.admin.deleteUser = vi.fn().mockResolvedValue({
+      error: { message: "delete failed" },
+    });
+
+    mockAdminClient.mockReturnValue(admin as never);
+    const req = makeGetRequest(`Bearer ${CRON_SECRET}`);
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.permanentlyDeleted).toBe(0);
+    // Error recorded for deleteUser failure
+    expect(body.errors.some((e: string) => e.includes("fail@test.com"))).toBe(true);
+  });
+});

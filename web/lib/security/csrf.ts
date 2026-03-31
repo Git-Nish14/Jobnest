@@ -61,3 +61,34 @@ export async function getCSRFToken(): Promise<string | null> {
 }
 
 export { CSRF_TOKEN_NAME, CSRF_HEADER_NAME };
+
+/**
+ * Origin-based CSRF guard for API routes.
+ *
+ * Checks that the request Origin matches the app's own origin.
+ * This is defense-in-depth on top of Supabase's SameSite=Lax cookies —
+ * blocks cross-origin POST requests from malicious third-party sites.
+ *
+ * Returns true when the request is safe to proceed.
+ */
+export function verifyOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+  // If there's no Origin header the request is either same-origin (browser
+  // suppresses it on navigations) or from a server-to-server call — allow it.
+  if (!origin) return true;
+
+  // If we don't know the app URL we can't verify — fail open in dev,
+  // fail closed in production.
+  if (!appUrl) {
+    return process.env.NODE_ENV !== "production";
+  }
+
+  try {
+    const expected = new URL(appUrl).origin;
+    return origin === expected;
+  } catch {
+    return false;
+  }
+}

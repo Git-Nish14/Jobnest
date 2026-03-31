@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 const schema = z.object({
   overdueReminders: z.boolean(),
@@ -11,6 +12,7 @@ const schema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
     const prefs = await validateBody(request, schema);
 
     const supabase = await createClient();
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) throw ApiError.unauthorized();
 
-    const rateLimitResult = checkRateLimit(`update-notifications:${user.id}`, {
+    const rateLimitResult = await checkRateLimit(`update-notifications:${user.id}`, {
       maxRequests: 10,
       windowMs: 60 * 1000,
     });
