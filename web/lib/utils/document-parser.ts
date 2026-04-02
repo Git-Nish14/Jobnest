@@ -10,10 +10,23 @@ interface ParseResult {
   error: string | null;
 }
 
-// pdf-parse v2 ships ESM + CJS. Import the package directly — the v2 API is
-// identical to v1 (async function that accepts a Buffer and returns { text }).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse: (buf: Buffer) => Promise<{ text: string }> = require("pdf-parse");
+// pdf-parse v2 is loaded lazily inside each call. The PDFParse class is
+// instantiated with { data: buffer } and cleaned up with destroy().
+
+async function parsePdfBuffer(buffer: Buffer): Promise<ParseResult> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { PDFParse } = require("pdf-parse") as { PDFParse: new (opts: { data: Buffer }) => { getText(): Promise<{ text: string }>; destroy(): Promise<void> } };
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
+    return text
+      ? { text, error: null }
+      : { text: null, error: "PDF appears to be image-only or has no selectable text." };
+  } finally {
+    await parser.destroy();
+  }
+}
 
 /**
  * Downloads a file from Supabase Storage and extracts its plain text.
@@ -34,11 +47,7 @@ export async function extractDocumentText(
 
     // ── PDF ───────────────────────────────────────────────────────────────
     if (ext === "pdf") {
-      const result = await pdfParse(buffer);
-      const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
-      return text
-        ? { text, error: null }
-        : { text: null, error: "PDF appears to be image-only or has no selectable text." };
+      return await parsePdfBuffer(buffer);
     }
 
     // ── DOCX / DOC ────────────────────────────────────────────────────────
@@ -80,11 +89,7 @@ export async function extractTextFromBuffer(
 
   try {
     if (ext === "pdf") {
-      const result = await pdfParse(buffer);
-      const text = result.text.replace(/\s{3,}/g, "\n").trim().slice(0, MAX_CHARS);
-      return text
-        ? { text, error: null }
-        : { text: null, error: "PDF appears to be image-only or has no selectable text." };
+      return await parsePdfBuffer(buffer);
     }
 
     if (ext === "docx" || ext === "doc") {

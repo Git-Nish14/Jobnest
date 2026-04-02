@@ -91,10 +91,10 @@ export function AtelierStatusChart({ data, total }: AtelierStatusChartProps) {
         <div className="flex-1 space-y-2.5 min-w-0">
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">Response rate</span>
-            <span className="text-xs font-bold text-primary">{responseRate}%</span>
+            <span className="text-xs font-bold text-[#99462a] dark:text-[#ccff00]">{responseRate}%</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${responseRate}%` }} />
+          <div className="h-1.5 w-full rounded-full bg-[#e9e8e6] dark:bg-[#1a1a1a] overflow-hidden">
+            <div className="h-full rounded-full bg-[#99462a] dark:bg-[#ccff00]" style={{ width: `${responseRate}%` }} />
           </div>
           <div className="flex justify-between items-baseline pt-1">
             <div className="text-center">

@@ -381,7 +381,7 @@ function ShareDialogInline({ docId, onClose }: { docId: string; onClose: () => v
           <div className="flex gap-2 flex-wrap">
             {(["1d", "7d", "30d"] as const).map((e) => (
               <button key={e} onClick={() => setExpiry(e)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${expiry === e ? "bg-[#99462a] text-white border-[#99462a]" : "bg-white text-[#55433d] border-[#dbc1b9]"}`}>
+                className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${expiry === e ? "bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black border-[#99462a] dark:border-[#ccff00]" : "bg-white dark:bg-[#1a1a1a] text-[#55433d] dark:text-white/55 border-[#dbc1b9] dark:border-white/10"}`}>
                 {e === "1d" ? "1 day" : e === "7d" ? "7 days" : "30 days"}
               </button>
             ))}

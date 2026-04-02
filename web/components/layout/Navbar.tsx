@@ -51,6 +51,32 @@ const dashboardLinks = [
   { href: "/nestai", label: "NESTAi", icon: Sparkles },
 ];
 
+/** Renders the correct logo for light/dark mode */
+function Logo({ size = 34 }: { size?: number }) {
+  return (
+    <>
+      {/* Light mode logo */}
+      <Image
+        src="/new_logo_1.png"
+        alt="Jobnest"
+        width={size}
+        height={size}
+        className="h-8 w-8 logo-light"
+        priority
+      />
+      {/* Dark mode logo */}
+      <Image
+        src="/dark_logo.png"
+        alt="Jobnest"
+        width={size}
+        height={size}
+        className="h-8 w-8 logo-dark"
+        priority
+      />
+    </>
+  );
+}
+
 export function Navbar({ user: initialUser }: NavbarProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -120,14 +146,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             <div className="flex h-14 sm:h-16 items-center justify-between">
               <div className="flex items-center gap-6">
                 <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-                  <Image
-                    src="/new_logo_1.png"
-                    alt="Jobnest"
-                    width={34}
-                    height={34}
-                    className="h-8 w-8"
-                    priority
-                  />
+                  <Logo />
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                 </Link>
 
@@ -313,22 +332,17 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     );
   }
 
+  // ── Public navbar (landing, legal, contact pages) ────────────────────────────
   return (
     <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/new_logo_1.png"
-            alt="Jobnest"
-            width={34}
-            height={34}
-            className="h-8 w-8"
-            priority
-          />
+          <Logo />
           <span className="text-xl atelier-nav-logo">Jobnest</span>
         </Link>
 
         <div className="hidden sm:flex items-center gap-3">
+          <ThemeToggle />
           {isAuthenticated ? (
             <>
               <Link href="/dashboard">
@@ -361,18 +375,21 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           )}
         </div>
 
-        <button
-          type="button"
-          className="sm:hidden p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="sm:hidden flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            type="button"
+            className="p-2 -mr-2 rounded-md hover:bg-muted/50 transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-border/20 bg-background px-4 py-4 space-y-2">
+        <div className="sm:hidden border-t border-border/20 bg-background dark:bg-black px-4 py-4 space-y-2">
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block">

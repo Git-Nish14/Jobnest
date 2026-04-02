@@ -1187,7 +1187,7 @@ export default function NestAiPage() {
               <div className={cn(
                 "flex h-10 w-8 shrink-0 flex-col items-center justify-between rounded-lg border py-1",
                 FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.border ?? "border-border",
-                "bg-white"
+                "bg-white dark:bg-[#1a1a1a]"
               )}>
                 <span className={cn("text-[7px] font-bold leading-none mt-0.5",
                   FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.text ?? "text-muted-foreground")}>

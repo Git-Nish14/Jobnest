@@ -112,7 +112,7 @@ export default async function DashboardPage() {
             label="Offers Received"
             value={offerCount.toString().padStart(2, "0")}
             icon={<Mail className="w-5 h-5" />}
-            bgClass="bg-[#ffdbd0]/40 dark:bg-[#ccff00]/5"
+            bgClass="bg-[#ffdbd0]/40 dark:bg-[#0f0f0f] dark:outline dark:outline-1 dark:outline-[#ccff00]/15"
             footer={
               offerCount > 0 ? (
                 <Link href="/applications?status=Offer" className="db-btn-primary">

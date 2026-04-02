@@ -83,7 +83,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/applications/${application.id}`}
-                className="db-headline text-lg sm:text-xl font-semibold text-foreground hover:text-primary transition-colors leading-tight line-clamp-2 block"
+                className="db-headline text-lg sm:text-xl font-semibold text-foreground hover:text-[#99462a] dark:hover:text-[#ccff00] transition-colors leading-tight line-clamp-2 block"
               >
                 {application.position}
               </Link>
@@ -105,7 +105,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     rel="noopener noreferrer"
                     aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
-                    className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/8 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-[#99462a]/8 dark:hover:bg-[#ccff00]/8 transition-colors"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -114,7 +114,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/8 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-[#99462a]/8 dark:hover:bg-[#ccff00]/8 transition-colors"
                       aria-label={`Options for ${application.position} at ${application.company}`}
                       title="More options"
                     >
