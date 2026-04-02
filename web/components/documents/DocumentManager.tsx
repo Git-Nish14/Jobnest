@@ -211,7 +211,7 @@ function ShareDialog({
                 <button
                   key={e}
                   onClick={() => setExpiry(e)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${expiry === e ? "bg-[#99462a] text-white border-[#99462a]" : "bg-white text-[#55433d] border-[#dbc1b9]"}`}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${expiry === e ? "bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black border-[#99462a] dark:border-[#ccff00]" : "bg-[#f4f3f1] dark:bg-[#1a1a1a] text-[#55433d] dark:text-white/55 border-[#dbc1b9] dark:border-white/10"}`}
                 >
                   {e === "1d" ? "1 day" : e === "7d" ? "7 days" : "30 days"}
                 </button>
@@ -591,7 +591,7 @@ function UploadArea({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Document label (e.g. Resume)"
           maxLength={80}
-          className="flex-1 rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-1.5 text-sm text-[#1a1c1b] placeholder:text-[#55433d]/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]"
+          className="flex-1 rounded-lg border border-[#dbc1b9]/50 dark:border-white/10 bg-[#f4f3f1] dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#1a1c1b] dark:text-white placeholder:text-[#55433d]/50 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#99462a] dark:focus:ring-[#ccff00]/25"
         />
       </div>
 
@@ -630,7 +630,7 @@ function UploadArea({
             value={importUrl}
             onChange={(e) => setImportUrl(e.target.value)}
             placeholder="https://example.com/resume.pdf"
-            className="flex-1 rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-1.5 text-sm text-[#1a1c1b] placeholder:text-[#55433d]/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]"
+            className="flex-1 rounded-lg border border-[#dbc1b9]/50 dark:border-white/10 bg-[#f4f3f1] dark:bg-[#1a1a1a] px-3 py-1.5 text-sm text-[#1a1c1b] dark:text-white placeholder:text-[#55433d]/50 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#99462a] dark:focus:ring-[#ccff00]/25"
           />
           <Button onClick={handleImport} disabled={importing} size="sm" className="gap-1.5">
             {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}

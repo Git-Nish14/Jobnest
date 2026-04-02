@@ -7,7 +7,15 @@
       "Bash(cat c:/Users/nish1/Documents/GitHub/jobnest/web/app/\\\\\\(auth\\\\\\)/signup/page.tsx)",
       "Bash(grep -l \"activity_log\" c:/Users/nish1/Documents/GitHub/jobnest/supabase/migrations/*.sql)",
       "Bash(rm -rf c:/Users/nish1/Documents/GitHub/jobnest/web/jobs)",
-      "Bash(rm -f c:/Users/nish1/Documents/GitHub/jobnest/web/trigger.config.ts)"
+      "Bash(rm -f c:/Users/nish1/Documents/GitHub/jobnest/web/trigger.config.ts)",
+      "Bash(\"c:\\\\Users\\\\nish1\\\\Documents\\\\GitHub\\\\jobnest\\\\web\\\\app\\\\\\(dashboard\\)\\\\dashboard.css\":*)",
+      "Bash(\"c:\\\\Users\\\\nish1\\\\Documents\\\\GitHub\\\\jobnest\\\\web\\\\app\\\\landing.css\":*)",
+      "Bash(\"c:\\\\Users\\\\nish1\\\\Documents\\\\GitHub\\\\jobnest\\\\web\\\\app\\\\\\(auth\\)\\\\auth.css\":*)",
+      "Bash(\"c:\\\\Users\\\\nish1\\\\Documents\\\\GitHub\\\\jobnest\\\\web\\\\app\\\\pricing\\\\pricing.css\":*)",
+      "Bash(sed -i 's|<main className=\"\"relative min-h-screen px-6 py-16\"\">|<main className=\"\"relative min-h-screen px-6 py-16 dark:bg-black\"\">|' \"c:/Users/nish1/Documents/GitHub/jobnest/web/app/\\(auth\\)/signup/page.tsx\")",
+      "Bash(__NEW_LINE_8f81b7d371c37b8a__ sed:*)",
+      "Bash(find c:/Users/nish1/Documents/GitHub/jobnest/web -maxdepth 2 -name tailwind.config* 2)",
+      "Bash(\"c:/Users/nish1/Documents/GitHub/jobnest/web/app/\\(dashboard\\)/dashboard.css\":*)"
     ]
   }
 }

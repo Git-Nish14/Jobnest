@@ -36,13 +36,8 @@ export function Footer({ variant = "simple" }: FooterProps) {
             {/* Brand */}
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2">
-                <Image
-                  src="/new_logo_1.png"
-                  alt="Jobnest Logo"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                />
+                <Image src="/new_logo_1.png" alt="Jobnest Logo" width={32} height={32} className="h-8 w-8 logo-light" />
+                <Image src="/dark_logo.png" alt="Jobnest Logo" width={32} height={32} className="h-8 w-8 logo-dark" />
                 <span className="font-semibold">Jobnest</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -213,13 +208,8 @@ export function Footer({ variant = "simple" }: FooterProps) {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
-            <Image
-              src="/new_logo_1.png"
-              alt="Jobnest Logo"
-              width={24}
-              height={24}
-              className="h-6 w-6"
-            />
+            <Image src="/new_logo_1.png" alt="Jobnest Logo" width={24} height={24} className="h-6 w-6 logo-light" />
+            <Image src="/dark_logo.png" alt="Jobnest Logo" width={24} height={24} className="h-6 w-6 logo-dark" />
             <span className="text-sm font-medium">Jobnest</span>
             <span className="text-xs text-muted-foreground">
               — A{" "}

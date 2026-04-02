@@ -23,14 +23,12 @@ export function OnboardingWizard({ user }: Props) {
 
   const isLast = step === STEPS.length;
 
-  // Calls the API to save data (if any) and mark onboarding complete,
-  // then redirects to dashboard. Used for both "Finish" and "Skip".
   async function finish(saveData: boolean) {
     setLoading(true);
     try {
       const body = saveData
         ? { displayName: displayName.trim(), aboutMe: aboutMe.trim() }
-        : {}; // skip → send nothing, profile will be blank
+        : {};
 
       const res = await fetch("/api/profile/complete-onboarding", {
         method: "POST",
@@ -43,9 +41,6 @@ export function OnboardingWizard({ user }: Props) {
         throw new Error((json as { error?: string }).error ?? "Request failed");
       }
 
-      // Hard redirect — forces a full HTTP round-trip so the proxy's getUser()
-      // call sees onboarding_completed: true before the dashboard renders.
-      // router.push() alone can race with a stale RSC cache.
       window.location.href = "/dashboard";
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
@@ -75,10 +70,10 @@ export function OnboardingWizard({ user }: Props) {
             <div
               className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0 ${
                 id < step
-                  ? "bg-[#99462a] text-white"
+                  ? "bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black"
                   : id === step
-                  ? "bg-[#99462a]/12 text-[#99462a] ring-2 ring-[#99462a]/30"
-                  : "bg-[#e9e8e6] text-[#88726c]"
+                  ? "bg-[#99462a]/12 dark:bg-[#ccff00]/10 text-[#99462a] dark:text-[#ccff00] ring-2 ring-[#99462a]/30 dark:ring-[#ccff00]/25"
+                  : "bg-[#e9e8e6] dark:bg-[#222222] text-[#88726c] dark:text-white/35"
               }`}
             >
               {id < step ? <CheckCircle2 className="h-4 w-4" /> : id}
@@ -86,7 +81,9 @@ export function OnboardingWizard({ user }: Props) {
             {id < STEPS.length && (
               <div
                 className={`flex-1 h-px transition-colors ${
-                  id < step ? "bg-[#99462a]" : "bg-[#dbc1b9]/30"
+                  id < step
+                    ? "bg-[#99462a] dark:bg-[#ccff00]"
+                    : "bg-[#dbc1b9]/30 dark:bg-white/10"
                 }`}
               />
             )}
@@ -95,7 +92,7 @@ export function OnboardingWizard({ user }: Props) {
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl border border-[#dbc1b9]/20 shadow-sm p-7 sm:p-8">
+      <div className="bg-white dark:bg-[#0f0f0f] rounded-2xl border border-[#dbc1b9]/20 dark:border-white/6 shadow-sm dark:shadow-none p-7 sm:p-8">
         {step === 1 && (
           <StepWelcome
             email={user.email}
@@ -109,12 +106,12 @@ export function OnboardingWizard({ user }: Props) {
         {step === 3 && <StepNestAi />}
 
         {/* Actions */}
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#dbc1b9]/15">
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#dbc1b9]/15 dark:border-white/6">
           <button
             type="button"
             onClick={handleSkip}
             disabled={loading}
-            className="text-sm text-[#88726c] hover:text-[#55433d] transition-colors disabled:opacity-50"
+            className="text-sm text-[#88726c] dark:text-white/35 hover:text-[#55433d] dark:hover:text-white/60 transition-colors disabled:opacity-50"
           >
             Skip for now
           </button>
@@ -135,7 +132,7 @@ export function OnboardingWizard({ user }: Props) {
         </div>
       </div>
 
-      <p className="text-center text-xs text-[#88726c] mt-4">
+      <p className="text-center text-xs text-[#88726c] dark:text-white/35 mt-4">
         You can update everything later in your profile settings.
       </p>
     </div>
@@ -160,22 +157,22 @@ function StepWelcome({
   return (
     <div>
       <div className="flex items-center gap-3 mb-5">
-        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 flex items-center justify-center shrink-0">
-          <User className="h-5 w-5 text-[#99462a]" />
+        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 dark:bg-[#ccff00]/10 flex items-center justify-center shrink-0">
+          <User className="h-5 w-5 text-[#99462a] dark:text-[#ccff00]" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#1a1c1b]">Welcome to Jobnest</h1>
-          <p className="text-sm text-[#88726c]">{email}</p>
+          <h1 className="text-lg font-bold text-[#1a1c1b] dark:text-white">Welcome to Jobnest</h1>
+          <p className="text-sm text-[#88726c] dark:text-white/40">{email}</p>
         </div>
       </div>
 
-      <p className="text-sm text-[#55433d] mb-5 leading-relaxed">
+      <p className="text-sm text-[#55433d] dark:text-white/55 mb-5 leading-relaxed">
         Set up your profile in under a minute. Both fields are optional — skip anything you like.
       </p>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="displayName" className="block text-sm font-semibold text-[#55433d] mb-1.5">
+          <label htmlFor="displayName" className="block text-sm font-semibold text-[#55433d] dark:text-white/55 mb-1.5">
             Your name
           </label>
           <input
@@ -185,14 +182,14 @@ function StepWelcome({
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="e.g. Nish Patel"
             maxLength={64}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbc1b9]/50 bg-[#f4f3f1] text-sm text-[#1a1c1b] placeholder-[#88726c] outline-none focus:ring-2 focus:ring-[#99462a]/30"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbc1b9]/50 dark:border-white/10 bg-[#f4f3f1] dark:bg-[#1a1a1a] text-sm text-[#1a1c1b] dark:text-white placeholder-[#88726c] dark:placeholder-white/25 outline-none focus:ring-2 focus:ring-[#99462a]/30 dark:focus:ring-[#ccff00]/25"
           />
         </div>
 
         <div>
-          <label htmlFor="aboutMe" className="block text-sm font-semibold text-[#55433d] mb-1">
+          <label htmlFor="aboutMe" className="block text-sm font-semibold text-[#55433d] dark:text-white/55 mb-1">
             About you
-            <span className="ml-1.5 font-normal text-[#88726c]">
+            <span className="ml-1.5 font-normal text-[#88726c] dark:text-white/35">
               — NESTAi uses this to personalise answers
             </span>
           </label>
@@ -203,7 +200,7 @@ function StepWelcome({
             placeholder="e.g. Software engineer with 3 years of experience, targeting senior roles at product companies in NYC."
             maxLength={2000}
             rows={3}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbc1b9]/50 bg-[#f4f3f1] text-sm text-[#1a1c1b] placeholder-[#88726c] outline-none focus:ring-2 focus:ring-[#99462a]/30 resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbc1b9]/50 dark:border-white/10 bg-[#f4f3f1] dark:bg-[#1a1a1a] text-sm text-[#1a1c1b] dark:text-white placeholder-[#88726c] dark:placeholder-white/25 outline-none focus:ring-2 focus:ring-[#99462a]/30 dark:focus:ring-[#ccff00]/25 resize-none"
           />
         </div>
       </div>
@@ -217,12 +214,12 @@ function StepApplications() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-5">
-        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 flex items-center justify-center shrink-0">
-          <Briefcase className="h-5 w-5 text-[#99462a]" />
+        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 dark:bg-[#ccff00]/10 flex items-center justify-center shrink-0">
+          <Briefcase className="h-5 w-5 text-[#99462a] dark:text-[#ccff00]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-[#1a1c1b]">Track your applications</h2>
-          <p className="text-sm text-[#88726c]">Everything in one place</p>
+          <h2 className="text-lg font-bold text-[#1a1c1b] dark:text-white">Track your applications</h2>
+          <p className="text-sm text-[#88726c] dark:text-white/40">Everything in one place</p>
         </div>
       </div>
 
@@ -233,11 +230,11 @@ function StepApplications() {
           { emoji: "📄", title: "Document vault", desc: "Upload resumes and cover letters with full version history." },
           { emoji: "🤝", title: "Contact CRM", desc: "Track recruiters and hiring managers alongside each application." },
         ].map(({ emoji, title, desc }) => (
-          <div key={title} className="flex gap-3 p-3.5 rounded-xl bg-[#f4f3f1]">
+          <div key={title} className="flex gap-3 p-3.5 rounded-xl bg-[#f4f3f1] dark:bg-[#1a1a1a]">
             <span className="text-xl shrink-0">{emoji}</span>
             <div>
-              <p className="font-semibold text-sm text-[#1a1c1b]">{title}</p>
-              <p className="text-xs text-[#55433d] mt-0.5 leading-relaxed">{desc}</p>
+              <p className="font-semibold text-sm text-[#1a1c1b] dark:text-white">{title}</p>
+              <p className="text-xs text-[#55433d] dark:text-white/55 mt-0.5 leading-relaxed">{desc}</p>
             </div>
           </div>
         ))}
@@ -252,16 +249,16 @@ function StepNestAi() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-5">
-        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 flex items-center justify-center shrink-0">
-          <Bot className="h-5 w-5 text-[#99462a]" />
+        <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 dark:bg-[#ccff00]/10 flex items-center justify-center shrink-0">
+          <Bot className="h-5 w-5 text-[#99462a] dark:text-[#ccff00]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-[#1a1c1b]">Meet NESTAi</h2>
-          <p className="text-sm text-[#88726c]">Your AI job search assistant</p>
+          <h2 className="text-lg font-bold text-[#1a1c1b] dark:text-white">Meet NESTAi</h2>
+          <p className="text-sm text-[#88726c] dark:text-white/40">Your AI job search assistant</p>
         </div>
       </div>
 
-      <p className="text-sm text-[#55433d] mb-4 leading-relaxed">
+      <p className="text-sm text-[#55433d] dark:text-white/55 mb-4 leading-relaxed">
         NESTAi knows your entire job search — applications, interviews, contacts, and documents — and can help you at every step.
       </p>
 
@@ -274,14 +271,14 @@ function StepNestAi() {
         ].map((q) => (
           <div
             key={q}
-            className="px-4 py-2.5 rounded-xl bg-[#f4f3f1] text-sm text-[#55433d] italic"
+            className="px-4 py-2.5 rounded-xl bg-[#f4f3f1] dark:bg-[#1a1a1a] text-sm text-[#55433d] dark:text-white/55 italic"
           >
             &ldquo;{q}&rdquo;
           </div>
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-[#88726c] text-center">
+      <p className="mt-4 text-xs text-[#88726c] dark:text-white/35 text-center">
         Powered by Groq · Free: 5 messages/min · Pro: 30 messages/min
       </p>
     </div>

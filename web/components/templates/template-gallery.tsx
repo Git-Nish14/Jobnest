@@ -156,7 +156,7 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
 
                 {/* Expanded body */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-[#dbc1b9]/15 bg-white">
+                  <div className="px-4 pb-4 border-t border-[#dbc1b9]/15 bg-white dark:bg-[#0f0f0f]">
                     <div className="mt-4 mb-3">
                       <p className="text-xs font-bold uppercase tracking-widest text-[#55433d]/50 mb-1.5">Subject</p>
                       <p className="text-sm text-[#1a1c1b] font-mono bg-[#f4f3f1] px-3 py-2 rounded-lg">

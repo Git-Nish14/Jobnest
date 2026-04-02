@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* ── Dark mode: use .dark class toggle (not system @media preference) ───────
+   .dark & generates `.dark .dark\:...` with specificity (0,2,0) which beats
+   the base utility class (0,1,0) so dark: overrides always win.              */
+@custom-variant dark (.dark &);
+
 html {
   /* Always reserve the vertical scrollbar channel so content width never
      changes when the scrollbar appears or disappears during navigation
@@ -162,6 +167,31 @@ body {
 .atelier-slide-panel {
   box-shadow: 0 8px 40px rgba(26, 28, 27, 0.18);
 }
+
+/* ── Dark mode — base backgrounds (belt + suspenders) ─────────────────────── */
+/* These ensure html/body turn black even if CSS variable cascade has ordering
+   issues between globals.css and page-specific CSS files. */
+html.dark,
+.dark body {
+  background-color: #000000 !important;
+  color: #ffffff;
+}
+
+/* Hardcoded background classes that need dark-mode override globally */
+.dark .bg-\[\#faf9f7\] { background-color: #000000 !important; }
+.dark .bg-\[\#f4f3f1\] { background-color: #1a1a1a !important; }
+/* NOTE: .dark .bg-white is intentionally NOT overridden globally — it would
+   break toggle switch knobs and other white UI elements. Handle per-component
+   using explicit dark:bg-[...] Tailwind variants instead. */
+
+/* ── Logo swap (class-based, works with ThemeToggle's .dark class) ─────────── */
+/* We do NOT use Tailwind's dark: prefix here because the project doesn't     */
+/* configure @custom-variant dark — the dark: variant uses @media instead of  */
+/* the .dark class toggle, so it won't respond to ThemeToggle.                */
+.logo-light { display: block; }
+.logo-dark  { display: none; }
+.dark .logo-light { display: none; }
+.dark .logo-dark  { display: block; }
 
 /* ── Atelier Navbar — dark overrides ───────────────────────────────────────── */
 .dark .atelier-nav {

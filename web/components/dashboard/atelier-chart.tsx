@@ -18,7 +18,7 @@ export function AtelierChart({ data }: AtelierChartProps) {
       <div className="flex justify-between items-center mb-8">
         <h2 className="db-panel-title">Application Velocity</h2>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-primary/30" />
+          <span className="w-3 h-3 rounded-full bg-[#99462a]/30 dark:bg-[#ccff00]/30" />
           <span className="text-xs text-muted-foreground font-medium">Weekly Submissions</span>
         </div>
       </div>

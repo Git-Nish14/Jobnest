@@ -10,7 +10,7 @@ export function AtelierStatsCard({ label, value, icon, bgClass, footer }: Atelie
   return (
     <div className={`db-stat-card h-full ${bgClass}`}>
       <div>
-        <div className="text-primary mb-4">{icon}</div>
+        <div className="text-[#99462a] dark:text-[#ccff00] mb-4">{icon}</div>
         <p className="db-stat-label">{label}</p>
         <p className="db-stat-value">{value}</p>
       </div>

@@ -4,6 +4,15 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## 🔥 Up Next (Priority)
+
+- [ ] **Unified Navbar & Footer across all pages** *(do this first)*
+  - Audit every page/layout file to find where Navbar and Footer are included, excluded, or duplicated
+  - Create single canonical `<Navbar>` and `<Footer>` components (or confirm existing ones in `components/layout/` are the source of truth)
+  - Ensure both are rendered consistently on all public pages (`/`, `/pricing`, `/privacy`, `/terms`, `/contact`, `/cookies`) and absent/replaced on auth pages and dashboard (which has its own sidebar nav)
+  - Remove any inline or page-level duplicates; wire everything through the root or per-group layout files
+  - **All existing functionality must be preserved** — no nav links, auth flows, dropdowns, mobile menus, or footer links should break or be removed during consolidation
+
 ---
 
 ## 🔐 Auth

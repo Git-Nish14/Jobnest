@@ -20,6 +20,7 @@ import {
   LandingScrollLink,
   LandingScrollToTop,
 } from "@/components/landing/LandingScrollLink";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import "./landing.css";
 
 export const dynamic = "force-dynamic";
@@ -58,13 +59,8 @@ export default async function Home() {
         <div className="flex justify-between items-center px-6 py-3.5 w-full max-w-7xl mx-auto">
           {/* Logo */}
           <LandingScrollToTop className="flex items-center gap-2.5 cursor-pointer bg-transparent border-none p-0">
-            <Image
-              src="/new_logo_1.png"
-              alt="Jobnest"
-              width={36}
-              height={36}
-              priority
-            />
+            <Image src="/new_logo_1.png" alt="Jobnest" width={36} height={36} priority className="logo-light" />
+            <Image src="/dark_logo.png" alt="Jobnest" width={36} height={36} priority className="logo-dark" />
             <span className="text-xl landing-logo-text">Jobnest</span>
           </LandingScrollToTop>
 
@@ -93,7 +89,8 @@ export default async function Home() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <ThemeToggle className="landing-theme-toggle" />
             <Link
               href="/login"
               className="hidden sm:block text-sm font-medium landing-login-link"
@@ -327,7 +324,7 @@ export default async function Home() {
             </div>
 
             {/* Accent tall card */}
-            <div className="rounded-xl p-10 flex flex-col justify-end relative overflow-hidden group min-h-95 bg-[#99462a] text-white">
+            <div className="rounded-xl p-10 flex flex-col justify-end relative overflow-hidden group min-h-95 bg-[#99462a] dark:bg-[#0d0d0d] dark:border dark:border-[#ccff00]/20 text-white">
               <div className="absolute top-0 right-0 p-8 opacity-20 group-hover:scale-110 transition-transform duration-500">
                 <Clock className="w-28 h-28" />
               </div>
@@ -486,12 +483,8 @@ export default async function Home() {
           {/* Brand */}
           <div className="col-span-2">
             <div className="flex items-center gap-2.5 mb-5">
-              <Image
-                src="/new_logo_1.png"
-                alt="Jobnest"
-                width={32}
-                height={32}
-              />
+              <Image src="/new_logo_1.png" alt="Jobnest" width={32} height={32} className="h-8 w-8 logo-light" />
+              <Image src="/dark_logo.png" alt="Jobnest" width={32} height={32} className="h-8 w-8 logo-dark" />
               <span className="text-xl landing-logo-text">Jobnest</span>
             </div>
             <p className="text-sm leading-relaxed max-w-xs landing-footer-links">

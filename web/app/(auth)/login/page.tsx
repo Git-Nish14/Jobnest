@@ -38,7 +38,8 @@ function BrandHeader({ step, email }: { step: LoginStep; email: string }) {
   return (
     <div className="flex flex-col items-center mb-10">
       <div className="mb-5">
-        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
+        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority className="logo-light" />
+        <Image src="/dark_logo.png" alt="Jobnest" width={52} height={52} priority className="logo-dark" />
       </div>
       <h1 className="atelier-headline text-4xl text-center mb-2 leading-tight">
         {step === "otp" ? "Check your email" : "Welcome back"}
@@ -57,7 +58,7 @@ function BrandHeader({ step, email }: { step: LoginStep; email: string }) {
 // ── Shared page shell — same as signup, defined outside to avoid remounts
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="relative min-h-screen px-6 py-12">
+    <main className="relative min-h-screen px-6 py-12 dark:bg-black">
       {/* Decorative layer — contained so glows don't cause horizontal scroll */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="atelier-glow-top" />

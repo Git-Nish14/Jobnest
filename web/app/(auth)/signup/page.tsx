@@ -91,7 +91,7 @@ function GitHubIcon() {
 //    recreates their identity on re-renders (avoids unmount/remount on keystroke)
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="relative min-h-screen px-6 py-16">
+    <main className="relative min-h-screen px-6 py-16 dark:bg-black">
       {/* Decorative layer — contained so glows don't cause horizontal scroll */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="atelier-glow-top" />
@@ -107,7 +107,8 @@ function BrandHeader({ title, subtitle }: { title: string; subtitle?: string }) 
   return (
     <div className="flex flex-col items-center mb-10">
       <div className="mb-5">
-        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
+        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority className="logo-light" />
+        <Image src="/dark_logo.png" alt="Jobnest" width={52} height={52} priority className="logo-dark" />
       </div>
       <h1 className="atelier-headline text-4xl md:text-5xl text-center mb-3 leading-tight tracking-tight">
         {title}

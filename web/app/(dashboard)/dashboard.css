@@ -648,7 +648,11 @@
    These rules must be at the END of the file so they beat the :root vars above.
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* ── Override all --atelier-* design tokens ──────────────────────────────── */
+/* ── Override all --atelier-* design tokens ──────────────────────────────────
+   Variables are declared on BOTH .dark (fallback, specificity 0,1,0) AND on
+   .dark .db-root (specificity 0,2,0 — always beats :root regardless of CSS
+   bundle order). Children inherit from .db-root via the CSS cascade.
+   ──────────────────────────────────────────────────────────────────────────── */
 .dark {
   --atelier-bg:              #000000;
   --atelier-surface:         #0f0f0f;
@@ -661,14 +665,28 @@
   --atelier-on-surface:      #ffffff;
   --atelier-on-surface-var:  rgba(255, 255, 255, 0.55);
   --atelier-outline-var:     rgba(255, 255, 255, 0.10);
-  --atelier-tertiary:        #4ade80;   /* keep green readable on black */
+  --atelier-tertiary:        #4ade80;
   --atelier-error:           #ff5f5f;
 }
 
-/* ── Root background ─────────────────────────────────────────────────────── */
+/* ── Root background + high-specificity variable anchor ──────────────────── */
 .dark .db-root {
-  background-color: #000000;
-  color: #ffffff;
+  /* Variables re-declared at 0,2,0 — guaranteed to win over :root (0,1,0) */
+  --atelier-bg:              #000000;
+  --atelier-surface:         #0f0f0f;
+  --atelier-surface-low:     #0a0a0a;
+  --atelier-surface-high:    #1a1a1a;
+  --atelier-surface-highest: #222222;
+  --atelier-primary:         #ccff00;
+  --atelier-primary-hover:   #b8e600;
+  --atelier-primary-soft:    rgba(204, 255, 0, 0.10);
+  --atelier-on-surface:      #ffffff;
+  --atelier-on-surface-var:  rgba(255, 255, 255, 0.55);
+  --atelier-outline-var:     rgba(255, 255, 255, 0.10);
+  --atelier-tertiary:        #4ade80;
+  --atelier-error:           #ff5f5f;
+  background-color: #000000 !important;
+  color: #ffffff !important;
 }
 
 /* ── Panels ──────────────────────────────────────────────────────────────── */
@@ -846,7 +864,7 @@
 .dark .bg-\[\#e9e8e6\]             { background-color: #222222 !important; }
 .dark .bg-\[\#faf9f7\]             { background-color: #000000 !important; }
 .dark .bg-\[\#2f3130\]             { background-color: #222222 !important; }
-.dark .bg-white                    { background-color: #0f0f0f !important; }
+/* bg-white intentionally not overridden — use dark:bg-[...] per component */
 .dark .bg-\[\#99462a\]             { background-color: #ccff00 !important; }
 .dark .bg-\[\#99462a\]\/10         { background-color: rgba(204,255,0,0.10) !important; }
 .dark .bg-\[\#99462a\]\/8          { background-color: rgba(204,255,0,0.08) !important; }
@@ -975,3 +993,98 @@
 
 /* Interview / reminder / contacts: amber-50 */
 .dark .bg-amber-50 { background-color: rgba(251,191,36,0.08) !important; }
+
+/* ── Missing opacity-variant overrides (each opacity = separate Tailwind class) */
+
+/* text-[#55433d] opacity variants */
+.dark .text-\[\#55433d\]\/80 { color: rgba(255,255,255,0.45) !important; }
+.dark .text-\[\#55433d\]\/70 { color: rgba(255,255,255,0.40) !important; }
+.dark .text-\[\#55433d\]\/60 { color: rgba(255,255,255,0.35) !important; }
+.dark .text-\[\#55433d\]\/50 { color: rgba(255,255,255,0.28) !important; }
+.dark .text-\[\#55433d\]\/45 { color: rgba(255,255,255,0.25) !important; }
+.dark .text-\[\#55433d\]\/40 { color: rgba(255,255,255,0.22) !important; }
+.dark .text-\[\#55433d\]\/30 { color: rgba(255,255,255,0.18) !important; }
+
+/* text-[#1a1c1b] opacity variants */
+.dark .text-\[\#1a1c1b\]\/50 { color: rgba(255,255,255,0.28) !important; }
+
+/* text-[#88726c] opacity variants */
+.dark .text-\[\#88726c\]\/50 { color: rgba(255,255,255,0.22) !important; }
+
+/* bg-[#f4f3f1] opacity variants */
+.dark .bg-\[\#f4f3f1\]\/50 { background-color: rgba(26,26,26,0.5) !important; }
+.dark .bg-\[\#f4f3f1\]\/60 { background-color: rgba(26,26,26,0.6) !important; }
+
+/* hover:bg-[#dbc1b9]/20 */
+.dark .hover\:bg-\[\#dbc1b9\]\/20:hover { background-color: rgba(255,255,255,0.06) !important; }
+
+/* focus / focus-visible ring overrides */
+.dark .focus\:ring-\[\#99462a\]\/30:focus            { --tw-ring-color: rgba(204,255,0,0.25) !important; }
+.dark .focus-visible\:ring-\[\#99462a\]\/30:focus-visible { --tw-ring-color: rgba(204,255,0,0.25) !important; }
+.dark .focus\:border-\[\#99462a\]\/40:focus          { border-color: rgba(204,255,0,0.30) !important; }
+.dark .focus-visible\:border-\[\#99462a\]\/40:focus-visible { border-color: rgba(204,255,0,0.30) !important; }
+
+/* hover:border-[#99462a]/40 */
+.dark .hover\:border-\[\#99462a\]\/40:hover { border-color: rgba(204,255,0,0.35) !important; }
+
+/* bg-[#99462a]/15 (glow in pricing) */
+.dark .bg-\[\#99462a\]\/15 { background-color: rgba(204,255,0,0.08) !important; }
+
+/* bg-white in non-interactive contexts (document viewer iframes excluded — browser-rendered) */
+.dark .bg-\[\#f4f3f1\]\/50 { background-color: rgba(26,26,26,0.5) !important; }
+
+/* placeholder opacity variants */
+.dark .placeholder\:\text-\[\#55433d\]\/45::placeholder { color: rgba(255,255,255,0.22) !important; }
+
+/* border-[#dbc1b9]/50 — already have /30 and /20, add /50 */
+.dark .divide-\[\#dbc1b9\]\/20 > * + * { border-color: rgba(255,255,255,0.06) !important; }
+
+/* ── Additional patterns found in DocumentManager, forms, etc. ─────────────── */
+
+/* bg-[#dbc1b9]/40 (mime-type pill background) */
+.dark .bg-\[\#dbc1b9\]\/40 { background-color: rgba(255,255,255,0.07) !important; }
+
+/* focus:ring-[#99462a] (without /30, used in DocumentManager inline inputs) */
+.dark .focus\:ring-\[\#99462a\]:focus { --tw-ring-color: rgba(204,255,0,0.30) !important; }
+
+/* placeholder:text-[#55433d]/50 */
+.dark .placeholder\:text-\[\#55433d\]\/50::placeholder { color: rgba(255,255,255,0.22) !important; }
+
+/* hover:bg-[#faf9f7] (DocumentManager upload hover) */
+.dark .hover\:bg-\[\#faf9f7\]:hover { background-color: rgba(255,255,255,0.04) !important; }
+
+/* bg-[#faf9f7] (document card backgrounds) */
+.dark .bg-\[\#faf9f7\] { background-color: #0a0a0a !important; }
+
+/* border-[#dbc1b9]/40 */
+.dark .border-\[\#dbc1b9\]\/40 { border-color: rgba(255,255,255,0.07) !important; }
+
+/* Salary table hover */
+.dark .hover\:bg-\[\#f4f3f1\]:hover { background-color: #222222 !important; }
+
+/* text-[#55433d]/45 — placeholder in interview-form */
+.dark .text-\[\#55433d\]\/45 { color: rgba(255,255,255,0.25) !important; }
+
+/* ── Interview type/status badge colours not yet covered ───────────────────── */
+.dark .bg-\[\#d97757\]\/15  { background-color: rgba(184,230,0,0.08) !important; }
+.dark .bg-\[\#006d34\]\/18  { background-color: rgba(74,222,128,0.12) !important; }
+.dark .bg-\[\#55433d\]\/8   { background-color: rgba(255,255,255,0.05) !important; }
+.dark .text-\[\#7a2f15\]    { color: #fbbf24 !important; }
+.dark .text-\[\#003d1b\]    { color: #10b981 !important; }
+
+/* ── Tag badge colours ─────────────────────────────────────────────────────── */
+.dark .bg-\[\#dbc1b9\]\/15  { background-color: rgba(255,255,255,0.05) !important; }
+.dark .bg-\[\#dbc1b9\]\/30  { background-color: rgba(255,255,255,0.06) !important; }
+
+/* ── Activity timeline token not covered ──────────────────────────────────── */
+.dark .bg-\[\#99462a\]\/12  { background-color: rgba(204,255,0,0.08) !important; }
+
+/* ── Pricing Plans disabled button ────────────────────────────────────────── */
+.dark .bg-\[\#d97757\]\/30  { background-color: rgba(204,255,0,0.10) !important; }
+.dark .text-\[\#1a1c1b\]\/50 { color: rgba(255,255,255,0.28) !important; }
+
+/* ── Final missing patterns ─────────────────────────────────────────────────── */
+.dark .border-\[\#dbc1b9\]\/40 { border-color: rgba(255,255,255,0.08) !important; }
+.dark .bg-\[\#006d34\]\/14     { background-color: rgba(74,222,128,0.12) !important; }
+.dark .bg-\[\#dbc1b9\]\/30     { background-color: rgba(255,255,255,0.06) !important; }
+.dark .bg-\[\#dbc1b9\]\/15     { background-color: rgba(255,255,255,0.04) !important; }

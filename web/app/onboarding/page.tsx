@@ -21,10 +21,11 @@ export default async function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:py-16">
       {/* Logo wordmark */}
       <div className="mb-10 flex items-center gap-2.5">
-        <div className="h-8 w-8 rounded-xl bg-[#99462a] flex items-center justify-center text-white text-sm font-bold">
+        {/* Use dark_logo.png in dark mode; fallback to initial icon in light mode */}
+        <div className="h-8 w-8 rounded-xl bg-[#99462a] dark:bg-[#ccff00] flex items-center justify-center text-white dark:text-black text-sm font-bold">
           J
         </div>
-        <span className="text-xl font-semibold text-[#1a1c1b]">Jobnest</span>
+        <span className="text-xl font-semibold text-[#1a1c1b] dark:text-white">Jobnest</span>
       </div>
 
       <div className="w-full max-w-xl">
