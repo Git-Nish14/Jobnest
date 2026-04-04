@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, type MutableRefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, User, Trash2, Check, ArrowLeft,
@@ -59,6 +59,78 @@ function formatDate(iso: string): string {
 
 function daysUntil(iso: string): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000));
+}
+
+// ── Shared helper components (module-level so React never unmounts them on
+//    parent re-render — nested component definitions get a new reference each
+//    render, causing React to unmount/remount and the keyboard to close on iOS)
+
+function Callout({ type, children }: { type: "error" | "success"; children: React.ReactNode }) {
+  return (
+    <div className={`flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-sm mb-4 ${
+      type === "error"
+        ? "bg-destructive/8 border border-destructive/20 text-destructive"
+        : "bg-emerald-50 border border-emerald-200 text-emerald-700"
+    }`}>
+      {type === "success" && <Check className="h-4 w-4 shrink-0 mt-0.5" />}
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function OtpRow({ values, refs, onChange, onKeyDown, onPaste, danger = false }: {
+  values: string[];
+  refs: MutableRefObject<(HTMLInputElement | null)[]>;
+  onChange: (i: number, v: string) => void;
+  onKeyDown: (i: number, e: React.KeyboardEvent) => void;
+  onPaste: (e: React.ClipboardEvent) => void;
+  danger?: boolean;
+}) {
+  return (
+    <div className="flex gap-2">
+      {values.map((digit, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          // type="tel" keeps the numeric keyboard mounted on iOS when focus
+          // moves between boxes; type="text" can cause keyboard dismiss.
+          type="tel"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => onChange(i, e.target.value)}
+          onKeyDown={(e) => onKeyDown(i, e)}
+          onPaste={onPaste}
+          autoComplete="off"
+          aria-label={`Digit ${i + 1}`}
+          className={`h-12 w-11 rounded-xl border-2 bg-background text-center text-lg font-semibold transition-all focus:outline-none focus:ring-0 ${
+            danger
+              ? `border-destructive/30 focus:border-destructive text-destructive ${digit ? "border-destructive/60" : ""}`
+              : `border-border focus:border-primary ${digit ? "border-primary/60 bg-primary/5" : ""}`
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PwInput({ id, label, value, show, onToggle, onChange, onKeyDown }: {
+  id: string; label: string; value: string; show: boolean;
+  onToggle: () => void; onChange: (v: string) => void; onKeyDown?: (e: React.KeyboardEvent) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input id={id} type={show ? "text" : "password"} value={value} placeholder="••••••••"
+          onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} className="pr-10" />
+        <button type="button" onClick={onToggle} aria-label={show ? "Hide" : "Show"}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }: ProfileClientProps) {
@@ -278,8 +350,9 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
     const next = [...pwOtp];
     next[index] = digit;
     setPwOtp(next);
-    if (digit && index < 5) pwOtpRefs.current[index + 1]?.focus();
-    // No auto-advance — user must click Continue which verifies the OTP first
+    // Defer focus so the current keystroke event finishes before shifting focus —
+    // prevents iOS Safari from dismissing the keyboard between inputs.
+    if (digit && index < 5) setTimeout(() => pwOtpRefs.current[index + 1]?.focus(), 0);
   };
 
   const handlePwOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -289,8 +362,11 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
   const handlePwOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 6) setPwOtp(pasted.split(""));
-    // No auto-advance on paste either
+    if (pasted.length === 6) {
+      setPwOtp(pasted.split(""));
+      // Focus last box after paste so keyboard stays open and user can submit
+      setTimeout(() => pwOtpRefs.current[5]?.focus(), 0);
+    }
   };
 
   const verifyPwOtp = async () => {
@@ -407,7 +483,9 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
     const next = [...deleteOtp];
     next[index] = digit;
     setDeleteOtp(next);
-    if (digit && index < 5) deleteOtpRefs.current[index + 1]?.focus();
+    // Defer focus so the current keystroke event finishes before shifting focus —
+    // prevents iOS Safari from dismissing the keyboard between inputs.
+    if (digit && index < 5) setTimeout(() => deleteOtpRefs.current[index + 1]?.focus(), 0);
   };
 
   const handleDeleteOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -417,7 +495,10 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
   const handleDeleteOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length === 6) setDeleteOtp(pasted.split(""));
+    if (pasted.length === 6) {
+      setDeleteOtp(pasted.split(""));
+      setTimeout(() => deleteOtpRefs.current[5]?.focus(), 0);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -467,63 +548,6 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
   };
 
   const initial = (displayName || user.email).charAt(0).toUpperCase();
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  function Callout({ type, children }: { type: "error" | "success"; children: React.ReactNode }) {
-    return (
-      <div className={`flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-sm mb-4 ${
-        type === "error"
-          ? "bg-destructive/8 border border-destructive/20 text-destructive"
-          : "bg-emerald-50 border border-emerald-200 text-emerald-700"
-      }`}>
-        {type === "success" && <Check className="h-4 w-4 shrink-0 mt-0.5" />}
-        <span>{children}</span>
-      </div>
-    );
-  }
-
-  function OtpRow({ values, refs, onChange, onKeyDown, onPaste, danger = false }: {
-    values: string[]; refs: React.MutableRefObject<(HTMLInputElement | null)[]>;
-    onChange: (i: number, v: string) => void; onKeyDown: (i: number, e: React.KeyboardEvent) => void;
-    onPaste: (e: React.ClipboardEvent) => void; danger?: boolean;
-  }) {
-    return (
-      <div className="flex gap-2">
-        {values.map((digit, i) => (
-          <input key={i} ref={(el) => { refs.current[i] = el; }} type="text" inputMode="numeric" maxLength={1}
-            value={digit} onChange={(e) => onChange(i, e.target.value)}
-            onKeyDown={(e) => onKeyDown(i, e)} onPaste={onPaste}
-            aria-label={`Digit ${i + 1}`}
-            className={`h-12 w-11 rounded-xl border-2 bg-background text-center text-lg font-semibold transition-all focus:outline-none focus:ring-0 ${
-              danger
-                ? `border-destructive/30 focus:border-destructive text-destructive ${digit ? "border-destructive/60" : ""}`
-                : `border-border focus:border-primary ${digit ? "border-primary/60 bg-primary/5" : ""}`
-            }`}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  function PwInput({ id, label, value, show, onToggle, onChange, onKeyDown }: {
-    id: string; label: string; value: string; show: boolean;
-    onToggle: () => void; onChange: (v: string) => void; onKeyDown?: (e: React.KeyboardEvent) => void;
-  }) {
-    return (
-      <div className="space-y-1.5">
-        <Label htmlFor={id}>{label}</Label>
-        <div className="relative">
-          <Input id={id} type={show ? "text" : "password"} value={value} placeholder="••••••••"
-            onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} className="pr-10" />
-          <button type="button" onClick={onToggle} aria-label={show ? "Hide" : "Show"}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // ── Layout ────────────────────────────────────────────────────────────────
 

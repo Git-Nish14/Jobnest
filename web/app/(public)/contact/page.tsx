@@ -4,15 +4,9 @@ import { useState, useRef } from "react";
 import { Send, Mail, MessageSquare, User, Loader2, CheckCircle2 } from "lucide-react";
 import { GithubIcon } from "@/components/ui/brand-icons";
 import { fetchWithRetry, getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
-import { Navbar, Footer } from "@/components/layout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Newsreader, Manrope } from "next/font/google";
-import "../landing.css";
-
-const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", display: "swap", style: ["normal", "italic"], weight: ["400", "500", "600", "700"] });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -42,7 +36,7 @@ const INFO_ITEMS = [
 ];
 
 const FAQS = [
-  { q: "Is Jobnest free?", a: "Yes, completely free forever." },
+  { q: "Is Jobnest free?", a: "Jobnest offers a Free plan with core features and a Pro plan with advanced tools. See our pricing page for details." },
   { q: "Is my data secure?", a: "Yes, we use industry-standard encryption." },
   { q: "Can I export my data?", a: "Yes, you can export your data anytime." },
 ];
@@ -86,11 +80,8 @@ export default function ContactPage() {
   };
 
   return (
-    <div className={`${newsreader.variable} ${manrope.variable} flex min-h-screen flex-col landing-root`}>
-      <Navbar user={null} />
-
-      <main className="flex-1 py-14 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <div className="py-14 sm:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 
           {/* Header */}
           <div className="text-center mb-14">
@@ -175,7 +166,7 @@ export default function ContactPage() {
                       type="text"
                       placeholder="Your name"
                       className="atelier-input"
-                      aria-invalid={!!errors.name}
+                      aria-invalid={errors.name ? "true" : undefined}
                       {...register("name")}
                     />
                     {errors.name && <p className="atelier-field-error">{errors.name.message}</p>}
@@ -191,7 +182,7 @@ export default function ContactPage() {
                       type="email"
                       placeholder="your@email.com"
                       className="atelier-input"
-                      aria-invalid={!!errors.email}
+                      aria-invalid={errors.email ? "true" : undefined}
                       {...register("email")}
                     />
                     {errors.email && <p className="atelier-field-error">{errors.email.message}</p>}
@@ -207,7 +198,7 @@ export default function ContactPage() {
                       type="text"
                       placeholder="How can we help?"
                       className="atelier-input"
-                      aria-invalid={!!errors.subject}
+                      aria-invalid={errors.subject ? "true" : undefined}
                       {...register("subject")}
                     />
                     {errors.subject && <p className="atelier-field-error">{errors.subject.message}</p>}
@@ -221,7 +212,7 @@ export default function ContactPage() {
                       rows={5}
                       placeholder="Tell us more about your inquiry..."
                       className="atelier-input resize-none"
-                      aria-invalid={!!errors.message}
+                      aria-invalid={errors.message ? "true" : undefined}
                       {...register("message")}
                     />
                     {errors.message && <p className="atelier-field-error">{errors.message.message}</p>}
@@ -246,10 +237,7 @@ export default function ContactPage() {
               )}
             </div>
           </div>
-        </div>
-      </main>
-
-      <Footer variant="simple" />
+      </div>
     </div>
   );
 }

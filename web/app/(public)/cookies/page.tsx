@@ -1,16 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Newsreader, Manrope } from "next/font/google";
-import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
-import "../landing.css";
 
 export const metadata: Metadata = {
   title: "Cookie Policy",
   description: "A full list of every cookie Jobnest sets, its purpose, type, and duration.",
 };
-
-const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", display: "swap", style: ["normal", "italic"], weight: ["400", "500", "600", "700"] });
-const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -105,9 +99,7 @@ const LOCAL_STORAGE_ENTRIES = [
 
 export default function CookiesPage() {
   return (
-    <LayoutWrapper footerVariant="simple">
-      <div className={`${newsreader.variable} ${manrope.variable} landing-root`}>
-        <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
 
           {/* Header */}
           <div className="mb-12">
@@ -293,8 +285,6 @@ export default function CookiesPage() {
             </Section>
 
           </div>
-        </div>
-      </div>
-    </LayoutWrapper>
+    </div>
   );
 }

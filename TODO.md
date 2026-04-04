@@ -6,12 +6,14 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🔥 Up Next (Priority)
 
-- [ ] **Unified Navbar & Footer across all pages** *(do this first)*
-  - Audit every page/layout file to find where Navbar and Footer are included, excluded, or duplicated
-  - Create single canonical `<Navbar>` and `<Footer>` components (or confirm existing ones in `components/layout/` are the source of truth)
-  - Ensure both are rendered consistently on all public pages (`/`, `/pricing`, `/privacy`, `/terms`, `/contact`, `/cookies`) and absent/replaced on auth pages and dashboard (which has its own sidebar nav)
-  - Remove any inline or page-level duplicates; wire everything through the root or per-group layout files
-  - **All existing functionality must be preserved** — no nav links, auth flows, dropdowns, mobile menus, or footer links should break or be removed during consolidation
+- [x] **Unified Navbar & Footer across all pages**
+  - Audited every page/layout file — found inline headers/footers on `/`, `/pricing`, and direct Navbar/Footer imports in `/contact`
+  - Created `LandingHeader` (client component — auth-aware, pathname-based active state, mobile hamburger menu) and `LandingFooter` (server component — multi-column design matching the landing page)
+  - Created `app/(public)/layout.tsx` route group — single canonical layout providing `LandingHeader` + `LandingFooter` for all 6 public pages
+  - Moved `/`, `/pricing`, `/privacy`, `/terms`, `/contact`, `/cookies` into the `(public)` group; stripped per-page inline headers, footers, and font boilerplate (now provided once by the layout)
+  - All existing functionality preserved: auth state, active nav indicators, mobile menu, scroll links on landing page sections, legal links including "Do Not Sell My Info" added to canonical footer
+  - Added "Do Not Sell My Info" to `Footer.tsx` simple variant (CCPA compliance gap)
+  - Fixed nested `<main>` semantic issue in landing page (layout provides `<main>`, page returns `<div>`)
 
 ---
 
@@ -467,6 +469,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Interview prep mode** — given an application + job description, NESTAi generates role-specific STAR questions, evaluates user's draft answers, and suggests improvements
 - [ ] **Email draft assistant** — given a contact + template category, NESTAi drafts a personalised follow-up or thank-you email; user can copy or send directly
 - [ ] **Conversation export** — download a chat session as PDF or Markdown; useful for saving interview prep sessions
+- [ ] **File preview on click** — when the user clicks any uploaded file attachment in a NESTAi chat message, show an inline preview (PDF rendered in iframe, images in `<img>`, DOCX/TXT shown as extracted text); mirror the modern AI chat app UX (ChatGPT, Claude, Gemini) where clicking an attachment opens a full-screen or side-panel viewer without downloading
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
 
 ---
@@ -579,4 +582,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 30 March 2026 — Stripe billing fully wired (checkout, 4 webhook events, billing portal, dunning email, trial, annual toggle). Security hardened: Upstash Redis rate limiting, startup env validation, pdf-parse 2.x, `__Host-` sb_rm cookie, verifyOrigin CSRF on all profile routes. Compliance: GDPR data export endpoint, CCPA footer links, erasure verification in deletion cron. UI: scrollbar layout shift fix, document viewer close-button overlap fixed. Tests: 423 tests, 36 files, 100% pass. CI updated with Stripe + Redis placeholder env vars.*
+*Last updated: 2 April 2026 — Unified public layout: `(public)` route group with `LandingHeader` + `LandingFooter` wired consistently across `/`, `/pricing`, `/privacy`, `/terms`, `/contact`, `/cookies`. NESTAi: image uploads (iOS Safari picker fix), modal delete-chat dialog. Profile OTP: `type="tel"` + `setTimeout` focus deferral + module-level components fix keyboard dismissal on iOS. Emails: dark mode, logo, table-based Outlook-compatible layout, `esc()` HTML sanitisation on all user-controlled content. Stripe webhook: removed invalid Pages Router `config` export. "Free forever" copy removed (2-plan pricing). Tests: 426 tests, 36 files, 100% pass.*

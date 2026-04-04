@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s | Jobnest",
   },
   description:
-    "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster. Free forever.",
+    "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster.",
   keywords: [
     "job tracker",
     "job applications",

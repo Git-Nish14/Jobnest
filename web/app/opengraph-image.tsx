@@ -80,7 +80,7 @@ export default function OgImage() {
         <div style={{ display: "flex", gap: 48, marginTop: 48 }}>
           {[
             { label: "Applications tracked", value: "∞" },
-            { label: "Free forever", value: "100%" },
+            { label: "Free to start", value: "Free" },
             { label: "AI-powered assistant", value: "NESTAi" },
           ].map(({ label, value }) => (
             <div key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
