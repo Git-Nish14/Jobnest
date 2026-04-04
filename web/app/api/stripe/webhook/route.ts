@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDunningEmail } from "@/lib/email/nodemailer";
 import type Stripe from "stripe";
 
-// Disable body parsing — Stripe requires the raw body to verify signature
-export const config = { api: { bodyParser: false } };
+// App Router does NOT auto-parse the request body, so request.text() always
+// returns the raw bytes Stripe needs for signature verification — no extra config required.
 
 export async function POST(request: NextRequest) {
   const body = await request.text();

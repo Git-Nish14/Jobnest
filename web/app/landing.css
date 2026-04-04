@@ -4,15 +4,15 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --atelier-bg:             #faf9f7;
-  --atelier-surface:        #ffffff;
-  --atelier-surface-low:    #f4f3f1;
-  --atelier-surface-high:   #e9e8e6;
-  --atelier-primary:        #99462a;
-  --atelier-primary-hover:  #d97757;
-  --atelier-on-surface:     #1a1c1b;
+  --atelier-bg: #faf9f7;
+  --atelier-surface: #ffffff;
+  --atelier-surface-low: #f4f3f1;
+  --atelier-surface-high: #e9e8e6;
+  --atelier-primary: #99462a;
+  --atelier-primary-hover: #d97757;
+  --atelier-on-surface: #1a1c1b;
   --atelier-on-surface-var: #55433d;
-  --atelier-outline-var:    #dbc1b9;
+  --atelier-outline-var: #dbc1b9;
 }
 
 /* ── Theme toggle on landing/auth pages ────────────────────────────────────── */
@@ -34,7 +34,7 @@
 
 /* ── Header ────────────────────────────────────────────────────────────────── */
 .landing-header {
-  background-color: rgba(250, 249, 247, 0.80);
+  background-color: rgba(250, 249, 247, 0.8);
   border-color: rgba(219, 193, 185, 0.15);
   box-shadow: 0 1px 12px rgba(26, 28, 27, 0.04);
 }
@@ -57,7 +57,7 @@
   transition: background-color 150ms;
 }
 .landing-nav-link:hover {
-  background-color: rgba(217, 119, 87, 0.10);
+  background-color: rgba(217, 119, 87, 0.1);
 }
 
 .landing-login-link {
@@ -71,7 +71,9 @@
 .landing-btn-primary {
   background-color: var(--atelier-primary);
   color: #ffffff;
-  transition: background-color 0.25s, transform 0.1s;
+  transition:
+    background-color 0.25s,
+    transform 0.1s;
 }
 .landing-btn-primary:hover {
   background-color: var(--atelier-primary-hover);
@@ -87,7 +89,11 @@
 
 .landing-gradient-text {
   font-style: italic;
-  background: linear-gradient(90deg, var(--atelier-primary), var(--atelier-primary-hover));
+  background: linear-gradient(
+    90deg,
+    var(--atelier-primary),
+    var(--atelier-primary-hover)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -127,14 +133,16 @@
 
 .landing-floating-card {
   background-color: var(--atelier-surface);
-  border-color: rgba(219, 193, 185, 0.20);
-  box-shadow: 0 12px 40px rgba(26, 28, 27, 0.10);
+  border-color: rgba(219, 193, 185, 0.2);
+  box-shadow: 0 12px 40px rgba(26, 28, 27, 0.1);
 }
 
 /* ── Hero dashboard mockup ─────────────────────────────────────────────────── */
 .landing-hero-mockup {
   background: linear-gradient(145deg, #2a1a12 0%, #1a1c1b 45%, #0f1210 100%);
-  box-shadow: 0 32px 80px rgba(26, 28, 27, 0.30), 0 0 0 1px rgba(255,255,255,0.04);
+  box-shadow:
+    0 32px 80px rgba(26, 28, 27, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .landing-hero-chrome {
@@ -180,7 +188,10 @@
 
 /* ── Features ──────────────────────────────────────────────────────────────── */
 .landing-accent-card-subtext {
-  color: rgba(255, 255, 255, 0.80);
+  color: rgba(255, 255, 255, 0.8);
+  .dark & {
+    color: rgba(0, 0, 0, 0.85);
+  }
 }
 
 /* ── Testimonials ──────────────────────────────────────────────────────────── */
@@ -218,7 +229,7 @@
 /* ── Footer ────────────────────────────────────────────────────────────────── */
 .landing-footer {
   background-color: var(--atelier-surface-low);
-  border-color: rgba(219, 193, 185, 0.20);
+  border-color: rgba(219, 193, 185, 0.2);
 }
 
 .landing-footer-links {
@@ -266,28 +277,28 @@
 
 .dark {
   /* Fallback (0,1,0 specificity) */
-  --atelier-bg:             #000000;
-  --atelier-surface:        #0f0f0f;
-  --atelier-surface-low:    #0a0a0a;
-  --atelier-surface-high:   #1a1a1a;
-  --atelier-primary:        #ccff00;
-  --atelier-primary-hover:  #b8e600;
-  --atelier-on-surface:     #ffffff;
+  --atelier-bg: #000000;
+  --atelier-surface: #0f0f0f;
+  --atelier-surface-low: #0a0a0a;
+  --atelier-surface-high: #1a1a1a;
+  --atelier-primary: #ccff00;
+  --atelier-primary-hover: #b8e600;
+  --atelier-on-surface: #ffffff;
   --atelier-on-surface-var: rgba(255, 255, 255, 0.55);
-  --atelier-outline-var:    rgba(255, 255, 255, 0.10);
+  --atelier-outline-var: rgba(255, 255, 255, 0.1);
 }
 
 .dark .landing-root {
   /* Re-declared at 0,2,0 — guaranteed to beat :root vars + explicit background */
-  --atelier-bg:             #000000;
-  --atelier-surface:        #0f0f0f;
-  --atelier-surface-low:    #0a0a0a;
-  --atelier-surface-high:   #1a1a1a;
-  --atelier-primary:        #ccff00;
-  --atelier-primary-hover:  #b8e600;
-  --atelier-on-surface:     #ffffff;
+  --atelier-bg: #000000;
+  --atelier-surface: #0f0f0f;
+  --atelier-surface-low: #0a0a0a;
+  --atelier-surface-high: #1a1a1a;
+  --atelier-primary: #ccff00;
+  --atelier-primary-hover: #b8e600;
+  --atelier-on-surface: #ffffff;
   --atelier-on-surface-var: rgba(255, 255, 255, 0.55);
-  --atelier-outline-var:    rgba(255, 255, 255, 0.10);
+  --atelier-outline-var: rgba(255, 255, 255, 0.1);
   background-color: #000000 !important;
   color: #ffffff !important;
 }
@@ -299,45 +310,76 @@
   box-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
 }
 
-.dark .landing-logo-text { color: #ccff00; }
-.dark .landing-theme-toggle { color: rgba(255,255,255,0.45) !important; }
-.dark .landing-theme-toggle:hover { background-color: rgba(204,255,0,0.08) !important; color: #ccff00 !important; }
-.dark .landing-nav-active { color: #ccff00; }
-.dark .landing-nav-link  { color: rgba(255, 255, 255, 0.5); }
-.dark .landing-nav-link:hover { background-color: rgba(204, 255, 0, 0.08); color: #ccff00; }
-.dark .landing-login-link { color: rgba(255, 255, 255, 0.6); }
-.dark .landing-login-link:hover { color: #ccff00; }
+.dark .landing-logo-text {
+  color: #ccff00;
+}
+.dark .landing-theme-toggle {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+.dark .landing-theme-toggle:hover {
+  background-color: rgba(204, 255, 0, 0.08) !important;
+  color: #ccff00 !important;
+}
+.dark .landing-nav-active {
+  color: #ccff00;
+}
+.dark .landing-nav-link {
+  color: rgba(255, 255, 255, 0.5);
+}
+.dark .landing-nav-link:hover {
+  background-color: rgba(204, 255, 0, 0.08);
+  color: #ccff00;
+}
+.dark .landing-login-link {
+  color: rgba(255, 255, 255, 0.6);
+}
+.dark .landing-login-link:hover {
+  color: #ccff00;
+}
 
 /* ── Buttons ── */
-.dark .landing-btn-primary { background-color: #ccff00; color: #000000; }
-.dark .landing-btn-primary:hover { background-color: #b8e600; }
+.dark .landing-btn-primary {
+  background-color: #ccff00;
+  color: #000000;
+}
+.dark .landing-btn-primary:hover {
+  background-color: #b8e600;
+}
 
 .dark .landing-btn-hero-cta {
   background-color: #ccff00;
   color: #000000;
-  box-shadow: 0 8px 24px rgba(204, 255, 0, 0.20);
+  box-shadow: 0 8px 24px rgba(204, 255, 0, 0.2);
 }
-.dark .landing-btn-hero-cta:hover { background-color: #b8e600; }
+.dark .landing-btn-hero-cta:hover {
+  background-color: #b8e600;
+}
 
 .dark .landing-btn-hero-ghost {
   border-color: rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.85);
 }
-.dark .landing-btn-hero-ghost:hover { background-color: #1a1a1a; }
+.dark .landing-btn-hero-ghost:hover {
+  background-color: #1a1a1a;
+}
 
 .dark .landing-btn-cta-primary {
   background-color: #ccff00;
   color: #000000;
-  box-shadow: 0 12px 32px rgba(204, 255, 0, 0.20);
+  box-shadow: 0 12px 32px rgba(204, 255, 0, 0.2);
 }
-.dark .landing-btn-cta-primary:hover { background-color: #b8e600; }
+.dark .landing-btn-cta-primary:hover {
+  background-color: #b8e600;
+}
 
 .dark .landing-btn-cta-secondary {
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
   background-color: #0a0a0a;
 }
-.dark .landing-btn-cta-secondary:hover { background-color: #1a1a1a; }
+.dark .landing-btn-cta-secondary:hover {
+  background-color: #1a1a1a;
+}
 
 /* ── Hero ── */
 .dark .landing-gradient-text {
@@ -346,8 +388,12 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.dark .landing-subtext       { color: rgba(255, 255, 255, 0.55); }
-.dark .landing-verified-text { color: rgba(255, 255, 255, 0.35); }
+.dark .landing-subtext {
+  color: rgba(255, 255, 255, 0.55);
+}
+.dark .landing-verified-text {
+  color: rgba(255, 255, 255, 0.35);
+}
 
 /* ── Testimonials ── */
 .dark .landing-testimonial-card {
@@ -360,56 +406,119 @@
   background-color: #0a0a0a;
   border-color: rgba(255, 255, 255, 0.06);
 }
-.dark .landing-footer-links   { color: rgba(255, 255, 255, 0.45); }
-.dark .landing-footer-divider { border-color: rgba(255, 255, 255, 0.06); }
-.dark .landing-footer-signup  { background-color: #ccff00; color: #000000; }
-.dark .landing-footer-signup:hover { background-color: #b8e600; }
-.dark .landing-copyright      { color: rgba(255, 255, 255, 0.30); }
-.dark .landing-footer-nav-link { color: rgba(255, 255, 255, 0.35); }
-.dark .landing-footer-nav-link:hover { color: #ccff00; }
-.dark .landing-creator-link   { color: #ccff00; }
+.dark .landing-footer-links {
+  color: rgba(255, 255, 255, 0.45);
+}
+.dark .landing-footer-divider {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.dark .landing-footer-signup {
+  background-color: #ccff00;
+  color: #000000;
+}
+.dark .landing-footer-signup:hover {
+  background-color: #b8e600;
+}
+.dark .landing-copyright {
+  color: rgba(255, 255, 255, 0.3);
+}
+.dark .landing-footer-nav-link {
+  color: rgba(255, 255, 255, 0.35);
+}
+.dark .landing-footer-nav-link:hover {
+  color: #ccff00;
+}
+.dark .landing-creator-link {
+  color: #ccff00;
+}
 
 /* ── Landing page arbitrary-value Tailwind overrides for dark mode ─────────── */
-.dark .text-\[\#1a1c1b\]           { color: #ffffff !important; }
-.dark .text-\[\#55433d\]           { color: rgba(255,255,255,0.55) !important; }
-.dark .text-\[\#99462a\]           { color: #ccff00 !important; }
-.dark .bg-\[\#f4f3f1\]             { background-color: #1a1a1a !important; }
-.dark .bg-\[\#e3e2e0\]             { background-color: #222222 !important; }
-.dark .bg-\[\#99462a\]             { background-color: #ccff00 !important; }
-.dark .text-white.bg-\[\#99462a\]  { color: #000000 !important; }
+.dark .text-\[\#1a1c1b\] {
+  color: #ffffff !important;
+}
+.dark .text-\[\#55433d\] {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+.dark .text-\[\#99462a\] {
+  color: #ccff00 !important;
+}
+.dark .bg-\[\#f4f3f1\] {
+  background-color: #1a1a1a !important;
+}
+.dark .bg-\[\#e3e2e0\] {
+  background-color: #222222 !important;
+}
+.dark .bg-\[\#99462a\] {
+  background-color: #ccff00 !important;
+}
+.dark .text-white.bg-\[\#99462a\] {
+  color: #000000 !important;
+}
 
 /* ── Additional overrides for contact / cookies / privacy / terms pages ────── */
 /* These pages use landing-root but have colour patterns not covered above */
 
 /* Text */
-.dark .text-\[\#006d34\]           { color: #4ade80 !important; }
-.dark .text-\[\#88726c\]           { color: rgba(255,255,255,0.40) !important; }
+.dark .text-\[\#006d34\] {
+  color: #4ade80 !important;
+}
+.dark .text-\[\#88726c\] {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
 
 /* Backgrounds */
-.dark .bg-\[\#ffdbd0\]             { background-color: rgba(153,70,42,0.15) !important; }
-.dark .bg-\[\#006d34\]\/12         { background-color: rgba(74,222,128,0.10) !important; }
-.dark .bg-\[\#99462a\]\/10         { background-color: rgba(204,255,0,0.10) !important; }
+.dark .bg-\[\#ffdbd0\] {
+  background-color: rgba(153, 70, 42, 0.15) !important;
+}
+.dark .bg-\[\#006d34\]\/12 {
+  background-color: rgba(74, 222, 128, 0.1) !important;
+}
+.dark .bg-\[\#99462a\]\/10 {
+  background-color: rgba(204, 255, 0, 0.1) !important;
+}
 
 /* Borders */
-.dark .border-\[\#dbc1b9\]\/30     { border-color: rgba(255,255,255,0.07) !important; }
-.dark .border-\[\#dbc1b9\]\/20     { border-color: rgba(255,255,255,0.06) !important; }
+.dark .border-\[\#dbc1b9\]\/30 {
+  border-color: rgba(255, 255, 255, 0.07) !important;
+}
+.dark .border-\[\#dbc1b9\]\/20 {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
 
 /* Hover links */
-.dark .hover\:text-\[\#99462a\]:hover { color: #ccff00 !important; }
+.dark .hover\:text-\[\#99462a\]:hover {
+  color: #ccff00 !important;
+}
 
 /* code / pre inline snippets */
-.dark code                          { background-color: #1a1a1a; color: #ccff00; }
+.dark code {
+  background-color: #1a1a1a;
+  color: #ccff00;
+}
 
 /* Table rows */
-.dark .bg-\[\#f4f3f1\]\/50         { background-color: rgba(30,30,30,0.5) !important; }
+.dark .bg-\[\#f4f3f1\]\/50 {
+  background-color: rgba(30, 30, 30, 0.5) !important;
+}
 
 /* Cookie type badge */
-.dark .bg-\[\#99462a\]\/10.text-\[\#99462a\] { background-color: rgba(204,255,0,0.10) !important; color: #ccff00 !important; }
+.dark .bg-\[\#99462a\]\/10.text-\[\#99462a\] {
+  background-color: rgba(204, 255, 0, 0.1) !important;
+  color: #ccff00 !important;
+}
 
 /* Section dividers in legal pages */
-.dark .border-\[\#dbc1b9\]\/20     { border-color: rgba(255,255,255,0.06) !important; }
+.dark .border-\[\#dbc1b9\]\/20 {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
 
 /* ── Pricing page / landing page missing patterns ──────────────────────────── */
-.dark .bg-\[\#99462a\]\/15         { background-color: rgba(204,255,0,0.08) !important; }
-.dark .text-\[\#1a1c1b\]\/50       { color: rgba(255,255,255,0.28) !important; }
-.dark .border-\[\#dbc1b9\]\/40     { border-color: rgba(255,255,255,0.08) !important; }
+.dark .bg-\[\#99462a\]\/15 {
+  background-color: rgba(204, 255, 0, 0.08) !important;
+}
+.dark .text-\[\#1a1c1b\]\/50 {
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+.dark .border-\[\#dbc1b9\]\/40 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}

@@ -7,7 +7,7 @@ import {
   Bell, Building2, Target, MessageSquare, Zap, Copy, CheckCheck,
   Square, Pin, PinOff, Paperclip,
 } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
@@ -46,6 +46,9 @@ interface AttachedFile {
 const MAX_REQUESTS = 5;
 const WINDOW_MS = 60_000;
 const FOLLOW_UPS_MARKER = "\nFOLLOW_UPS:";
+
+// Module-level constant — not inside the component so it isn't recreated on every render
+const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif", "bmp", "tiff"]);
 
 function parseFollowUps(fullText: string): { content: string; suggestions: string[] } {
   const idx = fullText.lastIndexOf(FOLLOW_UPS_MARKER);
@@ -150,6 +153,14 @@ const FILE_TYPE_META: Record<string, { label: string; bg: string; text: string; 
   doc:  { label: "DOC",  bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200" },
   txt:  { label: "TXT",  bg: "bg-zinc-50",   text: "text-zinc-600",   border: "border-zinc-200" },
   md:   { label: "MD",   bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
+  // Image types
+  jpg:  { label: "JPG",  bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  jpeg: { label: "JPG",  bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  png:  { label: "PNG",  bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  gif:  { label: "GIF",  bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  webp: { label: "WEBP", bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  heic: { label: "HEIC", bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
+  heif: { label: "HEIF", bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200" },
 };
 
 function FileAttachmentCard({ attachment, onView }: { attachment: MessageAttachment; onView?: () => void }) {
@@ -354,7 +365,8 @@ export default function NestAiPage() {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // Session queued for deletion — opens the confirmation dialog
+  const [deleteDialogSession, setDeleteDialogSession] = useState<{ id: string; title: string } | null>(null);
 
   const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -394,7 +406,7 @@ export default function NestAiPage() {
 
   useEffect(() => {
     if (!menuOpenId) return;
-    const handler = () => { setMenuOpenId(null); setDeleteConfirmId(null); };
+    const handler = () => setMenuOpenId(null);
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [menuOpenId]);
@@ -461,6 +473,7 @@ export default function NestAiPage() {
   };
 
   const deleteSession = async (sessionId: string) => {
+    setDeleteDialogSession(null);
     try {
       const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}`, { method: "DELETE" }, { retries: 1 });
       if (res.ok) {
@@ -470,8 +483,6 @@ export default function NestAiPage() {
     } catch (err) {
       console.error("Failed to delete session:", err);
     }
-    setMenuOpenId(null);
-    setDeleteConfirmId(null);
   };
 
   const updateSessionTitle = async (sessionId: string, title: string) => {
@@ -564,11 +575,21 @@ export default function NestAiPage() {
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) { setError("File exceeds 5 MB limit"); return; }
 
-    const ext = file.name.split(".").pop()?.toLowerCase();
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
     if (ext === "txt" || ext === "md") {
       const text = await file.text();
       setAttachedFile({ name: file.name, text: text.slice(0, 10000), loading: false });
+      return;
+    }
+
+    // Images: attach as a context note (no text extraction)
+    if (IMAGE_EXTS.has(ext) || file.type.startsWith("image/")) {
+      setAttachedFile({
+        name: file.name,
+        text: `[Image attached: ${file.name}. Describe this image or ask me questions about your job search.]`,
+        loading: false,
+      });
       return;
     }
 
@@ -808,16 +829,14 @@ export default function NestAiPage() {
                       isEditing={editingSessionId === session.id}
                       editTitle={editTitle}
                       menuOpenId={menuOpenId}
-                      deleteConfirmId={deleteConfirmId}
                       onLoad={loadSession}
-                      onDelete={deleteSession}
                       onTogglePin={togglePin}
                       onRenameStart={(s) => { setEditTitle(s.title); setEditingSessionId(s.id); setMenuOpenId(null); }}
                       onRenameChange={setEditTitle}
                       onRenameSave={updateSessionTitle}
                       onRenameCancel={() => setEditingSessionId(null)}
-                      onMenuToggle={(id) => { setMenuOpenId((prev) => (prev === id ? null : id)); setDeleteConfirmId(null); }}
-                      onDeleteConfirm={setDeleteConfirmId}
+                      onMenuToggle={(id) => setMenuOpenId((prev) => (prev === id ? null : id))}
+                      onRequestDelete={(id, title) => { setMenuOpenId(null); setDeleteDialogSession({ id, title }); }}
                       formatRelativeDate={formatRelativeDate}
                     />
                   ))}
@@ -832,16 +851,14 @@ export default function NestAiPage() {
                   isEditing={editingSessionId === session.id}
                   editTitle={editTitle}
                   menuOpenId={menuOpenId}
-                  deleteConfirmId={deleteConfirmId}
                   onLoad={loadSession}
-                  onDelete={deleteSession}
                   onTogglePin={togglePin}
                   onRenameStart={(s) => { setEditTitle(s.title); setEditingSessionId(s.id); setMenuOpenId(null); }}
                   onRenameChange={setEditTitle}
                   onRenameSave={updateSessionTitle}
                   onRenameCancel={() => setEditingSessionId(null)}
-                  onMenuToggle={(id) => { setMenuOpenId((prev) => (prev === id ? null : id)); setDeleteConfirmId(null); }}
-                  onDeleteConfirm={setDeleteConfirmId}
+                  onMenuToggle={(id) => setMenuOpenId((prev) => (prev === id ? null : id))}
+                  onRequestDelete={(id, title) => { setMenuOpenId(null); setDeleteDialogSession({ id, title }); }}
                   formatRelativeDate={formatRelativeDate}
                 />
               ))}
@@ -1110,17 +1127,17 @@ export default function NestAiPage() {
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
                     className="p-3 rounded-full text-[#55433d] hover:bg-[#99462a]/8 transition-colors disabled:opacity-40 shrink-0"
-                    title="Attach file (PDF, DOCX, TXT — max 5 MB)"
+                    title="Attach file or image (PDF, DOCX, TXT, images — max 5 MB)"
                   >
                     <Paperclip className="h-5 w-5" />
                   </button>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.docx,.doc,.txt,.md"
+                    accept="image/*,.pdf,.docx,.doc,.txt,.md"
                     className="hidden"
-                    aria-label="Attach file"
-                    title="Attach file (PDF, DOCX, TXT — max 5 MB)"
+                    aria-label="Attach file or image"
+                    title="Attach file or image (PDF, DOCX, TXT, images — max 5 MB)"
                     onChange={handleFileChange}
                   />
 
@@ -1242,30 +1259,65 @@ export default function NestAiPage() {
         </div>
       </div>
     )}
+
+    {/* ── Delete chat confirmation dialog ──────────────────────────────── */}
+    <Dialog
+      open={deleteDialogSession !== null}
+      onOpenChange={(open) => { if (!open) setDeleteDialogSession(null); }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 className="h-4 w-4 shrink-0" />
+            Delete chat?
+          </DialogTitle>
+          <DialogDescription className="pt-1">
+            {deleteDialogSession && (
+              <>
+                <span className="font-medium text-foreground">&ldquo;{deleteDialogSession.title}&rdquo;</span>
+                {" "}will be permanently deleted. This cannot be undone.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            onClick={() => setDeleteDialogSession(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => deleteDialogSession && deleteSession(deleteDialogSession.id)}
+          >
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
 
 function SessionRow({
-  session, isActive, isEditing, editTitle, menuOpenId, deleteConfirmId,
-  onLoad, onDelete, onTogglePin, onRenameStart, onRenameChange, onRenameSave,
-  onRenameCancel, onMenuToggle, onDeleteConfirm, formatRelativeDate,
+  session, isActive, isEditing, editTitle, menuOpenId,
+  onLoad, onTogglePin, onRenameStart, onRenameChange, onRenameSave,
+  onRenameCancel, onMenuToggle, onRequestDelete, formatRelativeDate,
 }: {
   session: ChatSession;
   isActive: boolean;
   isEditing: boolean;
   editTitle: string;
   menuOpenId: string | null;
-  deleteConfirmId: string | null;
   onLoad: (id: string) => void;
-  onDelete: (id: string) => void;
   onTogglePin: (id: string, pinned: boolean) => void;
   onRenameStart: (s: ChatSession) => void;
   onRenameChange: (v: string) => void;
   onRenameSave: (id: string, title: string) => void;
   onRenameCancel: () => void;
   onMenuToggle: (id: string) => void;
-  onDeleteConfirm: (id: string) => void;
+  onRequestDelete: (id: string, title: string) => void;
   formatRelativeDate: (d: string) => string;
 }) {
   return (
@@ -1329,57 +1381,30 @@ function SessionRow({
                 className="absolute right-0 top-full mt-1 bg-popover border rounded-lg shadow-lg py-1 z-30 min-w-[140px]"
                 onClick={(e) => e.stopPropagation()}
               >
-                {deleteConfirmId === session.id ? (
-                  /* Confirm delete inline */
-                  <div className="px-3 py-2 space-y-1.5">
-                    <p className="text-xs font-medium text-destructive">Delete this chat?</p>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        aria-label="Confirm delete chat"
-                        className="flex-1 text-xs py-1 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
-                        onClick={() => onDelete(session.id)}
-                      >
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Cancel delete"
-                        className="flex-1 text-xs py-1 rounded border hover:bg-muted transition-colors"
-                        onClick={() => onDeleteConfirm(null as unknown as string)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-1.5 text-xs text-left hover:bg-muted flex items-center gap-2 transition-colors"
-                      onClick={() => onRenameStart(session)}
-                    >
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Rename
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-1.5 text-xs text-left hover:bg-muted flex items-center gap-2 transition-colors"
-                      onClick={() => onTogglePin(session.id, session.is_pinned)}
-                    >
-                      {session.is_pinned
-                        ? <><PinOff className="h-3.5 w-3.5 text-muted-foreground" /> Unpin</>
-                        : <><Pin className="h-3.5 w-3.5 text-muted-foreground" /> Pin</>
-                      }
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-1.5 text-xs text-left hover:bg-destructive/10 flex items-center gap-2 text-destructive transition-colors"
-                      onClick={() => onDeleteConfirm(session.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-muted flex items-center gap-2 transition-colors"
+                  onClick={() => onRenameStart(session)}
+                >
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Rename
+                </button>
+                <button
+                  type="button"
+                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-muted flex items-center gap-2 transition-colors"
+                  onClick={() => onTogglePin(session.id, session.is_pinned)}
+                >
+                  {session.is_pinned
+                    ? <><PinOff className="h-3.5 w-3.5 text-muted-foreground" /> Unpin</>
+                    : <><Pin className="h-3.5 w-3.5 text-muted-foreground" /> Pin</>
+                  }
+                </button>
+                <button
+                  type="button"
+                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-destructive/10 flex items-center gap-2 text-destructive transition-colors"
+                  onClick={(e) => { e.stopPropagation(); onRequestDelete(session.id, session.title); }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
               </div>
             )}
           </div>

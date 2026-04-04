@@ -249,6 +249,12 @@ export function Footer({ variant = "simple" }: FooterProps) {
             >
               Cookies
             </Link>
+            <Link
+              href="/privacy#do-not-sell"
+              className="transition-colors hover:text-foreground"
+            >
+              Do Not Sell My Info
+            </Link>
             <a
               href="https://github.com/Git-Nish14/Jobnest"
               target="_blank"

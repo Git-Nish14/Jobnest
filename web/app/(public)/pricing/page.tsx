@@ -2,8 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isStripeConfigured, isStripeAnnualConfigured } from "@/lib/stripe";
 import Link from "next/link";
-import Image from "next/image";
-import { Newsreader, Manrope } from "next/font/google";
 import {
   BadgeCheck,
   HelpCircle,
@@ -16,24 +14,9 @@ import {
 } from "lucide-react";
 import { PricingPlans } from "@/components/pricing/PricingPlans";
 import type { User } from "@supabase/supabase-js";
-import "../landing.css";
 import "./pricing.css";
 
 export const dynamic = "force-dynamic";
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-newsreader",
-  display: "swap",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-});
 
 // ── Feature comparison data ─────────────────────────────────────────────────
 type FeatureRow = {
@@ -148,74 +131,7 @@ export default async function PricingPage({
   const annualReady = isStripeAnnualConfigured();
 
   return (
-    <div
-      className={`${newsreader.variable} ${manrope.variable} min-h-screen landing-root`}
-    >
-      {/* ── Header ── */}
-      <header className="fixed top-0 w-full z-50 backdrop-blur-md border-b landing-header">
-        <div className="flex justify-between items-center px-6 py-3.5 w-full max-w-7xl mx-auto">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image
-              src="/new_logo_1.png"
-              alt="Jobnest"
-              width={36}
-              height={36}
-              priority
-            />
-            <span className="text-xl landing-logo-text">Jobnest</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-2">
-            <Link
-              href="/"
-              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
-            >
-              Overview
-            </Link>
-            <Link
-              href="/#features"
-              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
-            >
-              Features
-            </Link>
-            <Link
-              href="/#testimonials"
-              className="text-sm px-3 py-1.5 rounded-lg landing-nav-link"
-            >
-              Testimonials
-            </Link>
-            <span className="font-semibold text-sm px-3 py-1.5 rounded-lg landing-nav-active">
-              Pricing
-            </span>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="hidden sm:block text-sm font-medium landing-login-link"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="hidden sm:block text-sm font-medium landing-login-link"
-              >
-                Log in
-              </Link>
-            )}
-            <Link
-              href="/signup"
-              className="px-6 py-2 rounded-full font-medium text-sm transition-all landing-btn-primary"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="pt-28 pb-24">
+    <div className="pb-24">
         {/* ── Toast banners ── */}
         {(success || canceled) && (
           <div className="max-w-4xl mx-auto px-6 mb-8">
@@ -249,8 +165,8 @@ export default async function PricingPage({
             Simple, honest pricing
           </h1>
           <p className="text-xl text-[#55433d] max-w-lg mx-auto leading-relaxed">
-            Start free and stay free forever. Upgrade to Pro when you&apos;re
-            ready for advanced tools — or claim a free month as a student.
+            Start on the Free plan and upgrade to Pro when you&apos;re ready
+            for advanced tools — or claim a free month as a student.
           </p>
         </section>
 
@@ -400,41 +316,6 @@ export default async function PricingPage({
             </Link>
           </div>
         </section>
-      </main>
-
-      {/* ── Footer ── */}
-      <footer className="border-t py-12 landing-footer">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-8">
-          <div className="flex items-center gap-2.5">
-            <Image src="/new_logo_1.png" alt="Jobnest" width={28} height={28} />
-            <span className="text-lg landing-logo-text">Jobnest</span>
-          </div>
-          <div className="flex flex-wrap gap-8 text-sm landing-footer-links">
-            <Link href="/" className="landing-footer-nav-link">Overview</Link>
-            <Link href="/#features" className="landing-footer-nav-link">Features</Link>
-            <Link href="/pricing" className="landing-footer-nav-link">Pricing</Link>
-            <Link href="/privacy" className="landing-footer-nav-link">Privacy</Link>
-            <Link href="/terms" className="landing-footer-nav-link">Terms</Link>
-            <Link href="/cookies" className="landing-footer-nav-link">Cookies</Link>
-            <Link href="/contact" className="landing-footer-nav-link">Contact</Link>
-            <Link href="/privacy#do-not-sell" className="landing-footer-nav-link">Do Not Sell My Info</Link>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 mt-8 pt-6 border-t landing-footer-divider">
-          <p className="text-xs landing-copyright">
-            © {new Date().getFullYear()} Jobnest — a{" "}
-            <a
-              href="https://nishpatel.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="landing-creator-link text-xs font-semibold"
-            >
-              Nish Patel
-            </a>{" "}
-            product. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

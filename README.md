@@ -130,7 +130,7 @@ Full mobile-first responsive implementation across all pages:
 - **Conversation history** — last 100 messages passed to the model for natural follow-ups
 - **Pin chats** — pin important sessions to the top of the sidebar
 - **Edit messages** — click the pencil on any user message, edit inline, re-send from that point (messages after it are pruned from DB and local state)
-- **File attachments** — attach PDF, DOCX, TXT, MD (up to 5 MB); chip shows loading/error/ready state; non-blocking (you can still chat while a PDF is being parsed)
+- **File attachments** — attach PDF, DOCX, TXT, MD, and **images** (JPG, PNG, HEIC, WEBP, etc., up to 5 MB); chip shows loading/error/ready state; non-blocking. On iOS Safari the picker correctly shows camera, photo library, and Files options via `accept="image/*,.pdf,..."`.
   - **View attached document** — click the file card in the chat to open a full preview modal with the extracted text
   - Attachment card persists on session reload (stored in `chat_messages.metadata` JSONB)
 - **Inline markdown rendering** — headers, bold, italic, inline code, fenced code blocks (dark theme), lists, blockquotes, streaming cursor
@@ -138,7 +138,7 @@ Full mobile-first responsive implementation across all pages:
 - **Suggested follow-up questions** — tappable chips below every assistant response
 - **User About Me** injected into the system prompt if set on the profile page
 - **Smart context trimming** — token budget of 124,500 tokens enforced via a 4-step progressive trim: history → 20 messages, docs → 1,000 chars each, docs omitted + activity → 20 entries, hard truncation
-- Chat sessions with confirm-before-delete and rename (Enter/Escape keyboard shortcuts)
+- Chat sessions with **modal confirm-before-delete** (Radix UI Dialog — not dismissed by outside clicks) and rename (Enter/Escape keyboard shortcuts)
 - 5 requests per minute (server-enforced)
 - Powered by Groq (`llama-3.3-70b-versatile`)
 
@@ -159,7 +159,7 @@ Full mobile-first responsive implementation across all pages:
 | Email | Nodemailer (SMTP) |
 | Billing | Stripe (checkout sessions, webhooks, customer portal, dunning) |
 | Font | Geist Sans / Geist Mono (public/root) · Newsreader + Manrope (auth + dashboard) via `next/font/google` |
-| Styling | Tailwind CSS 4 (light-only) — Intellectual Atelier design system |
+| Styling | Tailwind CSS 4 + dark mode (`prefers-color-scheme` + localStorage toggle) — Intellectual Atelier design system |
 | UI | Radix UI primitives + custom atelier-themed components |
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
@@ -184,6 +184,14 @@ web/
 │   │   ├── salary/
 │   │   ├── nestai/
 │   │   └── profile/              # Account settings, password, delete account
+│   ├── (public)/                 # Public marketing + legal pages (shared LandingHeader + LandingFooter)
+│   │   ├── layout.tsx            # Canonical public layout — LandingHeader + LandingFooter + fonts
+│   │   ├── page.tsx              # Landing page (/)
+│   │   ├── pricing/
+│   │   ├── privacy/
+│   │   ├── terms/
+│   │   ├── contact/
+│   │   └── cookies/
 │   ├── api/
 │   │   ├── auth/                 # send-otp, verify-otp, reset-password
 │   │   ├── profile/              # update-name, change-password, delete-account,
@@ -199,15 +207,12 @@ web/
 │   │   └── contact/
 │   ├── auth/
 │   │   └── callback/             # OAuth code exchange
-│   ├── contact/
-│   ├── pricing/
-│   ├── privacy/
-│   └── terms/
+│   └── onboarding/
 ├── components/
 │   ├── ui/                       # Base UI: Button, Card, Badge, Skeleton, …
 │   ├── auth/                     # AuthSync (cross-tab logout + remember-me)
 │   ├── common/                   # Loading, ErrorBoundary, skeleton screens
-│   ├── layout/                   # Navbar, Footer, BottomTabBar, LayoutWrapper
+│   ├── layout/                   # Navbar, Footer, LandingHeader, LandingFooter, BottomTabBar, LayoutWrapper
 │   ├── profile/                  # ProfileClient, DeletionBanner
 │   ├── applications/
 │   ├── dashboard/
@@ -391,7 +396,7 @@ All external dependencies (Supabase, Nodemailer, Groq, Stripe) are mocked — no
 `.github/workflows/ci.yml` runs on every push and pull request:
 
 1. **Typecheck** — `tsc --noEmit`
-2. **Test** — `vitest run` (36 test files, 423 tests)
+2. **Test** — `vitest run` (36 test files, 426 tests)
 3. **Build** — `next build` (depends on steps 1 + 2 passing)
 
 ---
@@ -422,6 +427,8 @@ All external dependencies (Supabase, Nodemailer, Groq, Stripe) are mocked — no
 | OAuth sessions | `sb_rm` cookie controls remember-me behaviour; uses `__Host-` prefix in production (binds to exact host, prevents subdomain injection); `AuthSync` enforces session-only mode on browser restart |
 | Startup validation | `instrumentation.ts` calls `lib/env.ts` on server start — throws immediately if required env vars are missing rather than failing silently on first request |
 | CVEs patched | Next.js 16.2.1 fixes HTTP request smuggling, CSRF bypass, DoS (from 16.1.6); pdf-parse upgraded 1.x → 2.x |
+| Stripe webhook | App Router route — body not auto-parsed; `request.text()` delivers raw bytes for Stripe signature verification without any config flag |
+| Email HTML | All user-controlled strings escaped via `esc()` before HTML interpolation; table-based layout (Outlook compatible); dark-mode via `@media (prefers-color-scheme: dark)` |
 
 ---
 
