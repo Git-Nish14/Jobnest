@@ -356,8 +356,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🔔 Notifications
 
-- [ ] **In-app notification bell** — badge count for overdue reminders + upcoming interviews within 24h
-- [ ] **Email digest** — actual email sending for weekly digest and overdue reminders (prefs stored, sending not built)
+- [x] **In-app notification bell** — `NotificationBell` client component in dashboard Navbar; polls `/api/notifications/count` every 60 s; red badge (capped 99+); popover with overdue-reminder and upcoming-interview rows; "View all →" links to `/notifications`
+- [x] **Email digest** — weekly digest cron fully wired (sends every Monday 08:00 UTC); overdue reminder alert emails added (`sendOverdueReminderEmail()`); daily cron at 09:00 UTC; respects `notification_prefs.overdue_reminders` opt-in for email; bug fixed (cron was querying wrong column names `completed`/`due_date` → `is_completed`/`remind_at`)
+- [x] **Persistent notifications page** (`/notifications`) — `notifications` table (migration 20) with RLS; `lib/notifications/create.ts` admin-client upsert helper; full-page UI with All/Unread/Read filter tabs, per-card read toggle + delete, "Mark all read" + "Clear all" bulk actions, cursor-based pagination ("Load more"), optimistic UI throughout; in-app notifications created by overdue-reminders cron for all users (overdue reminders + upcoming interviews within 24 h)
 
 ---
 
@@ -394,7 +395,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - `pdf-parse` 1.x → 2.x (major API change)
 - [ ] **Move document parse cache to Redis** — in-memory cache lost on cold starts
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [x] **Vitest tests — 423 tests, 36 files, 100% pass (no browser, fully automated)**
+- [x] **Vitest tests — 426 tests, 36 files, 100% pass (no browser, fully automated)**
   - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure), proxy
   - E2E flow tests: `tests/flows/` — full user journeys: login (remember-me), signup (age/terms), forgot-password, change-password, delete+reactivate, NESTAi chat+upload, **Stripe billing** (checkout → webhook → portal → payment failure dunning → cancellation)
   - No Playwright — all tests run via `npm test` in any CI/CD environment
@@ -415,9 +416,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Dunning emails** — `sendDunningEmail()` in `lib/email/nodemailer.ts`; HTML email with formatted charge amount, currency, next retry date, and direct portal link
 - [x] **Trial period** — `trial: true` body param → `trial_period_days: 30` on subscription_data; student discount flow on pricing page
 - [x] **Annual plan toggle** — `STRIPE_PRO_ANNUAL_PRICE_ID` wired; pricing page `PricingPlans` component switches Price ID based on selected interval; `annualReady` flag controls toggle visibility
-- [ ] **Plan enforcement middleware** — check `subscriptions.plan` server-side before serving Pro-only features; return 402 if free user hits a gated route
-- [ ] **Student discount flow** — verify `.edu` email or upload proof; apply coupon via `stripe.promotionCodes`
-- [ ] **Proration handling** — mid-cycle upgrades/downgrades should prorate correctly; test with Stripe CLI
+- [x] **Plan enforcement middleware** — `lib/auth/plan.ts`: `getUserPlan(userId)` reads `subscriptions` via admin client (fail-closed — returns "free" on any error, never accidentally grants Pro); `requirePro(userId, featureName?)` throws `ApiError.paymentRequired()` (HTTP 402 `UPGRADE_REQUIRED`); NESTAi already enforces per-plan rate limits (5/min free, 30/min Pro)
+- [x] **Student discount flow** — `GET /api/stripe/student-verify` server-side allow-list of 16 academic TLDs (`.edu`, `.ac.uk`, `.edu.au`, etc.); reads Supabase Auth email (cannot be client-spoofed); `PricingPlans` auto-detects on mount and shows "Your email qualifies" badge; non-`.edu` users can still use promo codes at Stripe checkout (`allow_promotion_codes: true`)
+- [x] **Proration handling** — `POST /api/stripe/update-subscription`: retrieves live Stripe subscription, no-op guard if already on target price, calls `stripe.subscriptions.update` with `proration_behavior: "create_prorations"`; "Switch to annual / monthly" text link shown to active subscribers on pricing page
 
 ---
 
@@ -468,8 +469,8 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Job description parser** — paste a JD URL or text → NESTAi extracts company, role, salary range, requirements; auto-fills a new application; highlights skill gaps vs. user profile
 - [ ] **Interview prep mode** — given an application + job description, NESTAi generates role-specific STAR questions, evaluates user's draft answers, and suggests improvements
 - [ ] **Email draft assistant** — given a contact + template category, NESTAi drafts a personalised follow-up or thank-you email; user can copy or send directly
-- [ ] **Conversation export** — download a chat session as PDF or Markdown; useful for saving interview prep sessions
-- [ ] **File preview on click** — when the user clicks any uploaded file attachment in a NESTAi chat message, show an inline preview (PDF rendered in iframe, images in `<img>`, DOCX/TXT shown as extracted text); mirror the modern AI chat app UX (ChatGPT, Claude, Gemini) where clicking an attachment opens a full-screen or side-panel viewer without downloading
+- [ ] **File preview + download in chat** — when the user clicks any uploaded file attachment in a NESTAi chat message, show an inline preview (PDF rendered in iframe, images in `<img>`, DOCX/TXT shown as extracted text); viewer includes a Download button that triggers a signed-URL download without leaving the chat; mirrors ChatGPT/Claude/Gemini UX where attachments are fully self-contained inside the conversation
+- [ ] **Chat to PDF export** — "Export chat" button in the NESTAi sidebar or chat header; renders the entire conversation (user messages, AI responses including markdown, file attachment cards, timestamps) into a formatted single PDF; useful for saving interview prep sessions, sharing AI-generated advice with a mentor, or keeping a record of a job search strategy session
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
 
 ---
@@ -582,4 +583,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 2 April 2026 — Unified public layout: `(public)` route group with `LandingHeader` + `LandingFooter` wired consistently across `/`, `/pricing`, `/privacy`, `/terms`, `/contact`, `/cookies`. NESTAi: image uploads (iOS Safari picker fix), modal delete-chat dialog. Profile OTP: `type="tel"` + `setTimeout` focus deferral + module-level components fix keyboard dismissal on iOS. Emails: dark mode, logo, table-based Outlook-compatible layout, `esc()` HTML sanitisation on all user-controlled content. Stripe webhook: removed invalid Pages Router `config` export. "Free forever" copy removed (2-plan pricing). Tests: 426 tests, 36 files, 100% pass.*
+*Last updated: 5 April 2026 — Notifications system: persistent `notifications` table (migration 20, RLS), `lib/notifications/create.ts` idempotent upsert helper, `/notifications` dashboard page (All/Unread/Read tabs, optimistic read/delete/bulk-actions, cursor pagination). Notification bell with real-time count badge + "View all" link. Overdue reminder daily emails (`sendOverdueReminderEmail`, cron at 09:00 UTC) + bug fix for wrong column names in weekly-digest cron. Plan enforcement: `lib/auth/plan.ts` (fail-closed) + `ApiError.paymentRequired()`. Student discount: server-side `.edu` allow-list verify endpoint + PricingPlans auto-badge. Proration: `POST /api/stripe/update-subscription` mid-cycle interval switch with `create_prorations`. Tests: 426 tests, 36 files, 100% pass.*

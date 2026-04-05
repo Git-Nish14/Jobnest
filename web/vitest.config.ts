@@ -23,6 +23,10 @@ export default defineConfig({
         "lib/jobs.ts",
         "lib/env.ts",
 
+        // ── Admin-client wrappers (require live Supabase service-role) ────────
+        "lib/auth/**",
+        "lib/notifications/**",
+
         // ── Static data & re-export barrels ─────────────────────────────────
         "lib/data/**",
         "lib/api/index.ts",
