@@ -5,6 +5,10 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/overdue-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
       "path": "/api/cron/weekly-digest",
       "schedule": "0 8 * * 1"
     }

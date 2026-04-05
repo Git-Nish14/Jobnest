@@ -575,6 +575,93 @@ export async function sendAccountReactivatedEmail(
   }
 }
 
+// ── Overdue reminder alert email ──────────────────────────────────────────────
+export interface OverdueReminderItem {
+  title: string;
+  type: string;
+  company?: string;
+  position?: string;
+  daysOverdue: number;
+}
+
+export async function sendOverdueReminderEmail(
+  email: string,
+  displayName: string,
+  reminders: OverdueReminderItem[]
+): Promise<{ success: boolean; error?: string }> {
+  if (reminders.length === 0) return { success: true };
+
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const name = esc(displayName || "there");
+    const count = reminders.length;
+
+    const reminderRows = reminders.map(r => `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle;">
+          <div style="font-weight:600;font-size:14px;color:#1a1c1b;">${esc(r.title)}</div>
+          ${r.company ? `<div style="font-size:12px;color:#6b7280;">${esc(r.company)}${r.position ? ` — ${esc(r.position)}` : ""}</div>` : ""}
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap;vertical-align:middle;">
+          <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background-color:#fee2e2;color:#dc2626;">
+            ${r.daysOverdue === 0 ? "Due today" : `${r.daysOverdue}d overdue`}
+          </span>
+        </td>
+      </tr>
+    `).join("");
+
+    const html = emailHtml({
+      previewText: `You have ${count} overdue reminder${count !== 1 ? "s" : ""} that need your attention`,
+      headerBg: { solid: "#dc2626", gradient: "linear-gradient(135deg,#dc2626 0%,#b91c1c 100%)" },
+      headerContent: `
+        <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          Overdue Reminder${count !== 1 ? "s" : ""}
+        </h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">
+          Hi ${name} &mdash; ${count} item${count !== 1 ? "s need" : " needs"} your attention.
+        </p>
+      `,
+      bodyContent: `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+          ${reminderRows}
+        </table>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;">
+          <tr>
+            <td style="border-radius:99px;background-color:#99462a;">
+              <a href="${APP_URL}/reminders" class="btn-link btn-primary" style="display:inline-block;padding:13px 28px;border-radius:99px;font-weight:700;font-size:15px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Review &amp; Complete Reminders</a>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerExtra: `
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 10px;line-height:1.5;">
+          You&apos;re receiving this because overdue reminder alerts are enabled in your
+          <a href="${APP_URL}/profile" style="color:#99462a;text-decoration:none;">notification preferences</a>.
+          Turn off &ldquo;Overdue reminder alerts&rdquo; in your profile to unsubscribe.
+        </p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Action needed: ${count} overdue reminder${count !== 1 ? "s" : ""} on Jobnest`,
+      text: `Hi ${displayName || "there"},\n\nYou have ${count} overdue reminder${count !== 1 ? "s" : ""}:\n\n${reminders.map(r => `• ${r.title}${r.company ? ` (${r.company})` : ""} — ${r.daysOverdue === 0 ? "due today" : `${r.daysOverdue}d overdue`}`).join("\n")}\n\nReview them at ${APP_URL}/reminders\n\nThe Jobnest Team`,
+      html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send overdue reminder email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}
+
 // ── Weekly digest email ───────────────────────────────────────────────────────
 export interface WeeklyDigestData {
   email: string;
