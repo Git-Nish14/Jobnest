@@ -45,10 +45,6 @@ function makeServerClient(
   };
 }
 
-function makeReq() {
-  return new Request("http://localhost/api/notifications/count");
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockCheckRL.mockResolvedValue({ allowed: true, remaining: 59, resetTime: Date.now() + 60_000 });
