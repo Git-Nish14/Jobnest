@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { Check, Sparkles, GraduationCap, BadgeCheck } from "lucide-react";
@@ -48,6 +48,17 @@ export function PricingPlans({
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [loading, setLoading] = useState<"pro" | "student" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // null = not checked yet, true/false = verified
+  const [studentEligible, setStudentEligible] = useState<boolean | null>(null);
+
+  // Verify .edu eligibility for logged-in users
+  useEffect(() => {
+    if (!user || !stripeReady) return;
+    fetch("/api/stripe/student-verify")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setStudentEligible(d.eligible as boolean); })
+      .catch(() => { /* non-critical */ });
+  }, [user, stripeReady]);
 
   const MONTHLY_PRICE = 9;
   const ANNUAL_MONTHLY = 7; // $84/yr ÷ 12
@@ -56,6 +67,28 @@ export function PricingPlans({
 
   const displayPrice =
     interval === "annual" ? ANNUAL_MONTHLY : MONTHLY_PRICE;
+
+  async function switchInterval(newInterval: BillingInterval) {
+    setError(null);
+    setLoading("pro");
+    try {
+      const res = await fetch("/api/stripe/update-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interval: newInterval }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Could not update billing interval. Please try again.");
+      } else {
+        router.refresh(); // re-fetch subscription state
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
+  }
 
   async function checkout(opts: { trial?: boolean } = {}) {
     setError(null);
@@ -211,11 +244,24 @@ export function PricingPlans({
             ))}
           </ul>
 
-          <div className="relative">
+          <div className="relative space-y-2">
             {isSubscribed ? (
-              <div className="block w-full text-center px-8 py-3.5 rounded-full font-bold text-[#1a1c1b]/50 bg-[#d97757]/30 cursor-not-allowed select-none">
-                Current Plan
-              </div>
+              <>
+                <div className="block w-full text-center px-8 py-3.5 rounded-full font-bold text-[#1a1c1b]/50 bg-[#d97757]/30 cursor-not-allowed select-none">
+                  Current Plan
+                </div>
+                {/* Proration: let subscriber switch billing interval */}
+                {annualReady && (
+                  <button
+                    type="button"
+                    disabled={loading !== null}
+                    onClick={() => switchInterval(interval === "annual" ? "monthly" : "annual")}
+                    className="w-full text-center text-xs text-white/40 hover:text-white/70 transition-colors py-1 disabled:opacity-40"
+                  >
+                    {loading === "pro" ? "Updating…" : `Switch to ${interval === "annual" ? "monthly" : "annual"} billing`}
+                  </button>
+                )}
+              </>
             ) : !stripeReady ? (
               <div className="block w-full text-center px-8 py-3.5 rounded-full font-bold text-white/30 bg-white/8 cursor-not-allowed select-none">
                 Coming Soon
@@ -256,11 +302,17 @@ export function PricingPlans({
                 <span className="pricing-no-commitment-badge">
                   No commitment
                 </span>
+                {user && studentEligible === true && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+                    <BadgeCheck className="w-3 h-3" /> Your email qualifies
+                  </span>
+                )}
               </div>
               <p className="text-sm text-white/55 leading-relaxed">
                 Get full Pro access for 30 days on us — no charge until after
                 your trial ends. Cancel any time before and you&apos;ll pay
-                nothing. Valid for students and recent graduates.
+                nothing. Valid for students and recent graduates with an
+                academic email (.edu, .ac.uk, etc.) or a promo code.
               </p>
             </div>
 

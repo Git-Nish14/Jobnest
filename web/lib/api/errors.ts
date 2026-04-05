@@ -63,6 +63,10 @@ export class ApiError extends Error {
     return new ApiError(message, HttpStatus.CONFLICT, "CONFLICT");
   }
 
+  static paymentRequired(message: string = "This feature requires a Pro subscription."): ApiError {
+    return new ApiError(message, 402, "UPGRADE_REQUIRED");
+  }
+
   static tooManyRequests(message: string = "Too many requests"): ApiError {
     return new ApiError(message, HttpStatus.TOO_MANY_REQUESTS, "RATE_LIMITED");
   }

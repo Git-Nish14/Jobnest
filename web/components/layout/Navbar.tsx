@@ -35,6 +35,7 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationBell } from "./NotificationBell";
 
 interface NavbarProps {
   user?: { email?: string } | null;
@@ -93,6 +94,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/templates") ||
     pathname.startsWith("/salary") ||
     pathname.startsWith("/nestai") ||
+    pathname.startsWith("/notifications") ||
     pathname.startsWith("/profile");
 
   useEffect(() => {
@@ -178,6 +180,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
               <div className="flex items-center gap-2">
                 <ThemeToggle />
+                <NotificationBell />
                 {mounted && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
             .from("reminders")
             .select("id", { count: "exact", head: true })
             .eq("user_id", userId)
-            .eq("completed", false)
-            .lt("due_date", now.toISOString()),
+            .eq("is_completed", false)
+            .lt("remind_at", now.toISOString()),
           admin
             .from("job_applications")
             .select("company, position, status")
