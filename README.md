@@ -39,6 +39,7 @@ Two-column layout — sticky sidebar (avatar, stats, quick nav) + settings secti
 - **Delete account** — OTP-confirmed soft delete with 30-day grace period
 - **Download your data** — GDPR Art. 20 data portability; exports all personal data as a dated JSON file (rate-limited to 3/day)
 - **Billing portal** — Pro subscribers can manage their plan, update payment method, and view invoices via the Stripe customer portal (GET `/api/stripe/portal`)
+- **Switch billing interval** — mid-cycle monthly ↔ annual switch with Stripe proration (`POST /api/stripe/update-subscription`); charge/credit appears on next invoice
 
 ### Account Deletion (Grace Period)
 Modelled after AWS / GitHub — accounts are never immediately destroyed.
@@ -139,10 +140,26 @@ Full mobile-first responsive implementation across all pages:
 - **User About Me** injected into the system prompt if set on the profile page
 - **Smart context trimming** — token budget of 124,500 tokens enforced via a 4-step progressive trim: history → 20 messages, docs → 1,000 chars each, docs omitted + activity → 20 entries, hard truncation
 - Chat sessions with **modal confirm-before-delete** (Radix UI Dialog — not dismissed by outside clicks) and rename (Enter/Escape keyboard shortcuts)
-- 5 requests per minute (server-enforced)
+- **5 req/min free · 30 req/min Pro** — enforced server-side; plan read from `subscriptions` table via admin client (fail-closed, never grant Pro accidentally)
 - Powered by Groq (`llama-3.3-70b-versatile`)
 
 > NESTAi can read, quote, and summarise uploaded resumes and cover letters. Full text is extracted server-side (PDF/DOCX/TXT) and injected into the context.
+
+### Notifications
+Persistent in-app notification system — all writes via service-role, no user-level INSERT policy.
+
+- **Notification bell** in dashboard Navbar — polls `/api/notifications/count` every 60 s; shows live badge (overdue reminders + upcoming interviews within 24 h); popover with quick links; "View all →" navigates to `/notifications`
+- **Notifications page** (`/notifications`) — All / Unread / Read filter tabs; per-card mark-read toggle, delete; "Mark all read" + "Clear all" bulk actions; cursor-based pagination; fully optimistic UI
+- **`notifications` table** (migration 20) — RLS-enforced (select/update/delete by owner, insert by service-role); partial unique index deduplicates by `(user_id, source_type, source_id)` so cron re-runs are always idempotent
+- **Daily cron** (09:00 UTC) creates notifications for ALL users: one per overdue reminder + one per upcoming interview within 24 h; sends overdue reminder EMAIL only to users who opted into `notification_prefs.overdue_reminders`
+- **Email types** — weekly digest (Mondays), overdue reminder alert (daily for opted-in users), deletion lifecycle (scheduled / 7-day reminder / 24 h final warning / reactivated), payment failed dunning
+
+### Billing & Payments (Stripe)
+Core billing fully wired: checkout, 4 webhook events, billing portal, dunning email, 30-day trial, annual toggle.
+
+- **Plan enforcement** — `lib/auth/plan.ts` reads `subscriptions` via admin client (not JWT claims); `requirePro()` throws HTTP 402 `UPGRADE_REQUIRED`; fails CLOSED (returns "free" on any DB error)
+- **Student discount** — `GET /api/stripe/student-verify` server-side allow-list of 16 academic TLDs (`.edu`, `.ac.uk`, `.edu.au`, etc.); `PricingPlans` auto-detects eligible email on mount and shows verification badge; non-`.edu` users can apply promo codes at Stripe checkout
+- **Proration** — `POST /api/stripe/update-subscription` switches billing interval mid-cycle with `proration_behavior: "create_prorations"`; no-op guard prevents double charges if already on target price
 
 ---
 
@@ -199,11 +216,14 @@ web/
 │   │   │                         # update-about-me, update-notifications, verify-change-otp,
 │   │   │                         # export-data (GDPR data portability)
 │   │   ├── cron/
-│   │   │   └── process-deletions/ # Daily cron: 7-day reminders, 24h final warning, permanent deletion
+│   │   │   ├── process-deletions/  # Daily 09:00 UTC: reminders, final warning, permanent deletion
+│   │   │   ├── overdue-reminders/  # Daily 09:00 UTC: in-app notifications + opted-in emails
+│   │   │   └── weekly-digest/      # Mondays 08:00 UTC: personalised digest email
 │   │   ├── nesta-ai/             # Chat API (streaming), sessions, messages, parse-file
+│   │   ├── notifications/        # GET list, DELETE all, PATCH/DELETE [id], POST read-all
 │   │   ├── export/
 │   │   ├── documents/
-│   │   ├── stripe/               # checkout, webhook (4 events), portal
+│   │   ├── stripe/               # checkout, webhook (4 events), portal, student-verify, update-subscription
 │   │   └── contact/
 │   ├── auth/
 │   │   └── callback/             # OAuth code exchange
@@ -212,7 +232,7 @@ web/
 │   ├── ui/                       # Base UI: Button, Card, Badge, Skeleton, …
 │   ├── auth/                     # AuthSync (cross-tab logout + remember-me)
 │   ├── common/                   # Loading, ErrorBoundary, skeleton screens
-│   ├── layout/                   # Navbar, Footer, LandingHeader, LandingFooter, BottomTabBar, LayoutWrapper
+│   ├── layout/                   # Navbar, Footer, LandingHeader, LandingFooter, NotificationBell, BottomTabBar
 │   ├── profile/                  # ProfileClient, DeletionBanner
 │   ├── applications/
 │   ├── dashboard/
@@ -223,8 +243,10 @@ web/
 │   ├── activity/
 │   └── tags/
 ├── lib/
-│   ├── api/                      # Error handling, response helpers
-│   ├── email/                    # Nodemailer — OTP, deletion lifecycle, dunning emails
+│   ├── api/                      # Error handling, response helpers (incl. ApiError.paymentRequired 402)
+│   ├── auth/                     # plan.ts — getUserPlan + requirePro (fail-closed plan enforcement)
+│   ├── email/                    # Nodemailer — OTP, deletion lifecycle, overdue reminders, dunning
+│   ├── notifications/            # create.ts — admin-client idempotent upsert helper
 │   ├── env.ts                    # Startup env validation (fails loudly on missing vars)
 │   ├── security/                 # OTP, Redis rate-limit, sanitization, CSRF + verifyOrigin
 │   ├── stripe.ts                 # Stripe singleton + isStripeConfigured helpers
@@ -429,6 +451,9 @@ All external dependencies (Supabase, Nodemailer, Groq, Stripe) are mocked — no
 | CVEs patched | Next.js 16.2.1 fixes HTTP request smuggling, CSRF bypass, DoS (from 16.1.6); pdf-parse upgraded 1.x → 2.x |
 | Stripe webhook | App Router route — body not auto-parsed; `request.text()` delivers raw bytes for Stripe signature verification without any config flag |
 | Email HTML | All user-controlled strings escaped via `esc()` before HTML interpolation; table-based layout (Outlook compatible); dark-mode via `@media (prefers-color-scheme: dark)` |
+| Plan enforcement | `lib/auth/plan.ts` reads `subscriptions` via service-role (cannot be spoofed via JWT); fails CLOSED — returns "free" on any DB error, never accidentally grants Pro access |
+| Notification inserts | No user-level INSERT policy on `notifications` table — only service-role (cron) creates records; users can only read/update/delete their own rows |
+| Student verify | `.edu` domain check performed server-side on Supabase Auth email — cannot be spoofed by client input; rate-limited 10 req/min |
 
 ---
 
@@ -441,7 +466,12 @@ All external dependencies (Supabase, Nodemailer, Groq, Stripe) are mocked — no
 3. Add all environment variables (Settings → Environment Variables)
 4. Deploy
 
-Vercel automatically picks up `vercel.json` and schedules the cron job (`/api/cron/process-deletions` daily at 09:00 UTC). It injects `Authorization: Bearer <CRON_SECRET>` automatically — **`CRON_SECRET` must be set or the endpoint will return 401 for all callers including Vercel itself.**
+Vercel automatically picks up `vercel.json` and schedules three cron jobs:
+- `/api/cron/process-deletions` — daily 09:00 UTC (deletion reminders + permanent erasure)
+- `/api/cron/overdue-reminders` — daily 09:00 UTC (in-app notifications + optional emails)
+- `/api/cron/weekly-digest` — Mondays 08:00 UTC (personalised digest email)
+
+Vercel injects `Authorization: Bearer <CRON_SECRET>` automatically — **`CRON_SECRET` must be set or all cron endpoints return 401, including for Vercel itself.**
 
 ### Production Caveats
 
