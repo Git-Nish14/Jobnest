@@ -1,9 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "Learn how Jobnest collects, uses, stores, and protects your personal information. GDPR / CCPA compliant.",
+  openGraph: {
+    title: "Privacy Policy | Jobnest",
+    description: "Learn how Jobnest collects, uses, stores, and protects your personal information. GDPR / CCPA compliant.",
+    url: "/privacy",
+  },
+  twitter: {
+    card: "summary",
+    title: "Privacy Policy | Jobnest",
+    description: "Learn how Jobnest collects, uses, stores, and protects your personal information. GDPR / CCPA compliant.",
+  },
 };
 
 function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {

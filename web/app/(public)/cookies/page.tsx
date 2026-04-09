@@ -1,9 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Cookie Policy",
   description: "A full list of every cookie Jobnest sets, its purpose, type, and duration.",
+  openGraph: {
+    title: "Cookie Policy | Jobnest",
+    description: "A full list of every cookie Jobnest sets, its purpose, type, and duration.",
+    url: "/cookies",
+  },
+  twitter: {
+    card: "summary",
+    title: "Cookie Policy | Jobnest",
+    description: "A full list of every cookie Jobnest sets, its purpose, type, and duration.",
+  },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

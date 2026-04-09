@@ -14,9 +14,28 @@ import {
 } from "lucide-react";
 import { PricingPlans } from "@/components/pricing/PricingPlans";
 import type { User } from "@supabase/supabase-js";
+import type { Metadata } from "next";
 import "./pricing.css";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Pricing",
+  description:
+    "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support.",
+  openGraph: {
+    title: "Pricing | Jobnest",
+    description:
+      "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support.",
+    url: "/pricing",
+  },
+  twitter: {
+    card: "summary",
+    title: "Pricing | Jobnest",
+    description:
+      "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support.",
+  },
+};
 
 // ── Feature comparison data ─────────────────────────────────────────────────
 type FeatureRow = {

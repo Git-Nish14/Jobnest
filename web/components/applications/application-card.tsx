@@ -29,6 +29,7 @@ function statusTokens(status: string) {
     "Accepted":     { accent: "bg-[#006d34]",   avatar: "db-status-accepted", badge: "db-status-accepted" },
     "Rejected":     { accent: "bg-[#ba1a1a]",   avatar: "db-status-rejected", badge: "db-status-rejected" },
     "Withdrawn":    { accent: "bg-muted-foreground", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
+    "Ghosted":      { accent: "bg-zinc-400",          avatar: "db-status-ghosted",   badge: "db-status-ghosted" },
   };
   return map[status] ?? { accent: "bg-border", avatar: "db-status-default", badge: "db-status-default" };
 }

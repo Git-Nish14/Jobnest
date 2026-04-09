@@ -260,7 +260,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 🛂 Work Authorization & Sponsorship
 
-- [ ] **Work authorization field on profile** — dropdown: US Citizen, Green Card, H1B, OPT (F-1), CPT, TN Visa, EAD (Other); stored in `user_metadata`; surfaced as a badge on the profile sidebar
+- [x] **Work authorization field on profile** — dropdown: US Citizen, Green Card, H1B, OPT (F-1), CPT, TN Visa, EAD (Other); stored in `user_metadata`; surfaced as a badge on the profile sidebar
 - [ ] **OPT expiry tracker** — if user selects OPT: prompt for OPT start date + 12-month expiry; show a countdown banner in the dashboard `X days until OPT expires`; STEM extension flag (+24 months); alert reminder 60/30/7 days before expiry
 - [ ] **Sponsorship flag per application** — boolean `requires_sponsorship` on `job_applications`; filter applications list by "Needs sponsorship"; companies that don't sponsor can be tagged automatically and warned on entry
 - [ ] **Sponsorship status on application card** — show a small "Visa" badge on application cards where sponsorship was required; lets users track sponsor-friendly companies
@@ -334,13 +334,13 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 🎯 Application Quality & ATS
 
-- [ ] **Job description store** — `job_description TEXT` field on `job_applications` (currently only `job_url` exists); paste or import the full JD text; powers ATS scan, keyword extraction, and NESTAi tailoring
+- [x] **Job description store** — `job_description TEXT` field on `job_applications` (currently only `job_url` exists); paste or import the full JD text; powers ATS scan, keyword extraction, and NESTAi tailoring
 - [ ] **ATS compatibility score** — on resume upload: parse resume text + stored JD text → compute keyword overlap score (0-100); show as a score badge on the application card and document card; list top 5 missing keywords with suggested insertion points
 - [ ] **Resume tailoring checklist** — per application: checkbox list auto-generated from JD: "Mention React (in JD, not in resume)", "Quantify your impact at Company X", "Remove unrelated experience"; persist completion state in `application_metadata JSONB`
 - [ ] **Application completeness score** — score each application out of 10: +1 resume, +1 cover letter, +1 JD stored, +1 salary range, +1 contact linked, +1 job URL, +1 tags, +1 follow-up reminder set, +1 interview scheduled, +1 notes; display as a ring on the application card; incomplete apps surfaced on dashboard
 - [ ] **Follow-up cadence enforcer** — after application submitted: auto-create follow-up reminders at Day 7 and Day 14 if no status change; if status still "Applied" at Day 21, surface a "No response" nudge with suggested next action (connect on LinkedIn, email recruiter, mark as ghosted)
-- [ ] **"Ghosted" status** — add `Ghosted` to `application_status` enum; auto-suggest after 30 days with no activity; analytics: % ghosted by company tier, job board source, season
-- [ ] **Application source tracking** — `source` field on `job_applications`: LinkedIn Easy Apply, Indeed, Company Website, Referral, Recruiter Outreach, Job Fair, Wellfound, Dice, Handshake, Other; analytics: which source has highest response rate for this user
+- [x] **"Ghosted" status** — add `Ghosted` to `application_status` enum; auto-suggest after 30 days with no activity; analytics: % ghosted by company tier, job board source, season
+- [x] **Application source tracking** — `source` field on `job_applications`: LinkedIn Easy Apply, Indeed, Company Website, Referral, Recruiter Outreach, Job Fair, Wellfound, Dice, Handshake, Other; analytics: which source has highest response rate for this user
 
 ---
 
@@ -442,7 +442,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Structured server logging** — replace `console.log` with [Pino](https://github.com/pinojs/pino); emit JSON logs to Vercel Log Drains → Datadog / Logtail / Better Stack
 - [ ] **Web Vitals dashboard** — send `reportWebVitals` data to a `/api/vitals` collector or Vercel Speed Insights; alert if LCP > 2.5 s
 - [ ] **Uptime monitoring** — add external synthetic checks on `/api/health` (Checkly / Better Uptime / UptimeRobot); page on-call channel if p99 > 3 s or error rate > 1%
-- [ ] **`/api/health` endpoint** — liveness + readiness probe; checks: Supabase ping, SMTP connectivity, Groq API reachability; returns `{ ok: true, checks: {...} }`
+- [x] **`/api/health` endpoint** — liveness + readiness probe; checks: Supabase ping, SMTP connectivity, Groq API reachability; returns `{ ok: true, checks: {...} }`
 - [ ] **Alerting** — Slack / PagerDuty alerts for: Stripe webhook failures, cron job failures, error rate spikes, DB connection pool exhaustion
 - [ ] **Audit log table** — structured `audit_events` table (actor, action, resource_type, resource_id, ip, timestamp); capture all mutating API calls for compliance and debugging
 
@@ -450,7 +450,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🚀 Performance
 
-- [ ] **Static public pages** — convert `/`, `/pricing`, `/privacy`, `/terms`, `/contact` to SSG (`export const dynamic = "force-static"`); currently `force-dynamic` on pricing due to auth check — split into static shell + client-side auth hydration
+- [x] **Static public pages** — `/privacy`, `/terms`, `/cookies` converted to `force-static`; `/` and `/pricing` remain `force-dynamic` due to server-side auth redirect (planned: split into static shell + client hydration)
 - [ ] **Bundle analysis** — run `ANALYZE=true npm run build` (via `@next/bundle-analyzer`); identify and code-split any chunk > 100 kB
 - [ ] **Partial Prerendering (PPR)** — enable Next.js PPR on dashboard pages; static shell renders instantly, dynamic data streams in
 - [ ] **Image optimisation** — compress and convert all landing page illustrations to WebP/AVIF; add `width`/`height` to all `<Image>` tags to eliminate CLS
@@ -565,9 +565,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🔍 SEO & Discovery
 
-- [ ] **Sitemap** (`/sitemap.xml`) — auto-generated via `next-sitemap`; include all public pages (`/`, `/pricing`, `/privacy`, `/terms`, `/contact`); exclude all authenticated routes
-- [ ] **`robots.txt`** — disallow `/dashboard`, `/api`, `/auth`; allow all public pages; submit sitemap URL to Google Search Console
-- [ ] **OpenGraph & Twitter Card meta** — custom OG image per page (branded 1200×630 template with Jobnest logo + page title); `og:description`, `og:type`; use `next/og` for dynamic images
+- [x] **Sitemap** (`/sitemap.xml`) — `app/sitemap.ts` with all 8 public pages; priorities and change frequencies set; excludes all authenticated routes
+- [x] **`robots.txt`** — `public/robots.txt` with Disallow for all dashboard/API/auth routes; sitemap URL included
+- [x] **OpenGraph & Twitter Card meta** — per-page `openGraph` + `twitter` metadata on all 6 public pages (landing, pricing, privacy, terms, cookies, contact); global fallback in root layout; `summary_large_image` on landing page
 - [ ] **Schema.org structured data** — add `WebApplication`, `SoftwareApplication`, and `FAQPage` JSON-LD on landing and pricing pages; improves rich results in Google
 - [ ] **Core Web Vitals** — target: LCP < 2.5 s, INP < 200 ms, CLS < 0.1 on all public pages; measure with `@vercel/speed-insights`; fix before indexing push
 - [ ] **Blog / content hub** (`/blog`) — 3-5 SEO-targeted articles (e.g. "How to track job applications", "Best job search tools 2026"); drives organic traffic and internal links to pricing
@@ -583,4 +583,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 5 April 2026 — Notifications system: persistent `notifications` table (migration 20, RLS), `lib/notifications/create.ts` idempotent upsert helper, `/notifications` dashboard page (All/Unread/Read tabs, optimistic read/delete/bulk-actions, cursor pagination). Notification bell with real-time count badge + "View all" link. Overdue reminder daily emails (`sendOverdueReminderEmail`, cron at 09:00 UTC) + bug fix for wrong column names in weekly-digest cron. Plan enforcement: `lib/auth/plan.ts` (fail-closed) + `ApiError.paymentRequired()`. Student discount: server-side `.edu` allow-list verify endpoint + PricingPlans auto-badge. Proration: `POST /api/stripe/update-subscription` mid-cycle interval switch with `create_prorations`. Tests: 426 tests, 36 files, 100% pass.*
+*Last updated: 6 April 2026 — ATS fields batch: migration 21 adds `job_description TEXT` + `source VARCHAR(60)` + `Ghosted`/`Withdrawn` enum values to `job_applications`; `APPLICATION_STATUSES`, `APPLICATION_SOURCES`, `WORK_AUTHORIZATION_OPTIONS` added to constants; application form gains Source select + Job Description textarea; `Ghosted` status token + CSS added to application card and dashboard.css; Work Authorization section added to Profile (new `/api/profile/update-work-authorization` route, `BadgeCheck` card with Select); `/api/health` liveness probe (Supabase ping, `{ ok, checks, latencyMs, timestamp }`); per-page `openGraph` + `twitter` metadata on all 6 public pages + root layout; `force-static` on `/privacy`, `/terms`, `/cookies`; `sitemap.ts` and `robots.txt` marked as shipped.*

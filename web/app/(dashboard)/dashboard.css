@@ -444,6 +444,7 @@
 .db-status-accepted   { background: rgba(0,109,52,0.18); color: #003d1b; }
 .db-status-rejected   { background: rgba(186,26,26,0.10); color: #ba1a1a; }
 .db-status-withdrawn  { background: rgba(85,67,61,0.10); color: #55433d; }
+.db-status-ghosted    { background: rgba(113,113,122,0.10); color: #71717a; }
 .db-status-default    { background: rgba(153,70,42,0.10); color: #99462a; }
 
 /* Application status badge */
@@ -725,6 +726,7 @@
 .dark .db-status-accepted   { background: rgba(74, 222, 128, 0.20); color: #10b981; }
 .dark .db-status-rejected   { background: rgba(255, 95, 95, 0.12);  color: #ff5f5f; }
 .dark .db-status-withdrawn  { background: rgba(255, 255, 255, 0.08); color: rgba(255,255,255,0.45); }
+.dark .db-status-ghosted    { background: rgba(161, 161, 170, 0.10); color: #a1a1aa; }
 .dark .db-status-default    { background: rgba(204, 255, 0, 0.10);  color: #ccff00; }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */

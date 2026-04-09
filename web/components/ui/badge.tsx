@@ -45,6 +45,8 @@ const statusToVariant: Record<ApplicationStatus, BadgeProps["variant"]> = {
   "Interview": "interview",
   "Offer": "offer",
   "Rejected": "rejected",
+  "Withdrawn": "secondary",
+  "Ghosted": "outline",
 };
 
 interface StatusBadgeProps extends Omit<BadgeProps, "variant"> {
