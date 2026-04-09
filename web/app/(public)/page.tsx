@@ -14,7 +14,29 @@ import {
   MessageSquare,
   TrendingUp,
 } from "lucide-react";
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Jobnest — Track Every Application. Land Your Dream Job.",
+  description:
+    "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
+  openGraph: {
+    title: "Jobnest — Track Every Application. Land Your Dream Job.",
+    description:
+      "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
+    url: "/",
+    images: [{ url: "/new_logo_1.png", width: 512, height: 512, alt: "Jobnest" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Jobnest — Track Every Application. Land Your Dream Job.",
+    description:
+      "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
+    images: ["/new_logo_1.png"],
+  },
+};
 
 export default async function Home() {
   try {

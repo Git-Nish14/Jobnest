@@ -16,6 +16,32 @@ html {
   overflow-y: scroll;
 }
 
+/* react-remove-scroll-bar (used by every Radix overlay — Select, Dialog,
+   Sheet, DropdownMenu) injects a <style> tag at runtime with:
+     body[data-scroll-locked] { padding-right: Xpx !important; ... }
+   Because that tag is appended to <head> after our static CSS, it wins the
+   !important cascade even though both rules have the same selector.
+   Fix: use a more specific selector so our rule beats the injected one
+   regardless of source order (specificity 0,1,2 > injected 0,1,1).
+   Since <html> already has overflow-y:scroll the scrollbar channel is always
+   reserved — it never disappears — so the gap compensation is wrong and
+   causes the entire page to shift right, revealing a white strip. */
+html body[data-scroll-locked] {
+  /* react-remove-scroll-bar injects padding-right + overflow:hidden on body
+     when any Radix overlay opens (Select, Dialog, Sheet, etc.).
+     Both cause layout bugs when html has overflow-y:scroll:
+       • padding-right → white strip on the right
+       • overflow:hidden → breaks position:sticky (navbar disappears) because
+         body becomes the scroll container and sticky is clipped to it
+     Since html is already the scroll container (overflow-y:scroll), body's
+     overflow:hidden does nothing useful — the page stays scrollable via html.
+     Specificity 0,1,2 beats the injected rule's 0,1,1, so this always wins. */
+  --removed-body-scroll-bar-size: 0px !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  overflow: unset !important;
+}
+
 :root {
   /* Light — warm parchment Atelier palette (unchanged) */
   --background: 0 0% 100%;

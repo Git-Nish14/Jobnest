@@ -1,9 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
   title: "Terms of Use",
   description: "Read the terms and conditions for using Jobnest's job application tracking service.",
+  openGraph: {
+    title: "Terms of Use | Jobnest",
+    description: "Read the terms and conditions for using Jobnest's job application tracking service.",
+    url: "/terms",
+  },
+  twitter: {
+    card: "summary",
+    title: "Terms of Use | Jobnest",
+    description: "Read the terms and conditions for using Jobnest's job application tracking service.",
+  },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { APPLICATION_STATUSES } from "@/config";
+import { APPLICATION_STATUSES, APPLICATION_SOURCES } from "@/config";
 
 // Schema for creating/updating a job application
 export const applicationSchema = z.object({
@@ -43,6 +43,15 @@ export const applicationSchema = z.object({
   notes: z
     .string()
     .max(5000, "Notes are too long")
+    .optional()
+    .or(z.literal("")),
+  job_description: z
+    .string()
+    .max(20000, "Job description is too long")
+    .optional()
+    .or(z.literal("")),
+  source: z
+    .enum(APPLICATION_SOURCES, { message: "Please select a valid source" })
     .optional()
     .or(z.literal("")),
 });

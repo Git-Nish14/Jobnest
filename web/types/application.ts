@@ -12,6 +12,8 @@ export interface JobApplication {
   salary_range: string | null;
   location: string | null;
   notes: string | null;
+  job_description: string | null;
+  source: string | null;
   resume_path: string | null;
   cover_letter_path: string | null;
   created_at: string;

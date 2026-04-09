@@ -256,11 +256,21 @@ export async function POST(request: NextRequest) {
       user.user_metadata?.about_me ??
       "";
 
-    const buildSystemPrompt = (context: string) =>
-      `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
+    const workAuthorization: string | null =
+      user.user_metadata?.work_authorization ?? null;
+
+    const buildSystemPrompt = (context: string) => {
+      const aboutLines: string[] = [];
+      if (nestaiContext) aboutLines.push(nestaiContext);
+      if (workAuthorization) aboutLines.push(`Work authorization: ${workAuthorization}. Factor this in when discussing companies, roles, or whether an employer is likely to sponsor.`);
+      const aboutSection = aboutLines.length
+        ? `\n=== ABOUT THIS USER ===\n${aboutLines.join("\n")}\n=== END USER CONTEXT ===\n`
+        : "";
+
+      return `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-${nestaiContext ? `\n=== ABOUT THIS USER ===\n${nestaiContext}\n=== END USER CONTEXT ===\n` : ""}
+${aboutSection}
 === USER'S COMPLETE JOB SEARCH DATA ===
 ${context}
 === END OF DATA ===
@@ -274,6 +284,7 @@ Guidelines:
 - Use conversation history for natural follow-ups.
 - After your response, append EXACTLY this on a new line (replace the brackets with real questions relevant to the conversation — no extra text):
 FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
+    };
 
     // If the user attached a file, prepend its content to the user turn server-side
     // (keeps `question` within its 2000-char validation limit on the client)

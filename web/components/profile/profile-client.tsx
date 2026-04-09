@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   Loader2, User, Trash2, Check, ArrowLeft,
   Mail, Eye, EyeOff, ShieldAlert, RotateCcw, BrainCircuit, Bell,
-  Shield, CalendarDays, KeyRound, AlertTriangle,
+  Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck,
 } from "lucide-react";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import { createClient } from "@/lib/supabase/client";
+import { WORK_AUTHORIZATION_OPTIONS, type WorkAuthorization } from "@/config";
 import {
   Button,
   Input,
@@ -19,6 +20,11 @@ import {
   CardTitle,
   Avatar,
   AvatarFallback,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui";
 
 interface ProfileUser {
@@ -29,6 +35,7 @@ interface ProfileUser {
   passwordChangedAt: string | null;
   aboutMe: string;
   nestaiContext: string;
+  workAuthorization: WorkAuthorization | null;
   hasPassword: boolean;
   notificationPrefs: {
     overdueReminders: boolean;
@@ -261,6 +268,33 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       setNotifError("Failed to save. Please try again.");
     } finally {
       setNotifSaving(false);
+    }
+  };
+
+  // ── Work Authorization ────────────────────────────────────────────────────
+  const [workAuth, setWorkAuth] = useState<WorkAuthorization | null>(user.workAuthorization);
+  const [workAuthSaving, setWorkAuthSaving] = useState(false);
+  const [workAuthError, setWorkAuthError] = useState<string | null>(null);
+  const [workAuthSuccess, setWorkAuthSuccess] = useState(false);
+
+  const handleWorkAuthSave = async () => {
+    setWorkAuthError(null);
+    setWorkAuthSuccess(false);
+    setWorkAuthSaving(true);
+    try {
+      const res = await fetchWithRetry("/api/profile/update-work-authorization", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workAuthorization: workAuth }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setWorkAuthError(data.error || "Failed to save"); return; }
+      setWorkAuthSuccess(true);
+      setTimeout(() => setWorkAuthSuccess(false), 3000);
+    } catch {
+      setWorkAuthError("Failed to save. Please try again.");
+    } finally {
+      setWorkAuthSaving(false);
     }
   };
 
@@ -583,11 +617,17 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                   <p className="text-sm text-muted-foreground truncate mt-0.5">{user.email}</p>
                 </div>
 
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Free plan
                   </span>
+                  {workAuth && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                      <BadgeCheck className="h-3 w-3 shrink-0" />
+                      {workAuth}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t space-y-3">
@@ -626,6 +666,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 { label: "About You", href: "#about", icon: User },
                 { label: "NESTAi Context", href: "#nestai", icon: BrainCircuit },
                 { label: "Notifications", href: "#notifications", icon: Bell },
+                { label: "Work Authorization", href: "#work-authorization", icon: BadgeCheck },
                 { label: hasPw ? "Change Password" : "Set Password", href: "#password", icon: Shield },
                 { label: "Danger Zone", href: "#danger", icon: AlertTriangle, danger: true },
               ].map(({ label, href, icon: Icon, danger }) => (
@@ -785,6 +826,53 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                   {notifSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Preferences
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Work Authorization */}
+          <Card id="work-authorization" className="shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
+                <div className="h-7 w-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                </div>
+                Work Authorization
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                Your US work authorization status — used to filter sponsorship-required roles.
+              </p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {workAuthError && <Callout type="error">{workAuthError}</Callout>}
+              {workAuthSuccess && <Callout type="success">Work authorization saved.</Callout>}
+              <div className="space-y-3">
+                <Select
+                  value={workAuth ?? ""}
+                  onValueChange={(v) => setWorkAuth((v || null) as WorkAuthorization | null)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your work authorization status…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WORK_AUTHORIZATION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Stored only in your account — never shared publicly.
+                  </p>
+                  <Button
+                    onClick={handleWorkAuthSave}
+                    disabled={workAuthSaving || workAuth === user.workAuthorization}
+                    size="sm"
+                  >
+                    {workAuthSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

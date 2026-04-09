@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ProfileClient } from "@/components/profile";
+import { WORK_AUTHORIZATION_OPTIONS, type WorkAuthorization } from "@/config";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,11 @@ export default async function ProfilePage() {
         passwordChangedAt: user.user_metadata?.password_changed_at ?? null,
         aboutMe: user.user_metadata?.about_me ?? "",
         nestaiContext: user.user_metadata?.nestai_context ?? "",
+        workAuthorization: (WORK_AUTHORIZATION_OPTIONS as readonly string[]).includes(
+          user.user_metadata?.work_authorization
+        )
+          ? (user.user_metadata.work_authorization as WorkAuthorization)
+          : null,
         hasPassword,
         notificationPrefs: {
           overdueReminders: notificationPrefs.overdue_reminders ?? true,

@@ -182,11 +182,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 <ThemeToggle />
                 <NotificationBell />
                 {mounted && (
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="flex items-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-border transition-all focus:outline-none"
+                        className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-border transition-all focus:outline-none"
                         disabled={isPending}
                       >
                         <Avatar className="h-8 w-8">

@@ -19,6 +19,8 @@ const statusColors: Record<ApplicationStatus, string> = {
   Interview: "bg-purple-500",
   Offer: "bg-emerald-500",
   Rejected: "bg-red-500",
+  Withdrawn: "bg-slate-400",
+  Ghosted: "bg-zinc-400",
 };
 
 export function StatusBreakdown({ statusCounts, total }: StatusBreakdownProps) {

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
 import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
 import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
-import { APPLICATION_STATUSES } from "@/config";
+import { APPLICATION_STATUSES, APPLICATION_SOURCES } from "@/config";
 import type { JobApplication } from "@/types";
 import {
   Button,
@@ -56,10 +56,13 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       salary_range: application?.salary_range || "",
       location: application?.location || "",
       notes: application?.notes || "",
+      job_description: application?.job_description || "",
+      source: (application?.source as ApplicationFormData["source"]) || "",
     },
   });
 
   const currentStatus = watch("status");
+  const currentSource = watch("source");
 
   const onSubmit = async (data: ApplicationFormData) => {
     if (submittingRef.current) return;
@@ -79,6 +82,8 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
         salary_range: data.salary_range || null,
         location: data.location || null,
         notes: data.notes || null,
+        job_description: data.job_description || null,
+        source: data.source || null,
       };
 
       if (isEditing) {
@@ -215,8 +220,8 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             </div>
           </div>
 
-          {/* Status & Date */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Status, Source & Date */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -232,6 +237,27 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                   {APPLICATION_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
                       {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select
+                value={currentSource || ""}
+                onValueChange={(value) =>
+                  setValue("source", (value || "") as ApplicationFormData["source"])
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Where did you find it?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">— Not specified —</SelectItem>
+                  {APPLICATION_SOURCES.map((src) => (
+                    <SelectItem key={src} value={src}>
+                      {src}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -308,6 +334,28 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               placeholder="Interview notes, contacts, etc."
               {...register("notes")}
             />
+          </div>
+
+          {/* Job Description */}
+          <div className="space-y-2">
+            <Label htmlFor="job_description">
+              Job Description
+              <span className="ml-1.5 text-xs text-[#55433d]/50 font-normal">
+                (paste the full JD — powers ATS scan &amp; NESTAi tailoring)
+              </span>
+            </Label>
+            <Textarea
+              id="job_description"
+              placeholder="Paste the full job description here…"
+              rows={6}
+              {...register("job_description")}
+              className={errors.job_description ? "border-destructive" : ""}
+            />
+            {errors.job_description && (
+              <p className="text-sm text-destructive">
+                {errors.job_description.message}
+              </p>
+            )}
           </div>
 
           {/* File Uploads */}
