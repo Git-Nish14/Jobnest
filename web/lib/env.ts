@@ -41,6 +41,15 @@ const ENV_VARS: EnvVar[] = [
   // Redis (optional — rate limiter falls back to in-memory when absent)
   { name: "UPSTASH_REDIS_REST_URL", required: false, description: "Upstash Redis REST URL for persistent rate limiting" },
   { name: "UPSTASH_REDIS_REST_TOKEN", required: false, description: "Upstash Redis REST token" },
+
+  // Security — virus scanning via Cloudmersive (optional; skipped when absent)
+  { name: "CLOUDMERSIVE_API_KEY", required: false, description: "Cloudmersive API key for multi-engine AV scanning of all uploaded files" },
+
+  // AI providers for ATS scan (all optional; UI shows only configured ones)
+  { name: "OPENAI_API_KEY",    required: false, description: "OpenAI API key for GPT-4o ATS scanning" },
+  { name: "ANTHROPIC_API_KEY", required: false, description: "Anthropic API key for Claude ATS scanning" },
+  { name: "GEMINI_API_KEY",    required: false, description: "Google Gemini API key for ATS scanning" },
+  { name: "PERPLEXITY_API_KEY",required: false, description: "Perplexity API key for ATS scanning" },
 ];
 
 let validated = false;

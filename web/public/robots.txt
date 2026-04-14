@@ -5,7 +5,11 @@ Allow: /
 # Sitemap
 Sitemap: https://jobnest.nishpatel.dev/sitemap.xml
 
-# Disallow all authenticated / private routes
+# LLMs.txt — structured context for AI-powered search engines
+# https://llmstxt.org
+LLMs: https://jobnest.nishpatel.dev/llms.txt
+
+# Disallow all authenticated / private dashboard routes
 Disallow: /dashboard
 Disallow: /applications
 Disallow: /interviews
@@ -15,6 +19,9 @@ Disallow: /templates
 Disallow: /salary
 Disallow: /documents
 Disallow: /nestai
+Disallow: /notifications
 Disallow: /profile
+Disallow: /ats
+Disallow: /onboarding
 Disallow: /auth/
 Disallow: /api/

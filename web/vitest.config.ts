@@ -37,6 +37,16 @@ export default defineConfig({
         "lib/utils/document-parser.ts",
         "lib/utils/storage.ts",
 
+        // ── External-service security wrappers ────────────────────────────────
+        "lib/security/virus-scan.ts",
+
+        // ── Liveness probe (requires live Supabase) ───────────────────────────
+        "app/api/health/**",
+
+        // ── Cron routes (require live Supabase admin + email) ─────────────────
+        "app/api/cron/follow-up-reminders/**",
+        "app/api/cron/re-engagement/**",
+
         // ── Zod schemas for complex UI forms (no logic to unit-test) ─────────
         "lib/validations/forms.ts",
         "lib/validations/application.ts",

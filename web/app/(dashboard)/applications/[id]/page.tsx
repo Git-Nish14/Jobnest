@@ -12,6 +12,7 @@ import { ActivityTimeline } from "@/components/activity";
 import { DocumentManager } from "@/components/documents";
 import type { LegacyDoc } from "@/components/documents/DocumentManager";
 import { cn } from "@/lib/utils";
+import { CompletenessCard } from "@/components/applications/completeness-card";
 
 export const dynamic = "force-dynamic";
 
@@ -242,6 +243,9 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
           {/* Documents — versioned, multi-type, with share and preview */}
           <DocumentManager applicationId={id} legacyDocs={legacyDocs} />
+
+          {/* ── Application completeness — client component, live-updates on focus ── */}
+          <CompletenessCard applicationId={id} />
 
           {/* Activity Timeline */}
           <ActivityTimeline activities={activityLogs || []} />

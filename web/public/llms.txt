@@ -1,0 +1,40 @@
+# Jobnest
+
+> Free job application tracker with AI resume scanning, NESTAi AI job coach, interview manager, and career tools.
+
+Jobnest helps job seekers organise their job search. Track every application, scan resumes against job descriptions for ATS keyword gaps, get AI coaching from NESTAi, manage interviews and follow-up reminders, compare salary offers, and store all career documents in one place.
+
+## Core pages
+
+- [Home](https://jobnest.nishpatel.dev/): Landing page with product overview, features, and pricing
+- [Pricing](https://jobnest.nishpatel.dev/pricing): Free and Pro plans; student discount available
+- [Contact](https://jobnest.nishpatel.dev/contact): Contact form for support and feedback
+
+## Key features
+
+- **Application tracker**: Log job applications with company, role, status, salary, notes, source, and job description. Statuses: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, Ghosted.
+- **ATS Scanner**: Upload a resume (PDF/DOCX) and paste a job description. Powered by Groq Llama, OpenAI GPT-4o mini, Anthropic Claude, Google Gemini, or Perplexity. Returns a keyword match score (0–100), missing keywords, and improvement suggestions.
+- **NESTAi**: AI job search coach with full context of your applications, documents, and interviews. Powered by Groq Llama 3.3 70B. Supports file attachments, markdown responses, suggested follow-ups, and chat history.
+- **Document Library**: Upload and version resumes, cover letters, and supporting documents. Supports PDF, DOCX, TXT, MD, PNG, JPEG up to 1 GB total. Virus scanned on upload. Shareable links with expiry.
+- **Interview tracker**: Schedule and log interviews with type, round, outcome, and notes.
+- **Reminders**: Manual and auto-generated follow-up reminders at Day 7, 14, and 21 for applied positions.
+- **Salary comparison**: Log and compare total compensation across offers including base, bonus, equity, and benefits.
+- **Completeness scoring**: Each application is scored out of 10 based on filled fields. Shown as a ring on the application list.
+- **Work authorization**: US visa status stored in profile and injected into NESTAi context.
+
+## Pricing
+
+- **Free**: Unlimited applications, NESTAi AI coach, ATS scanning, interview tracker, reminders, document storage (50 MB), salary comparison.
+- **Pro**: $9/month or $90/year. Everything in Free plus 1 GB document storage, advanced analytics, priority support.
+- Student discount available for .edu and academic email domains.
+
+## Technical
+
+- Built with Next.js 16, Supabase (PostgreSQL + Auth + Storage), Tailwind CSS.
+- AI: Groq (primary), OpenAI, Anthropic, Google Gemini, Perplexity (ATS scanner).
+- Email: SMTP via Nodemailer. Cron jobs via Vercel Cron.
+- Security: CSRF protection, Redis-backed rate limiting, magic-byte file validation, Cloudmersive AV scanning, GDPR/CCPA compliant.
+
+## Creator
+
+Built by Nish Patel (https://nishpatel.dev). Open to feedback at https://jobnest.nishpatel.dev/contact.

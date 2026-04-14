@@ -313,16 +313,24 @@
     right: auto;
     z-index: auto;
     flex-shrink: 0;
-    padding: 0.5rem 1rem 1.5rem;
+    padding: 0.75rem 1.5rem 2rem;
     background-color: transparent;
     border-top: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
+
+@media (min-width: 1024px) {
+  .nestai-input-area {
+    padding: 0.75rem 2rem 2rem;
+  }
+}
 .nestai-sidebar { background-color: var(--atelier-surface-low); border-color: rgba(219,193,185,0.2); }
 .nestai-topbar  { border-color: rgba(219,193,185,0.2); }
 /* Input uses surface-container-highest (#e3e2e0) — matches design's elevated pill */
+/* Long text without spaces must wrap rather than overflow the bubble or input */
+.overflow-wrap-anywhere { overflow-wrap: anywhere; }
 .nestai-input   { border-color: rgba(219,193,185,0.25); background-color: #e3e2e0; }
 .nestai-input:focus-within { border-color: rgba(153,70,42,0.30); box-shadow: 0 8px 32px rgba(26,28,27,0.08); }
 /* Override the global blue :focus-visible ring inside the nestai input */
@@ -446,6 +454,16 @@
 .db-status-withdrawn  { background: rgba(85,67,61,0.10); color: #55433d; }
 .db-status-ghosted    { background: rgba(113,113,122,0.10); color: #71717a; }
 .db-status-default    { background: rgba(153,70,42,0.10); color: #99462a; }
+
+/* Completeness ring — SVG progress animation */
+.completeness-ring-progress {
+  transition: stroke-dasharray 0.4s ease;
+}
+
+/* ATS score ring — SVG progress animation */
+.ats-score-ring-progress {
+  transition: stroke-dasharray 0.6s ease;
+}
 
 /* Application status badge */
 .db-status-badge {

@@ -287,7 +287,7 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
         // Blockquote
         if (line.startsWith("> ")) {
           elements.push(
-            <blockquote key={key++} className="border-l-2 border-primary/50 pl-3 text-muted-foreground italic text-sm my-1">
+            <blockquote key={key++} className="border-l-2 border-primary/50 pl-3 text-muted-foreground italic text-sm md:text-base my-1">
               {parseInline(line.slice(2))}
             </blockquote>
           );
@@ -302,7 +302,7 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
             i++;
           }
           elements.push(
-            <ul key={key++} className="list-disc list-outside ml-5 space-y-0.5 my-1.5 text-sm">
+            <ul key={key++} className="list-disc list-outside ml-5 space-y-0.5 my-1.5 text-sm md:text-base">
               {items}
             </ul>
           );
@@ -317,7 +317,7 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
             i++;
           }
           elements.push(
-            <ol key={key++} className="list-decimal list-outside ml-5 space-y-0.5 my-1.5 text-sm">
+            <ol key={key++} className="list-decimal list-outside ml-5 space-y-0.5 my-1.5 text-sm md:text-base">
               {items}
             </ol>
           );
@@ -326,7 +326,7 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
 
         // Regular paragraph
         elements.push(
-          <p key={key++} className="text-sm leading-relaxed text-foreground">
+          <p key={key++} className="text-sm md:text-base leading-relaxed text-foreground break-words">
             {parseInline(line)}
           </p>
         );
@@ -382,6 +382,20 @@ export default function NestAiPage() {
 
   useEffect(() => {
     if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
+
+  // Pre-fill input from ATS scan handoff (stored in sessionStorage by /ats page)
+  useEffect(() => {
+    const pending = sessionStorage.getItem("nestai_pending_message");
+    if (pending) {
+      sessionStorage.removeItem("nestai_pending_message");
+      setInput(pending);
+      // Focus the textarea so the user can immediately send or edit
+      setTimeout(() => {
+        const textarea = document.querySelector<HTMLTextAreaElement>("textarea[placeholder]");
+        textarea?.focus();
+      }, 300);
+    }
   }, []);
 
   useEffect(() => {
@@ -941,7 +955,7 @@ export default function NestAiPage() {
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+            <div className="max-w-3xl lg:max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8 space-y-4 md:space-y-6">
               {messages.map((msg) => (
                 <div key={msg.id}>
                   {msg.role === "user" ? (
@@ -992,8 +1006,8 @@ export default function NestAiPage() {
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          <div className="max-w-[80%] nestai-user-bubble rounded-2xl rounded-tr-sm px-4 py-2.5">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                          <div className="max-w-[85%] md:max-w-[75%] nestai-user-bubble rounded-2xl rounded-tr-sm px-4 md:px-5 py-2.5 md:py-3 min-w-0">
+                            <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">{msg.content}</p>
                           </div>
                         </div>
                       )}
@@ -1052,7 +1066,7 @@ export default function NestAiPage() {
 
         <div className="nestai-input-area">
           {error && (
-            <div className="pb-2 max-w-3xl mx-auto w-full">
+            <div className="pb-2 max-w-3xl lg:max-w-4xl mx-auto w-full">
               <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-destructive/8 border border-destructive/20 text-destructive text-sm">
                 <span>{error}</span>
                 <button type="button" aria-label="Dismiss error" onClick={() => setError(null)} className="hover:opacity-70 shrink-0">
@@ -1061,7 +1075,7 @@ export default function NestAiPage() {
               </div>
             </div>
           )}
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl lg:max-w-4xl mx-auto">
             {isRateLimited && resetCountdown ? (
               <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-4">
                 <div className="h-1 w-full rounded-full bg-destructive/15 mb-3 overflow-hidden">
@@ -1121,7 +1135,7 @@ export default function NestAiPage() {
                     </button>
                   </div>
                 )}
-                <div className="relative flex items-end gap-2 rounded-[2rem] border shadow-lg transition-all px-3 py-2.5 nestai-input">
+                <div className="relative flex items-end gap-2 rounded-[2rem] border shadow-lg transition-all px-3 md:px-4 py-2.5 md:py-3 nestai-input">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -1149,7 +1163,7 @@ export default function NestAiPage() {
                     placeholder="Ask NESTAi anything..."
                     rows={1}
                     disabled={isLoading}
-                    className="flex-1 resize-none bg-transparent text-sm focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-[#55433d]/50 py-2.5 min-h-10 max-h-[200px] leading-relaxed disabled:opacity-50 text-[#1a1c1b]"
+                    className="flex-1 min-w-0 resize-none bg-transparent text-sm md:text-base focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-[#55433d]/50 py-2.5 min-h-[48px] md:min-h-[56px] max-h-[40vh] leading-relaxed disabled:opacity-50 text-[#1a1c1b] break-words"
                   />
 
                   {isLoading ? (

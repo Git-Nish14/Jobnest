@@ -14,6 +14,7 @@ export interface JobApplication {
   notes: string | null;
   job_description: string | null;
   source: string | null;
+  ats_score: number | null;
   resume_path: string | null;
   cover_letter_path: string | null;
   created_at: string;

@@ -18,24 +18,141 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+const APP_URL = "https://jobnest.nishpatel.dev";
+
 export const metadata: Metadata = {
   title: "Jobnest — Track Every Application. Land Your Dream Job.",
   description:
     "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
+  keywords: [
+    "job application tracker", "job search organiser", "ATS resume scanner",
+    "interview tracker", "job hunt tool", "career management app",
+    "resume keyword checker", "NESTAi AI job search", "free job tracker",
+    "application status tracker", "job offer comparison",
+  ],
   openGraph: {
     title: "Jobnest — Track Every Application. Land Your Dream Job.",
     description:
       "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
     url: "/",
-    images: [{ url: "/new_logo_1.png", width: 512, height: 512, alt: "Jobnest" }],
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "Jobnest — Job Application Tracker" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Jobnest — Track Every Application. Land Your Dream Job.",
     description:
       "The simple, powerful job application tracker built for serious job seekers. Manage applications, prep interviews, organise documents, and get AI help — all in one place.",
-    images: ["/new_logo_1.png"],
+    images: ["/opengraph-image.png"],
   },
+};
+
+// JSON-LD: SEO + GEO (Generative Engine Optimisation) — read by Google AI, ChatGPT, Perplexity.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${APP_URL}/#app`,
+      name: "Jobnest",
+      url: APP_URL,
+      description:
+        "Jobnest is a free job application tracking platform with AI-powered ATS resume scanning, NESTAi AI job coach, interview tracker, document library, salary comparison, and follow-up reminders.",
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Career Management",
+      operatingSystem: "Web, iOS, Android (PWA)",
+      offers: [
+        {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+          name: "Free plan",
+          description: "Track unlimited job applications, manage documents, use NESTAi AI coach.",
+        },
+        {
+          "@type": "Offer",
+          price: "9",
+          priceCurrency: "USD",
+          name: "Pro plan",
+          description: "Unlimited AI scans, priority support, advanced analytics, and more.",
+        },
+      ],
+      featureList: [
+        "Job application tracking and status management",
+        "ATS keyword resume scanner with multi-AI support (Groq, OpenAI, Claude, Gemini)",
+        "NESTAi AI job search coach",
+        "Interview scheduler and tracker",
+        "Document library with version history and secure sharing",
+        "Salary and total compensation comparison",
+        "Follow-up reminder automation",
+        "Work authorization and visa tracking",
+        "Application completeness scoring",
+        "Ghosted application detection",
+      ],
+      screenshot: `${APP_URL}/opengraph-image.png`,
+      creator: {
+        "@type": "Person",
+        name: "Nish Patel",
+        url: "https://nishpatel.dev",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${APP_URL}/#website`,
+      url: APP_URL,
+      name: "Jobnest",
+      description: "The free job application tracker with AI resume scanning and career management tools.",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${APP_URL}/applications?search={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Is Jobnest free to use?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Jobnest is free to start with unlimited application tracking, document storage, NESTAi AI coach access, and ATS scanning. A Pro plan is available for advanced features.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is an ATS scanner and how does Jobnest use it?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "An ATS (Applicant Tracking System) scanner compares your resume against a job description to identify matching and missing keywords. Jobnest's ATS Scanner supports five AI providers — Groq (Llama), OpenAI (GPT-4o mini), Anthropic (Claude), Google (Gemini), and Perplexity — and shows a keyword match score, a list of missing keywords, and tailored suggestions.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What is NESTAi?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "NESTAi is Jobnest's built-in AI job search coach powered by Groq's Llama 3.3 70B model. It has full context of your applications, interviews, reminders, and documents, and can help tailor your resume, prep for interviews, draft follow-up emails, and analyse job descriptions.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Does Jobnest detect when I've been ghosted?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Jobnest automatically suggests marking an application as 'Ghosted' after 30 days of inactivity, and creates follow-up reminders at Day 7, Day 14, and Day 21 to prompt you to check in.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Can Jobnest scan my resume for ATS keywords?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. Upload your resume to the Document Library, paste a job description into the ATS Scanner, and Jobnest will return a keyword match score (0–100), a list of missing keywords ordered by importance, and 3–5 actionable suggestions to improve your resume.",
+          },
+        },
+      ],
+    },
+  ],
 };
 
 export default async function Home() {
@@ -51,6 +168,12 @@ export default async function Home() {
 
   return (
     <div className="pb-24">
+      {/* ── JSON-LD structured data ── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* ── Hero ── */}
       <section className="max-w-7xl mx-auto px-6 mb-24 lg:mb-32">
         <div className="grid lg:grid-cols-12 gap-12 items-center">

@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support.",
+    "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support. No credit card required.",
+  keywords: ["job tracker pricing", "free job application tracker", "ATS scanner free", "Jobnest Pro", "career tool pricing"],
   openGraph: {
     title: "Pricing | Jobnest",
     description:
@@ -35,6 +36,38 @@ export const metadata: Metadata = {
     description:
       "Jobnest is free to start. Upgrade to Pro for AI-powered features, unlimited documents, and priority support.",
   },
+};
+
+const pricingJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "Jobnest",
+  description: "AI-powered job application tracker with ATS resume scanner, interview manager, document library, and NESTAi AI job coach.",
+  url: "https://jobnest.nishpatel.dev",
+  offers: [
+    {
+      "@type": "Offer",
+      name: "Free",
+      price: "0",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      description: "Unlimited job application tracking, NESTAi AI coach, ATS scanning, interview tracker, reminders, document library (50 MB).",
+    },
+    {
+      "@type": "Offer",
+      name: "Pro",
+      price: "9",
+      priceCurrency: "USD",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: "9",
+        priceCurrency: "USD",
+        billingDuration: "P1M",
+      },
+      availability: "https://schema.org/InStock",
+      description: "Everything in Free plus unlimited AI scans, 1 GB document storage, advanced analytics, priority support, and student discount.",
+    },
+  ],
 };
 
 // ── Feature comparison data ─────────────────────────────────────────────────
@@ -151,6 +184,11 @@ export default async function PricingPage({
 
   return (
     <div className="pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }}
+      />
+
         {/* ── Toast banners ── */}
         {(success || canceled) && (
           <div className="max-w-4xl mx-auto px-6 mb-8">

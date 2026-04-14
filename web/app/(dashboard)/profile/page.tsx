@@ -52,8 +52,9 @@ export default async function ProfilePage() {
           : null,
         hasPassword,
         notificationPrefs: {
-          overdueReminders: notificationPrefs.overdue_reminders ?? true,
-          weeklyDigest: notificationPrefs.weekly_digest ?? false,
+          overdueReminders:   notificationPrefs.overdue_reminders    ?? true,
+          weeklyDigest:       notificationPrefs.weekly_digest         ?? false,
+          reEngagementEmails: notificationPrefs.re_engagement_emails  ?? true,
         },
       }}
       pendingDeletion={pendingDeletion}
