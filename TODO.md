@@ -246,7 +246,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **URL-based import** — `POST /api/documents/import-url`; fetches public URL, validates Content-Type + magic bytes, stores in Supabase Storage; 15s timeout, 10 MB limit; available in both `DocumentManager` (per-application) and `/documents` library page
 
 ### Storage-Level Security
-- [ ] **Virus scan on upload** — ClamAV pipe via Edge Function; deferred (requires microservice)
+- [x] **Virus scan on upload** — Cloudmersive multi-engine AV on all uploads + URL imports; fail-open when `CLOUDMERSIVE_API_KEY` absent; magic-byte validation still runs regardless
 - [x] **File content validation** — server-side magic-byte check on all uploads and URL imports (`validateMagicBytes()` in `storage.ts`); covers PDF (`%PDF`), DOCX (PK zip), DOC (OLE2), PNG, JPEG; rejects mismatched content
 - [x] **Per-application Storage RLS** — migration 18 adds `user_owns_application()` PostgreSQL function (SECURITY DEFINER) called from all four Storage RLS policies; verifies `application_id` path segment belongs to calling user; library paths (`/library/`) bypass application check
 
@@ -335,10 +335,10 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ### 🎯 Application Quality & ATS
 
 - [x] **Job description store** — `job_description TEXT` field on `job_applications` (currently only `job_url` exists); paste or import the full JD text; powers ATS scan, keyword extraction, and NESTAi tailoring
-- [ ] **ATS compatibility score** — on resume upload: parse resume text + stored JD text → compute keyword overlap score (0-100); show as a score badge on the application card and document card; list top 5 missing keywords with suggested insertion points
-- [ ] **Resume tailoring checklist** — per application: checkbox list auto-generated from JD: "Mention React (in JD, not in resume)", "Quantify your impact at Company X", "Remove unrelated experience"; persist completion state in `application_metadata JSONB`
-- [ ] **Application completeness score** — score each application out of 10: +1 resume, +1 cover letter, +1 JD stored, +1 salary range, +1 contact linked, +1 job URL, +1 tags, +1 follow-up reminder set, +1 interview scheduled, +1 notes; display as a ring on the application card; incomplete apps surfaced on dashboard
-- [ ] **Follow-up cadence enforcer** — after application submitted: auto-create follow-up reminders at Day 7 and Day 14 if no status change; if status still "Applied" at Day 21, surface a "No response" nudge with suggested next action (connect on LinkedIn, email recruiter, mark as ghosted)
+- [x] **ATS compatibility score** — `/ats` scanner page (5 AI providers); keyword overlap pre-computed server-side; score persisted to `job_applications.ats_score`; badge on application card
+- [ ] **Resume tailoring checklist** — per application: checkbox list auto-generated from JD; deferred
+- [x] **Application completeness score** — 10-field ring on list cards (simple, no popup); full interactive checklist on detail page (client component, live-refetches on tab focus)
+- [x] **Follow-up cadence enforcer** — `/api/cron/follow-up-reminders` (daily 09:00 UTC); auto-creates Day 7/14/21 reminders for Applied/Phone Screen apps; idempotent via description marker
 - [x] **"Ghosted" status** — add `Ghosted` to `application_status` enum; auto-suggest after 30 days with no activity; analytics: % ghosted by company tier, job board source, season
 - [x] **Application source tracking** — `source` field on `job_applications`: LinkedIn Easy Apply, Indeed, Company Website, Referral, Recruiter Outreach, Job Fair, Wellfound, Dice, Handshake, Other; analytics: which source has highest response rate for this user
 
@@ -477,13 +477,13 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🌱 Growth & Retention
 
-- [ ] **Onboarding flow** — first-login wizard (3 steps: add first application → set "About Me" → invite contact); `onboarding_completed` flag in user metadata; skip option
-- [ ] **Empty state CTAs** — when `/applications` is empty and user is new, show a guided "Add your first application" walkthrough card instead of the standard empty state
+- [x] **Onboarding flow** — 3-step wizard (Welcome → Applications → NESTAi); `onboarding_completed` flag in user metadata; skip option; `proxy.ts` redirects new users to `/onboarding`
+- [x] **Empty state CTAs** — filter mismatch shows "no results + clear filters"; new users (no search/filter) see 3-step guided walkthrough with NESTAi + Reminders shortcuts
 - [ ] **Referral system** — `referrals` table; unique referral link per user; referred user gets 1-month Pro trial; referrer gets 1 free month after referee converts; track in dashboard
 - [ ] **Feature flags** — integrate Vercel Edge Config or [Unleash](https://www.getunleash.io/) for runtime feature toggles; enable gradual rollout of new features to % of users without redeploy
 - [ ] **A/B testing** — use Vercel Experiments or custom `x-variant` cookie + Edge Config; start with pricing page CTA button copy and plan layout
 - [ ] **Weekly digest email** — prefs toggle already exists; build the actual cron (`/api/cron/weekly-digest`) that sends a personalised summary: applications this week, upcoming interviews, overdue reminders
-- [ ] **Re-engagement emails** — if user hasn't logged in for 14 days, send "Your job search is waiting" email with dashboard stats snapshot; unsubscribe link required
+- [x] **Re-engagement emails** — `/api/cron/re-engagement` (daily 10:00 UTC); targets users inactive ≥14 days; 30-day cooldown; opt-out toggle in profile notifications; PII-safe logs
 - [ ] **NPS / in-app feedback** — show a 1-question NPS survey after 7 days of use and after major events (first offer recorded, account upgrade); store responses in `feedback` table
 - [ ] **Changelog / "What's new"** — badge on nav when there's an unseen update; modal with release notes; dismisses per-user via `localStorage`
 
