@@ -40,6 +40,7 @@ interface ProfileUser {
   notificationPrefs: {
     overdueReminders: boolean;
     weeklyDigest: boolean;
+    reEngagementEmails: boolean;
   };
 }
 
@@ -258,6 +259,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
         body: JSON.stringify({
           overdueReminders: notifPrefs.overdueReminders,
           weeklyDigest: notifPrefs.weeklyDigest,
+          reEngagementEmails: notifPrefs.reEngagementEmails,
         }),
       });
       const data = await res.json();
@@ -806,6 +808,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 {([
                   { key: "overdueReminders" as const, label: "Overdue reminder alerts", description: "Email me when follow-up reminders are overdue" },
                   { key: "weeklyDigest" as const, label: "Weekly digest", description: "Applications, upcoming interviews, and overdue reminders" },
+                  { key: "reEngagementEmails" as const, label: "Re-engagement emails", description: "Remind me to check in if I haven't logged in for 14+ days" },
                 ]).map(({ key, label, description }) => (
                   <label key={key} className="flex items-center justify-between gap-4 py-3.5 cursor-pointer">
                     <div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar,
+  MapPin, DollarSign, Calendar, ScanSearch,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import {
 import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { CompletenessRing } from "./completeness-ring";
 
 interface ApplicationCardProps {
   application: JobApplication;
@@ -29,7 +30,7 @@ function statusTokens(status: string) {
     "Accepted":     { accent: "bg-[#006d34]",   avatar: "db-status-accepted", badge: "db-status-accepted" },
     "Rejected":     { accent: "bg-[#ba1a1a]",   avatar: "db-status-rejected", badge: "db-status-rejected" },
     "Withdrawn":    { accent: "bg-muted-foreground", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
-    "Ghosted":      { accent: "bg-zinc-400",          avatar: "db-status-ghosted",   badge: "db-status-ghosted" },
+    "Ghosted":      { accent: "bg-zinc-400",    avatar: "db-status-ghosted",  badge: "db-status-ghosted" },
   };
   return map[status] ?? { accent: "bg-border", avatar: "db-status-default", badge: "db-status-default" };
 }
@@ -80,6 +81,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
 
         <div className="flex-1 min-w-0">
 
+          {/* ── Top row: title / company + status + actions ── */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <Link
@@ -93,11 +95,11 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
               </p>
             </div>
 
+            {/* Status + actions — clean, no data badges */}
             <div className="flex items-center gap-1.5 shrink-0">
               <span className={cn("db-status-badge hidden sm:inline-block", badge)}>
                 {application.status}
               </span>
-
               <div className="flex items-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 {application.job_url && (
                   <a
@@ -111,7 +113,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
@@ -154,27 +156,61 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
             </div>
           </div>
 
+          {/* Mobile-only status badge */}
           <span className={cn("db-status-badge sm:hidden mt-2 inline-block", badge)}>
             {application.status}
           </span>
 
-          <div className="flex flex-wrap gap-3 sm:gap-5 mt-2.5 text-xs sm:text-sm text-muted-foreground/75">
-            <span className="flex items-center gap-1.5">
+          {/* ── Bottom row: meta info + completeness ring + ATS ── */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2.5">
+            {/* Date / location / salary */}
+            <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
               <Calendar className="h-3.5 w-3.5 shrink-0" />
               {formattedDate}
             </span>
             {application.location && (
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate max-w-32 sm:max-w-none">{application.location}</span>
+                <span className="truncate max-w-28 sm:max-w-none">{application.location}</span>
               </span>
             )}
             {application.salary_range && (
-              <span className="hidden sm:flex items-center gap-1.5">
+              <span className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
                 <DollarSign className="h-3.5 w-3.5 shrink-0" />
                 {application.salary_range}
               </span>
             )}
+            {application.source && (
+              <span className="hidden sm:inline-block text-xs text-muted-foreground/50 bg-muted/60 rounded-full px-2 py-0.5">
+                {application.source}
+              </span>
+            )}
+
+            {/* Spacer pushes quality signals to the right */}
+            <span className="flex-1" />
+
+            {/* ATS score pill */}
+            {application.ats_score !== null && application.ats_score !== undefined && (
+              <Link
+                href={`/ats`}
+                title="ATS keyword match — click to re-scan"
+                onClick={(e) => e.stopPropagation()}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-80",
+                  application.ats_score >= 70
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                    : application.ats_score >= 45
+                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                    : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                )}
+              >
+                <ScanSearch className="h-3 w-3 shrink-0" />
+                ATS {application.ats_score}%
+              </Link>
+            )}
+
+            {/* Completeness ring — visual only on list; full detail on application page */}
+            <CompletenessRing application={application} size={36} simple />
           </div>
         </div>
       </div>

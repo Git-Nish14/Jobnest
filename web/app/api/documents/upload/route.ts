@@ -4,6 +4,7 @@ import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateMagicBytes, uploadVersionedFile } from "@/lib/utils/storage";
 import { ALLOWED_MIME_TYPES } from "@/types/application";
+import { scanBuffer } from "@/lib/security/virus-scan";
 
 const MAX_FILE_SIZE  = 10 * 1024 * 1024; // 10 MB
 const MAX_LABEL_LEN  = 80;
@@ -44,6 +45,16 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     if (!validateMagicBytes(buffer, file.type)) {
       throw ApiError.badRequest("File content does not match its declared type. Upload rejected.");
+    }
+
+    // Virus scan via Cloudmersive multi-engine AV.
+    // Skipped gracefully when CLOUDMERSIVE_API_KEY is not configured.
+    const scanResult = await scanBuffer(buffer, file.name);
+    if (!scanResult.clean) {
+      console.error(`[upload] Malware detected — "${scanResult.threat}" in file from user ${user.id}`);
+      throw ApiError.badRequest(
+        `This file was flagged as malicious${scanResult.threat ? ` (${scanResult.threat})` : ""} and cannot be uploaded. If you believe this is a false positive, please contact support.`
+      );
     }
 
     // If not master, verify the application belongs to this user

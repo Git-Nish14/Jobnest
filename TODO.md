@@ -568,7 +568,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Sitemap** (`/sitemap.xml`) — `app/sitemap.ts` with all 8 public pages; priorities and change frequencies set; excludes all authenticated routes
 - [x] **`robots.txt`** — `public/robots.txt` with Disallow for all dashboard/API/auth routes; sitemap URL included
 - [x] **OpenGraph & Twitter Card meta** — per-page `openGraph` + `twitter` metadata on all 6 public pages (landing, pricing, privacy, terms, cookies, contact); global fallback in root layout; `summary_large_image` on landing page
-- [ ] **Schema.org structured data** — add `WebApplication`, `SoftwareApplication`, and `FAQPage` JSON-LD on landing and pricing pages; improves rich results in Google
+- [x] **Schema.org structured data** — `SoftwareApplication` + `WebSite` (SearchAction) + `FAQPage` JSON-LD on landing; `Product`+`Offer` schema on pricing; improves Google rich results + AI search engines (ChatGPT, Perplexity)
 - [ ] **Core Web Vitals** — target: LCP < 2.5 s, INP < 200 ms, CLS < 0.1 on all public pages; measure with `@vercel/speed-insights`; fix before indexing push
 - [ ] **Blog / content hub** (`/blog`) — 3-5 SEO-targeted articles (e.g. "How to track job applications", "Best job search tools 2026"); drives organic traffic and internal links to pricing
 
@@ -579,8 +579,8 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] Document parse cache is in-memory — lost on server restart (Redis fix deferred)
 - [x] ~~Rate limiter is in-memory — resets on Vercel cold starts~~ — **fixed**: Upstash Redis-backed with in-memory fallback
 - [x] ~~`pdf-parse` v1 + Turbopack issues~~ — **fixed**: upgraded to 2.4.5; new entry point used
-- [ ] Scrollbar layout shift during page transitions (Windows Chrome) — `overflow-y: scroll` applied to `html`; partially mitigated but may still appear in some edge cases
+- [x] ~~Scrollbar layout shift during page transitions (Windows Chrome)~~ — **fixed**: `html body[data-scroll-locked]` CSS rule overrides Radix scroll-lock compensation (overflow:unset, padding-right:0, margin-right:0); specificity 0,1,2 beats injected 0,1,1
 
 ---
 
-*Last updated: 6 April 2026 — ATS fields batch: migration 21 adds `job_description TEXT` + `source VARCHAR(60)` + `Ghosted`/`Withdrawn` enum values to `job_applications`; `APPLICATION_STATUSES`, `APPLICATION_SOURCES`, `WORK_AUTHORIZATION_OPTIONS` added to constants; application form gains Source select + Job Description textarea; `Ghosted` status token + CSS added to application card and dashboard.css; Work Authorization section added to Profile (new `/api/profile/update-work-authorization` route, `BadgeCheck` card with Select); `/api/health` liveness probe (Supabase ping, `{ ok, checks, latencyMs, timestamp }`); per-page `openGraph` + `twitter` metadata on all 6 public pages + root layout; `force-static` on `/privacy`, `/terms`, `/cookies`; `sitemap.ts` and `robots.txt` marked as shipped.*
+*Last updated: 9 April 2026 — ATS Scanner page (5 AI providers, server-component, keyword-anchored scoring); migrations 21+22 (job_description, source, Ghosted/Withdrawn, ats_score); application completeness ring (simple on list, full client card on detail); follow-up cadence cron (Day 7/14/21); re-engagement emails cron (14-day inactivity, 30-day cooldown); Document Library overhaul (all docs, 1GB, preview popup, ATS button, delete gating, Cloudmersive virus scan); Work Authorization (profile, sidebar badge, NESTAi injection); NESTAi wider layout + break-words overflow fix; Radix scroll-lock fix (white strip + navbar disappear on Windows); JSON-LD structured data on landing + pricing; llms.txt for GEO; robots.txt updated; dashboard quick-access cards; ATS score dynamic via keyword overlap; 0 ESLint errors; comment cleanup; README + TODO updated; 468 tests, 43 files, 100% pass.*

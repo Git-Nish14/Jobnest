@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateMagicBytes } from "@/lib/utils/storage";
+import { scanBuffer } from "@/lib/security/virus-scan";
 import { ALLOWED_MIME_TYPES } from "@/types/application";
 import { z } from "zod";
 
@@ -275,6 +276,14 @@ export async function POST(request: NextRequest) {
 
     if (!validateMagicBytes(buffer, mimeType)) {
       throw ApiError.badRequest("File content does not match its declared type. Import rejected.");
+    }
+
+    const scanResult = await scanBuffer(buffer);
+    if (!scanResult.clean) {
+      console.error(`[import-url] Malware detected — "${scanResult.threat}" in imported file from user ${user.id}`);
+      throw ApiError.badRequest(
+        `The file at that URL was flagged as malicious${scanResult.threat ? ` (${scanResult.threat})` : ""} and cannot be imported.`
+      );
     }
 
     // ── Derive filename ──────────────────────────────────────────────────────

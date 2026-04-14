@@ -790,3 +790,99 @@ export async function sendWeeklyDigestEmail(
     };
   }
 }
+
+// ── Re-engagement email ───────────────────────────────────────────────────────
+
+export async function sendReEngagementEmail({
+  email,
+  displayName,
+  appUrl,
+  totalApplications,
+  activeApplications,
+}: {
+  email: string;
+  displayName: string;
+  appUrl: string;
+  totalApplications: number;
+  activeApplications: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const name = esc(displayName || "there");
+
+    const html = emailHtml({
+      previewText: "Your job search is waiting — pick up where you left off.",
+      headerBg: { solid: "#99462a", gradient: "linear-gradient(135deg,#99462a 0%,#6b2f1a 100%)" },
+      headerContent: `
+        <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Your job search is waiting</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">Pick up where you left off</p>
+      `,
+      bodyContent: `
+        <h2 style="font-size:22px;font-weight:700;color:#1a1c1b;margin:0 0 12px;">
+          Your job search is waiting, ${name}.
+        </h2>
+        <p style="margin:0 0 20px;color:#55433d;line-height:1.6;">
+          It's been a while since you logged in to Jobnest. Your applications are still there —
+          let's keep the momentum going.
+        </p>
+        ${totalApplications > 0 ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+          <tr>
+            <td width="50%" style="padding-right:8px;">
+              <div style="background:#f4f3f1;border:1px solid #dbc1b9;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:800;color:#99462a;">${totalApplications}</div>
+                <div style="font-size:12px;color:#55433d;margin-top:4px;">Total applications</div>
+              </div>
+            </td>
+            <td width="50%" style="padding-left:8px;">
+              <div style="background:#f4f3f1;border:1px solid #dbc1b9;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:28px;font-weight:800;color:#1d4ed8;">${activeApplications}</div>
+                <div style="font-size:12px;color:#55433d;margin-top:4px;">Active pipeline</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+        ` : ""}
+        <p style="margin:0 0 24px;color:#55433d;line-height:1.6;">
+          Even 10 minutes a day — following up on an application, logging an interview, or
+          running an ATS scan — can meaningfully improve your results.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="border-radius:100px;background:#99462a;">
+              <a href="${appUrl}/dashboard"
+                 style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:100px;font-family:system-ui,sans-serif;">
+                Return to dashboard →
+              </a>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerExtra: `
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 10px;line-height:1.5;">
+          You received this because you haven&apos;t logged in for 14+ days.
+          To opt out of re-engagement emails, go to
+          <a href="${appUrl}/profile" style="color:#99462a;text-decoration:none;">Notification preferences</a>
+          and turn off &ldquo;Re-engagement emails&rdquo;.
+        </p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Your job search is waiting, ${name} — pick up where you left off`,
+      text: `Hi ${name},\n\nIt's been a while since you logged in to Jobnest. Your ${totalApplications} applications are still there.\n\nReturn to your dashboard: ${appUrl}/dashboard\n\nThe Jobnest Team`,
+      html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send re-engagement email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send email",
+    };
+  }
+}

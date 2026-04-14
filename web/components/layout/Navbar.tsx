@@ -14,6 +14,7 @@ import {
   Users,
   Mail,
   DollarSign,
+  ScanSearch,
   Menu,
   X,
   HelpCircle,
@@ -49,6 +50,7 @@ const dashboardLinks = [
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/templates", label: "Templates", icon: Mail },
   { href: "/salary", label: "Salary", icon: DollarSign },
+  { href: "/ats", label: "ATS Scan", icon: ScanSearch },
   { href: "/nestai", label: "NESTAi", icon: Sparkles },
 ];
 
@@ -95,7 +97,10 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/salary") ||
     pathname.startsWith("/nestai") ||
     pathname.startsWith("/notifications") ||
-    pathname.startsWith("/profile");
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/documents") ||
+    pathname.startsWith("/ats") ||
+    pathname.startsWith("/onboarding");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

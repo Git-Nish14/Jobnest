@@ -6,7 +6,7 @@ import { AtelierChart } from "@/components/dashboard/atelier-chart";
 import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart";
 import { AtelierRecentApps } from "@/components/dashboard/atelier-recent-apps";
 import { AtelierTasksPanel } from "@/components/dashboard/atelier-tasks-panel";
-import { BarChart3, Calendar, Mail, Plus } from "lucide-react";
+import { BarChart3, Calendar, Mail, Plus, Library, ScanSearch, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -144,6 +144,39 @@ export default async function DashboardPage() {
 
         <div className="md:col-span-8">
           <AtelierRecentApps applications={recentApps} />
+        </div>
+
+        {/* ── Quick-access cards: Document Library + ATS Scanner ── */}
+        <div className="md:col-span-6">
+          <Link
+            href="/documents"
+            className="db-content-card flex items-center gap-4 hover:shadow-md transition-all group h-full"
+          >
+            <div className="h-11 w-11 rounded-xl bg-[#99462a]/10 dark:bg-[#99462a]/20 flex items-center justify-center shrink-0 group-hover:bg-[#99462a]/20 dark:group-hover:bg-[#99462a]/30 transition-colors">
+              <Library className="h-5 w-5 text-[#99462a]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground text-sm">Document Library</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Resumes, cover letters &amp; all uploads</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
+          </Link>
+        </div>
+
+        <div className="md:col-span-6">
+          <Link
+            href="/ats"
+            className="db-content-card flex items-center gap-4 hover:shadow-md transition-all group h-full"
+          >
+            <div className="h-11 w-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-950/60 transition-colors">
+              <ScanSearch className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground text-sm">ATS Scanner</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Match your resume to a job description</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
+          </Link>
         </div>
       </div>
 
