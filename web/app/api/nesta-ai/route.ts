@@ -339,36 +339,36 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       groqMessages = makeMessages(context, trimmedHistory);
     }
 
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${groqApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: groqMessages,
-        temperature: 0.6,
-        max_tokens: 1500,
-        stream: true,
-      }),
-    });
+    // Primary model; falls back to the smaller instant model on 429/5xx.
+    const PRIMARY_MODEL  = "llama-3.3-70b-versatile";
+    const FALLBACK_MODEL = "llama-3.1-8b-instant";
+
+    async function callGroq(model: string) {
+      return fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqApiKey}` },
+        body: JSON.stringify({ model, messages: groqMessages, temperature: 0.6, max_tokens: 1500, stream: true }),
+      });
+    }
+
+    let groqResponse = await callGroq(PRIMARY_MODEL);
+    let usedModel = PRIMARY_MODEL;
+    let isDegraded = false;
+
+    if (!groqResponse.ok && (groqResponse.status === 429 || groqResponse.status >= 500)) {
+      console.warn(`[nestai] ${PRIMARY_MODEL} failed (${groqResponse.status}), falling back to ${FALLBACK_MODEL}`);
+      groqResponse = await callGroq(FALLBACK_MODEL);
+      usedModel = FALLBACK_MODEL;
+      isDegraded = true;
+    }
 
     if (!groqResponse.ok) {
       const errorData = await groqResponse.json().catch(() => ({}));
       console.error("Groq API error:", errorData);
-
       if (groqResponse.status === 429) {
-        return NextResponse.json(
-          { error: "AI service is busy. Please wait a moment and try again." },
-          { status: 429 }
-        );
+        return NextResponse.json({ error: "AI service is busy. Please wait a moment and try again." }, { status: 429 });
       }
-
-      return NextResponse.json(
-        { error: "Failed to get AI response. Please try again." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to get AI response. Please try again." }, { status: 500 });
     }
 
     // Stream tokens from Groq SSE → client
@@ -413,6 +413,8 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
         "X-RateLimit-Remaining": String(rateLimit.remaining),
         "X-RateLimit-Reset-In": String(resetInSeconds),
         "X-RateLimit-Limit": String(limits.maxRequests),
+        "X-NESTAi-Model": usedModel,
+        "X-NESTAi-Degraded": isDegraded ? "1" : "0",
       },
     });
   } catch (error) {

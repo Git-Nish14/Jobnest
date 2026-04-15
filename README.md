@@ -47,6 +47,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
 - **Job description field** — paste full JD to power ATS scan + NESTAi tailoring
+- **"Import from job posting"** — paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
 - **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…)
 - **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
@@ -98,9 +99,11 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
 - **Streaming responses** with stop button; markdown rendering; suggested follow-ups
 - **Work authorization aware** — user's visa status injected into system prompt
-- File attachments: PDF, DOCX, TXT, MD, images up to 5 MB; preview attached docs in chat
+- **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary stored to Supabase Storage; inline preview (PDF iframe · image · extracted text) with download button via 10-min signed URL
+- **Interview Prep** — "Prep" button opens a modal; pick an active application → 5 tailored STAR behavioral questions generated from the stored JD; provide draft answers for specific AI feedback
+- **Model fallback** — primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
 - Pin chats, edit messages, rename/delete sessions with confirm dialog
-- Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown
+- Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown and progress bar
 - Smart context trimming (4-step, 124,500-token budget); 100-message history
 - **NESTAi handoff from ATS** — sessionStorage pre-fills input after a scan
 
@@ -145,7 +148,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
-| Testing | Vitest (468 tests, 43 files) |
+| Testing | Vitest (522 tests, 46 files) |
 
 ---
 
@@ -190,7 +193,10 @@ web/
 │   │   │   └── re-engagement/        # Daily 10:00 UTC — 14-day inactivity emails
 │   │   ├── documents/            # list, upload, [id], ats-scan, import-url, share, shared, refresh-url
 │   │   ├── health/               # Liveness + readiness probe
-│   │   ├── nesta-ai/             # Chat (streaming), sessions, messages, parse-file
+│   │   ├── applications/
+│   │   │   └── parse-jd/         # POST — JD URL/text → structured fields (SSRF-protected)
+│   │   ├── nesta-ai/             # Chat (streaming), sessions, messages, parse-file,
+│   │   │                         # attachment-url (signed URL for chat file preview)
 │   │   ├── notifications/
 │   │   ├── stripe/               # checkout, webhook, portal, student-verify, update-subscription
 │   │   └── contact/
@@ -341,7 +347,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (468 tests, 43 files)
+npm test              # Vitest (522 tests, 46 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -353,9 +359,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, proxy logic |
+| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage), proxy logic |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing |
 
 ---
 
@@ -367,7 +373,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Rate limiting | Redis-backed (Upstash); dual-layer on send-otp (IP + per-email) |
 | Virus scanning | Cloudmersive multi-engine AV on all uploads + URL imports (fail-open) |
 | Magic bytes | Server-side content validation prevents extension spoofing |
-| CSRF | `SameSite=Lax` + `verifyOrigin()` on all profile mutation routes |
+| CSRF | `SameSite=Lax` + `verifyOrigin()` on all profile mutation routes, parse-file, and parse-jd |
+| SSRF | `assertSafeUrl()` on parse-jd: DNS pre-resolution blocks loopback, RFC-1918, link-local (AWS/GCP metadata), CGNAT; post-redirect check prevents open-redirect chains |
+| Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url before signed-URL generation |
 | Cron auth | `Authorization: Bearer <CRON_SECRET>` — fail-closed |
 | RLS | All tables enforce row-level security via `auth.uid()` |
 | Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |
