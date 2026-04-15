@@ -178,12 +178,78 @@ describe("NESTAi — chat message", () => {
     process.env.GROQ_API_KEY = original;
   });
 
-  it("returns 429 from Groq as user-friendly message", async () => {
+  it("returns 429 from Groq as user-friendly message when both models are exhausted", async () => {
+    // Both primary and fallback return 429 → route surfaces the 429
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }));
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hi", history: [] }) as never);
     expect(res.status).toBe(429);
     const body = await res.json();
     expect(body.error).toMatch(/busy|wait/i);
+  });
+});
+
+// ── Model fallback ─────────────────────────────────────────────────────────────
+
+describe("NESTAi — model fallback", () => {
+  it("falls back to llama-3.1-8b-instant when primary returns 429", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response("{}", { status: 429 }))   // primary fails
+      .mockResolvedValueOnce(makeStreamResponse("Fallback OK"));     // fallback succeeds
+
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    expect(res.status).toBe(200);
+
+    // Second Groq call must have used the fallback model
+    const groqCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    );
+    expect(groqCalls).toHaveLength(2);
+    const fallbackBody = JSON.parse((groqCalls[1]![1] as RequestInit).body as string);
+    expect(fallbackBody.model).toBe("llama-3.1-8b-instant");
+  });
+
+  it("falls back to llama-3.1-8b-instant when primary returns 500", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(makeStreamResponse("Recovered"));
+
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    expect(res.status).toBe(200);
+
+    const groqCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    );
+    expect(groqCalls).toHaveLength(2);
+  });
+
+  it("sets X-NESTAi-Degraded header to '1' when fallback model is used", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response("{}", { status: 429 }))
+      .mockResolvedValueOnce(makeStreamResponse("Degraded response"));
+
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    expect(res.headers.get("X-NESTAi-Degraded")).toBe("1");
+    expect(res.headers.get("X-NESTAi-Model")).toBe("llama-3.1-8b-instant");
+  });
+
+  it("sets X-NESTAi-Degraded to '0' and primary model name when primary succeeds", async () => {
+    // Default mock: primary succeeds on first call
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-NESTAi-Degraded")).toBe("0");
+    expect(res.headers.get("X-NESTAi-Model")).toBe("llama-3.3-70b-versatile");
+  });
+
+  it("does not fall back when primary fails with a 400 (client error, not capacity)", async () => {
+    // 400 is a client error — route should NOT retry with fallback model
+    mockFetch.mockResolvedValueOnce(new Response("{}", { status: 400 }));
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    // Only one Groq call should have been made
+    const groqCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    );
+    expect(groqCalls).toHaveLength(1);
+    expect(res.status).toBe(500); // surfaces as server error to client
   });
 });
 
@@ -200,14 +266,14 @@ describe("NESTAi — context trimming", () => {
     expect(groqCalls).toHaveLength(0);
   });
 
-  it("sends request to Groq with model llama-3.1-8b-instant and stream: true", async () => {
+  it("sends request to Groq with primary model llama-3.3-70b-versatile and stream: true", async () => {
     await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
     const groqCall = mockFetch.mock.calls.find(
       (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
     );
     expect(groqCall).toBeDefined();
     const requestBody = JSON.parse((groqCall![1] as RequestInit).body as string);
-    expect(requestBody.model).toBe("llama-3.1-8b-instant");
+    expect(requestBody.model).toBe("llama-3.3-70b-versatile");
     expect(requestBody.stream).toBe(true);
   });
 

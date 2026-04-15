@@ -11,11 +11,13 @@ import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescrip
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
+import { createClient } from "@/lib/supabase/client";
 
 interface MessageAttachment {
   name: string;
-  fileType: string; // 'pdf' | 'docx' | 'doc' | 'txt' | 'md'
-  preview?: string; // first 3000 chars of extracted text, for in-chat viewing
+  fileType: string; // 'pdf' | 'docx' | 'doc' | 'txt' | 'md' | image type
+  preview?: string; // first 3000 chars of extracted text
+  storagePath?: string; // Supabase Storage path for binary preview/download
 }
 
 interface Message {
@@ -38,9 +40,10 @@ interface ChatSession {
 
 interface AttachedFile {
   name: string;
-  text: string | null;  // null while loading or on error
+  text: string | null;
   loading: boolean;
   error?: string;
+  storagePath?: string | null;
 }
 
 const MAX_REQUESTS = 5;
@@ -345,6 +348,143 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
   );
 }
 
+// ── Chat attachment preview modal ──────────────────────────────────────────────
+// Fetches a signed URL when storagePath is present so PDF/image files can be
+// viewed inline. Falls back to the extracted text preview for other types.
+
+function ChatAttachmentPreview({
+  attachment,
+  onClose,
+}: {
+  attachment: MessageAttachment;
+  onClose: () => void;
+}) {
+  const ft = attachment.fileType.toLowerCase();
+  const isPDF   = ft === "pdf";
+  const isImage = ["png", "jpg", "jpeg", "gif", "webp", "heic"].includes(ft);
+  const needsSignedUrl = (isPDF || isImage) && !!attachment.storagePath;
+
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  // Initialize to true when we know we'll need to fetch — no sync setState in effect.
+  const [loadingUrl, setLoadingUrl] = useState(needsSignedUrl);
+
+  useEffect(() => {
+    if (!needsSignedUrl) return;
+    let cancelled = false;
+    fetch(`/api/nesta-ai/attachment-url?path=${encodeURIComponent(attachment.storagePath!)}`)
+      .then((r) => r.json())
+      .then((d: { signedUrl?: string }) => {
+        if (cancelled) return;
+        if (d.signedUrl) setSignedUrl(d.signedUrl);
+        setLoadingUrl(false);
+      })
+      .catch(() => { if (!cancelled) setLoadingUrl(false); });
+    return () => { cancelled = true; };
+  }, [attachment.storagePath, needsSignedUrl]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="nestai-modal rounded-2xl border shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={cn(
+              "flex h-10 w-8 shrink-0 flex-col items-center justify-between rounded-lg border py-1",
+              FILE_TYPE_META[ft]?.border ?? "border-border",
+              "bg-white dark:bg-[#1a1a1a]"
+            )}>
+              <span className={cn("text-[7px] font-bold leading-none mt-0.5", FILE_TYPE_META[ft]?.text ?? "text-muted-foreground")}>
+                {(FILE_TYPE_META[ft]?.label ?? attachment.fileType).toUpperCase()}
+              </span>
+              <div className="flex gap-px mb-0.5">
+                {[...Array(3)].map((_, i) => (
+                  <span key={i} className={cn("h-px w-3 rounded-full opacity-30", FILE_TYPE_META[ft]?.text ?? "text-muted-foreground")} />
+                ))}
+              </div>
+            </div>
+            <p className="font-semibold text-sm truncate">{attachment.name}</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {signedUrl && (
+              <a
+                href={signedUrl}
+                download={attachment.name}
+                className="h-8 px-3 flex items-center gap-1.5 text-xs rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label="Close preview"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-hidden min-h-0">
+          {loadingUrl && (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {!loadingUrl && isPDF && signedUrl && (
+            <iframe
+              src={signedUrl}
+              title={attachment.name}
+              className="w-full h-full min-h-[60vh]"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
+
+          {!loadingUrl && isImage && signedUrl && (
+            <div className="flex items-center justify-center h-full p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={signedUrl} alt={attachment.name} className="max-h-[70vh] max-w-full object-contain rounded-lg" />
+            </div>
+          )}
+
+          {!loadingUrl && !signedUrl && attachment.preview && (
+            <div className="overflow-y-auto px-5 py-4 h-full">
+              <pre className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-foreground break-words">
+                {attachment.preview}
+                {attachment.preview.length >= 3000 && (
+                  <span className="block mt-4 text-xs text-muted-foreground not-italic font-sans border-t pt-3">
+                    Preview limited to first 3,000 characters. The full document was sent to NESTAi.
+                  </span>
+                )}
+              </pre>
+            </div>
+          )}
+
+          {!loadingUrl && !signedUrl && !attachment.preview && (
+            <div className="flex flex-col items-center justify-center h-48 text-center px-6">
+              <Paperclip className="h-8 w-8 text-muted-foreground/30 mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">Preview not available</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">This file was attached before preview support was added.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NestAiPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -355,6 +495,13 @@ export default function NestAiPage() {
   const [windowEndAt, setWindowEndAt] = useState<number | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isDegraded, setIsDegraded] = useState(false);
+
+  // ── Interview Prep modal ──────────────────────────────────────────────────
+  const [prepModalOpen, setPrepModalOpen] = useState(false);
+  const [prepApps, setPrepApps] = useState<{ id: string; company: string; position: string; job_description: string | null }[]>([]);
+  const [prepSelectedId, setPrepSelectedId] = useState<string>("");
+  const [prepFetched, setPrepFetched] = useState(false); // true after first fetch completes
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -379,6 +526,7 @@ export default function NestAiPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const rateLimitBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (window.innerWidth >= 1024) setSidebarOpen(true);
@@ -404,13 +552,18 @@ export default function NestAiPage() {
 
   useEffect(() => {
     if (!windowEndAt) { setResetCountdown(null); return; }
+    const totalSecs = WINDOW_MS / 1000;
     const tick = () => {
       const secsLeft = Math.ceil((windowEndAt - Date.now()) / 1000);
       if (secsLeft <= 0) {
         setRemaining(MAX_REQUESTS); setIsRateLimited(false); setError(null);
         setWindowEndAt(null); setResetCountdown(null);
+        if (rateLimitBarRef.current) rateLimitBarRef.current.style.width = "0%";
       } else {
         setResetCountdown(secsLeft);
+        if (rateLimitBarRef.current) {
+          rateLimitBarRef.current.style.width = `${Math.max(0, (secsLeft / totalSecs) * 100)}%`;
+        }
       }
     };
     tick();
@@ -441,6 +594,23 @@ export default function NestAiPage() {
   }, []);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  useEffect(() => {
+    if (!prepModalOpen || prepFetched) return;
+    let cancelled = false;
+    createClient()
+      .from("job_applications")
+      .select("id, company, position, job_description")
+      .in("status", ["Applied", "Phone Screen", "Interview"])
+      .order("applied_date", { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setPrepApps((data ?? []) as typeof prepApps);
+        setPrepFetched(true);
+      });
+    return () => { cancelled = true; };
+  }, [prepModalOpen, prepFetched]);
 
   const createSession = async (): Promise<string | null> => {
     try {
@@ -612,12 +782,13 @@ export default function NestAiPage() {
     try {
       const form = new FormData();
       form.append("file", file);
+      if (currentSessionId) form.append("session_id", currentSessionId);
       const res = await fetch("/api/nesta-ai/parse-file", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
         setAttachedFile({ name: file.name, text: null, loading: false, error: data.error || "Could not extract text" });
       } else {
-        setAttachedFile({ name: file.name, text: data.text, loading: false });
+        setAttachedFile({ name: file.name, text: data.text, storagePath: data.storagePath ?? null, loading: false });
       }
     } catch {
       setAttachedFile({ name: file.name, text: null, loading: false, error: "Failed to process file" });
@@ -660,6 +831,7 @@ export default function NestAiPage() {
             name: attachedFile.name,
             fileType: attachedFile.name.split(".").pop() ?? "txt",
             preview: attachedFile.text?.slice(0, 3000) ?? undefined,
+            storagePath: attachedFile.storagePath ?? undefined,
           }
         : undefined;
 
@@ -718,6 +890,7 @@ export default function NestAiPage() {
       setRemaining(rlRemaining);
       if (rlResetIn > 0) setWindowEndAt(Date.now() + rlResetIn * 1000);
       if (rlRemaining === 0) setIsRateLimited(true);
+      setIsDegraded(res.headers.get("X-NESTAi-Degraded") === "1");
 
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
@@ -883,6 +1056,14 @@ export default function NestAiPage() {
 
       <div className="flex-1 flex flex-col min-w-0">
 
+        {isDegraded && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 shrink-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            Running on reduced capacity — switched to a smaller model. Responses may be shorter.
+            <button type="button" onClick={() => setIsDegraded(false)} className="ml-auto text-amber-600 dark:text-amber-400 hover:opacity-70">✕</button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between px-4 py-3.5 border-b nestai-topbar shrink-0">
           <div className="flex items-center gap-2">
             {!sidebarOpen && (
@@ -905,6 +1086,14 @@ export default function NestAiPage() {
 
           <div className="flex items-center gap-2">
             <RateLimitCounter remaining={remaining} max={MAX_REQUESTS} resetCountdown={resetCountdown} isRateLimited={isRateLimited} />
+            <button
+              type="button"
+              onClick={() => setPrepModalOpen(true)}
+              title="Interview Prep — generate tailored STAR questions for an upcoming interview"
+              className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs text-[#55433d] hover:text-[#1a1c1b] hover:bg-[#f4f3f1] rounded-full transition-colors"
+            >
+              <Target className="h-3.5 w-3.5" /> Prep
+            </button>
             {messages.length > 0 && (
               <button
                 type="button"
@@ -1080,8 +1269,8 @@ export default function NestAiPage() {
               <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-4">
                 <div className="h-1 w-full rounded-full bg-destructive/15 mb-3 overflow-hidden">
                   <div
+                    ref={rateLimitBarRef}
                     className="h-full rounded-full bg-destructive/40 transition-all duration-1000"
-                    style={{ width: `${Math.max(0, (resetCountdown / (WINDOW_MS / 1000)) * 100)}%` }}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4">
@@ -1204,75 +1393,83 @@ export default function NestAiPage() {
     </div>
 
     {previewDoc && (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-        onClick={() => setPreviewDoc(null)}
-        aria-label="Close document preview"
-      >
-        <div
-          className="nestai-modal rounded-2xl border shadow-2xl w-full max-w-2xl max-h-[82vh] flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "flex h-10 w-8 shrink-0 flex-col items-center justify-between rounded-lg border py-1",
-                FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.border ?? "border-border",
-                "bg-white dark:bg-[#1a1a1a]"
-              )}>
-                <span className={cn("text-[7px] font-bold leading-none mt-0.5",
-                  FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.text ?? "text-muted-foreground")}>
-                  {(FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.label ?? previewDoc.fileType).toUpperCase()}
-                </span>
-                <div className="flex gap-px mb-0.5">
-                  {[...Array(3)].map((_, i) => (
-                    <span key={i} className={cn("h-px w-3 rounded-full opacity-30",
-                      FILE_TYPE_META[previewDoc.fileType.toLowerCase()]?.text ?? "text-muted-foreground")} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-sm leading-tight">{previewDoc.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {previewDoc.fileType.toUpperCase()} · {previewDoc.preview
-                    ? `${previewDoc.preview.length.toLocaleString()} characters extracted`
-                    : "No preview available"}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPreviewDoc(null)}
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
-              aria-label="Close preview"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {previewDoc.preview ? (
-              <pre className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-foreground break-words">
-                {previewDoc.preview}
-                {previewDoc.preview.length >= 3000 && (
-                  <span className="block mt-4 text-xs text-muted-foreground not-italic font-sans border-t pt-3">
-                    Preview limited to first 3,000 characters. The full document was sent to NESTAi.
-                  </span>
-                )}
-              </pre>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-32 text-center">
-                <Paperclip className="h-8 w-8 text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Preview not available</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">
-                  This file was attached before preview support was added.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <ChatAttachmentPreview
+        attachment={previewDoc}
+        onClose={() => setPreviewDoc(null)}
+      />
     )}
+
+    {/* ── Interview Prep modal ─────────────────────────────────────────── */}
+    <Dialog open={prepModalOpen} onOpenChange={(o) => { setPrepModalOpen(o); if (!o) setPrepSelectedId(""); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-[#99462a]" />
+            Interview Prep
+          </DialogTitle>
+          <DialogDescription>
+            Pick an application to prep for. NESTAi will generate tailored STAR questions and evaluate your answers.
+          </DialogDescription>
+        </DialogHeader>
+
+        {prepModalOpen && !prepFetched ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground gap-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading applications…
+          </div>
+        ) : prepApps.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No active applications found. Add applications with status Applied, Phone Screen, or Interview first.
+          </p>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {prepApps.map((app) => (
+              <button
+                type="button"
+                key={app.id}
+                onClick={() => setPrepSelectedId(app.id)}
+                className={cn(
+                  "w-full text-left rounded-xl px-4 py-3 border text-sm transition-colors",
+                  prepSelectedId === app.id
+                    ? "border-[#99462a] bg-[#99462a]/5"
+                    : "border-border hover:border-[#99462a]/40 hover:bg-muted/40"
+                )}
+              >
+                <p className="font-semibold text-foreground truncate">{app.position}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{app.company}</p>
+                {!app.job_description && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠ No job description — add it for better questions
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setPrepModalOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            disabled={!prepSelectedId}
+            onClick={() => {
+              const app = prepApps.find((a) => a.id === prepSelectedId);
+              if (!app) return;
+              const jdNote = app.job_description
+                ? `Based on their job description: "${app.job_description.slice(0, 600)}${app.job_description.length > 600 ? "…" : ""}"`
+                : "(No job description stored — ask general behavioral questions for this role.)";
+              const prompt = `I have an interview coming up at ${app.company} for the ${app.position} role.\n\n${jdNote}\n\nPlease generate 5 tailored STAR behavioral interview questions for this specific role. After each question I'll share my draft answer — evaluate it with specific, actionable feedback.`;
+              setInput(prompt);
+              setPrepModalOpen(false);
+              setPrepSelectedId("");
+              setTimeout(() => inputRef.current?.focus(), 100);
+            }}
+          >
+            <Target className="h-3.5 w-3.5 mr-1.5" />
+            Start prep
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
 
     {/* ── Delete chat confirmation dialog ──────────────────────────────── */}
     <Dialog

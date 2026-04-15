@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, FileText } from "lucide-react";
+import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
@@ -63,6 +63,66 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
 
   const currentStatus = watch("status");
   const currentSource = watch("source");
+
+  // ── JD Parser ────────────────────────────────────────────────────────────
+  const [parseModalOpen, setParseModalOpen] = useState(false);
+  const [parseTab, setParseTab] = useState<"url" | "text">("url");
+  const [parseUrl, setParseUrl] = useState("");
+  const [parseText, setParseText] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  const handleParse = useCallback(async () => {
+    setParseError(null);
+    setParsing(true);
+    try {
+      const body = parseTab === "url"
+        ? { url: parseUrl.trim() }
+        : { text: parseText.trim() };
+      const res = await fetch("/api/applications/parse-jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json() as {
+        company?: string | null;
+        position?: string | null;
+        location?: string | null;
+        salary_range?: string | null;
+        job_description?: string | null;
+        fetchFailed?: boolean;
+        error?: string;
+      };
+
+      if (data.fetchFailed) {
+        setParseTab("text");
+        setParseError(data.error ?? "Couldn't fetch that URL — paste the text instead.");
+        setParsing(false);
+        return;
+      }
+      if (!res.ok) {
+        setParseError(data.error ?? "Failed to parse. Please try again.");
+        setParsing(false);
+        return;
+      }
+
+      // Pre-fill form fields with extracted values
+      if (data.company)         setValue("company",         data.company);
+      if (data.position)        setValue("position",        data.position);
+      if (data.location)        setValue("location",        data.location ?? "");
+      if (data.salary_range)    setValue("salary_range",    data.salary_range ?? "");
+      if (data.job_description) setValue("job_description", data.job_description);
+
+      setParseModalOpen(false);
+      setParseUrl("");
+      setParseText("");
+      toast.success("Job posting imported — review and edit the fields below.");
+    } catch {
+      setParseError("Request failed. Check your connection and try again.");
+    } finally {
+      setParsing(false);
+    }
+  }, [parseTab, parseUrl, parseText, setValue]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     if (submittingRef.current) return;
@@ -179,13 +239,27 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
 
   return (
     <div className="db-content-card">
-      <div className="mb-6">
-        <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
-          {isEditing ? "Edit Application" : "New Application"}
-        </h2>
-        <p className="text-sm text-[#55433d]/70 mt-1">
-          {isEditing ? "Update the details of your job application" : "Track a new job application"}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
+            {isEditing ? "Edit Application" : "New Application"}
+          </h2>
+          <p className="text-sm text-[#55433d]/70 mt-1">
+            {isEditing ? "Update the details of your job application" : "Track a new job application"}
+          </p>
+        </div>
+        {!isEditing && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => { setParseModalOpen(true); setParseError(null); }}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Import from job posting
+          </Button>
+        )}
       </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Company & Position */}
@@ -464,6 +538,99 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             </Button>
           </div>
         </form>
+
+      {/* ── JD Parser modal ────────────────────────────────────────────── */}
+      {parseModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setParseModalOpen(false)}
+        >
+          <div
+            className="bg-[#faf9f7] dark:bg-[#0a0a0a] rounded-2xl border shadow-2xl w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[#99462a]" />
+                <span className="font-semibold text-sm">Import from job posting</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setParseModalOpen(false)}
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Tab selector */}
+              <div className="flex rounded-lg border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { setParseTab("url"); setParseError(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${parseTab === "url" ? "bg-[#99462a] text-white" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Link className="h-3.5 w-3.5" /> URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setParseTab("text"); setParseError(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors ${parseTab === "text" ? "bg-[#99462a] text-white" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <AlignLeft className="h-3.5 w-3.5" /> Paste text
+                </button>
+              </div>
+
+              {parseTab === "url" ? (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Job posting URL</label>
+                  <input
+                    type="url"
+                    value={parseUrl}
+                    onChange={(e) => setParseUrl(e.target.value)}
+                    placeholder="https://example.com/jobs/senior-engineer"
+                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Works for most public job pages. LinkedIn and Indeed may block auto-fetch — use Paste text instead.</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Job description text</label>
+                  <textarea
+                    value={parseText}
+                    onChange={(e) => setParseText(e.target.value)}
+                    placeholder="Paste the full job posting here…"
+                    rows={8}
+                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40 resize-none"
+                  />
+                </div>
+              )}
+
+              {parseError && (
+                <p className="text-xs text-destructive bg-destructive/8 border border-destructive/20 rounded-lg px-3 py-2">
+                  {parseError}
+                </p>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="outline" size="sm" onClick={() => setParseModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={parsing || (parseTab === "url" ? !parseUrl.trim() : parseText.trim().length < 50)}
+                  onClick={handleParse}
+                >
+                  {parsing ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />Extracting…</> : <><Sparkles className="mr-1.5 h-3.5 w-3.5" />Import fields</>}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

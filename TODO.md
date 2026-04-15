@@ -380,6 +380,10 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Environment variable validation on startup** — `lib/env.ts` + `instrumentation.ts`; Next.js instrumentation hook runs `validateEnv()` on server start; throws immediately with a clear list of missing required vars
 - [x] **`sb_rm` cookie hardened** — uses `__Host-` prefix in production (binds to exact host, no Domain attribute, Secure required, Path=/); prevents subdomain injection; `auth-sync.tsx` and `proxy.ts` both fall back to the plain name in dev
 - [x] **CSRF on profile API routes** — `verifyOrigin()` added to all 8 profile mutation routes; blocks cross-origin POST when Origin header is present and doesn't match `NEXT_PUBLIC_APP_URL`; defence-in-depth on top of SameSite=Lax
+- [x] **SSRF protection on parse-jd** — `assertSafeUrl()` pre-resolves every user-supplied URL via `node:dns/promises` and rejects loopback, RFC-1918, link-local (AWS/GCP metadata 169.254.x), CGNAT, and IPv6 private ranges before the server-side fetch; post-redirect check on `res.url` blocks public→private open-redirect chains
+- [x] **Storage path traversal fix on parse-file** — `session_id` FormData value now validated against a strict UUID regex before being interpolated into the Supabase Storage path; non-conforming values silently skip the upload (text extraction still succeeds)
+- [x] **CSRF on parse-file** — `verifyOrigin()` added to the file-upload route (state-mutating POST that writes to Storage), matching the guard already on parse-jd and all profile routes
+- [x] **Path traversal belt-and-suspenders on attachment-url** — explicit `path.includes("..")` rejection before the `startsWith` ownership check; `..` segments cannot reach another user's files even if Supabase Storage were to normalise them
 
 ---
 
@@ -395,7 +399,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - `pdf-parse` 1.x → 2.x (major API change)
 - [ ] **Move document parse cache to Redis** — in-memory cache lost on cold starts
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [x] **Vitest tests — 426 tests, 36 files, 100% pass (no browser, fully automated)**
+- [x] **Vitest tests — 522 tests, 46 files, 100% pass (no browser, fully automated)**
   - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure), proxy
   - E2E flow tests: `tests/flows/` — full user journeys: login (remember-me), signup (age/terms), forgot-password, change-password, delete+reactivate, NESTAi chat+upload, **Stripe billing** (checkout → webhook → portal → payment failure dunning → cancellation)
   - No Playwright — all tests run via `npm test` in any CI/CD environment
@@ -461,15 +465,15 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🤖 NESTAi — AI Enhancements
 
-- [ ] **Model fallback chain** — if Groq is unavailable / rate-limited, fall back to `llama-3.1-8b-instant` (faster) then surface a "degraded mode" banner; prevents total AI outage
+- [x] **Model fallback chain** — primary `llama-3.3-70b-versatile`; falls back to `llama-3.1-8b-instant` on 429/5xx; amber "reduced capacity" banner shown via `X-NESTAi-Degraded` response header; prevents total AI outage
 - [ ] **Per-plan AI rate limits** — free: 5 req/min (current), Pro: 30 req/min; enforce server-side based on `subscriptions.plan`
 - [ ] **Cost guardrails** — track token usage per user per day in `ai_usage` table; hard-cap at 100k tokens/day for free, 2M for Pro; alert when approaching 80%
 - [ ] **RAG over user data** — generate `pgvector` embeddings for applications, interview notes, and contacts; semantic similarity search at query time gives NESTAi far richer context than flat JSON injection
 - [ ] **Resume analyser** — dedicated flow: user uploads resume → NESTAi grades it against ATS criteria, suggests improvements, extracts skills/experience to pre-fill application fields
-- [ ] **Job description parser** — paste a JD URL or text → NESTAi extracts company, role, salary range, requirements; auto-fills a new application; highlights skill gaps vs. user profile
-- [ ] **Interview prep mode** — given an application + job description, NESTAi generates role-specific STAR questions, evaluates user's draft answers, and suggests improvements
+- [x] **Job description parser** — "Import from job posting" button on new-application form; paste a URL or raw text → Groq (llama-3.3-70b) extracts company, role, location, salary range, and full JD; auto-fills all form fields; SSRF-protected URL fetch (DNS pre-resolution blocks private/loopback/AWS-metadata IPs + post-redirect check); falls back to paste-text tab if URL is blocked or unreachable
+- [x] **Interview prep mode** — "Prep" button in NESTAi header opens a modal listing active applications (Applied/Phone Screen/Interview); select one → NESTAi generates 5 tailored STAR behavioral questions from the stored JD; user drafts answers and gets specific actionable feedback
 - [ ] **Email draft assistant** — given a contact + template category, NESTAi drafts a personalised follow-up or thank-you email; user can copy or send directly
-- [ ] **File preview + download in chat** — when the user clicks any uploaded file attachment in a NESTAi chat message, show an inline preview (PDF rendered in iframe, images in `<img>`, DOCX/TXT shown as extracted text); viewer includes a Download button that triggers a signed-URL download without leaving the chat; mirrors ChatGPT/Claude/Gemini UX where attachments are fully self-contained inside the conversation
+- [x] **File preview + download in chat** — clicking any uploaded file card in NESTAi opens `ChatAttachmentPreview`; PDFs render in a sandboxed `<iframe>`, images in `<img>`, other types show extracted text; Download button uses a 10-min signed URL fetched from `/api/nesta-ai/attachment-url`; binary stored to Supabase Storage (`chat-attachments/{userId}/{sessionId}/…`) on upload via parse-file; path ownership enforced server-side before signing
 - [ ] **Chat to PDF export** — "Export chat" button in the NESTAi sidebar or chat header; renders the entire conversation (user messages, AI responses including markdown, file attachment cards, timestamps) into a formatted single PDF; useful for saving interview prep sessions, sharing AI-generated advice with a mentor, or keeping a record of a job search strategy session
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
 
@@ -583,4 +587,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 9 April 2026 — ATS Scanner page (5 AI providers, server-component, keyword-anchored scoring); migrations 21+22 (job_description, source, Ghosted/Withdrawn, ats_score); application completeness ring (simple on list, full client card on detail); follow-up cadence cron (Day 7/14/21); re-engagement emails cron (14-day inactivity, 30-day cooldown); Document Library overhaul (all docs, 1GB, preview popup, ATS button, delete gating, Cloudmersive virus scan); Work Authorization (profile, sidebar badge, NESTAi injection); NESTAi wider layout + break-words overflow fix; Radix scroll-lock fix (white strip + navbar disappear on Windows); JSON-LD structured data on landing + pricing; llms.txt for GEO; robots.txt updated; dashboard quick-access cards; ATS score dynamic via keyword overlap; 0 ESLint errors; comment cleanup; README + TODO updated; 468 tests, 43 files, 100% pass.*
+*Last updated: 14 April 2026 — NESTAi: model fallback (llama-3.3-70b → llama-3.1-8b-instant on 429/5xx, degraded-mode amber banner, X-NESTAi-Model/Degraded headers); JD parser on application form (URL + text mode, SSRF-protected, auto-fills company/position/location/salary/description); interview prep modal (STAR questions from stored JD); chat file preview + download (ChatAttachmentPreview — PDF iframe, image, text fallback; signed URL via attachment-url route; binary upload to chat-attachments Storage on parse-file); security: SSRF guard (DNS pre-resolve + post-redirect check), storage path traversal (UUID sessionId validation), CSRF on parse-file, `..` path block on attachment-url; 522 tests, 46 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*
