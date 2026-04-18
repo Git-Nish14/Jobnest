@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar, ScanSearch,
+  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,9 @@ import { CompletenessRing } from "./completeness-ring";
 
 interface ApplicationCardProps {
   application: JobApplication;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 function statusTokens(status: string) {
@@ -35,10 +38,30 @@ function statusTokens(status: string) {
   return map[status] ?? { accent: "bg-border", avatar: "db-status-default", badge: "db-status-default" };
 }
 
-export function ApplicationCard({ application }: ApplicationCardProps) {
+export function ApplicationCard({ application, selectable, selected, onSelect }: ApplicationCardProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicated, setDuplicated] = useState(false);
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      const res = await fetch(`/api/applications/${application.id}/duplicate`, { method: "POST" });
+      if (res.ok) {
+        setDuplicated(true);
+        setTimeout(() => setDuplicated(false), 2000);
+        router.refresh();
+      } else {
+        toast.error("Failed to duplicate application. Please try again.");
+      }
+    } catch {
+      toast.error("Failed to duplicate application. Please try again.");
+    } finally {
+      setDuplicating(false);
+    }
+  };
 
   const handleDeleteClick = () => {
     setConfirmingDelete(true);
@@ -71,8 +94,23 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
   const { accent, avatar, badge } = statusTokens(application.status);
 
   return (
-    <div className="db-app-card group relative overflow-hidden pl-5 sm:pl-6">
+    <div className={cn("db-app-card group relative overflow-hidden pl-5 sm:pl-6", selected && "ring-2 ring-[#99462a] dark:ring-[#ccff00]")}>
       <div className={cn("absolute left-0 inset-y-0 w-1.5 rounded-l-xl", accent)} />
+
+      {/* Selection checkbox — shown in selectable mode */}
+      {selectable && (
+        <button
+          type="button"
+          onClick={() => onSelect?.(application.id)}
+          aria-label={selected ? "Deselect application" : "Select application"}
+          className="absolute top-3 right-3 z-10 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors
+            border-muted-foreground/30 hover:border-[#99462a] dark:hover:border-[#ccff00]
+            bg-background data-checked:bg-[#99462a] dark:data-checked:bg-[#ccff00]"
+          data-checked={selected || undefined}
+        >
+          {selected && <Check className="h-3 w-3 text-white dark:text-black" />}
+        </button>
+      )}
 
       <div className="flex items-start gap-4 sm:gap-5">
         <div className={cn("db-company-avatar-lg shrink-0", avatar)}>
@@ -130,6 +168,13 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating || duplicated}>
+                      {duplicated ? (
+                        <><Check className="mr-2 h-4 w-4 text-emerald-600" />Duplicated</>
+                      ) : (
+                        <><Copy className="mr-2 h-4 w-4" />{duplicating ? "Duplicating…" : "Duplicate"}</>
+                      )}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {confirmingDelete ? (

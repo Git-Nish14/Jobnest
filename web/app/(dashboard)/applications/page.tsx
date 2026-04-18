@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
 import { getApplications } from "@/services";
-import { ExportButton, ApplicationCard, ApplicationFilters, KanbanBoard, ViewToggle } from "@/components/applications";
+import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
 
 const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
@@ -70,11 +70,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         view === "kanban" ? (
           <KanbanBoard applications={apps} />
         ) : (
-          <div className="space-y-4">
-            {apps.map((app) => (
-              <ApplicationCard key={app.id} application={app} />
-            ))}
-          </div>
+          <ApplicationsList applications={apps} />
         )
       ) : (
         /* Empty state — differentiate filtered vs brand-new user */
