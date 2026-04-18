@@ -336,7 +336,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **Job description store** — `job_description TEXT` field on `job_applications` (currently only `job_url` exists); paste or import the full JD text; powers ATS scan, keyword extraction, and NESTAi tailoring
 - [x] **ATS compatibility score** — `/ats` scanner page (5 AI providers); keyword overlap pre-computed server-side; score persisted to `job_applications.ats_score`; badge on application card
-- [ ] **Resume tailoring checklist** — per application: checkbox list auto-generated from JD; deferred
+- [x] **Resume tailoring checklist** — `POST /api/applications/[id]/tailoring-checklist`; Groq extracts 6–8 actionable tips from stored JD; sidebar card on detail page; checkbox state + items persisted to localStorage per application; progress bar; prompts to add JD if none stored
 - [x] **Application completeness score** — 10-field ring on list cards (simple, no popup); full interactive checklist on detail page (client component, live-refetches on tab focus)
 - [x] **Follow-up cadence enforcer** — `/api/cron/follow-up-reminders` (daily 09:00 UTC); auto-creates Day 7/14/21 reminders for Applied/Phone Screen apps; idempotent via description marker
 - [x] **"Ghosted" status** — add `Ghosted` to `application_status` enum; auto-suggest after 30 days with no activity; analytics: % ghosted by company tier, job board source, season
@@ -466,7 +466,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ## 🤖 NESTAi — AI Enhancements
 
 - [x] **Model fallback chain** — primary `llama-3.3-70b-versatile`; falls back to `llama-3.1-8b-instant` on 429/5xx; amber "reduced capacity" banner shown via `X-NESTAi-Degraded` response header; prevents total AI outage
-- [ ] **Per-plan AI rate limits** — free: 5 req/min (current), Pro: 30 req/min; enforce server-side based on `subscriptions.plan`
+- [x] **Per-plan AI rate limits** — free: 5 req/min, Pro: 30 req/min; enforced server-side in NESTAi route by reading `subscriptions.plan` via admin client; fail-closed (free on error)
 - [ ] **Cost guardrails** — track token usage per user per day in `ai_usage` table; hard-cap at 100k tokens/day for free, 2M for Pro; alert when approaching 80%
 - [ ] **RAG over user data** — generate `pgvector` embeddings for applications, interview notes, and contacts; semantic similarity search at query time gives NESTAi far richer context than flat JSON injection
 - [ ] **Resume analyser** — dedicated flow: user uploads resume → NESTAi grades it against ATS criteria, suggests improvements, extracts skills/experience to pre-fill application fields
@@ -486,7 +486,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Referral system** — `referrals` table; unique referral link per user; referred user gets 1-month Pro trial; referrer gets 1 free month after referee converts; track in dashboard
 - [ ] **Feature flags** — integrate Vercel Edge Config or [Unleash](https://www.getunleash.io/) for runtime feature toggles; enable gradual rollout of new features to % of users without redeploy
 - [ ] **A/B testing** — use Vercel Experiments or custom `x-variant` cookie + Edge Config; start with pricing page CTA button copy and plan layout
-- [ ] **Weekly digest email** — prefs toggle already exists; build the actual cron (`/api/cron/weekly-digest`) that sends a personalised summary: applications this week, upcoming interviews, overdue reminders
+- [x] **Weekly digest email** — `/api/cron/weekly-digest` (Mondays 08:00 UTC) fully implemented; fetches per-user stats (apps this week, active pipeline, upcoming interviews, overdue reminders), recent apps and upcoming interview rows; sends via `sendWeeklyDigestEmail`; opt-in via `notification_prefs.weekly_digest`
 - [x] **Re-engagement emails** — `/api/cron/re-engagement` (daily 10:00 UTC); targets users inactive ≥14 days; 30-day cooldown; opt-out toggle in profile notifications; PII-safe logs
 - [ ] **NPS / in-app feedback** — show a 1-question NPS survey after 7 days of use and after major events (first offer recorded, account upgrade); store responses in `feedback` table
 - [ ] **Changelog / "What's new"** — badge on nav when there's an unseen update; modal with release notes; dismisses per-user via `localStorage`
@@ -506,16 +506,16 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🎨 Feature Expansion
 
-- [ ] **Kanban board view** — drag-and-drop Kanban across application statuses (Applied → Phone Screen → Interview → Offer → Accepted/Rejected); alternative to the current list view; toggle between views
-- [ ] **Dark mode** — CSS variable swap (dark parchment palette); `prefers-color-scheme` media query + manual toggle; persist preference in `localStorage`; currently light-only
+- [x] **Kanban board view** — `KanbanBoard` component; `?view=kanban` URL param; `ViewToggle` in header; drag-and-drop across status columns; status updated via PATCH on drop
+- [x] **Dark mode** — `.dark` class toggle; full black + #ccff00 palette in `globals.css`; `ThemeToggle` in Navbar; persisted in `localStorage`; logo swap + hardcoded colour overrides handled
 - [ ] **Application status timeline** — visual swimlane showing days elapsed at each stage across all active applications; identify bottlenecks
 - [ ] **Company research panel** — in application detail, pull company info (size, industry, Glassdoor rating, news) from a public API (Clearbit, Crunchbase, or OpenCorporates); display as a collapsible sidebar panel
 - [ ] **Offer decision helper** — compare up to 3 offers side-by-side with weighted scoring (salary, benefits, location, culture, growth); helps users make data-driven decisions
 - [ ] **Document versioning** — keep previous resume/cover letter versions per application; label each version (v1, v2, tailored); view diff; avoids overwriting working documents
 - [ ] **Reminder recurrence** — weekly / biweekly recurring reminders (e.g. "Check LinkedIn connections every Monday"); `rrule` column on reminders table
 - [ ] **Global command palette** — `⌘K` / `Ctrl+K` opens a Spotlight-style palette; search across all applications, contacts, sessions; quick-navigate to any page; add new application / interview inline
-- [ ] **Bulk actions** — checkboxes on applications list; bulk status-change, bulk delete, bulk export; essential once users have 100+ applications
-- [ ] **Application duplication** — "Duplicate application" action; useful for re-applying to the same role at a different company branch or after a failed attempt
+- [x] **Bulk actions** — `ApplicationsList` client component; selection checkboxes on every card; sticky bulk bar (set status, CSV export, two-step delete confirm); select all / deselect all; `effectiveSelected` derived state prevents stale cross-filter selections
+- [x] **Application duplication** — `POST /api/applications/[id]/duplicate`; "Duplicate" in card dropdown; copies all fields, resets status to Applied + applied_date to today; toast on success/failure
 
 ---
 
@@ -587,4 +587,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 14 April 2026 — NESTAi: model fallback (llama-3.3-70b → llama-3.1-8b-instant on 429/5xx, degraded-mode amber banner, X-NESTAi-Model/Degraded headers); JD parser on application form (URL + text mode, SSRF-protected, auto-fills company/position/location/salary/description); interview prep modal (STAR questions from stored JD); chat file preview + download (ChatAttachmentPreview — PDF iframe, image, text fallback; signed URL via attachment-url route; binary upload to chat-attachments Storage on parse-file); security: SSRF guard (DNS pre-resolve + post-redirect check), storage path traversal (UUID sessionId validation), CSRF on parse-file, `..` path block on attachment-url; 522 tests, 46 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*
+*Last updated: 18 April 2026 — Resume tailoring checklist (AI-generated sidebar card, localStorage persistence); application duplication (POST /api/applications/[id]/duplicate, "Duplicate" in card dropdown); bulk actions (ApplicationsList, sticky bar, two-step delete confirm, effectiveSelected derived state, timer ref cleanup); stale todo entries corrected: kanban board, dark mode, bulk actions, duplication, resume tailoring checklist, per-plan AI rate limits, weekly digest cron all marked done; 549 tests, 48 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*
