@@ -13,6 +13,7 @@ import { DocumentManager } from "@/components/documents";
 import type { LegacyDoc } from "@/components/documents/DocumentManager";
 import { cn } from "@/lib/utils";
 import { CompletenessCard } from "@/components/applications/completeness-card";
+import { TailoringChecklist } from "@/components/applications/tailoring-checklist";
 
 export const dynamic = "force-dynamic";
 
@@ -246,6 +247,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
           {/* ── Application completeness — client component, live-updates on focus ── */}
           <CompletenessCard applicationId={id} />
+
+          {/* ── Resume tailoring checklist — AI-generated from stored JD ── */}
+          <TailoringChecklist
+            applicationId={id}
+            hasJobDescription={!!application.job_description}
+          />
 
           {/* Activity Timeline */}
           <ActivityTimeline activities={activityLogs || []} />
