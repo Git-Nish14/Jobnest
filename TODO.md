@@ -346,7 +346,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 📊 Analytics & Export
 
-- [ ] **Richer dashboard analytics** — avg time to first response, interview-to-offer rate, most common rejection stage
+- [x] **Richer dashboard analytics** — "Search Intelligence" section on dashboard: `averageTimeToResponse` (avg days applied_date→updated_at for responded apps, 90-day cap), `interviewToOfferRate` ((Offer+Accepted)/(Interview+Offer+Accepted)×100, ≥3 threshold), `ghostRate` (Ghosted/total×100, ≥5 threshold); colour-coded tone cards; hidden on empty dashboard
 - [ ] **US job search funnel** — visualise: Applied → Responded → Phone Screen → Technical → Onsite → Offer → Accepted; industry benchmark overlays (average conversion rates for entry-level SWE in the US); compare user's funnel vs benchmark
 - [ ] **Weekly cadence report** — how many applications submitted this week vs goal; response rate trend; interview velocity (interviews per week); productivity chart; exportable as PDF
 - [ ] **Salary benchmarking** — compare user's offers vs aggregated anonymised salary data from other Jobnest Pro users (same role, same city, same YOE range); "Your offer is in the Xth percentile for SWE-1 in San Francisco" — requires consent opt-in
@@ -508,7 +508,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **Kanban board view** — `KanbanBoard` component; `?view=kanban` URL param; `ViewToggle` in header; drag-and-drop across status columns; status updated via PATCH on drop
 - [x] **Dark mode** — `.dark` class toggle; full black + #ccff00 palette in `globals.css`; `ThemeToggle` in Navbar; persisted in `localStorage`; logo swap + hardcoded colour overrides handled
-- [ ] **Application status timeline** — visual swimlane showing days elapsed at each stage across all active applications; identify bottlenecks
+- [x] **Application status timeline** — "Status Journey" card on application detail page; horizontal stepper (desktop) / vertical stack (mobile); derived from existing `activity_logs` (zero extra DB queries); days-elapsed per stage; terminal vs ongoing colour distinction; negative-day guard; invalid `applied_date` guard; hidden until first status change recorded
 - [ ] **Company research panel** — in application detail, pull company info (size, industry, Glassdoor rating, news) from a public API (Clearbit, Crunchbase, or OpenCorporates); display as a collapsible sidebar panel
 - [ ] **Offer decision helper** — compare up to 3 offers side-by-side with weighted scoring (salary, benefits, location, culture, growth); helps users make data-driven decisions
 - [ ] **Document versioning** — keep previous resume/cover letter versions per application; label each version (v1, v2, tailored); view diff; avoids overwriting working documents
@@ -587,4 +587,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 18 April 2026 — Resume tailoring checklist (AI-generated sidebar card, localStorage persistence); application duplication (POST /api/applications/[id]/duplicate, "Duplicate" in card dropdown); bulk actions (ApplicationsList, sticky bar, two-step delete confirm, effectiveSelected derived state, timer ref cleanup); stale todo entries corrected: kanban board, dark mode, bulk actions, duplication, resume tailoring checklist, per-plan AI rate limits, weekly digest cron all marked done; 549 tests, 48 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*
+*Last updated: 18 April 2026 — Search Intelligence dashboard section (averageTimeToResponse, interviewToOfferRate, ghostRate — zero extra DB queries, colour-coded insight cards); Status Journey card on application detail (horizontal/vertical stepper from activity_logs, days-elapsed per stage, zero extra DB queries); Radix Select crash fix (__none__ sentinel for empty-value SelectItem on Source dropdown, server-side catch in onSubmit); 588 tests, 50 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*

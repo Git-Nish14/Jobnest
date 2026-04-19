@@ -14,6 +14,7 @@ import type { LegacyDoc } from "@/components/documents/DocumentManager";
 import { cn } from "@/lib/utils";
 import { CompletenessCard } from "@/components/applications/completeness-card";
 import { TailoringChecklist } from "@/components/applications/tailoring-checklist";
+import { StatusTimeline } from "@/components/applications/status-timeline";
 
 export const dynamic = "force-dynamic";
 
@@ -221,6 +222,13 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               )}
             </dl>
           </section>
+
+          {/* ── Status Journey — visible once any status change has occurred ── */}
+          <StatusTimeline
+            activities={activityLogs || []}
+            appliedDate={application.applied_date}
+            currentStatus={application.status}
+          />
 
           {/* Notes */}
           {application.notes && (

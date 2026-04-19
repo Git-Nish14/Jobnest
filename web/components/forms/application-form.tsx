@@ -143,7 +143,10 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
         location: data.location || null,
         notes: data.notes || null,
         job_description: data.job_description || null,
-        source: data.source || null,
+        // Strip the "__none__" sentinel in case it survived the onValueChange mapping.
+        // Cast through string: TypeScript knows "__none__" is outside the source union,
+        // but we guard against it at runtime for defence-in-depth.
+        source: ((data.source as string) === "__none__" ? null : data.source) || null,
       };
 
       if (isEditing) {
@@ -321,14 +324,16 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               <Select
                 value={currentSource || ""}
                 onValueChange={(value) =>
-                  setValue("source", (value || "") as ApplicationFormData["source"])
+                  // "__none__" is the sentinel for the "clear" option — Radix forbids value=""
+                  // on SelectItem, so we use a sentinel and map it back to "" here.
+                  setValue("source", (value === "__none__" ? "" : value) as ApplicationFormData["source"])
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Where did you find it?" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Not specified —</SelectItem>
+                  <SelectItem value="__none__">— Not specified —</SelectItem>
                   {APPLICATION_SOURCES.map((src) => (
                     <SelectItem key={src} value={src}>
                       {src}

@@ -238,7 +238,15 @@ export interface DashboardAnalytics {
   thisWeek: number;
   thisMonth: number;
   responseRate: number;
+  /** Median days from applied_date → first status change past Applied.
+   *  null when fewer than 2 responded applications exist. */
   averageTimeToResponse: number | null;
+  /** (Offer + Accepted) / (Interview + Offer + Accepted) × 100.
+   *  null when the denominator is below 3 (not yet statistically meaningful). */
+  interviewToOfferRate: number | null;
+  /** Ghosted / totalApplications × 100.
+   *  null when totalApplications < 5. */
+  ghostRate: number | null;
   statusDistribution: StatusCount[];
   weeklyTrends: WeeklyTrend[];
   monthlyTrends: MonthlyTrend[];

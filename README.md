@@ -43,6 +43,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Weekly bar chart, status distribution chart, upcoming interviews, pending reminders
 - **Quick-access cards** — Document Library + ATS Scanner directly on dashboard
 - Recent applications list
+- **Search Intelligence** — three insight cards derived from existing data (no extra DB queries): avg days to first response (90-day capped proxy), interview-to-offer conversion rate (≥3 threshold), ghosting rate (≥5 threshold); colour-coded positive/neutral/warning tones with actionable context
 
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
@@ -51,6 +52,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…)
 - **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
+- **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
 - Filter by status, location, date range; sort by date/company/position
 - Export to CSV or JSON; kanban board view toggle
 
@@ -148,7 +150,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
-| Testing | Vitest (522 tests, 46 files) |
+| Testing | Vitest (588 tests, 50 files) |
 
 ---
 
@@ -347,7 +349,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (522 tests, 46 files)
+npm test              # Vitest (588 tests, 50 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -359,7 +361,7 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage), proxy logic |
+| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage), analytics metrics (averageTimeToResponse/interviewToOfferRate/ghostRate thresholds), buildStages() status timeline computation, proxy logic |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
 | E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing |
 

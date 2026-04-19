@@ -6,6 +6,7 @@ import { AtelierChart } from "@/components/dashboard/atelier-chart";
 import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart";
 import { AtelierRecentApps } from "@/components/dashboard/atelier-recent-apps";
 import { AtelierTasksPanel } from "@/components/dashboard/atelier-tasks-panel";
+import { AnalyticsInsights } from "@/components/dashboard/analytics-insights";
 import { BarChart3, Calendar, Mail, Plus, Library, ScanSearch, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,9 @@ export default async function DashboardPage() {
     thisWeek: 0,
     thisMonth: 0,
     responseRate: 0,
+    averageTimeToResponse: null,
+    interviewToOfferRate: null,
+    ghostRate: null,
     statusDistribution: [],
     weeklyTrends: [],
     upcomingInterviews: [],
@@ -179,6 +183,14 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* ── Search Intelligence ── */}
+      <AnalyticsInsights
+        averageTimeToResponse={stats.averageTimeToResponse}
+        interviewToOfferRate={stats.interviewToOfferRate}
+        ghostRate={stats.ghostRate}
+        totalApplications={stats.totalApplications}
+      />
 
       <Link
         href="/applications/new"
