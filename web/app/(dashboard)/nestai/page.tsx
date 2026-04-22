@@ -5,7 +5,7 @@ import {
   Send, Sparkles, Loader2, Trash2, Plus, PanelLeftClose, PanelLeft,
   MoreHorizontal, Pencil, X, Check, BrainCircuit, TrendingUp, Calendar,
   Bell, Building2, Target, MessageSquare, Zap, Copy, CheckCheck,
-  Square, Pin, PinOff, Paperclip,
+  Square, Pin, PinOff, Paperclip, Mail,
 } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -485,6 +485,32 @@ function ChatAttachmentPreview({
   );
 }
 
+// Module-level constant — not inside the component to avoid re-creation on every render.
+const EMAIL_CATEGORIES = ["Follow Up", "Thank You", "Cold Outreach", "Networking", "Referral Request", "Offer Negotiation", "Withdrawal"] as const;
+
+/** Exported for unit testing.
+ *  Builds the Groq prompt for the email draft assistant.
+ *  Sanitizes contact fields to prevent newline-based prompt injection.
+ *  Validates category against the allowed list before interpolation. */
+export function buildEmailPrompt(
+  category: string,
+  contactName?: string | null,
+  contactTitle?: string | null
+): string {
+  // Strip newlines — primary prompt-injection vector
+  const safeName  = contactName?.replace(/[\r\n]+/g, " ").trim() ?? "";
+  const safeTitle = contactTitle?.replace(/[\r\n]+/g, " ").trim() ?? "";
+  // Runtime category guard — falls back if state was tampered
+  const safeCategory = (EMAIL_CATEGORIES as readonly string[]).includes(category)
+    ? category : "Follow Up";
+
+  const contactLine = safeName
+    ? `The recipient is ${safeName}${safeTitle ? ` (${safeTitle})` : ""}.`
+    : "There is no specific recipient — write a reusable template.";
+
+  return `I need a professional "${safeCategory}" email for a job search context.\n\n${contactLine}\n\nPlease draft a concise, warm, professional email (3–4 short paragraphs). Use placeholders like [Company] or [Position] where I should fill in specifics. I'll review and personalise before sending.`;
+}
+
 export default function NestAiPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -502,6 +528,14 @@ export default function NestAiPage() {
   const [prepApps, setPrepApps] = useState<{ id: string; company: string; position: string; job_description: string | null }[]>([]);
   const [prepSelectedId, setPrepSelectedId] = useState<string>("");
   const [prepFetched, setPrepFetched] = useState(false); // true after first fetch completes
+
+  // ── Email Draft modal ─────────────────────────────────────────────────────
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailContacts, setEmailContacts] = useState<{ id: string; name: string; title: string | null; application_id: string | null }[]>([]);
+  const [emailContactId, setEmailContactId] = useState<string>("");
+  // Narrow to the union — prevents untyped string from reaching the Groq prompt.
+  const [emailCategory, setEmailCategory] = useState<typeof EMAIL_CATEGORIES[number]>("Follow Up");
+  const [emailFetched, setEmailFetched] = useState(false);
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -611,6 +645,22 @@ export default function NestAiPage() {
       });
     return () => { cancelled = true; };
   }, [prepModalOpen, prepFetched]);
+
+  useEffect(() => {
+    if (!emailModalOpen || emailFetched) return;
+    let cancelled = false;
+    createClient()
+      .from("contacts")
+      .select("id, name, title, application_id")   // email excluded — not rendered; least-privilege
+      .order("name", { ascending: true })
+      .limit(50)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setEmailContacts((data ?? []) as typeof emailContacts);
+        setEmailFetched(true);
+      });
+    return () => { cancelled = true; };
+  }, [emailModalOpen, emailFetched]);
 
   const createSession = async (): Promise<string | null> => {
     try {
@@ -1094,6 +1144,14 @@ export default function NestAiPage() {
             >
               <Target className="h-3.5 w-3.5" /> Prep
             </button>
+            <button
+              type="button"
+              onClick={() => setEmailModalOpen(true)}
+              title="Email Draft — let NESTAi draft a professional email for a contact"
+              className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs text-[#55433d] hover:text-[#1a1c1b] hover:bg-[#f4f3f1] rounded-full transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" /> Draft
+            </button>
             {messages.length > 0 && (
               <button
                 type="button"
@@ -1466,6 +1524,115 @@ export default function NestAiPage() {
           >
             <Target className="h-3.5 w-3.5 mr-1.5" />
             Start prep
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* ── Email Draft modal ────────────────────────────────────────────── */}
+    <Dialog open={emailModalOpen} onOpenChange={(o) => { setEmailModalOpen(o); if (!o) { setEmailContactId(""); setEmailCategory("Follow Up"); } }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-[#99462a]" />
+            Email Draft Assistant
+          </DialogTitle>
+          <DialogDescription>
+            Pick a contact and email type. NESTAi will draft a professional email you can review and edit.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Category selector */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Email type</p>
+            <div className="flex flex-wrap gap-1.5">
+              {EMAIL_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setEmailCategory(cat)}
+                  className={cn(
+                    "text-xs px-3 py-1.5 rounded-full border transition-colors",
+                    emailCategory === cat
+                      ? "border-[#99462a] bg-[#99462a]/8 text-[#99462a] font-semibold dark:border-[#ccff00] dark:bg-[#ccff00]/8 dark:text-[#ccff00]"
+                      : "border-border text-muted-foreground hover:border-[#99462a]/40"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact selector */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Contact <span className="normal-case font-normal">(optional)</span>
+            </p>
+            {emailModalOpen && !emailFetched ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading contacts…
+              </div>
+            ) : emailContacts.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">
+                No contacts yet — you can still draft without selecting one.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {/* "No specific contact" option */}
+                <button
+                  type="button"
+                  onClick={() => setEmailContactId("")}
+                  className={cn(
+                    "w-full text-left rounded-xl px-4 py-2.5 border text-sm transition-colors",
+                    emailContactId === ""
+                      ? "border-[#99462a] bg-[#99462a]/5"
+                      : "border-border hover:border-[#99462a]/40 hover:bg-muted/40"
+                  )}
+                >
+                  <p className="font-medium text-foreground text-xs">No specific contact</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Draft a general template</p>
+                </button>
+                {emailContacts.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setEmailContactId(c.id)}
+                    className={cn(
+                      "w-full text-left rounded-xl px-4 py-2.5 border text-sm transition-colors",
+                      emailContactId === c.id
+                        ? "border-[#99462a] bg-[#99462a]/5"
+                        : "border-border hover:border-[#99462a]/40 hover:bg-muted/40"
+                    )}
+                  >
+                    <p className="font-semibold text-foreground truncate">{c.name}</p>
+                    {c.title && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{c.title}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setEmailModalOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              const contact = emailContacts.find((c) => c.id === emailContactId);
+              const prompt = buildEmailPrompt(emailCategory, contact?.name, contact?.title);
+              setInput(prompt);
+              setEmailModalOpen(false);
+              setEmailContactId("");
+              setEmailCategory("Follow Up");
+              setTimeout(() => inputRef.current?.focus(), 100);
+            }}
+          >
+            <Mail className="h-3.5 w-3.5 mr-1.5" />
+            Generate draft
           </Button>
         </div>
       </DialogContent>
