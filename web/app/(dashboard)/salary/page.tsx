@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DollarSign, TrendingUp, Building, Award } from "lucide-react";
 import { getAllSalaryDetails, formatSalary, calculateTotalCompensation } from "@/services";
+import { OfferDecisionHelper } from "@/components/dashboard/offer-decision-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,13 @@ export default async function SalaryComparisonPage() {
             </div>
           </section>
         )}
+
+        {/* ── Offer Decision Helper ── */}
+        <OfferDecisionHelper
+          offers={(salaryData || []).filter(
+            (s) => s.job_applications?.status === "Offer" || s.job_applications?.status === "Accepted"
+          )}
+        />
       </div>
     </div>
   );

@@ -96,6 +96,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 ### Salary Tracker
 - Base salary, bonus, signing bonus, equity, benefits per application
 - Multi-currency; comparison across all offers
+- **Offer Decision Helper** — select up to 3 offers, rate 5 criteria (Total Comp, Career Growth, Location, Culture, Benefits), adjust global importance weights; live weighted score + winner callout
 
 ### NESTAi — AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
@@ -103,6 +104,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Work authorization aware** — user's visa status injected into system prompt
 - **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary stored to Supabase Storage; inline preview (PDF iframe · image · extracted text) with download button via 10-min signed URL
 - **Interview Prep** — "Prep" button opens a modal; pick an active application → 5 tailored STAR behavioral questions generated from the stored JD; provide draft answers for specific AI feedback
+- **Email Draft Assistant** — "Draft" button opens a modal; pick an email category (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal) and an optional contact; Groq drafts a professional email into the chat input for review and editing
 - **Model fallback** — primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
 - Pin chats, edit messages, rename/delete sessions with confirm dialog
 - Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown and progress bar
@@ -150,7 +152,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
-| Testing | Vitest (588 tests, 50 files) |
+| Testing | Vitest (614 tests, 51 files) |
 
 ---
 
@@ -349,7 +351,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (588 tests, 50 files)
+npm test              # Vitest (614 tests, 51 files)
 npm run test:coverage # Coverage report
 ```
 
