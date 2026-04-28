@@ -4,6 +4,17 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## ✅ Recently Shipped (April 2026)
+
+- [x] **Full-text search in command palette** — `⌘K` searches applications via GIN-indexed `search_vector` tsvector column; `websearch_to_tsquery` supports quoted phrases and AND/OR; falls back to `ilike` on company/position when FTS migration is absent or returns nothing; rate-limited per user (30 req/min); results shown inline with keyboard navigation
+- [x] **Developer Identity — Skills, Certifications, Education** — three-section UI on Profile page; full GET/POST/DELETE API routes with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes (400 on non-UUID, 404 on stale ID), RLS-enforced ownership; certification expiry/soon-expiring badges; GPA opt-in display on education; migrations 23 + 24
+- [x] **Cursor-paginated application list** — keyset pagination on `(applied_date DESC, id DESC)`; server renders page 1; "Load more" appends pages client-side replicating all active filters (search, status, location, date range); kanban still loads all rows
+- [x] **Nonce-based CSP** — per-request cryptographic nonce via Web Crypto API; `unsafe-eval` removed from `script-src`; `strict-dynamic` added; nonce fires on HTTPS and `x-forwarded-proto: https` (not just `NODE_ENV=production`)
+- [x] **Security hardening** — fallback ilike queries in `/api/search` now include `.eq("user_id", user.id)` (was relying on RLS only); trufflehog GitHub Action pinned to `v3.95.2` (was `@main`); `--only-verified` removed so revoked secrets are caught; Dependabot schedule moved to 09:00 Monday Eastern time
+- [x] **Test suite expanded** — 720 tests across 56 files (+106 tests, +5 files); new: search (14), skills (16), certifications (18), education (19), developer-identity flow (21), proxy CSP nonce (7)
+
+---
+
 ## 🔥 Up Next (Priority)
 
 - [x] **Unified Navbar & Footer across all pages**
@@ -304,9 +315,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [ ] **GitHub integration** — OAuth scope `read:user,repo`; pull: username, avatar, bio, public repo count, top 6 pinned repos (name, description, language, stars, forks, URL); display as a "GitHub Profile" card on the user profile page; update daily via cron
 - [ ] **Project showcase** — `projects` table: `name`, `description`, `tech_stack TEXT[]`, `github_url`, `live_url`, `thumbnail_url` (Supabase Storage), `status` (In Progress/Complete), `is_featured`, `built_at`; show on profile; when adding an application, select which projects are most relevant and link them (stored as `application_projects` junction)
-- [ ] **Skills inventory** — `skills` table: `name`, `category` (Language/Framework/Database/Cloud/Tool/Soft), `proficiency` (Beginner/Intermediate/Advanced/Expert), `years_experience`, `last_used_at`; skill picker in profile; map against job description requirements in NESTAi's ATS scan
-- [ ] **Certifications tracker** — `certifications` table: `name` (AWS SAA, Google Cloud ACE, Meta React, etc.), `provider`, `credential_id`, `credential_url`, `issued_at`, `expires_at`; expiry reminders 60 days before; show on profile card
-- [ ] **Education section** — `education` table: `institution`, `degree` (BS/MS/Bootcamp/Associate/Self-taught), `field_of_study`, `gpa` (optional), `start_date`, `end_date`, `is_current`, `activities TEXT[]`; GPA only shown if ≥ 3.5 (user toggle); relevant for entry-level where GPA still matters to recruiters
+- [x] **Skills inventory** — `skills` table: `name`, `category` (Language/Framework/Database/Cloud/Tool/Soft), `proficiency` (Beginner/Intermediate/Advanced/Expert), `years_experience`, `last_used_at`; full CRUD in profile; Zod-validated API with origin check, rate limit, UUID-guarded DELETE, 404 on stale ID
+- [x] **Certifications tracker** — `certifications` table: `name`, `provider`, `credential_id`, `credential_url`, `issued_at`, `expires_at`; expires_at > issued_at enforced by Zod refine + DB CHECK; expiry/soon-expiring badge in UI
+- [x] **Education section** — `education` table: `institution`, `degree` enum, `field_of_study`, `gpa` (opt-in display), `start_date`, `end_date`, `is_current`, `activities TEXT[]`; date-ordering enforced by Zod refine
 - [ ] **LinkedIn profile sync** — store LinkedIn profile URL (already in contacts schema); prompt user to add their own LinkedIn URL in profile; "LinkedIn Strength" score checklist (headline, summary, 3+ experiences, 5+ skills, photo, 500+ connections)
 - [ ] **Portfolio public page** — opt-in shareable `/p/{username}` page listing: name, title, GitHub stats, featured projects, skills, education, certifications; no job application data is visible; used as a link to share with recruiters instead of a personal website
 
