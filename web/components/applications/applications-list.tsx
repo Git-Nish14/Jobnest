@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, RefreshCw, Download, X } from "lucide-react";
+import { Trash2, RefreshCw, Download, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ApplicationCard } from "./application-card";
@@ -10,9 +10,20 @@ import type { JobApplication } from "@/types";
 import { APPLICATION_STATUSES } from "@/config/constants";
 import type { ApplicationStatus } from "@/config/constants";
 import { cn } from "@/lib/utils";
+import { APPLICATIONS_PAGE_SIZE } from "@/types/api";
+
+interface Filters {
+  search?: string;
+  status?: string;
+  location?: string;
+  dateRange?: string;
+}
 
 interface Props {
   applications: JobApplication[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
+  filters?: Filters;
 }
 
 function exportCSV(apps: JobApplication[]) {
@@ -29,21 +40,100 @@ function exportCSV(apps: JobApplication[]) {
   URL.revokeObjectURL(url);
 }
 
-export function ApplicationsList({ applications }: Props) {
+export function ApplicationsList({
+  applications: initialApplications,
+  hasMore: initialHasMore = false,
+  nextCursor: initialCursor = null,
+  filters = {},
+}: Props) {
   const router = useRouter();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // ── Cursor pagination state ────────────────────────────────────────────────
+  const [extraApps, setExtraApps]       = useState<JobApplication[]>([]);
+  const [cursor, setCursor]             = useState<string | null>(initialCursor);
+  const [hasMore, setHasMore]           = useState(initialHasMore);
+  const [loadingMore, setLoadingMore]   = useState(false);
+
+  // Combined list: server-rendered initial page + client-loaded extras
+  const allApps = useMemo(
+    () => [...initialApplications, ...extraApps],
+    [initialApplications, extraApps]
+  );
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const supabase = createClient();
+      let query = supabase
+        .from("job_applications")
+        .select("*");
+
+      // Replicate server-side filters on the client
+      if (filters.search) {
+        query = query.or(`company.ilike.%${filters.search}%,position.ilike.%${filters.search}%`);
+      }
+      if (filters.status && filters.status !== "all") {
+        query = query.eq("status", filters.status);
+      }
+      if (filters.location) {
+        query = query.ilike("location", `%${filters.location}%`);
+      }
+      if (filters.dateRange && filters.dateRange !== "all") {
+        const now = new Date();
+        let startDate: Date;
+        switch (filters.dateRange) {
+          case "today":   startDate = new Date(now); startDate.setHours(0, 0, 0, 0); break;
+          case "week":    { startDate = new Date(now); startDate.setDate(now.getDate() - now.getDay()); startDate.setHours(0,0,0,0); break; }
+          case "month":   startDate = new Date(now.getFullYear(), now.getMonth(), 1); break;
+          case "quarter": startDate = new Date(now); startDate.setMonth(now.getMonth() - 3); break;
+          case "year":    startDate = new Date(now.getFullYear(), 0, 1); break;
+          default:        startDate = new Date(0);
+        }
+        query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
+      }
+
+      // Decode cursor: base64("applied_date|id")
+      const [cursorDate, cursorId] = atob(cursor).split("|");
+      if (cursorDate && cursorId) {
+        query = query.or(
+          `applied_date.lt.${cursorDate},and(applied_date.eq.${cursorDate},id.lt.${cursorId})`
+        );
+      }
+
+      const { data, error } = await query
+        .order("applied_date", { ascending: false })
+        .order("id",           { ascending: false })
+        .limit(APPLICATIONS_PAGE_SIZE + 1);
+
+      if (error) { toast.error("Failed to load more applications."); return; }
+
+      const rows = (data ?? []) as JobApplication[];
+      const nextHasMore = rows.length > APPLICATIONS_PAGE_SIZE;
+      const page = nextHasMore ? rows.slice(0, APPLICATIONS_PAGE_SIZE) : rows;
+
+      setExtraApps((prev) => [...prev, ...page]);
+      setHasMore(nextHasMore);
+      setCursor(nextHasMore
+        ? btoa(`${page[page.length - 1].applied_date}|${page[page.length - 1].id}`)
+        : null
+      );
+    } catch {
+      toast.error("Failed to load more applications.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [cursor, loadingMore, filters]);
+
+  // ── Bulk selection state ───────────────────────────────────────────────────
+  const [selected, setSelected]               = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading]         = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Derive the set of IDs actually present in the current filtered list.
-  // Intersecting with `selected` gives the *effective* selection — IDs that were
-  // selected before a filter change but are no longer visible are silently dropped.
-  // This avoids a useEffect-based reset (which the linter flags) and ensures bulk
-  // operations only ever touch apps the user can currently see.
   const currentIds = useMemo(
-    () => new Set(applications.map((a) => a.id)),
-    [applications]
+    () => new Set(allApps.map((a) => a.id)),
+    [allApps]
   );
   const effectiveSelected = useMemo(
     () => new Set([...selected].filter((id) => currentIds.has(id))),
@@ -59,7 +149,7 @@ export function ApplicationsList({ applications }: Props) {
   }, []);
 
   const selectAll = () => {
-    setSelected(new Set(applications.map((a) => a.id)));
+    setSelected(new Set(allApps.map((a) => a.id)));
     setConfirmingDelete(false);
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
   };
@@ -106,10 +196,7 @@ export function ApplicationsList({ applications }: Props) {
     router.refresh();
   };
 
-  const bulkExport = () => {
-    const selectedApps = applications.filter((a) => effectiveSelected.has(a.id));
-    exportCSV(selectedApps);
-  };
+  const bulkExport = () => exportCSV(allApps.filter((a) => effectiveSelected.has(a.id)));
 
   const selectable = effectiveSelected.size > 0;
 
@@ -122,8 +209,9 @@ export function ApplicationsList({ applications }: Props) {
             {effectiveSelected.size} selected
           </span>
 
-          {/* Status change */}
+          {/* Status change — aria-label required for accessibility (no visible label element) */}
           <select
+            aria-label="Set status for selected applications"
             disabled={bulkLoading}
             onChange={(e) => { if (e.target.value) bulkSetStatus(e.target.value as ApplicationStatus); e.target.value = ""; }}
             defaultValue=""
@@ -146,7 +234,7 @@ export function ApplicationsList({ applications }: Props) {
             Export
           </button>
 
-          {/* Delete — two-step confirm matches single-delete pattern */}
+          {/* Delete — two-step confirm */}
           {confirmingDelete ? (
             <button
               type="button"
@@ -171,15 +259,14 @@ export function ApplicationsList({ applications }: Props) {
 
           <div className="flex-1" />
 
-          {/* Select all / clear */}
           <button
             type="button"
-            onClick={effectiveSelected.size === applications.length ? clearSelection : selectAll}
+            onClick={effectiveSelected.size === allApps.length ? clearSelection : selectAll}
             disabled={bulkLoading}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             <RefreshCw className="h-3 w-3" />
-            {effectiveSelected.size === applications.length ? "Deselect all" : "Select all"}
+            {effectiveSelected.size === allApps.length ? "Deselect all" : "Select all"}
           </button>
           <button
             type="button"
@@ -195,7 +282,7 @@ export function ApplicationsList({ applications }: Props) {
 
       {/* ── Cards ── */}
       <div className={cn("space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
-        {applications.map((app) => (
+        {allApps.map((app) => (
           <ApplicationCard
             key={app.id}
             application={app}
@@ -205,6 +292,22 @@ export function ApplicationsList({ applications }: Props) {
           />
         ))}
       </div>
+
+      {/* ── Load more ── */}
+      {hasMore && (
+        <div className="flex justify-center mt-6">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {loadingMore
+              ? <><Loader2 className="h-4 w-4 animate-spin" />Loading…</>
+              : <>Load more applications</>}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
-import { getApplications } from "@/services";
+import { getApplications, getApplicationsPage } from "@/services";
 import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
 
@@ -28,19 +28,36 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const view = params.view === "kanban" ? "kanban" : "list";
 
-  const { data: applications, error } = await getApplications({
-    search: params.search,
-    status: params.status,
-    location: params.location,
-    dateRange: toDateRange(params.dateRange),
-    sort: params.sort,
-  });
+  // Kanban view needs all rows (drag-and-drop reorders all columns).
+  // List view uses cursor pagination — first page only; ApplicationsList handles "load more".
+  const isKanban = view === "kanban";
 
-  if (error) {
-    console.error("Error fetching applications:", error.message);
+  let apps: import("@/types").JobApplication[] = [];
+  let hasMore = false;
+  let nextCursor: string | null = null;
+
+  if (isKanban) {
+    const { data: applications, error } = await getApplications({
+      search: params.search,
+      status: params.status,
+      location: params.location,
+      dateRange: toDateRange(params.dateRange),
+      sort: params.sort,
+    });
+    if (error) console.error("Error fetching applications:", error.message);
+    apps = applications ?? [];
+  } else {
+    const page = await getApplicationsPage({
+      search: params.search,
+      status: params.status,
+      location: params.location,
+      dateRange: toDateRange(params.dateRange),
+    });
+    if (page.error) console.error("Error fetching applications page:", page.error);
+    apps = page.data;
+    hasMore = page.hasMore;
+    nextCursor = page.nextCursor;
   }
-
-  const apps = applications ?? [];
 
   return (
     <div>
@@ -70,7 +87,17 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         view === "kanban" ? (
           <KanbanBoard applications={apps} />
         ) : (
-          <ApplicationsList applications={apps} />
+          <ApplicationsList
+            applications={apps}
+            hasMore={hasMore}
+            nextCursor={nextCursor}
+            filters={{
+              search: params.search,
+              status: params.status,
+              location: params.location,
+              dateRange: params.dateRange,
+            }}
+          />
         )
       ) : (
         /* Empty state — differentiate filtered vs brand-new user */

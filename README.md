@@ -18,7 +18,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Cross-tab logout sync** — `AuthSync` listens to `onAuthStateChange`
 - **Auto-redirect** — authenticated users bounce from auth pages to `/dashboard`
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
-- HSTS, CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy headers
+- **Nonce-based CSP** — per-request cryptographic nonce injected into `script-src`; `unsafe-eval` removed; `strict-dynamic` enables Next.js code-splitting without whitelisting chunk URLs; fires on HTTPS and `x-forwarded-proto: https` (covers staging behind load balancers)
+- HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy headers
 - Redis-backed rate limiting (Upstash); dual-layer on send-otp (IP + per-email)
 - SHA-256 hashed OTPs with timing-safe comparison
 
@@ -30,6 +31,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Delete account** — OTP-confirmed soft delete, 30-day grace period
 - **GDPR data export** — all personal data as dated JSON (rate-limited 3/day)
 - **Billing portal** — Stripe customer portal for Pro subscribers
+- **Developer Identity** — Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
 
 ### Account Deletion (Grace Period)
 1. OTP-confirmed deletion request
@@ -54,6 +56,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
 - **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
 - Filter by status, location, date range; sort by date/company/position
+- **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
+- **Full-text search** — command palette (`⌘K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
 - Export to CSV or JSON; kanban board view toggle
 
 ### ATS Scanner (`/ats`)
@@ -152,7 +156,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
-| Testing | Vitest (614 tests, 51 files) |
+| Testing | Vitest (720 tests, 56 files) |
 
 ---
 
@@ -330,6 +334,8 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 20 | `...020_notifications.sql` | Notifications table |
 | 21 | `...021_ats_fields.sql` | `job_description`, `source`, Ghosted/Withdrawn statuses |
 | 22 | `...022_ats_score.sql` | `ats_score` column |
+| 23 | `...023_fulltext_search.sql` | `search_vector` tsvector + GIN index + trigger on `job_applications` |
+| 24 | `...024_developer_identity.sql` | `skills`, `certifications`, `education` tables with RLS + CHECK constraints |
 
 ### Installation
 
@@ -351,7 +357,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (614 tests, 51 files)
+npm test              # Vitest (720 tests, 56 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -363,9 +369,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage), analytics metrics (averageTimeToResponse/interviewToOfferRate/ghostRate thresholds), buildStages() status timeline computation, proxy logic |
+| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage, search FT + ilike fallbacks, skills/certifications/education CRUD), analytics metrics, buildStages() status timeline, proxy logic + CSP nonce |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD |
 
 ---
 
@@ -385,7 +391,8 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |
 | Document serving | `Content-Disposition: attachment` forced — prevents stored XSS |
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
-| Headers | HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
+| Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
+| Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op) |
 
 ---
 
