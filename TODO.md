@@ -233,7 +233,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Global document library page** — `/documents` route with search, type filter pills (All/PDF/DOCX/Image/Text), card grid; shows name, type badge, size, upload date; empty state with guided CTA
 - [x] **Reusable document templates** — `is_master = true` flag on `application_documents`; master docs uploaded via `/documents` page or import-url; library path: `{user_id}/library/{label}/{timestamp}_{filename}`
 - [x] **Storage quota widget** — progress bar on `/documents` page: `X MB used of 50 MB free · N documents` (sums `size_bytes` from `application_documents`)
-- [ ] **Orphan cleanup** — cron job (weekly) to surface unclaimed storage objects; deferred to scalability phase
+- [x] **Orphan cleanup** — `POST /api/cron/orphan-cleanup` performs full orphan detection and deletion against Supabase Storage
 
 ### In-Browser Document Viewer
 - [x] **Inline PDF/image viewer** — `PreviewDialog` in `DocumentManager` fetches blob via `/api/documents`, renders PDF in iframe and images in `<img>`; falls back to "Open in browser" for non-previewable types (DOCX, TXT)
@@ -247,8 +247,8 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### Smart Document Features
 - [x] **ATS keyword scan** — `POST /api/documents/ats-scan` extracts resume text via `document-parser.ts`, sends to Groq (llama-3.3-70b) with job description, returns JSON: `{ score, present_keywords, missing_keywords, suggestions, summary }`; rate-limited 5/min per user
-- [ ] **Document diff** — compare two versions side-by-side; deferred (requires diff library integration)
-- [ ] **Auto-fill from resume** — parse resume on new application creation and pre-fill fields via NESTAi; deferred
+- [x] **Document diff** — `DiffDialog.tsx` + `GET /api/documents/diff`; `diff` package installed; side-by-side version comparison
+- [ ] **Auto-fill from resume** — PARTIAL: `ResumeImportButton` parses resume into profile (skills/education/certs) but does not pre-fill new application form fields; full application form pre-fill still deferred
 - [ ] **Cover letter variable substitution preview** — live preview with `{{company}}`/`{{position}}` replaced; deferred
 
 ### Cloud Import
@@ -272,10 +272,10 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ### 🛂 Work Authorization & Sponsorship
 
 - [x] **Work authorization field on profile** — dropdown: US Citizen, Green Card, H1B, OPT (F-1), CPT, TN Visa, EAD (Other); stored in `user_metadata`; surfaced as a badge on the profile sidebar
-- [ ] **OPT expiry tracker** — if user selects OPT: prompt for OPT start date + 12-month expiry; show a countdown banner in the dashboard `X days until OPT expires`; STEM extension flag (+24 months); alert reminder 60/30/7 days before expiry
-- [ ] **Sponsorship flag per application** — boolean `requires_sponsorship` on `job_applications`; filter applications list by "Needs sponsorship"; companies that don't sponsor can be tagged automatically and warned on entry
-- [ ] **Sponsorship status on application card** — show a small "Visa" badge on application cards where sponsorship was required; lets users track sponsor-friendly companies
-- [ ] **H1B cap tracker** — informational card showing H1B lottery date (April each year), current cap status, and a reminder to set up petitions early; linked from the dashboard for OPT users
+- [x] **OPT expiry tracker** — `OPTCountdownBanner.tsx` on dashboard; STEM flag (36 vs 12 months); severity tiers at 7/30/60 days; `opt_start_date` stored in `user_metadata` via migration 25
+- [x] **Sponsorship flag per application** — `requires_sponsorship BOOLEAN NOT NULL DEFAULT FALSE` added via migration 25; present in `types/application.ts`, form validation, and services; "Needs sponsorship" filter on applications list
+- [x] **Sponsorship status on application card** — "Visa sponsorship" badge rendered in `application-card.tsx` when `requires_sponsorship` is true
+- [x] **H1B cap tracker** — `H1BTrackerCard.tsx` informational card with H1B lottery date and cap countdown; rendered on dashboard for OPT users
 
 ---
 
@@ -401,12 +401,12 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Migrate `middleware.ts` → Next.js 16 `proxy` convention** — `web/proxy.ts`
 - [x] **Dependencies upgraded** — `next@16.2.1`, `@supabase/supabase-js@2.100.0`, `tailwindcss@4.2.2`, `nodemailer@8.0.3`, `react-hook-form@7.72.0`, `react@19.2.4`, `react-dom@19.2.4`, `geist` installed
 - [ ] **Major version upgrades (evaluate carefully)**:
-  - `lucide-react` 0.577 → 1.0.1 (major — check for breaking icon name changes before upgrading)
-  - `typescript` 5.9 → 6.0 (major — breaking strict changes; test thoroughly)
-  - `eslint` 9 → 10 (major — config format may change)
-  - `@types/node` 20 → 25 (major)
-  - `pdf-parse` 1.x → 2.x (major API change)
-- [ ] **Move document parse cache to Redis** — in-memory cache lost on cold starts
+  - ~~`lucide-react` 0.577 → 1.0.1~~ ✓ now `^1.7.0`
+  - ~~`typescript` 5.9 → 6.0~~ ✓ now `^6.0.2`
+  - ~~`pdf-parse` 1.x → 2.x~~ ✓ upgraded to `2.4.5`
+  - `eslint` 9 → 10 (major — config format may change; currently on 9.x)
+  - `@types/node` 20 → 25 (major; currently on `^20`)
+- [ ] **Move document parse cache to Redis** — `document-parser.ts` currently has no caching at all (stateless parse on every call); add Redis-backed SHA-256 cache before scaling
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
 - [x] **Vitest tests — 522 tests, 46 files, 100% pass (no browser, fully automated)**
   - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure), proxy
@@ -437,12 +437,12 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 📈 Scalability & Infrastructure (1 M+ users)
 
-- [ ] **Redis-backed rate limiting** — replace `lib/security/rate-limit.ts` in-memory store with [Upstash Redis](https://upstash.com) (`@upstash/ratelimit`); share state across all Vercel function instances and survive cold starts
-- [ ] **Redis document-parse cache** — move `document-parser.ts` LRU cache to Upstash Redis; `CACHE_TTL=1h`; key = SHA-256 of file bytes
+- [x] **Redis-backed rate limiting** — Upstash REST API; falls back to in-memory when env var absent; all 20+ callers migrated (shipped — see Security section)
+- [x] **Full-text search** — GIN-indexed `search_vector` tsvector; `websearch_to_tsquery`; `/api/search` endpoint (shipped — see Recently Shipped)
+- [x] **Cursor-based pagination** — keyset pagination on applications list; "Load more" appends pages (shipped — see Recently Shipped)
+- [ ] **Redis document-parse cache** — `document-parser.ts` has no caching at all; add Upstash Redis cache keyed on SHA-256 of file bytes, `CACHE_TTL=1h`
 - [ ] **Database connection pooling** — route Supabase connections through **PgBouncer** (Supabase's built-in pooler at port 6543) to prevent connection exhaustion at high concurrency
 - [ ] **CDN & asset optimisation** — ensure `next/image` uses Vercel Image Optimisation CDN; add far-future `Cache-Control` headers on `/public` static assets; consider Cloudflare in front of Vercel for global edge caching
-- [ ] **Cursor-based pagination** — replace `OFFSET` queries in `/applications`, `/interviews`, `/contacts` with `WHERE id < $cursor ORDER BY id DESC LIMIT 25`; add infinite-scroll or "Load more" UI
-- [ ] **Full-text search** — add `tsvector` column on `job_applications(company, position, notes)` with `GIN` index; expose `/api/search?q=` endpoint for fast keyword search across all user data
 - [ ] **Background job queue** — move heavy operations (PDF parse, email sending, AI calls) off the request path; use [Trigger.dev](https://trigger.dev) or Vercel Queue; prevents Vercel 10s timeout on large uploads
 - [ ] **Vercel Edge Config** — store feature flags and plan limits in Edge Config for zero-latency reads without a DB round-trip
 - [ ] **Supabase read replica** — enable read replica in Supabase dashboard for analytics queries; route dashboard stat queries to replica to offload primary
@@ -468,7 +468,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Partial Prerendering (PPR)** — enable Next.js PPR on dashboard pages; static shell renders instantly, dynamic data streams in
 - [ ] **Image optimisation** — compress and convert all landing page illustrations to WebP/AVIF; add `width`/`height` to all `<Image>` tags to eliminate CLS
 - [ ] **Preload critical fonts** — verify Newsreader + Manrope `font-display: swap` is preventing FOIT; add `<link rel="preload">` for above-the-fold font weights
-- [ ] **Service Worker / PWA** — add `next-pwa` or `@ducanh2912/next-pwa`; cache shell + static assets offline; add `manifest.json` install prompt; enables "Add to Home Screen" on mobile
+- [ ] **Service Worker / PWA** — `public/manifest.json` exists with full metadata (icons, shortcuts, standalone); still need `next-pwa` + service worker for offline shell and "Add to Home Screen" install prompt
 
 ---
 
@@ -521,7 +521,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Offer decision helper** — `OfferDecisionHelper` on /salary; select up to 3 Offer/Accepted applications; 5 per-offer criteria sliders (1–10) + 5 global weight sliders; live weighted score (0–100) with green/amber/red colouring; WinnerCallout sub-component; formatSalary passes actual currency; helpers inlined to avoid server-only import in client component
 - [ ] **Document versioning** — keep previous resume/cover letter versions per application; label each version (v1, v2, tailored); view diff; avoids overwriting working documents
 - [ ] **Reminder recurrence** — weekly / biweekly recurring reminders (e.g. "Check LinkedIn connections every Monday"); `rrule` column on reminders table
-- [ ] **Global command palette** — `⌘K` / `Ctrl+K` opens a Spotlight-style palette; search across all applications, contacts, sessions; quick-navigate to any page; add new application / interview inline
+- [x] **Global command palette** — `components/ui/command-palette.tsx`; `⌘K` / `Ctrl+K`; full navigation, application search, keyboard shortcuts; built on Radix Dialog (no `cmdk` dep)
 - [x] **Bulk actions** — `ApplicationsList` client component; selection checkboxes on every card; sticky bulk bar (set status, CSV export, two-step delete confirm); select all / deselect all; `effectiveSelected` derived state prevents stale cross-filter selections
 - [x] **Application duplication** — `POST /api/applications/[id]/duplicate`; "Duplicate" in card dropdown; copies all fields, resets status to Applied + applied_date to today; toast on success/failure
 
@@ -543,8 +543,8 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [ ] **Content Security Policy tightening** — current CSP allows `'unsafe-inline'` styles; move to nonce-based or hash-based CSP; eliminates the largest remaining XSS attack surface
 - [ ] **Subresource Integrity (SRI)** — add `integrity` hashes to any third-party `<script>` / `<link>` tags loaded from CDNs
-- [ ] **Secrets scanning in CI** — add [truffleHog](https://github.com/trufflesecurity/trufflehog) or GitHub Advanced Security secret scanning to CI pipeline; block PRs that accidentally commit API keys
-- [ ] **Dependency update automation** — enable Dependabot or Renovate for weekly automated PRs on npm + GitHub Actions dependencies; keep supply chain fresh
+- [x] **Secrets scanning in CI** — `.github/workflows/secrets-scan.yml` using `trufflesecurity/trufflehog@v3.95.2` on push/PR to main
+- [x] **Dependency update automation** — `.github/dependabot.yml` covering npm (`/web`) + GitHub Actions; weekly on Mondays
 - [ ] **Security.txt** (`/.well-known/security.txt`) — disclose responsible disclosure policy and contact email; required by many bug bounty programs and enterprise customers
 - [ ] **WAF** — put Cloudflare WAF in front of Vercel; enable OWASP Core Rule Set; add geo-blocking for high-abuse regions; bot management for scraping protection
 - [ ] **Penetration test** — engage a third-party pentest firm before reaching 10k users; focus on auth flows, file upload, API, and Stripe webhook signature bypass
@@ -566,12 +566,12 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🧪 Testing at Scale
 
-- [ ] **Playwright E2E** — add `tests/e2e/` suite covering critical happy paths in a real Chromium browser: sign-up → add application → upgrade to Pro → export CSV → delete account; run in CI against a staging Supabase project
+- [x] **Playwright E2E** — `tests/e2e/` exists with `auth.spec.ts`, `public-pages.spec.ts`, `ui.spec.ts`; Playwright config present
 - [ ] **Visual regression** — integrate [Percy](https://percy.io) or [Chromatic](https://www.chromatic.com) with Playwright snapshots; catch unintended UI regressions on every PR
 - [ ] **Load testing** — run [k6](https://k6.io) or [Artillery](https://www.artillery.io) load tests against staging; target: 500 concurrent users, p95 response < 800ms; run before every major release
 - [ ] **Contract testing** — add [MSW](https://mswjs.io) handlers for Stripe and Groq API responses in tests; ensures the app doesn't break silently when third-party APIs change
 - [ ] **Chaos engineering** — simulate Supabase unavailability, Groq timeout, and Redis eviction in staging; verify graceful degradation and error messages
-- [ ] **Test coverage gate** — enforce minimum 80% statement coverage in CI (`vitest --coverage`); block merges that reduce coverage
+- [ ] **Test coverage gate** — enforce minimum 80% statement coverage in CI; `vitest.config.ts` has thresholds but they are currently at ~47%/40%/42%/50% — raise to 80% and enforce in CI
 
 ---
 
@@ -588,11 +588,11 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🐛 Known Issues
 
-- [ ] Document parse cache is in-memory — lost on server restart (Redis fix deferred)
+- [ ] Document parser has no cache at all — `document-parser.ts` parses on every call (stateless); add SHA-256 Redis cache before scaling
 - [x] ~~Rate limiter is in-memory — resets on Vercel cold starts~~ — **fixed**: Upstash Redis-backed with in-memory fallback
 - [x] ~~`pdf-parse` v1 + Turbopack issues~~ — **fixed**: upgraded to 2.4.5; new entry point used
 - [x] ~~Scrollbar layout shift during page transitions (Windows Chrome)~~ — **fixed**: `html body[data-scroll-locked]` CSS rule overrides Radix scroll-lock compensation (overflow:unset, padding-right:0, margin-right:0); specificity 0,1,2 beats injected 0,1,1
 
 ---
 
-*Last updated: 29 April 2026 — Marked TC Calculator section fully complete (all 8 items): TC calc card, RSU vesting schedule, 401(k) match, CoL normaliser, effective hourly rate, state income tax estimator, benefits dollar value, offer comparison PDF export.*
+*Last updated: 29 April 2026 — Full codebase audit: marked 14 additional items complete (OPT tracker, sponsorship flag + card badge, H1B tracker, orphan cleanup cron, document diff, global command palette, truffleHog CI, Dependabot, Playwright E2E, Redis rate limiting, full-text search, cursor pagination, lucide-react + TypeScript + pdf-parse major upgrades); corrected 5 stale descriptions (parse cache, PWA, major upgrades, coverage gate, auto-fill from resume).*
