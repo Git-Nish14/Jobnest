@@ -68,6 +68,9 @@ export async function getApplicationsPage(
       }
       query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
     }
+    if (params?.sponsorshipOnly) {
+      query = query.eq("requires_sponsorship", true);
+    }
 
     // Keyset cursor: fetch rows after the last seen (applied_date, id) pair.
     // The OR condition covers both "strictly earlier date" and "same date but earlier id".
@@ -158,6 +161,11 @@ export async function getApplications(
       }
 
       query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
+    }
+
+    // Sponsorship filter
+    if (params?.sponsorshipOnly) {
+      query = query.eq("requires_sponsorship", true);
     }
 
     // Sorting

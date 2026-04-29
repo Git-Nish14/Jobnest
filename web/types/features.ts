@@ -185,6 +185,14 @@ export interface EmailTemplateInsert {
 export type EmailTemplateUpdate = Partial<EmailTemplateInsert>;
 
 // Salary Details Types
+export interface RSUEquityDetails {
+  total_shares: number;
+  grant_date: string;
+  cliff_months: number;
+  vest_months: number;
+  current_price: number;
+}
+
 export interface SalaryDetails {
   id: string;
   application_id: string;
@@ -193,18 +201,23 @@ export interface SalaryDetails {
   salary_type: "yearly" | "monthly" | "hourly";
   bonus: number | null;
   equity: string | null;
+  equity_details: RSUEquityDetails | null;
   signing_bonus: number | null;
   health_insurance: boolean;
   dental_insurance: boolean;
   vision_insurance: boolean;
   retirement_401k: boolean;
   retirement_match: string | null;
+  retirement_match_percent: number | null;
+  retirement_match_cap: number | null;
   pto_days: number | null;
   remote_work: string | null;
   other_benefits: string[] | null;
   initial_offer: number | null;
   final_offer: number | null;
   negotiation_notes: string | null;
+  state_of_work: string | null;
+  annual_hours_worked: number;
   created_at: string;
   updated_at: string;
 }
@@ -216,18 +229,23 @@ export interface SalaryDetailsInsert {
   salary_type?: "yearly" | "monthly" | "hourly";
   bonus?: number | null;
   equity?: string | null;
+  equity_details?: RSUEquityDetails | null;
   signing_bonus?: number | null;
   health_insurance?: boolean;
   dental_insurance?: boolean;
   vision_insurance?: boolean;
   retirement_401k?: boolean;
   retirement_match?: string | null;
+  retirement_match_percent?: number | null;
+  retirement_match_cap?: number | null;
   pto_days?: number | null;
   remote_work?: string | null;
   other_benefits?: string[] | null;
   initial_offer?: number | null;
   final_offer?: number | null;
   negotiation_notes?: string | null;
+  state_of_work?: string | null;
+  annual_hours_worked?: number;
 }
 
 export type SalaryDetailsUpdate = Partial<Omit<SalaryDetailsInsert, "application_id">>;

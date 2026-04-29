@@ -29,6 +29,8 @@ export interface QueryParams {
   sortOrder?: "asc" | "desc";
   /** Opaque base64-encoded cursor for keyset pagination (applied_date|id). */
   cursor?: string;
+  /** When true, only return applications where requires_sponsorship = true. */
+  sponsorshipOnly?: boolean;
 }
 
 /** Items per page used by cursor-paginated queries. Defined here (not in services/)

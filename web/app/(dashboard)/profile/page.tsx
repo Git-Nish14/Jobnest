@@ -52,6 +52,8 @@ export default async function ProfilePage() {
         )
           ? (user.user_metadata.work_authorization as WorkAuthorization)
           : null,
+        optStartDate: user.user_metadata?.opt_start_date ?? null,
+        stemExtension: user.user_metadata?.stem_extension ?? false,
         hasPassword,
         notificationPrefs: {
           overdueReminders:   notificationPrefs.overdue_reminders    ?? true,

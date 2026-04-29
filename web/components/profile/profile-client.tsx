@@ -36,6 +36,8 @@ interface ProfileUser {
   aboutMe: string;
   nestaiContext: string;
   workAuthorization: WorkAuthorization | null;
+  optStartDate: string | null;
+  stemExtension: boolean;
   hasPassword: boolean;
   notificationPrefs: {
     overdueReminders: boolean;
@@ -275,6 +277,8 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
 
   // ── Work Authorization ────────────────────────────────────────────────────
   const [workAuth, setWorkAuth] = useState<WorkAuthorization | null>(user.workAuthorization);
+  const [optStartDate, setOptStartDate] = useState<string>(user.optStartDate ?? "");
+  const [stemExtension, setStemExtension] = useState<boolean>(user.stemExtension);
   const [workAuthSaving, setWorkAuthSaving] = useState(false);
   const [workAuthError, setWorkAuthError] = useState<string | null>(null);
   const [workAuthSuccess, setWorkAuthSuccess] = useState(false);
@@ -287,7 +291,11 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       const res = await fetchWithRetry("/api/profile/update-work-authorization", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workAuthorization: workAuth }),
+        body: JSON.stringify({
+          workAuthorization: workAuth,
+          optStartDate: workAuth === "OPT (F-1)" ? (optStartDate || null) : null,
+          stemExtension: workAuth === "OPT (F-1)" ? stemExtension : false,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setWorkAuthError(data.error || "Failed to save"); return; }
@@ -863,13 +871,38 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                     ))}
                   </SelectContent>
                 </Select>
+                {workAuth === "OPT (F-1)" && (
+                  <div className="space-y-3 p-3 rounded-lg bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800">
+                    <p className="text-xs font-semibold text-sky-800 dark:text-sky-300">OPT Details</p>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="opt-start-date" className="text-xs">OPT Start Date</Label>
+                      <Input
+                        id="opt-start-date"
+                        type="date"
+                        value={optStartDate}
+                        onChange={(e) => setOptStartDate(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Your OPT authorization start date — used to compute the expiry countdown.</p>
+                    </div>
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={stemExtension}
+                        onChange={(e) => setStemExtension(e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-xs text-sky-800 dark:text-sky-300">24-month STEM extension active</span>
+                    </label>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
                     Stored only in your account — never shared publicly.
                   </p>
                   <Button
                     onClick={handleWorkAuthSave}
-                    disabled={workAuthSaving || workAuth === user.workAuthorization}
+                    disabled={workAuthSaving}
                     size="sm"
                   >
                     {workAuthSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

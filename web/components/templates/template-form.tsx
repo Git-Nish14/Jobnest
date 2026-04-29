@@ -25,6 +25,7 @@ import {
   SelectValue,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -129,6 +130,9 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <Mail className="h-5 w-5" />
             {template ? "Edit Template" : "Create Template"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {template ? "Edit your email template name, subject, and body." : "Create a reusable email template with dynamic variables like {{company}} and {{position}}."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

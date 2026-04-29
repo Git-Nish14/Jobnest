@@ -10,12 +10,14 @@ const schema = z.object({
   workAuthorization: z
     .enum(WORK_AUTHORIZATION_OPTIONS, { message: "Please select a valid work authorization status" })
     .nullable(),
+  optStartDate: z.string().date("Invalid date format — use YYYY-MM-DD").nullable().optional(),
+  stemExtension: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
     if (!verifyOrigin(request)) { throw ApiError.forbidden("Invalid request origin"); }
-    const { workAuthorization } = await validateBody(request, schema);
+    const { workAuthorization, optStartDate, stemExtension } = await validateBody(request, schema);
 
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -27,9 +29,21 @@ export async function POST(request: NextRequest) {
     });
     if (!rateLimitResult.allowed) throw ApiError.tooManyRequests("Too many requests. Please wait.");
 
-    const { error } = await supabase.auth.updateUser({
-      data: { work_authorization: workAuthorization ?? null },
-    });
+    // Build metadata update — only include OPT fields when relevant
+    const metadataUpdate: Record<string, unknown> = {
+      work_authorization: workAuthorization ?? null,
+    };
+
+    if (workAuthorization === "OPT (F-1)") {
+      metadataUpdate.opt_start_date = optStartDate ?? null;
+      metadataUpdate.stem_extension = stemExtension ?? false;
+    } else {
+      // Clear OPT fields when switching away from OPT
+      metadataUpdate.opt_start_date = null;
+      metadataUpdate.stem_extension = false;
+    }
+
+    const { error } = await supabase.auth.updateUser({ data: metadataUpdate });
 
     if (error) {
       console.error("Failed to update work_authorization:", error);

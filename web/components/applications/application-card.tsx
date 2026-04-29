@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check,
+  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -228,6 +228,14 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
             {application.source && (
               <span className="hidden sm:inline-block text-xs text-muted-foreground/50 bg-muted/60 rounded-full px-2 py-0.5">
                 {application.source}
+              </span>
+            )}
+
+            {/* Visa sponsorship badge */}
+            {application.requires_sponsorship && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                <Stamp className="h-3 w-3 shrink-0" />
+                Visa
               </span>
             )}
 

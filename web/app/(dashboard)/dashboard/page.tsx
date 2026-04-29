@@ -7,6 +7,8 @@ import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart"
 import { AtelierRecentApps } from "@/components/dashboard/atelier-recent-apps";
 import { AtelierTasksPanel } from "@/components/dashboard/atelier-tasks-panel";
 import { AnalyticsInsights } from "@/components/dashboard/analytics-insights";
+import { OPTCountdownBanner } from "@/components/dashboard/OPTCountdownBanner";
+import { H1BTrackerCard } from "@/components/dashboard/H1BTrackerCard";
 import { BarChart3, Calendar, Mail, Plus, Library, ScanSearch, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +38,13 @@ export default async function DashboardPage() {
     upcomingInterviews: [],
     pendingReminders: [],
   };
+
+  // OPT / H1B work auth
+  const workAuth: string | null = user?.user_metadata?.work_authorization ?? null;
+  const optStartDate: string | null = user?.user_metadata?.opt_start_date ?? null;
+  const stemExtension: boolean = user?.user_metadata?.stem_extension ?? false;
+  const showOPTBanner = workAuth === "OPT (F-1)" && !!optStartDate;
+  const showH1BCard = workAuth === "H1B" || workAuth === "OPT (F-1)";
 
   // Derive display name
   const rawName: string = user?.user_metadata?.full_name || user?.email || "there";
@@ -71,6 +80,11 @@ export default async function DashboardPage() {
             : "Your career workspace is ready. Start tracking your applications."}
         </p>
       </header>
+
+      {/* ── OPT Expiry Banner ── */}
+      {showOPTBanner && (
+        <OPTCountdownBanner optStartDate={optStartDate!} stemExtension={stemExtension} />
+      )}
 
       {/* ── Bento grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -167,7 +181,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        <div className="md:col-span-6">
+        <div className={showH1BCard ? "md:col-span-4" : "md:col-span-6"}>
           <Link
             href="/ats"
             className="db-content-card flex items-center gap-4 hover:shadow-md transition-all group h-full"
@@ -182,6 +196,12 @@ export default async function DashboardPage() {
             <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0" />
           </Link>
         </div>
+
+        {showH1BCard && (
+          <div className="md:col-span-4">
+            <H1BTrackerCard workAuth={workAuth!} />
+          </div>
+        )}
       </div>
 
       {/* ── Search Intelligence ── */}

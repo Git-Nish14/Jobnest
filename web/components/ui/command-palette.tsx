@@ -145,7 +145,7 @@ export function CommandPalette() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-[92vw] max-w-lg p-0 gap-0 overflow-hidden">
+      <DialogContent aria-describedby={undefined} className="w-[92vw] max-w-lg p-0 gap-0 overflow-hidden">
         {/* Search bar */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#dbc1b9]/20">
           <Search className="h-4 w-4 text-[#88726c] shrink-0" />

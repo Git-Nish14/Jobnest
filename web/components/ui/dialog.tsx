@@ -30,8 +30,11 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /** Set to false when you place your own close button inside the dialog header. */
+    showClose?: boolean;
+  }
+>(({ className, children, showClose = true, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -43,10 +46,12 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1 text-[#55433d]/50 dark:text-white/35 transition-all hover:text-[#1a1c1b] dark:hover:text-white hover:bg-[#dbc1b9]/20 dark:hover:bg-white/8 focus:outline-none focus:ring-2 focus:ring-[#99462a]/30 dark:focus:ring-[#ccff00]/25 disabled:pointer-events-none">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {showClose && (
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1 text-[#55433d]/50 dark:text-white/35 transition-all hover:text-[#1a1c1b] dark:hover:text-white hover:bg-[#dbc1b9]/20 dark:hover:bg-white/8 focus:outline-none focus:ring-2 focus:ring-[#99462a]/30 dark:focus:ring-[#ccff00]/25 disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

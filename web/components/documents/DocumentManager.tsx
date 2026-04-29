@@ -5,16 +5,18 @@ import {
 } from "react";
 import {
   FileText, Upload, X, Download, Eye, Trash2, RotateCcw,
-  Clock, Share2, Link2, CheckCircle2, AlertCircle, Loader2,
-  FileImage, File, ChevronDown, ChevronUp, Plus, ExternalLink,
+  Clock, Share2, Link2, CheckCircle2, Loader2,
+  ChevronDown, ChevronUp, Plus,
 } from "lucide-react";
+import { DiffDialog } from "./DiffDialog";
+import { DocPreviewDialog, mimeColour, MimeIcon } from "./DocPreviewDialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import type { ApplicationDocument } from "@/types/application";
-import { mimeToLabel, isPreviewable } from "@/lib/utils/storage";
+import { mimeToLabel } from "@/lib/utils/storage";
 
 // ── Legacy doc type (pre-migration docs stored on job_applications) ──────────
 export interface LegacyDoc {
@@ -32,21 +34,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function MimeIcon({ mimeType, className = "h-5 w-5" }: { mimeType: string; className?: string }) {
-  if (mimeType.startsWith("image/")) return <FileImage className={className} />;
-  if (mimeType === "application/pdf") return <FileText className={className} />;
-  return <File className={className} />;
-}
-
-function mimeColour(mimeType: string): string {
-  if (mimeType === "application/pdf")  return "bg-red-100 text-red-600";
-  if (mimeType.includes("wordprocessing") || mimeType === "application/msword")
-    return "bg-blue-100 text-blue-600";
-  if (mimeType.startsWith("image/"))   return "bg-purple-100 text-purple-600";
-  if (mimeType === "text/plain" || mimeType === "text/markdown")
-    return "bg-green-100 text-green-600";
-  return "bg-[#dbc1b9]/40 text-[#55433d]";
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,83 +54,6 @@ interface DocumentManagerProps {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function PreviewDialog({
-  doc,
-  signedUrl,
-  onClose,
-}: {
-  doc: ApplicationDocument;
-  signedUrl: string;
-  onClose: () => void;
-}) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isPreviewable(doc.mime_type)) { setLoading(false); return; }
-    fetch(`/api/documents?path=${encodeURIComponent(doc.storage_path)}`, { credentials: "include" })
-      .then((r) => { if (!r.ok) throw new Error("Failed to load"); return r.blob(); })
-      .then((blob) => { setBlobUrl(URL.createObjectURL(blob)); setLoading(false); })
-      .catch(() => { setError("Could not load preview."); setLoading(false); });
-    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.storage_path, doc.mime_type]);
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl h-[90vh] flex flex-col p-4 gap-3">
-        <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="truncate text-base pr-4">{doc.original_name ?? doc.label}</DialogTitle>
-            <div className="flex gap-2 shrink-0">
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
-                  <ExternalLink className="h-3.5 w-3.5" /> Open
-                </Button>
-              </a>
-              <a href={signedUrl} download>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
-                  <Download className="h-3.5 w-3.5" /> Download
-                </Button>
-              </a>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="flex-1 min-h-0 rounded-lg border bg-muted/30 flex items-center justify-center overflow-hidden">
-          {loading && <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
-          {error && (
-            <div className="text-center p-6">
-              <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">{error}</p>
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                <Button className="mt-3 gap-1.5" size="sm"><ExternalLink className="h-3.5 w-3.5" /> Open in browser</Button>
-              </a>
-            </div>
-          )}
-          {blobUrl && !loading && !error && (
-            doc.mime_type.startsWith("image/")
-              /* eslint-disable-next-line @next/next/no-img-element -- blob: URLs cannot be handled by next/image */
-              ? <img src={blobUrl} alt={doc.label} className="max-h-full max-w-full object-contain" />
-              : <iframe src={blobUrl} className="w-full h-full border-0 bg-white" title={doc.label} />
-          )}
-          {!isPreviewable(doc.mime_type) && !loading && (
-            <div className="text-center p-6">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="font-medium">{doc.original_name ?? doc.label}</p>
-              <p className="text-sm text-muted-foreground mt-1">Preview not available for {mimeToLabel(doc.mime_type)} files</p>
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                <Button className="mt-3 gap-1.5" size="sm"><ExternalLink className="h-3.5 w-3.5" /> Open in browser</Button>
-              </a>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function ShareDialog({
   docId,
@@ -197,7 +107,7 @@ function ShareDialog({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-lg p-5">
+      <DialogContent aria-describedby={undefined} className="w-[95vw] max-w-lg p-5">
         <DialogHeader>
           <DialogTitle>Share Document</DialogTitle>
         </DialogHeader>
@@ -335,13 +245,18 @@ function DocumentCard({
               </button>
             )}
             {signedUrl && (
-              <a href={signedUrl} download target="_blank" rel="noopener noreferrer">
-                <button className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors" title="Download">
-                  <Download className="h-4 w-4" />
-                </button>
+              <a
+                href={signedUrl}
+                download
+                title="Download"
+                className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
+              >
+                <Download className="h-4 w-4" />
+                <span className="sr-only">Download</span>
               </a>
             )}
             <button
+              type="button"
               onClick={() => setShareOpen(true)}
               className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
               title="Share"
@@ -349,6 +264,7 @@ function DocumentCard({
               <Share2 className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={() => { if (confirm("Delete this document? This cannot be undone.")) onDelete(doc.id); }}
               className="rounded-md p-1.5 hover:bg-red-50 text-red-500 transition-colors"
               title="Delete"
@@ -362,6 +278,7 @@ function DocumentCard({
         {oldVersions.length > 0 && (
           <div className="border-t border-[#dbc1b9]/30">
             <button
+              type="button"
               onClick={() => setShowVersions((p) => !p)}
               className="w-full flex items-center justify-between px-3 py-2 text-xs text-[#55433d]/70 hover:bg-[#f4f3f1] transition-colors"
             >
@@ -379,7 +296,14 @@ function DocumentCard({
                     <p className="flex-1 text-xs text-[#55433d]/70 truncate">
                       {v.original_name ?? v.label} · {formatBytes(v.size_bytes)} · {new Date(v.uploaded_at).toLocaleDateString()}
                     </p>
+                    <DiffDialog
+                      currentId={doc.id}
+                      compareId={v.id}
+                      compareLabel={v.original_name ?? v.label}
+                      compareDate={v.uploaded_at}
+                    />
                     <button
+                      type="button"
                       onClick={() => onRestore(v.id)}
                       className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
                       title="Restore this version"
@@ -387,6 +311,7 @@ function DocumentCard({
                       <RotateCcw className="h-3.5 w-3.5" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => { if (confirm("Delete this version?")) onDelete(v.id); }}
                       className="rounded-md p-1.5 hover:bg-red-50 text-red-500 transition-colors"
                       title="Delete this version"
@@ -397,6 +322,7 @@ function DocumentCard({
                 ))}
                 <div className="px-3 py-2">
                   <button
+                    type="button"
                     onClick={handlePurge}
                     disabled={purging}
                     className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 disabled:opacity-50"
@@ -412,7 +338,10 @@ function DocumentCard({
       </div>
 
       {previewOpen && signedUrl && (
-        <PreviewDialog doc={doc} signedUrl={signedUrl} onClose={() => setPreviewOpen(false)} />
+        <DocPreviewDialog
+          doc={{ ...doc, signed_url: signedUrl }}
+          onClose={() => setPreviewOpen(false)}
+        />
       )}
       {shareOpen && (
         <ShareDialog docId={doc.id} onClose={() => setShareOpen(false)} />
@@ -425,32 +354,26 @@ function DocumentCard({
 
 function LegacyDocCard({ doc }: { doc: LegacyDoc }) {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [blobUrl, setBlobUrl]         = useState<string | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
 
-  const isPdf   = doc.mimeType === "application/pdf";
-  const isImage = doc.mimeType.startsWith("image/");
-  const canPreview = isPdf || isImage;
-
-  const openPreview = () => {
-    setPreviewOpen(true);
-    if (blobUrl || !canPreview) return;
-    setLoading(true);
-    fetch(`/api/documents?path=${encodeURIComponent(doc.path)}`, { credentials: "include" })
-      .then((r) => { if (!r.ok) throw new Error("Failed to load"); return r.blob(); })
-      .then((blob) => { setBlobUrl(URL.createObjectURL(blob)); })
-      .catch(() => setError("Could not load preview."))
-      .finally(() => setLoading(false));
-  };
-
-  const handleClose = (open: boolean) => {
-    if (!open && blobUrl) { URL.revokeObjectURL(blobUrl); setBlobUrl(null); }
-    setPreviewOpen(open);
-    if (!open) setError(null);
-  };
-
+  const canPreview = doc.mimeType === "application/pdf" || doc.mimeType.startsWith("image/");
   const ext = doc.path.split(".").pop()?.toLowerCase() ?? "";
+
+  // Construct a synthetic ApplicationDocument so DocPreviewDialog can handle it.
+  // signed_url is always present for legacy docs so no refresh-url call is made.
+  const syntheticDoc = {
+    id: "",
+    application_id: null,
+    user_id: "",
+    label: doc.label,
+    storage_path: doc.path,
+    mime_type: doc.mimeType,
+    size_bytes: 0,
+    is_current: true,
+    is_master: false,
+    uploaded_at: "",
+    original_name: doc.label,
+    signed_url: doc.signedUrl,
+  };
 
   return (
     <>
@@ -468,55 +391,25 @@ function LegacyDocCard({ doc }: { doc: LegacyDoc }) {
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {canPreview && (
-              <button type="button" onClick={openPreview} className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors" title="Preview">
+              <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors" title="Preview">
                 <Eye className="h-4 w-4" />
               </button>
             )}
-            <a href={doc.signedUrl} download target="_blank" rel="noopener noreferrer" title={`Download ${doc.label}`}>
-              <button type="button" title={`Download ${doc.label}`} className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors">
-                <Download className="h-4 w-4" />
-              </button>
+            <a
+              href={doc.signedUrl}
+              download
+              title={`Download ${doc.label}`}
+              className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
+            >
+              <Download className="h-4 w-4" />
+              <span className="sr-only">Download {doc.label}</span>
             </a>
           </div>
         </div>
       </div>
 
       {previewOpen && (
-        <Dialog open onOpenChange={handleClose}>
-          <DialogContent className="w-[95vw] max-w-4xl h-[90vh] flex flex-col p-4 gap-3">
-            <DialogHeader className="shrink-0">
-              <div className="flex items-center justify-between">
-                <DialogTitle className="truncate text-base pr-4">{doc.label}</DialogTitle>
-                <div className="flex gap-2 shrink-0">
-                  <a href={doc.signedUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8"><ExternalLink className="h-3.5 w-3.5" /> Open</Button>
-                  </a>
-                  <a href={doc.signedUrl} download>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8"><Download className="h-3.5 w-3.5" /> Download</Button>
-                  </a>
-                </div>
-              </div>
-            </DialogHeader>
-            <div className="flex-1 min-h-0 rounded-lg border bg-muted/30 flex items-center justify-center overflow-hidden">
-              {loading && <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
-              {error && (
-                <div className="text-center p-6">
-                  <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">{error}</p>
-                  <a href={doc.signedUrl} target="_blank" rel="noopener noreferrer">
-                    <Button className="mt-3 gap-1.5" size="sm"><ExternalLink className="h-3.5 w-3.5" /> Open in browser</Button>
-                  </a>
-                </div>
-              )}
-              {blobUrl && !loading && !error && (
-                isImage
-                  /* eslint-disable-next-line @next/next/no-img-element -- blob: URLs cannot be handled by next/image */
-                  ? <img src={blobUrl} alt={doc.label} className="max-h-full max-w-full object-contain" />
-                  : <iframe src={blobUrl} className="w-full h-full border-0 bg-white" title={doc.label} />
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+        <DocPreviewDialog doc={syntheticDoc} onClose={() => setPreviewOpen(false)} />
       )}
     </>
   );
@@ -598,6 +491,7 @@ function UploadArea({
       {/* Upload button */}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
           className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#dbc1b9] bg-[#f4f3f1] py-3 text-sm text-[#55433d] hover:border-[#99462a] hover:bg-[#faf9f7] transition-colors disabled:opacity-50"
@@ -606,6 +500,7 @@ function UploadArea({
           {uploading ? "Uploading…" : "Choose file"}
         </button>
         <button
+          type="button"
           onClick={() => setShowImport((p) => !p)}
           className="rounded-xl border border-[#dbc1b9] bg-[#f4f3f1] px-3 py-2 text-sm text-[#55433d] hover:bg-[#faf9f7] transition-colors"
           title="Import from URL"
@@ -617,6 +512,7 @@ function UploadArea({
         ref={fileRef}
         type="file"
         accept={ACCEPTED}
+        aria-label="Upload document"
         className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }}
       />
@@ -707,6 +603,7 @@ export function DocumentManager({ applicationId, initialDocuments = [], legacyDo
       <div className="flex items-center justify-between mb-4">
         <h2 className="db-headline text-xl font-semibold text-[#1a1c1b]">Documents</h2>
         <button
+          type="button"
           onClick={() => setShowUpload((p) => !p)}
           className="flex items-center gap-1.5 rounded-full border border-[#dbc1b9] px-3 py-1.5 text-xs font-semibold text-[#55433d] hover:bg-[#f4f3f1] transition-colors"
         >

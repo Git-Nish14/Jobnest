@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Loader2, Code, Award, GraduationCap } from "lucide-react";
+import { ResumeImportButton } from "./ResumeImportButton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -352,11 +353,18 @@ function EducationSection() {
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export function DeveloperIdentity() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleImported = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   return (
     <div className="space-y-6">
-      <SkillsSection />
-      <CertificationsSection />
-      <EducationSection />
+      <div className="flex items-center justify-between">
+        <h2 className="db-headline text-xl font-semibold text-foreground">Developer Identity</h2>
+        <ResumeImportButton onImported={handleImported} />
+      </div>
+      <SkillsSection key={`skills-${refreshKey}`} />
+      <CertificationsSection key={`certs-${refreshKey}`} />
+      <EducationSection key={`edu-${refreshKey}`} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import type {
   SalaryDetailsUpdate,
   ApiResponse,
 } from "@/types";
+import { computeFullTC } from "@/lib/utils/salary-helpers";
 
 export async function getSalaryDetails(
   applicationId: string
@@ -183,10 +184,7 @@ export function formatSalary(amount: number | null, currency = "USD"): string {
 }
 
 export function calculateTotalCompensation(salary: SalaryDetails): number {
-  let total = salary.base_salary || 0;
-  total += salary.bonus || 0;
-  total += salary.signing_bonus || 0;
-  return total;
+  return computeFullTC(salary).total;
 }
 
 export function compareSalaries(
