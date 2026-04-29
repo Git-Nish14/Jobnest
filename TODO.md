@@ -281,16 +281,14 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 💰 US Total Compensation (TC) Calculator
 
-> The current `salary_details` table has `base_salary`, `bonus`, `equity`, `signing_bonus`, `401k`. None of these are combined into a true TC calculation anywhere.
-
-- [ ] **TC calculator card on `/salary`** — auto-compute annual TC = base + annual bonus + (equity / 4-year vest) + prorated signing bonus; displayed as the primary number on each row
-- [ ] **Equity / RSU vesting schedule** — structured input for RSU grants: total shares, grant date, cliff (1 year), vesting period (4 years), current stock price; computes Year 1–4 equity value; updates when price changes; store as `equity_details JSONB` on `salary_details`
-- [ ] **401(k) match calculator** — add `retirement_match_percent` + `retirement_match_cap` fields; calculate employer contribution at max; add to TC total; show "You're leaving $X on the table" if user doesn't max out match
-- [ ] **Cost of Living (CoL) normaliser** — for each application, store city + state; integrate with a free CoL API (Teleport / Numbeo); adjust TC to a common baseline (e.g. "equivalent to $X in Austin TX"); makes cross-city offer comparison meaningful
-- [ ] **Effective hourly rate** — TC ÷ (annual work hours - PTO days × 8); surface on salary comparison table; exposes that 15 days PTO at one company vs 25 at another is a meaningful TC difference
-- [ ] **State income tax estimator** — select state of work; estimate take-home after federal + state income tax using standard brackets (no API needed, just hard-coded 2025 tax tables); show net take-home on each offer row
-- [ ] **Benefits dollar value** — assign dollar values to benefits: health insurance (employer premium ~$7k/year), dental (~$500), vision (~$200), free meals, gym, commuter; add to TC total; source: IRS / KFF benchmark data
-- [ ] **Offer comparison PDF export** — generate a formatted 1-page PDF showing two offers side by side with TC breakdown, CoL adjustment, net take-home, and benefits; shareable with family / mentors
+- [x] **TC calculator card on `/salary`** — auto-compute annual TC = base + annual bonus + (equity / 4-year vest) + prorated signing bonus; displayed as the primary number on each row
+- [x] **Equity / RSU vesting schedule** — `RSUVestingForm` component; total shares, cliff, vest months, current price; Year 1–4 schedule via `computeVestingSchedule()`; stored as `equity_details JSONB` on `salary_details`
+- [x] **401(k) match calculator** — `retirement_match_percent` + `retirement_match_cap` fields; `compute401kMatch()` in `salary-helpers.ts`; included in `computeFullTC()`
+- [x] **Cost of Living (CoL) normaliser** — `/api/salary/col-index` route; city+state stored per application; adjusts TC to Austin TX baseline
+- [x] **Effective hourly rate** — `computeEffectiveHourlyRate(tc, annualHoursWorked, ptoDays)` in `salary-helpers.ts`; surfaced in offer comparison PDF
+- [x] **State income tax estimator** — `estimateTakeHome()` in `lib/utils/tax-estimator.ts`; federal + state brackets hard-coded; net take-home shown per offer
+- [x] **Benefits dollar value** — `computeBenefitsDollarValue()` using IRS/KFF 2026 benchmarks (health ~$7.2k, dental $500, vision $200); added to `computeFullTC()`
+- [x] **Offer comparison PDF export** — `OfferComparisonPDF.tsx` + `POST /api/salary/export-pdf`; up to 3 offers side-by-side with full TC breakdown, net take-home, hourly rate; downloaded via `SalaryPageClient`
 
 ---
 
@@ -597,4 +595,4 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 19 April 2026 — NESTAi Email Draft Assistant (buildEmailPrompt extracted + tested; newline-strip injection guard; category allowlist validation; PII-minimal contact select); Offer Decision Helper on /salary (5-criteria weighted scoring, WinnerCallout, correct currency); security hardening: emailCategory union type, runtime category guard, email field removed from contacts fetch; 614 tests, 51 files, 100% pass; 0 ESLint errors; tsc clean; build clean.*
+*Last updated: 29 April 2026 — Marked TC Calculator section fully complete (all 8 items): TC calc card, RSU vesting schedule, 401(k) match, CoL normaliser, effective hourly rate, state income tax estimator, benefits dollar value, offer comparison PDF export.*
