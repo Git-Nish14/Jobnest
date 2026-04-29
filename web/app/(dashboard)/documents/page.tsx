@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
-  Library, Upload, Search, Loader2, FileText,
-  File, FileImage, Trash2, Download, Eye, Share2,
+  Library, Upload, Search, Loader2,
+  Trash2, Download, Eye, Share2,
   Link2, X, CheckCircle2, Plus, ScanSearch,
-  ArrowLeft, ExternalLink, Lock,
+  ArrowLeft, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 import type { ApplicationDocument } from "@/types/application";
 import { mimeToLabel } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
+import { DocPreviewDialog, mimeColour, MimeIcon } from "@/components/documents/DocPreviewDialog";
 
 export const dynamic = "force-dynamic";
 
@@ -32,115 +33,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
-function MimeIcon({ mimeType, className = "h-5 w-5" }: { mimeType: string; className?: string }) {
-  if (mimeType.startsWith("image/")) return <FileImage className={className} />;
-  if (mimeType === "application/pdf") return <FileText className={className} />;
-  return <File className={className} />;
-}
-
-function mimeColour(mimeType: string): string {
-  if (mimeType === "application/pdf")  return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400";
-  if (mimeType.includes("wordprocessing") || mimeType === "application/msword")
-    return "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400";
-  if (mimeType.startsWith("image/"))   return "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400";
-  return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400";
-}
-
-function isPreviewable(mimeType: string) {
-  return mimeType === "application/pdf" || mimeType.startsWith("image/");
-}
-
-// ── Inline preview popup ──────────────────────────────────────────────────────
-
-function PreviewPopup({
-  doc,
-  onClose,
-}: {
-  doc: ApplicationDocument & { appName?: string };
-  onClose: () => void;
-}) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(doc.signed_url ?? null);
-  const [loading, setLoading] = useState(!doc.signed_url);
-
-  useEffect(() => {
-    if (doc.signed_url) return;
-    // loading is already initialised to true when signed_url is absent;
-    // no synchronous setState needed here.
-    fetch(`/api/documents/refresh-url?document_id=${doc.id}`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => { if (d.signed_url) setSignedUrl(d.signed_url); })
-      .finally(() => setLoading(false));
-  }, [doc.id, doc.signed_url]);
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="px-5 py-3.5 border-b flex-row items-center gap-3 space-y-0">
-          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", mimeColour(doc.mime_type))}>
-            <MimeIcon mimeType={doc.mime_type} className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <DialogTitle className="text-sm font-semibold truncate">{doc.label}</DialogTitle>
-            {doc.appName && <p className="text-xs text-muted-foreground">From: {doc.appName}</p>}
-          </div>
-          {signedUrl && (
-            <div className="flex items-center gap-1 shrink-0">
-              <a href={signedUrl} download title="Download" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors">
-                <Download className="h-4 w-4" />
-              </a>
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer" title="Open in new tab" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors">
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-          )}
-        </DialogHeader>
-
-        <div className="flex-1 overflow-hidden min-h-0">
-          {loading && (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {!loading && !signedUrl && (
-            <div className="flex flex-col items-center justify-center h-64 gap-3 text-center px-6">
-              <ExternalLink className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Preview not available. File may have expired.</p>
-            </div>
-          )}
-          {!loading && signedUrl && doc.mime_type.startsWith("image/") && (
-            <div className="flex items-center justify-center h-full p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={signedUrl} alt={doc.label} className="max-h-full max-w-full object-contain rounded-lg" />
-            </div>
-          )}
-          {!loading && signedUrl && doc.mime_type === "application/pdf" && (
-            <iframe
-              src={signedUrl}
-              title={doc.label}
-              className="w-full h-full min-h-[60vh]"
-              sandbox="allow-scripts allow-same-origin"
-            />
-          )}
-          {!loading && signedUrl && !isPreviewable(doc.mime_type) && (
-            <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-6">
-              <File className="h-12 w-12 text-muted-foreground/40" />
-              <div>
-                <p className="text-sm font-medium text-foreground">{doc.original_name ?? doc.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">This file type cannot be previewed inline.</p>
-              </div>
-              <a href={signedUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <ExternalLink className="h-3.5 w-3.5" /> Open in browser
-                </Button>
-              </a>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 // ── Extended doc type ──────────────────────────────────────────────────────────
@@ -565,7 +457,7 @@ export default function DocumentLibraryPage() {
 
       {/* ── Preview popup ── */}
       {previewDoc && (
-        <PreviewPopup doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+        <DocPreviewDialog doc={previewDoc} onClose={() => setPreviewDoc(null)} />
       )}
 
       {/* ── Share dialog ── */}
@@ -611,7 +503,7 @@ function ShareDialogInline({ docId, onClose }: { docId: string; onClose: () => v
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-md p-5">
+      <DialogContent aria-describedby={undefined} className="w-[95vw] max-w-md p-5">
         <DialogHeader><DialogTitle>Share Document</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2 flex-wrap">

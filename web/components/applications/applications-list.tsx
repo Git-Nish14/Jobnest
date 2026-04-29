@@ -17,6 +17,7 @@ interface Filters {
   status?: string;
   location?: string;
   dateRange?: string;
+  sponsorship?: string;
 }
 
 interface Props {
@@ -91,6 +92,9 @@ export function ApplicationsList({
           default:        startDate = new Date(0);
         }
         query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
+      }
+      if (filters.sponsorship === "true") {
+        query = query.eq("requires_sponsorship", true);
       }
 
       // Decode cursor: base64("applied_date|id")

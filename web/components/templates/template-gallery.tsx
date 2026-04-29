@@ -99,7 +99,7 @@ export function TemplateGallery({ onTemplateAdded }: TemplateGalleryProps) {
           Browse Templates
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="db-headline flex items-center gap-2 text-[#1a1c1b]">
             <Mail className="h-5 w-5 text-[#99462a]" />

@@ -25,6 +25,7 @@ import {
   SelectValue,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -150,6 +151,9 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
             <Bell className="h-5 w-5" />
             {reminder ? "Edit Reminder" : "Create Reminder"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {reminder ? "Update this reminder's title, date, and notes." : "Create a reminder with a title and due date to stay on top of your job search."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">

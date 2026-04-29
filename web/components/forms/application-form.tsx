@@ -44,7 +44,8 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormData>({
-    resolver: zodResolver(applicationSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(applicationSchema) as any,
     defaultValues: {
       company: application?.company || "",
       position: application?.position || "",
@@ -58,6 +59,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       notes: application?.notes || "",
       job_description: application?.job_description || "",
       source: (application?.source as ApplicationFormData["source"]) || "",
+      requires_sponsorship: application?.requires_sponsorship ?? false,
     },
   });
 
@@ -357,6 +359,16 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               )}
             </div>
           </div>
+
+          {/* Sponsorship */}
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              {...register("requires_sponsorship")}
+              className="rounded border-border h-4 w-4"
+            />
+            <span className="text-sm text-foreground">This role requires visa sponsorship (H-1B / OPT / EAD)</span>
+          </label>
 
           {/* Job ID & URL */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -16,6 +16,7 @@ import {
   Textarea,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -144,6 +145,9 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
             <UserPlus className="h-5 w-5" />
             {contact ? "Edit Contact" : "Add Contact"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {contact ? "Update this contact's name, company, and details." : "Add a new networking contact with their name, company, and role."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

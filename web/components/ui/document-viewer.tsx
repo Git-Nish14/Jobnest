@@ -1,14 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FileText, Download, Eye, ExternalLink, Loader2 } from "lucide-react";
-import { Button } from "./button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "./dialog";
+import { useState } from "react";
+import { FileText, Download, Eye, ExternalLink } from "lucide-react";
+import { DocPreviewDialog } from "@/components/documents/DocPreviewDialog";
 
 interface DocumentViewerProps {
   path: string;
@@ -17,227 +11,82 @@ interface DocumentViewerProps {
   type: "resume" | "cover_letter";
 }
 
+const TYPE_CONFIG = {
+  resume:       { bg: "bg-red-100 dark:bg-red-950/40",  text: "text-red-600 dark:text-red-400",  label: "Resume" },
+  cover_letter: { bg: "bg-blue-100 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", label: "Cover Letter" },
+};
+
 export function DocumentViewer({ path, downloadUrl, title, type }: DocumentViewerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [canRenderPdf, setCanRenderPdf] = useState(true);
+  // iOS Safari can't render PDFs in iframes — detect once at mount via lazy initializer
+  const [canRenderPdf] = useState(() => !/iPad|iPhone|iPod/.test(navigator.userAgent));
 
-  const colorClass = type === "resume"
-    ? "bg-red-100 text-red-600"
-    : "bg-blue-100 text-blue-600";
+  const config = TYPE_CONFIG[type];
 
-  // Detect mobile device and PDF support
-  useEffect(() => {
-    const checkDevice = () => {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isAndroid = /Android/.test(navigator.userAgent);
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isSmallScreen = window.innerWidth < 640;
-
-      // iOS Safari and some mobile browsers can't render PDFs in iframes
-      const mobile = isIOS || isAndroid || (isTouchDevice && isSmallScreen);
-      setIsMobile(mobile);
-
-      // iOS specifically can't render PDFs in iframes
-      if (isIOS) {
-        setCanRenderPdf(false);
-      }
-    };
-
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    return () => window.removeEventListener('resize', checkDevice);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && !blobUrl && canRenderPdf) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(true);
-      setError(null);
-
-      fetch(`/api/documents?path=${encodeURIComponent(path)}`, {
-        credentials: "include",
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load document");
-          return res.blob();
-        })
-        .then((blob) => {
-          const url = URL.createObjectURL(blob);
-          setBlobUrl(url);
-        })
-        .catch((err) => {
-          setError(err.message);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [isOpen, blobUrl, path, canRenderPdf]);
-
-  useEffect(() => {
-    return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
-  }, [blobUrl]);
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-        setBlobUrl(null);
-      }
-      setError(null);
-    }
-  };
-
-  // On mobile devices that can't render PDFs, open directly in browser
-  const handleViewClick = () => {
-    if (!canRenderPdf) {
-      window.open(downloadUrl, '_blank');
-    } else {
-      setIsOpen(true);
-    }
+  // Construct a synthetic ApplicationDocument for DocPreviewDialog.
+  // downloadUrl is always provided so the refresh-url step is never triggered.
+  const doc = {
+    id: "",
+    application_id: null,
+    user_id: "",
+    label: title,
+    storage_path: path,
+    mime_type: "application/pdf" as const,
+    size_bytes: 0,
+    is_current: true,
+    is_master: false,
+    uploaded_at: "",
+    original_name: title,
+    signed_url: downloadUrl,
   };
 
   return (
     <>
-      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted">
-        <div className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
-          <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+      {/* ── Trigger card ── */}
+      <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/50 border border-border/50 hover:bg-muted/80 transition-colors group">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${config.bg} ${config.text}`}>
+          <FileText className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate text-sm sm:text-base">{title}</p>
-          <p className="text-xs text-muted-foreground">PDF Document</p>
+          <p className="text-sm font-medium text-foreground truncate">{title}</p>
+          <p className="text-xs text-muted-foreground">{config.label} · PDF</p>
         </div>
-        <div className="flex items-center gap-0.5 sm:gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleViewClick}
-            title="View document"
-            className="h-8 w-8 sm:h-9 sm:w-9"
+        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={() => canRenderPdf ? setIsOpen(true) : window.open(downloadUrl, "_blank")}
+            title="Preview"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <Eye className="h-4 w-4" />
-          </Button>
+            <span className="sr-only">Preview {title}</span>
+          </button>
+          <a
+            href={downloadUrl}
+            download
+            title="Download"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            <span className="sr-only">Download {title}</span>
+          </a>
           <a
             href={downloadUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title="Download document"
+            title="Open in new tab"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
-              <Download className="h-4 w-4" />
-            </Button>
+            <ExternalLink className="h-4 w-4" />
+            <span className="sr-only">Open {title} in new tab</span>
           </a>
         </div>
       </div>
 
-      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-[85vh] flex flex-col p-3 sm:p-6 gap-2 sm:gap-4">
-          <DialogHeader className="flex-shrink-0">
-            {/* pr-10 clears the Radix absolute close button (right-4 + ~24px wide) */}
-            <div className="flex items-center gap-2 pr-10">
-              <DialogTitle className="flex-1 text-base sm:text-lg truncate">{title}</DialogTitle>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 px-2 sm:px-3">
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    <span className="hidden sm:inline text-xs sm:text-sm">Open</span>
-                  </Button>
-                </a>
-                <a href={downloadUrl} download>
-                  <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 px-2 sm:px-3">
-                    <Download className="h-3.5 w-3.5 shrink-0" />
-                    <span className="hidden sm:inline text-xs sm:text-sm">Download</span>
-                  </Button>
-                </a>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 min-h-0 flex items-center justify-center rounded-lg border bg-muted/30 overflow-hidden">
-            {loading && (
-              <div className="flex flex-col items-center gap-3 text-muted-foreground p-4">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <p className="text-sm">Loading document...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="flex flex-col items-center gap-4 text-center p-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-                  <FileText className="h-8 w-8 text-destructive" />
-                </div>
-                <div>
-                  <p className="font-medium">Unable to preview PDF</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This PDF cannot be displayed in the viewer.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-                    <Button className="gap-2 w-full sm:w-auto">
-                      <ExternalLink className="h-4 w-4" />
-                      Open in Browser
-                    </Button>
-                  </a>
-                  <a href={downloadUrl} download>
-                    <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile fallback view */}
-            {isMobile && !loading && !error && !blobUrl && canRenderPdf && (
-              <div className="flex flex-col items-center gap-4 text-center p-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                  <FileText className="h-10 w-10 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-lg">{title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Tap below to view or download this PDF
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 w-full max-w-xs">
-                  <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                    <Button className="gap-2 w-full" size="lg">
-                      <ExternalLink className="h-4 w-4" />
-                      Open PDF
-                    </Button>
-                  </a>
-                  <a href={downloadUrl} download className="w-full">
-                    <Button variant="outline" className="gap-2 w-full" size="lg">
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Desktop iframe view */}
-            {blobUrl && !loading && !error && (
-              <iframe
-                src={blobUrl}
-                className="w-full h-full rounded border-0 bg-white"
-                title={title}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* ── Shared preview dialog ── */}
+      {isOpen && (
+        <DocPreviewDialog doc={doc} onClose={() => setIsOpen(false)} />
+      )}
     </>
   );
 }

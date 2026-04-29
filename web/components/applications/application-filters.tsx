@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Search, X, ChevronDown, ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, ChevronsUpDown } from "lucide-react";
+import { Search, X, ChevronDown, ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, ChevronsUpDown, Stamp } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/config";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -26,6 +26,7 @@ export function ApplicationFilters() {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const currentStatus = searchParams.get("status") || "all";
   const currentSort   = searchParams.get("sort")   || "date_desc";
+  const sponsorshipOnly = searchParams.get("sponsorship") === "true";
 
   const push = useCallback(
     (qs: string) => startTransition(() => router.push(`/applications?${qs}`)),
@@ -123,6 +124,15 @@ export function ApplicationFilters() {
               {status}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => push(createQS({ sponsorship: sponsorshipOnly ? "" : "true" }))}
+            className={cn("db-filter-pill inline-flex items-center gap-1.5", sponsorshipOnly ? "db-filter-pill-active" : "db-filter-pill-inactive")}
+            aria-pressed={sponsorshipOnly ? "true" : "false"}
+          >
+            <Stamp className="h-3 w-3" />
+            Needs Sponsorship
+          </button>
         </div>
 
         <DropdownMenu>

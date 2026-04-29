@@ -54,6 +54,7 @@ export const applicationSchema = z.object({
     .enum(APPLICATION_SOURCES, { message: "Please select a valid source" })
     .optional()
     .or(z.literal("")),
+  requires_sponsorship: z.boolean().optional().default(false),
 });
 
 export type ApplicationFormData = z.infer<typeof applicationSchema>;

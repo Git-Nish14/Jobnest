@@ -26,6 +26,7 @@ import {
   SelectValue,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -147,6 +148,9 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
           <DialogTitle>
             {interview ? "Edit Interview" : "Schedule New Interview"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {interview ? "Edit interview details including type, date, and notes." : "Schedule a new interview by filling in the type, date, and optional notes."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

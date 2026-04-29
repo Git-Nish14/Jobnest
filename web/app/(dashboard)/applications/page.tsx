@@ -21,6 +21,7 @@ interface PageProps {
     dateRange?: string;
     sort?: string;
     view?: string;
+    sponsorship?: string;
   }>;
 }
 
@@ -36,6 +37,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   let hasMore = false;
   let nextCursor: string | null = null;
 
+  const sponsorshipOnly = params.sponsorship === "true";
+
   if (isKanban) {
     const { data: applications, error } = await getApplications({
       search: params.search,
@@ -43,6 +46,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       location: params.location,
       dateRange: toDateRange(params.dateRange),
       sort: params.sort,
+      sponsorshipOnly,
     });
     if (error) console.error("Error fetching applications:", error.message);
     apps = applications ?? [];
@@ -52,6 +56,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       status: params.status,
       location: params.location,
       dateRange: toDateRange(params.dateRange),
+      sponsorshipOnly,
     });
     if (page.error) console.error("Error fetching applications page:", page.error);
     apps = page.data;
@@ -96,6 +101,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
               status: params.status,
               location: params.location,
               dateRange: params.dateRange,
+              sponsorship: params.sponsorship,
             }}
           />
         )
