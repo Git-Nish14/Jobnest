@@ -106,7 +106,8 @@ export const createChatMessageSchema = z.object({
         .object({
           name: z.string().max(255),
           fileType: z.string().max(10),
-          preview: z.string().max(3000).optional(), // first 3000 chars for in-chat viewing
+          preview: z.string().max(3000).optional(),
+          storagePath: z.string().max(500).optional(), // Supabase Storage path for binary preview
         })
         .optional(),
     })

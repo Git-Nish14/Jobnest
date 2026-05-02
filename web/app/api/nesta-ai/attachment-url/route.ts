@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
 
     if (!path) throw ApiError.badRequest("path is required.");
 
-    // Security: reject path traversal attempts and enforce user ownership.
-    if (path.includes("..") || !path.startsWith(`chat-attachments/${user.id}/`)) {
+    // Security: reject path traversal and enforce ownership.
+    // Stored as {user_id}/chat-attachments/{sessionId}/... — first segment is user ID.
+    if (path.includes("..") || !path.startsWith(`${user.id}/chat-attachments/`)) {
       throw ApiError.forbidden("Access denied.");
     }
 
