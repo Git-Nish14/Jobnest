@@ -49,7 +49,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **Stay signed in for 30 days / session-only sessions**
   - "Stay signed in for 30 days" checkbox on login (default: checked)
-  - `rememberMe=true`  → `sb_rm=1` cookie, 30-day Max-Age
+  - `rememberMe=true` → `sb_rm=1` cookie, 30-day Max-Age
   - `rememberMe=false` → `sb_rm=0` cookie, 7-day Max-Age; `AuthSync` detects new browser session and signs out automatically
   - OAuth always sets `sb_rm=1` (30-day persistent)
 
@@ -115,11 +115,13 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 > Full Intellectual Atelier design system shipped across every page — auth, dashboard, and public pages. Warm parchment palette, Newsreader + Manrope typography, pill buttons, tonal card layering, and atelier status badges are now consistent site-wide.
 
 ### Auth Pages (done ✓)
+
 - [x] Login — Atelier card, OAuth grid, eye toggle, stay-signed-in, OTP step
 - [x] Signup — Atelier card, full-width OAuth stack, strength meter, eye toggles, must-match
 - [x] Forgot-password — 4-step Atelier flow (email → OTP → new password → success)
 
 ### Dashboard & Public Pages (done ✓)
+
 - [x] **Landing page (`/`)** — hero gradient text, stats strip, how-it-works steps, features grid, social proof card, CTA
 - [x] **Dashboard overview (`/dashboard`)** — Newsreader large title, stat cards, bar chart, status pie chart, recent apps, tasks panel — all live data
 - [x] **Applications list (`/applications`)** — `db-filter-bar` pill filters, search, sort dropdown, `db-app-card` with left status accent bar, status badges
@@ -133,6 +135,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Profile (`/profile`)** — sidebar avatar/stats, section cards, OTP gating and deletion flow intact
 
 ### Base UI components (done ✓)
+
 - [x] **CSS variables** — `--primary` + `--ring` → terracotta `#99462a`; `--accent`/`--muted` → warm parchment (cascades automatically)
 - [x] **Button** — `rounded-full` pill, `font-semibold`, terracotta default + outline variants
 - [x] **Input / Textarea** — `bg-[#f4f3f1]` warm surface, `border-[#dbc1b9]/50`, terracotta focus ring
@@ -143,6 +146,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **`db-headline`** class added — Newsreader font for all section h2/h3 headings
 
 ### Cross-cutting (done ✓)
+
 - [x] **Empty states** — icon box + heading + description + CTA standardised on all list pages
 - [x] **Card hover** — shadow lift on `db-app-card` and `db-content-card`, 200ms ease
 - [x] **Status badge colours** — atelier tonal tokens per status (Interview, Phone Screen, Applied, Offer, Rejected, Withdrawn) via `db-status-badge` + `db-status-*` classes
@@ -197,6 +201,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ## 💬 Error Messages & User-Facing Copy
 
 - [x] **Audit all user-facing error messages for accuracy and clarity**
+  - [x] **OAuth error page** — `/auth/auth-error` fully redesigned with Atelier design system; rich error-code mapping for all Supabase OAuth failure codes; "Try again with Google/GitHub" retry buttons shown when error is OAuth-specific; "Sign in with email instead" fallback; `auth/layout.tsx` created so the page inherits Atelier fonts + ThemeToggle
   - Every API `ApiError` message that reaches the client should be:
     - **Accurate** — describes the actual problem (not a generic "Something went wrong")
     - **Actionable** — tells the user what to do next ("Try again", "Check your email", "Wait 60 seconds")
@@ -220,43 +225,51 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 > Current: single `documents` bucket, PDF-only, 2 hard-coded slots (`resume_path` + `cover_letter_path`) per application, `upsert: true` destroys previous file, 1-hour signed URLs, no library.
 
 ### Document Types & Formats
+
 - [x] **Expand allowed MIME types** — migration 17 adds DOCX, DOC, TXT, MD, PNG, JPEG; bucket limit raised to 10 MB; `storage.ts` validates client-side (MIME + size) before upload; server-side magic-byte validation added
 - [x] **Additional document slots** — `application_documents` join table (migration 16) with `label`, `storage_path`, `mime_type`, `size_bytes`, `is_current`, `is_master`; `DocumentManager` replaces the two hard-coded slots; unlimited labels (≤80 chars)
 - [x] **Custom document label** — free-text label field (≤80 chars) on upload; shown on document cards in `DocumentManager` and library page
 
 ### Document Versioning
+
 - [x] **Version history** — each upload creates a new row with `is_current: true`; previous versions set to `false`; versioned path `{user_id}/{app_id}/{label}/{timestamp}_{filename}`; `DocumentCard` shows older versions in collapsible panel
 - [x] **Version restore** — `POST /api/documents/[id]/restore` promotes any version to current; `RotateCcw` button per version in `DocumentManager`
 - [x] **Version purge** — `POST /api/documents/[id]/purge-versions` deletes all non-current versions from Storage + DB; shows bytes freed in toast
 
 ### Master Document Library (`/documents`)
+
 - [x] **Global document library page** — `/documents` route with search, type filter pills (All/PDF/DOCX/Image/Text), card grid; shows name, type badge, size, upload date; empty state with guided CTA
 - [x] **Reusable document templates** — `is_master = true` flag on `application_documents`; master docs uploaded via `/documents` page or import-url; library path: `{user_id}/library/{label}/{timestamp}_{filename}`
 - [x] **Storage quota widget** — progress bar on `/documents` page: `X MB used of 50 MB free · N documents` (sums `size_bytes` from `application_documents`)
 - [x] **Orphan cleanup** — `POST /api/cron/orphan-cleanup` performs full orphan detection and deletion against Supabase Storage
 
 ### In-Browser Document Viewer
+
 - [x] **Inline PDF/image viewer** — `PreviewDialog` in `DocumentManager` fetches blob via `/api/documents`, renders PDF in iframe and images in `<img>`; falls back to "Open in browser" for non-previewable types (DOCX, TXT)
 - [x] **Text document preview** — non-previewable types (DOCX/TXT/MD) show "Open in browser" CTA; full text extraction already available in `document-parser.ts` for NESTAi + ATS scan
 - [ ] **Document annotation** — sticky notes on PDF pages; deferred (requires PDF.js and annotation storage)
 
 ### Access & Sharing
+
 - [x] **Extend signed URL TTL** — 24-hour TTL (was 1 hour); `GET /api/documents/refresh-url?document_id=` refreshes on-demand; `getSignedUrls()` batch helper added to `storage.ts`
 - [x] **Shareable document link** — `POST /api/documents/share` creates time-limited public link (1d/7d/30d); 32-byte random token; `GET /api/documents/shared/[token]` validates, increments view_count, redirects to 5-min signed URL; `DELETE` revokes; `ShareDialog` in `DocumentManager` + `ShareDialogInline` on library page
 - [x] **Link analytics** — `view_count` on `document_shared_links` table; incremented on each access via shared link; shown in `ShareDialog`
 
 ### Smart Document Features
+
 - [x] **ATS keyword scan** — `POST /api/documents/ats-scan` extracts resume text via `document-parser.ts`, sends to Groq (llama-3.3-70b) with job description, returns JSON: `{ score, present_keywords, missing_keywords, suggestions, summary }`; rate-limited 5/min per user
 - [x] **Document diff** — `DiffDialog.tsx` + `GET /api/documents/diff`; `diff` package installed; side-by-side version comparison
 - [ ] **Auto-fill from resume** — PARTIAL: `ResumeImportButton` parses resume into profile (skills/education/certs) but does not pre-fill new application form fields; full application form pre-fill still deferred
 - [ ] **Cover letter variable substitution preview** — live preview with `{{company}}`/`{{position}}` replaced; deferred
 
 ### Cloud Import
+
 - [ ] **Google Drive import** — OAuth flow; deferred (needs Google OAuth app approval)
 - [ ] **Dropbox import** — Dropbox Chooser SDK; deferred
 - [x] **URL-based import** — `POST /api/documents/import-url`; fetches public URL, validates Content-Type + magic bytes, stores in Supabase Storage; 15s timeout, 10 MB limit; available in both `DocumentManager` (per-application) and `/documents` library page
 
 ### Storage-Level Security
+
 - [x] **Virus scan on upload** — Cloudmersive multi-engine AV on all uploads + URL imports; fail-open when `CLOUDMERSIVE_API_KEY` absent; magic-byte validation still runs regardless
 - [x] **File content validation** — server-side magic-byte check on all uploads and URL imports (`validateMagicBytes()` in `storage.ts`); covers PDF (`%PDF`), DOCX (PK zip), DOC (OLE2), PNG, JPEG; rejects mismatched content
 - [x] **Per-application Storage RLS** — migration 18 adds `user_owns_application()` PostgreSQL function (SECURITY DEFINER) called from all four Storage RLS policies; verifies `application_id` path segment belongs to calling user; library paths (`/library/`) bypass application check
@@ -294,18 +307,18 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 💻 Technical Interview Prep Hub (`/prep`)
 
-> Junior devs spend 50-70% of their job search time on technical prep. There is currently zero dedicated prep infrastructure.
+> Junior devs spend 50-70% of their job search time on technical prep.
 
-- [ ] **New `/prep` dashboard page** — central hub with progress rings for: DSA problems solved, system design topics covered, behavioral questions drafted, mock interviews completed
-- [ ] **LeetCode problem tracker** — `coding_problems` table: `title`, `url`, `difficulty` (Easy/Medium/Hard), `topic` (Array/String/Tree/Graph/DP/Heap/Backtracking/…), `status` (Todo/Attempted/Solved/Review), `company_tags TEXT[]`, `time_to_solve_minutes`, `notes`, `solution_url`, `last_reviewed_at`; filterable by topic, difficulty, company, status; spaced repetition "Review" queue (problems marked for review that haven't been visited in 7+ days float to top)
-- [ ] **Topic progress rings** — visualise DSA coverage: X/20 Array problems, X/15 Tree problems, X/10 DP problems solved; ring chart per topic; identifies weak areas
-- [ ] **Company question bank** — when user adds a `company_tag` on an application, `/prep` shows a filtered view of problems tagged for that company; sourced from user's own log + community-contributed common questions (curated, not scraped)
-- [ ] **Take-home assessment tracker** — `assessments` table: `application_id`, `platform` (HackerRank/CodeSignal/Codility/Custom), `assigned_at`, `deadline`, `time_limit_hours`, `tech_stack TEXT[]`, `status` (Pending/In Progress/Submitted/Passed/Failed), `score`, `feedback`, `time_spent_minutes`; deadline reminder auto-created; overdue detection on dashboard
-- [ ] **System design study log** — checklist of core topics (Load Balancer, CDN, Database Sharding, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL); mark each as Not Started / Reading / Comfortable; link to free resources (GitHub: system-design-primer)
-- [ ] **Behavioral question bank (STAR)** — `behavioral_answers` table: `question` (pre-seeded with top 30 behaviorals), `situation`, `task`, `action`, `result`, `word_count`, `last_updated`; NESTAi integration: "Improve my answer" polishes the STAR response; filter by competency (Leadership, Conflict, Failure, Achievement, Teamwork)
-- [ ] **Interview question log** — after each interview, user logs the actual questions asked (per interview record); over time builds a personal "question bank" by company and role type; NESTAi can suggest prep based on upcoming interview company's historical questions
-- [ ] **Mock interview scheduler** — schedule a mock interview session (date, partner contact, type: DSA / Behavioral / System Design); post-session: record score (1-5), key feedback, topics to revisit; feeds into `/prep` progress metrics
-- [ ] **Daily prep streak** — track consecutive days with at least 1 problem solved or 1 prep activity logged; streak counter on `/prep` header and dashboard widget; streak freeze (grace day) if user has an interview that day
+- [x] **New `/prep` dashboard page** — central hub with four progress rings (DSA solved, system design topics comfortable, behavioral questions drafted, mock interviews completed); daily streak counter + longest streak badge; fully tabbed layout
+- [x] **LeetCode problem tracker** — `coding_problems` table with `title`, `url`, `difficulty`, `topic`, `status` (Todo/Attempted/Solved/Review), `company_tags`, `time_to_solve_minutes`, `notes`, `solution_url`, `last_reviewed_at`; filter pills by topic + difficulty; spaced-repetition Review queue (problems not visited in 7+ days surface at top with amber alert)
+- [x] **Topic progress rings** — 4 SVG rings on the `/prep` dashboard header: DSA problems solved (N/total), system design topics comfortable (N/15), STAR behavioral answers drafted, mock interviews completed
+- [x] **Company question bank** — problems table supports `company_tags TEXT[]`; filter by tag; users can attach company tags to any problem (e.g. Google, Meta, Amazon)
+- [x] **Take-home assessment tracker** — `assessments` table with `application_id` FK (IDOR-validated ownership), `platform`, `deadline`, `time_limit_hours`, `tech_stack`, `status`; overdue detection with red banner; link to existing job_application
+- [x] **System design study log** — 15-topic checklist (Load Balancer, CDN, Database Sharding, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL + 6 more); click to cycle Not Started → Reading → Comfortable; progress bar; links to system-design-primer; persisted in `prep_streaks.system_design_progress JSONB`
+- [x] **Behavioral question bank (STAR)** — `behavioral_answers` table; 15 pre-seeded questions across 8 competencies (Leadership, Conflict, Failure, Achievement, Teamwork, Communication, Problem Solving, Other); expandable STAR form (Situation, Task, Action, Result) per question; word count shown; filter by competency
+- [x] **Interview question log** — `interview_questions` table with FK to `interviews` (ownership-validated); log questions per real interview; grouped by interview in the UI; category + difficulty per question
+- [x] **Mock interview scheduler** — `mock_interviews` table; schedule DSA / Behavioral / System Design / Mixed sessions; post-session score (1-5 stars), feedback, topics to revisit; "Log result" inline form on past sessions; stats: upcoming count, completed count, avg score
+- [x] **Daily prep streak** — `prep_streaks` table (one row per user); streak increments when any prep activity is logged; resets to 1 after a gap day; streak + longest streak shown in `/prep` header; every prep action (solve problem, advance system design, save STAR answer, complete mock) logs to streak
 
 ---
 
@@ -483,6 +496,13 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Interview prep mode** — "Prep" button in NESTAi header opens a modal listing active applications (Applied/Phone Screen/Interview); select one → NESTAi generates 5 tailored STAR behavioral questions from the stored JD; user drafts answers and gets specific actionable feedback
 - [x] **Email draft assistant** — "Draft" button in NESTAi topbar; 7 email categories (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal); optional contact picker (fetched lazily); `buildEmailPrompt()` sanitizes name/title (newline stripping), validates category against allowlist; prompt dropped into chat input for review before sending
 - [x] **File preview + download in chat** — clicking any uploaded file card in NESTAi opens `ChatAttachmentPreview`; PDFs render in a sandboxed `<iframe>`, images in `<img>`, other types show extracted text; Download button uses a 10-min signed URL fetched from `/api/nesta-ai/attachment-url`; binary stored to Supabase Storage (`chat-attachments/{userId}/{sessionId}/…`) on upload via parse-file; path ownership enforced server-side before signing
+- [x] 🔴 **NESTAi in-chat file viewer polish + file-in-message bug fix**
+  - [x] **Binary-only file viewer** — `ChatAttachmentPreview` fully rewritten: PDF → CSP-safe blob URL in a native iframe (same approach as `/documents` DocPreviewDialog; no `#toolbar=0` suppression so full PDF controls show); Image → `<img>` with signed URL; TXT/MD → raw file bytes fetched from storage; DOCX/DOC → "Open in browser"; no extracted text shown in preview (independent from AI processing); Atelier-styled header with file type badge, download + open-in-tab buttons
+  - [x] **File attached to submitted message (fixed)** — `msgAttachment` was only built when `!attachedFile.error`; now always built when a file is attached regardless of extraction outcome; `storagePath` was missing from `createChatMessageSchema` Zod schema and silently stripped before DB write — added `storagePath: z.string().max(500).optional()` so it persists across sessions; `onView` condition fixed to trigger on `storagePath` OR `preview` (not just `preview`)
+  - [x] **Edit message in-place** — edit no longer appends a new message at the bottom; `handleEditSubmit` updates the message at its original position, drops AI responses after it, and streams a fresh reply; attachment preserved via `editingAttachment` state captured when edit is opened
+  - [x] **Storage RLS fixed** — old path `chat-attachments/{uid}/…` failed RLS (`foldername[1]` was `chat-attachments`, not uid); new path `{uid}/chat-attachments/…` passes the existing policy; `user_owns_application()` extended to allow `'chat-attachments'` as a trusted second-segment; bucket MIME types expanded (migration 28/29)
+  - [x] **`storagePath` always set** — `pendingStorageIdRef` generates a UUID before the first session exists so files uploaded on the very first message get a storagePath; `parse-file` now requires `session_id` and returns 500 (not silent null) if storage upload fails; all file types (images, txt, md) go through parse-file so every attachment is stored
+  - [x] **Thinking indicator** — pulsing terracotta dots + avatar ping animation while waiting for the first streaming token; replaces previous bare empty-bubble state
 - [ ] **Chat to PDF export** — "Export chat" button in the NESTAi sidebar or chat header; renders the entire conversation (user messages, AI responses including markdown, file attachment cards, timestamps) into a formatted single PDF; useful for saving interview prep sessions, sharing AI-generated advice with a mentor, or keeping a record of a job search strategy session
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
 
@@ -595,4 +615,6 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
-*Last updated: 29 April 2026 — Full codebase audit: marked 14 additional items complete (OPT tracker, sponsorship flag + card badge, H1B tracker, orphan cleanup cron, document diff, global command palette, truffleHog CI, Dependabot, Playwright E2E, Redis rate limiting, full-text search, cursor pagination, lucide-react + TypeScript + pdf-parse major upgrades); corrected 5 stale descriptions (parse cache, PWA, major upgrades, coverage gate, auto-fill from resume).*
+_Last updated: 29 April 2026 — Full codebase audit (14 items newly marked done, 5 descriptions corrected); added HIGH PRIORITY NESTAi item: document library viewer panel + bug fix for file not being included in submitted chat message._
+
+_Last updated: 3rd May 2026 (sprint) — Shipped: Interview Prep Hub (all 10 sub-items: /prep dashboard, LeetCode tracker, system design checklist, STAR behavioral bank, take-home assessment tracker, mock interview scheduler, interview question log, daily streak, progress rings, company tags); NESTAi binary file viewer (PDF blob URL, image, TXT/MD raw fetch, DOCX open-in-browser; storagePath always persisted; edit-in-place; thinking indicator); OAuth error page Atelier redesign; 3 security fixes (CSRF on all 11 prep mutation endpoints, IDOR on interview_id/application_id, storage RLS path fix); 933 tests / 69 files all green._

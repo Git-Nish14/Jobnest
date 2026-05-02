@@ -123,10 +123,31 @@ function RateLimitCounter({
   );
 }
 
-function AssistantAvatar() {
+function AssistantAvatar({ thinking = false }: { thinking?: boolean }) {
   return (
-    <div className="h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 atelier-avatar">
-      <Sparkles className="h-3.5 w-3.5 text-white" />
+    <div className="relative shrink-0 mt-0.5">
+      {thinking && (
+        <span className="absolute inset-0 rounded-full animate-ping bg-[#99462a]/25" aria-hidden="true" />
+      )}
+      <div className="h-7 w-7 rounded-full flex items-center justify-center atelier-avatar relative">
+        <Sparkles className="h-3.5 w-3.5 text-white" />
+      </div>
+    </div>
+  );
+}
+
+// ── Thinking indicator — shown while waiting for the first streaming token ───
+function ThinkingIndicator() {
+  return (
+    <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl rounded-tl-sm bg-[#f4f3f1] w-fit">
+      <div className="flex items-center gap-1.5" aria-label="NESTAi is thinking">
+        <span className="h-2 w-2 rounded-full bg-[#99462a] animate-pulse [animation-delay:0ms]" />
+        <span className="h-2 w-2 rounded-full bg-[#99462a] animate-pulse [animation-delay:200ms]" />
+        <span className="h-2 w-2 rounded-full bg-[#99462a] animate-pulse [animation-delay:400ms]" />
+      </div>
+      <span className="text-xs text-[#55433d] opacity-50 font-semibold tracking-wide select-none">
+        Thinking…
+      </span>
     </div>
   );
 }
@@ -348,10 +369,13 @@ function MarkdownRenderer({ content, isStreaming }: { content: string; isStreami
   );
 }
 
-// ── Chat attachment preview modal ──────────────────────────────────────────────
-// Fetches a signed URL when storagePath is present so PDF/image files can be
-// viewed inline. Falls back to the extracted text preview for other types.
-
+// ── Chat attachment preview modal ─────────────────────────────────────────────
+// Binary-only viewer — shows the exact file, nothing processed.
+// PDF  → blob URL iframe (CSP-safe)
+// Image → <img> with signed URL
+// TXT/MD → raw text fetched from storage
+// DOCX/DOC → "Open in browser" (cannot be rendered natively)
+// No storagePath → "File not available" with clean empty state
 function ChatAttachmentPreview({
   attachment,
   onClose,
@@ -360,123 +384,238 @@ function ChatAttachmentPreview({
   onClose: () => void;
 }) {
   const ft = attachment.fileType.toLowerCase();
-  const isPDF   = ft === "pdf";
-  const isImage = ["png", "jpg", "jpeg", "gif", "webp", "heic"].includes(ft);
-  const needsSignedUrl = (isPDF || isImage) && !!attachment.storagePath;
+  const isPDF  = ft === "pdf";
+  const isImg  = IMAGE_EXTS.has(ft);
+  const isText = ft === "txt" || ft === "md";
+  // Fetch signed URL for any stored file type
+  const hasStorage = !!attachment.storagePath;
 
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  // Initialize to true when we know we'll need to fetch — no sync setState in effect.
-  const [loadingUrl, setLoadingUrl] = useState(needsSignedUrl);
+  const [signedUrl, setSignedUrl]   = useState<string | null>(null);
+  const [blobUrl, setBlobUrl]       = useState<string | null>(null);
+  const [rawText, setRawText]       = useState<string | null>(null);
+  const [fileError, setFileError]   = useState<string | null>(null);
+  const [loading, setLoading]       = useState(hasStorage);
 
   useEffect(() => {
-    if (!needsSignedUrl) return;
+    if (!hasStorage) return;
     let cancelled = false;
-    fetch(`/api/nesta-ai/attachment-url?path=${encodeURIComponent(attachment.storagePath!)}`)
-      .then((r) => r.json())
-      .then((d: { signedUrl?: string }) => {
+    let objectUrl: string | null = null;
+
+    const run = async () => {
+      try {
+        // Step 1 — get signed URL
+        const r = await fetch(
+          `/api/nesta-ai/attachment-url?path=${encodeURIComponent(attachment.storagePath!)}`
+        );
+        const d: { signedUrl?: string } = await r.json();
         if (cancelled) return;
-        if (d.signedUrl) setSignedUrl(d.signedUrl);
-        setLoadingUrl(false);
-      })
-      .catch(() => { if (!cancelled) setLoadingUrl(false); });
-    return () => { cancelled = true; };
-  }, [attachment.storagePath, needsSignedUrl]);
+
+        const sUrl = d.signedUrl ?? null;
+        setSignedUrl(sUrl);
+        if (!sUrl) { setFileError("Could not generate a preview link."); return; }
+
+        // Step 2 — type-specific fetch
+        if (isPDF) {
+          // Fetch as blob: URL — Supabase signed URLs blocked by CSP as direct iframe src
+          const res = await fetch(sUrl);
+          if (cancelled) return;
+          if (res.ok) {
+            const blob = await res.blob();
+            objectUrl = URL.createObjectURL(blob); // no suffix — show full native PDF viewer
+            setBlobUrl(objectUrl);
+          } else {
+            setFileError("Could not load PDF. Use the Open button above to view it.");
+          }
+        } else if (isText) {
+          // Fetch raw text — show the exact file contents, no processing
+          const res = await fetch(sUrl);
+          if (cancelled) return;
+          if (res.ok) {
+            setRawText(await res.text());
+          } else {
+            setFileError("Could not load file text.");
+          }
+        }
+        // Images and DOCX/DOC: signedUrl alone is enough (img src or Open button)
+      } catch {
+        if (!cancelled) setFileError("Could not load the file. Try again or use the Open button.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl.split("#")[0]);
+    };
+  }, [attachment.storagePath, hasStorage, isPDF, isText]);
+
+  const meta = FILE_TYPE_META[ft] ?? {
+    label: attachment.fileType.toUpperCase(),
+    bg: "bg-[#f4f3f1]", text: "text-[#55433d]", border: "border-[#dbc1b9]/40",
+  };
+
+  // Icon for non-previewable types
+  function OpenInBrowserState({ label }: { label: string }) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-5 text-center px-8">
+        <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center", meta.bg)}>
+          <Paperclip className={cn("w-8 h-8", meta.text)} aria-hidden="true" />
+        </div>
+        <div>
+          <p className="font-semibold text-sm text-[#1a1c1b] mb-1">{attachment.name}</p>
+          <p className="text-xs text-[#55433d] opacity-60 mb-4">{label}</p>
+          {signedUrl && (
+            <a
+              href={signedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="db-btn-page-secondary inline-flex items-center gap-2 text-xs"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Open in browser
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="nestai-preview-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="nestai-modal rounded-2xl border shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="nestai-preview-modal w-full max-w-5xl h-[95vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={cn(
-              "flex h-10 w-8 shrink-0 flex-col items-center justify-between rounded-lg border py-1",
-              FILE_TYPE_META[ft]?.border ?? "border-border",
-              "bg-white dark:bg-[#1a1a1a]"
-            )}>
-              <span className={cn("text-[7px] font-bold leading-none mt-0.5", FILE_TYPE_META[ft]?.text ?? "text-muted-foreground")}>
-                {(FILE_TYPE_META[ft]?.label ?? attachment.fileType).toUpperCase()}
-              </span>
-              <div className="flex gap-px mb-0.5">
-                {[...Array(3)].map((_, i) => (
-                  <span key={i} className={cn("h-px w-3 rounded-full opacity-30", FILE_TYPE_META[ft]?.text ?? "text-muted-foreground")} />
-                ))}
-              </div>
-            </div>
-            <p className="font-semibold text-sm truncate">{attachment.name}</p>
+        {/* ── Header — identical layout to DocPreviewDialog ── */}
+        <div className="nestai-preview-header flex items-center gap-3 px-5 py-3.5 shrink-0">
+          {/* File icon */}
+          <div className={cn(
+            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+            meta.bg,
+          )}>
+            <span className={cn("text-[9px] font-bold leading-none", meta.text)}>{meta.label}</span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+
+          {/* Name */}
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-[#1a1c1b] truncate">{attachment.name}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0 mr-1">
             {signedUrl && (
               <a
                 href={signedUrl}
                 download={attachment.name}
-                className="h-8 px-3 flex items-center gap-1.5 text-xs rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Download"
                 onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-[#55433d] hover:bg-[#e9e8e6] transition-colors"
               >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Download
+                <span className="sr-only">Download</span>
+              </a>
+            )}
+            {signedUrl && (
+              <a
+                href={signedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open in new tab"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-[#55433d] hover:bg-[#e9e8e6] transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span className="sr-only">Open in new tab</span>
               </a>
             )}
             <button
               type="button"
               onClick={onClose}
-              className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="Close preview"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-[#55433d] hover:bg-[#e9e8e6] transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Body */}
+        {/* ── Body ── */}
         <div className="flex-1 overflow-hidden min-h-0">
-          {loadingUrl && (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-6 w-6 animate-spin text-[#55433d] opacity-40" />
             </div>
           )}
 
-          {!loadingUrl && isPDF && signedUrl && (
+          {/* PDF — blob URL iframe (CSP-safe, identical to /documents viewer) */}
+          {!loading && isPDF && blobUrl && (
             <iframe
-              src={signedUrl}
+              src={blobUrl}
               title={attachment.name}
-              className="w-full h-full min-h-[60vh]"
-              sandbox="allow-scripts allow-same-origin"
+              className="nestai-preview-pdf"
             />
           )}
 
-          {!loadingUrl && isImage && signedUrl && (
-            <div className="flex items-center justify-center h-full p-4">
+          {/* PDF — blob failed but signedUrl exists → Open in browser */}
+          {!loading && isPDF && !blobUrl && signedUrl && (
+            <OpenInBrowserState label={fileError ?? "Could not embed this PDF inline."} />
+          )}
+
+          {/* Image — from Supabase Storage */}
+          {!loading && isImg && signedUrl && (
+            <div className="nestai-preview-img-bg flex items-center justify-center h-full p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={signedUrl} alt={attachment.name} className="max-h-[70vh] max-w-full object-contain rounded-lg" />
+              <img
+                src={signedUrl}
+                alt={attachment.name}
+                className="max-h-full max-w-full object-contain rounded-lg"
+              />
             </div>
           )}
 
-          {!loadingUrl && !signedUrl && attachment.preview && (
-            <div className="overflow-y-auto px-5 py-4 h-full">
-              <pre className="text-sm font-mono whitespace-pre-wrap leading-relaxed text-foreground break-words">
-                {attachment.preview}
-                {attachment.preview.length >= 3000 && (
-                  <span className="block mt-4 text-xs text-muted-foreground not-italic font-sans border-t pt-3">
-                    Preview limited to first 3,000 characters. The full document was sent to NESTAi.
-                  </span>
-                )}
+          {/* TXT / MD — exact file bytes fetched from storage */}
+          {!loading && isText && rawText !== null && (
+            <div className="overflow-y-auto h-full bg-white dark:bg-[#0f0f0f]">
+              <pre className="px-6 py-6 text-sm leading-relaxed whitespace-pre-wrap break-words text-[#1a1c1b] font-mono max-w-4xl">
+                {rawText}
               </pre>
             </div>
           )}
 
-          {!loadingUrl && !signedUrl && !attachment.preview && (
-            <div className="flex flex-col items-center justify-center h-48 text-center px-6">
-              <Paperclip className="h-8 w-8 text-muted-foreground/30 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Preview not available</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">This file was attached before preview support was added.</p>
+          {/* DOCX / DOC — cannot render natively */}
+          {!loading && (ft === "docx" || ft === "doc") && signedUrl && (
+            <OpenInBrowserState label="Word documents cannot be previewed inline." />
+          )}
+
+          {/* No binary available — file was attached before storage upload was enforced */}
+          {!loading && !blobUrl && !signedUrl && !rawText && (
+            <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-8">
+              <Paperclip className="h-12 w-12 text-[#55433d] opacity-20" />
+              <div>
+                <p className="text-sm font-medium text-[#1a1c1b]">{attachment.name}</p>
+                <p className="text-xs text-[#55433d] opacity-50 mt-1">
+                  Preview not available for this file.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -554,6 +693,7 @@ export default function NestAiPage() {
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState("");
+  const [editingAttachment, setEditingAttachment] = useState<MessageAttachment | undefined>(undefined);
 
   const [previewDoc, setPreviewDoc] = useState<MessageAttachment | null>(null);
 
@@ -561,6 +701,9 @@ export default function NestAiPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const rateLimitBarRef = useRef<HTMLDivElement>(null);
+  // Pre-allocated storage path prefix for files uploaded before a session exists.
+  // Avoids storagePath being null on the first message of a new chat.
+  const pendingStorageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (window.innerWidth >= 1024) setSidebarOpen(true);
@@ -779,142 +922,16 @@ export default function NestAiPage() {
     }
   };
 
-  const handleEditSubmit = async (messageId: string) => {
-    const trimmed = editInput.trim();
-    if (!trimmed || isLoading) return;
-
-    const msgIndex = messages.findIndex((m) => m.id === messageId);
-    if (msgIndex === -1) return;
-
-    setMessages((prev) => prev.slice(0, msgIndex));
-    setEditingMessageId(null);
-    setEditInput("");
-
-    if (currentSessionId) {
-      fetchWithRetry(
-        `/api/nesta-ai/sessions/${currentSessionId}/messages?from=${messageId}`,
-        { method: "DELETE" },
-        { retries: 1 },
-      ).catch((err) => console.error("Failed to delete messages from edit point:", err));
-    }
-
-    await handleSubmit(undefined, trimmed);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-
-    const MAX_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) { setError("File exceeds 5 MB limit"); return; }
-
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-
-    if (ext === "txt" || ext === "md") {
-      const text = await file.text();
-      setAttachedFile({ name: file.name, text: text.slice(0, 10000), loading: false });
-      return;
-    }
-
-    // Images: attach as a context note (no text extraction)
-    if (IMAGE_EXTS.has(ext) || file.type.startsWith("image/")) {
-      setAttachedFile({
-        name: file.name,
-        text: `[Image attached: ${file.name}. Describe this image or ask me questions about your job search.]`,
-        loading: false,
-      });
-      return;
-    }
-
-    setAttachedFile({ name: file.name, text: null, loading: true });
-
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      if (currentSessionId) form.append("session_id", currentSessionId);
-      const res = await fetch("/api/nesta-ai/parse-file", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        setAttachedFile({ name: file.name, text: null, loading: false, error: data.error || "Could not extract text" });
-      } else {
-        setAttachedFile({ name: file.name, text: data.text, storagePath: data.storagePath ?? null, loading: false });
-      }
-    } catch {
-      setAttachedFile({ name: file.name, text: null, loading: false, error: "Failed to process file" });
-    }
-  };
-
-  const startNewChat = () => {
-    setMessages([]); setCurrentSessionId(null); setError(null);
-    setAttachedFile(null);
-    inputRef.current?.focus();
-  };
-
-  const stopStreaming = () => {
-    abortControllerRef.current?.abort();
-  };
-
-  const handleSubmit = async (e?: React.FormEvent, promptOverride?: string) => {
-    e?.preventDefault();
-    const baseQuestion = promptOverride || input.trim();
-    if (!baseQuestion || isLoading || isRateLimited) return;
-
-    // File still parsing — don't send yet
-    if (attachedFile?.loading) {
-      setError("File is still being processed — please wait a moment before sending.");
-      setIsLoading(false);
-      return;
-    }
-
-    const question = baseQuestion;
-    // File content sent as separate fields so it bypasses the 2000-char question limit
-    const filePayload = attachedFile?.text
-      ? { fileContent: attachedFile.text, fileName: attachedFile.name }
-      : {};
-
-    const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));
-
-    const msgAttachment: MessageAttachment | undefined =
-      attachedFile && !attachedFile.error
-        ? {
-            name: attachedFile.name,
-            fileType: attachedFile.name.split(".").pop() ?? "txt",
-            preview: attachedFile.text?.slice(0, 3000) ?? undefined,
-            storagePath: attachedFile.storagePath ?? undefined,
-          }
-        : undefined;
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: baseQuestion,
-      timestamp: new Date(),
-      attachment: msgAttachment,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setAttachedFile(null);
-    setIsLoading(true);
-    setError(null);
-
-    setRemaining((prev) => Math.max(0, prev - 1));
-    setWindowEndAt((prev) => prev ?? Date.now() + WINDOW_MS);
-
-    let sessionId = currentSessionId;
-    if (!sessionId) {
-      sessionId = await createSession();
-      if (sessionId) {
-        setCurrentSessionId(sessionId);
-        updateSessionTitle(sessionId, baseQuestion.slice(0, 60) + (baseQuestion.length > 60 ? "…" : ""));
-      }
-    }
-    if (sessionId) saveMessage(sessionId, "user", baseQuestion, msgAttachment);
-
+  // ── Shared streaming helper ────────────────────────────────────────────────
+  // Called by both handleSubmit (new message) and handleEditSubmit (in-place update).
+  const streamAIResponse = async (
+    question: string,
+    historySnapshot: { role: string; content: string }[],
+    filePayload: { fileContent?: string; fileName?: string },
+    sessionId: string | null,
+  ) => {
     const assistantMsgId = `${Date.now() + 1}`;
     setMessages((prev) => [...prev, { id: assistantMsgId, role: "assistant", content: "", timestamp: new Date(), isStreaming: true }]);
-
     abortControllerRef.current = new AbortController();
 
     try {
@@ -951,19 +968,13 @@ export default function NestAiPage() {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         fullContent += chunk;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantMsgId ? { ...m, content: fullContent } : m))
-        );
+        setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: fullContent } : m)));
       }
 
-      // Parse follow-up suggestions out of the streamed content
       const { content, suggestions } = parseFollowUps(fullContent);
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantMsgId ? { ...m, content, suggestions, isStreaming: false } : m
-        )
+        prev.map((m) => m.id === assistantMsgId ? { ...m, content, suggestions, isStreaming: false } : m)
       );
-
       if (sessionId) saveMessage(sessionId, "assistant", content);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -982,6 +993,168 @@ export default function NestAiPage() {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
+  };
+
+  const handleEditSubmit = async (messageId: string) => {
+    const trimmed = editInput.trim();
+    if (!trimmed || isLoading) return;
+
+    const msgIndex = messages.findIndex((m) => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    const originalMsg = messages[msgIndex];
+    // Preserve the attachment from when edit was initiated (editingAttachment) or fall back
+    // to whatever the original message had stored
+    const preservedAttachment = editingAttachment ?? originalMsg.attachment;
+
+    // Update the user message IN-PLACE at the same position; remove AI responses after it
+    const priorMessages = messages.slice(0, msgIndex);
+    const updatedMsg: Message = { ...originalMsg, content: trimmed, attachment: preservedAttachment };
+    setMessages([...priorMessages, updatedMsg]);
+    setEditingMessageId(null);
+    setEditInput("");
+    setEditingAttachment(undefined);
+    setIsLoading(true);
+    setError(null);
+    setRemaining((prev) => Math.max(0, prev - 1));
+    setWindowEndAt((prev) => prev ?? Date.now() + WINDOW_MS);
+
+    if (currentSessionId) {
+      // Remove the old message + all responses from server, then resave the edited message
+      fetchWithRetry(
+        `/api/nesta-ai/sessions/${currentSessionId}/messages?from=${messageId}`,
+        { method: "DELETE" },
+        { retries: 1 },
+      ).catch((err) => console.error("Failed to delete messages from edit point:", err));
+      saveMessage(currentSessionId, "user", trimmed, preservedAttachment);
+    }
+
+    const historySnapshot = priorMessages.map((m) => ({ role: m.role, content: m.content }));
+    const filePayload = preservedAttachment?.preview
+      ? { fileContent: preservedAttachment.preview, fileName: preservedAttachment.name }
+      : {};
+    await streamAIResponse(trimmed, historySnapshot, filePayload, currentSessionId);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) { setError("File exceeds 5 MB limit"); return; }
+
+    // All file types go through parse-file so the binary is always uploaded to
+    // Storage. The binary is what powers the preview; text extraction is separate.
+    setAttachedFile({ name: file.name, text: null, loading: true });
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      // Always pass a session_id — parse-file now requires it.
+      // If no session exists yet, pre-allocate a UUID for the storage path.
+      const sessionIdForUpload = currentSessionId
+        ?? (pendingStorageIdRef.current ??= crypto.randomUUID());
+      form.append("session_id", sessionIdForUpload);
+
+      const res = await fetch("/api/nesta-ai/parse-file", { method: "POST", body: form });
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Storage upload failed — surface the error clearly; block the send
+        setAttachedFile({
+          name: file.name, text: null, loading: false,
+          error: data.error ?? "File upload failed — please try again.",
+        });
+        return;
+      }
+
+      // parse-file guarantees storagePath when it returns 200
+      setAttachedFile({
+        name: file.name,
+        text: data.text ?? null,
+        storagePath: data.storagePath,
+        loading: false,
+      });
+    } catch {
+      setAttachedFile({ name: file.name, text: null, loading: false, error: "Connection error — could not upload file. Please try again." });
+    }
+  };
+
+  const startNewChat = () => {
+    setMessages([]); setCurrentSessionId(null); setError(null);
+    setAttachedFile(null);
+    pendingStorageIdRef.current = null; // reset so next new-session upload gets a fresh path
+    inputRef.current?.focus();
+  };
+
+  const stopStreaming = () => {
+    abortControllerRef.current?.abort();
+  };
+
+  const handleSubmit = async (e?: React.FormEvent, promptOverride?: string) => {
+    e?.preventDefault();
+    const baseQuestion = promptOverride || input.trim();
+    if (!baseQuestion || isLoading || isRateLimited) return;
+
+    // File still uploading — wait for it
+    if (attachedFile?.loading) {
+      setError("File is still being uploaded — please wait a moment before sending.");
+      return;
+    }
+    // File upload failed — block send until user removes or re-uploads
+    if (attachedFile?.error) {
+      setError("Remove the failed file before sending, or try attaching it again.");
+      return;
+    }
+
+    const question = baseQuestion;
+    // File content sent as separate fields so it bypasses the 2000-char question limit
+    const filePayload = attachedFile?.text
+      ? { fileContent: attachedFile.text, fileName: attachedFile.name }
+      : {};
+
+    const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));
+
+    // Include the attachment card even when text extraction failed — the card still
+    // shows the file name and type on the sent bubble; storagePath allows binary preview.
+    const msgAttachment: MessageAttachment | undefined = attachedFile
+      ? {
+          name: attachedFile.name,
+          fileType: attachedFile.name.split(".").pop() ?? "txt",
+          preview: attachedFile.text ? attachedFile.text.slice(0, 3000) : undefined,
+          storagePath: attachedFile.storagePath ?? undefined,
+        }
+      : undefined;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: baseQuestion,
+      timestamp: new Date(),
+      attachment: msgAttachment,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setAttachedFile(null);
+    setIsLoading(true);
+    setError(null);
+
+    setRemaining((prev) => Math.max(0, prev - 1));
+    setWindowEndAt((prev) => prev ?? Date.now() + WINDOW_MS);
+
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      sessionId = await createSession();
+      if (sessionId) {
+        setCurrentSessionId(sessionId);
+        updateSessionTitle(sessionId, baseQuestion.slice(0, 60) + (baseQuestion.length > 60 ? "…" : ""));
+      }
+    }
+    if (sessionId) saveMessage(sessionId, "user", baseQuestion, msgAttachment);
+
+    await streamAIResponse(question, historySnapshot, filePayload, sessionId);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1210,9 +1383,11 @@ export default function NestAiPage() {
                       {msg.attachment && (
                         <FileAttachmentCard
                           attachment={msg.attachment}
-                          onView={msg.attachment.preview !== undefined
-                            ? () => setPreviewDoc(msg.attachment!)
-                            : undefined}
+                          onView={
+                            (msg.attachment.preview !== undefined || !!msg.attachment.storagePath)
+                              ? () => setPreviewDoc(msg.attachment!)
+                              : undefined
+                          }
                         />
                       )}
                       {editingMessageId === msg.id ? (
@@ -1228,12 +1403,12 @@ export default function NestAiPage() {
                             rows={Math.max(2, editInput.split("\n").length)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSubmit(msg.id); }
-                              if (e.key === "Escape") { setEditingMessageId(null); setEditInput(""); }
+                              if (e.key === "Escape") { setEditingMessageId(null); setEditInput(""); setEditingAttachment(undefined); }
                             }}
                             className="w-full rounded-2xl rounded-tr-sm border-2 border-primary/40 bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary resize-none"
                           />
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => { setEditingMessageId(null); setEditInput(""); }}>
+                            <Button size="sm" variant="ghost" onClick={() => { setEditingMessageId(null); setEditInput(""); setEditingAttachment(undefined); }}>
                               Cancel
                             </Button>
                             <Button size="sm" onClick={() => handleEditSubmit(msg.id)} disabled={!editInput.trim() || isLoading}>
@@ -1246,7 +1421,7 @@ export default function NestAiPage() {
                         <div className="flex items-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => { setEditingMessageId(msg.id); setEditInput(msg.content); }}
+                            onClick={() => { setEditingMessageId(msg.id); setEditInput(msg.content); setEditingAttachment(msg.attachment); }}
                             disabled={isLoading}
                             title="Edit message"
                             className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground shrink-0 mb-0.5 disabled:pointer-events-none"
@@ -1261,9 +1436,12 @@ export default function NestAiPage() {
                     </div>
                   ) : (
                     <div className="flex gap-3 group">
-                      <AssistantAvatar />
+                      <AssistantAvatar thinking={!!(msg.isStreaming && !msg.content)} />
                       <div className="flex-1 min-w-0">
-                        <MarkdownRenderer content={msg.content} isStreaming={msg.isStreaming} />
+                        {msg.isStreaming && !msg.content
+                          ? <ThinkingIndicator />
+                          : <MarkdownRenderer content={msg.content} isStreaming={msg.isStreaming} />
+                        }
                         {!msg.isStreaming && (
                           <>
                             <div className="flex items-center gap-1 mt-1.5">
@@ -1295,16 +1473,6 @@ export default function NestAiPage() {
                 </div>
               ))}
 
-              {isLoading && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex gap-3">
-                  <AssistantAvatar />
-                  <div className="flex items-center gap-1 pt-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:0ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#55433d]/40 animate-bounce [animation-delay:300ms]" />
-                  </div>
-                </div>
-              )}
 
               <div ref={messagesEndRef} />
             </div>

@@ -104,9 +104,10 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### NESTAi — AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
-- **Streaming responses** with stop button; markdown rendering; suggested follow-ups
+- **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking…" indicator while awaiting first token
 - **Work authorization aware** — user's visa status injected into system prompt
-- **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary stored to Supabase Storage; inline preview (PDF iframe · image · extracted text) with download button via 10-min signed URL
+- **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary always stored to Supabase Storage via `parse-file`; binary-only preview modal: PDF → CSP-safe blob URL iframe (full native PDF viewer with controls), Image → `<img>`, TXT/MD → raw file bytes, DOCX → "Open in browser"; preview independent from AI text extraction; 10-min signed URLs; preview survives page navigation (storagePath persisted in `chat_messages.metadata`)
+- **Edit messages in-place** — edited message stays at same position; AI response replaces the one after it; file attachment preserved through edit
 - **Interview Prep** — "Prep" button opens a modal; pick an active application → 5 tailored STAR behavioral questions generated from the stored JD; provide draft answers for specific AI feedback
 - **Email Draft Assistant** — "Draft" button opens a modal; pick an email category (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal) and an optional contact; Groq drafts a professional email into the chat input for review and editing
 - **Model fallback** — primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
@@ -114,6 +115,16 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown and progress bar
 - Smart context trimming (4-step, 124,500-token budget); 100-message history
 - **NESTAi handoff from ATS** — sessionStorage pre-fills input after a scan
+
+### Technical Interview Prep Hub (`/prep`)
+- **Dashboard** — 4 SVG progress rings (DSA solved, system design comfortable, behavioral drafted, mocks completed) + daily streak counter with longest-streak badge
+- **Coding tracker** — LeetCode-style problem log: title, URL, difficulty, topic, status (Todo/Attempted/Solved/Review), company tags, solve time, notes; filter by topic/difficulty; spaced-repetition Review queue surfaces problems not visited in 7+ days
+- **System design checklist** — 15 topics (Load Balancer, CDN, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL…); click to cycle Not Started → Reading → Comfortable; links to system-design-primer; persisted to DB
+- **STAR behavioral bank** — 15 pre-seeded questions across 8 competencies; expandable Situation/Task/Action/Result form per question; filter by competency; word count shown
+- **Take-home assessment tracker** — platform, deadline, time limit, tech stack, status (Pending/In Progress/Submitted/Passed/Failed), score; link to a job application; overdue detection
+- **Mock interview scheduler** — schedule sessions by type (DSA/Behavioral/System Design/Mixed); log post-session score (1–5 stars), feedback, topics to revisit
+- **Interview question log** — log questions asked in real interviews, grouped by interview; category + difficulty tags; builds a personal question bank over time
+- **Daily prep streak** — any prep activity increments the streak; resets after a gap day; longest streak preserved
 
 ### Notifications
 - Bell polls every 60s; badge caps at 99+; popover with quick links
@@ -141,7 +152,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Category | Technology |
 |---|---|
 | Framework | Next.js 16.2.1 (App Router, Turbopack) |
-| Language | TypeScript 5.9 |
+| Language | TypeScript 6.0.2 |
 | Database | Supabase (PostgreSQL + RLS) |
 | Storage | Supabase Storage |
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email + Google/GitHub OAuth) |
@@ -156,7 +167,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
-| Testing | Vitest (720 tests, 56 files) |
+| Testing | Vitest (933 tests, 69 files) |
 
 ---
 
@@ -177,6 +188,7 @@ web/
 │   │   ├── templates/
 │   │   ├── salary/
 │   │   ├── nestai/
+│   │   ├── prep/                 # Interview Prep Hub (problems, system design, STAR, mocks)
 │   │   ├── notifications/
 │   │   └── profile/
 │   ├── (public)/                 # Public pages (shared LandingHeader + LandingFooter)
@@ -219,6 +231,9 @@ web/
 │   ├── dashboard/
 │   ├── documents/                # DocumentManager
 │   ├── layout/                   # Navbar, BottomTabBar, NotificationBell, ThemeToggle
+│   ├── prep/                     # PrepHub, CodingProblemsTracker, SystemDesignChecklist,
+│   │                             # BehavioralBank, AssessmentsTracker, MockInterviewScheduler,
+│   │                             # InterviewQuestionLog
 │   └── profile/                  # ProfileClient, DeletionBanner
 ├── lib/
 │   ├── api/
@@ -336,6 +351,11 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 22 | `...022_ats_score.sql` | `ats_score` column |
 | 23 | `...023_fulltext_search.sql` | `search_vector` tsvector + GIN index + trigger on `job_applications` |
 | 24 | `...024_developer_identity.sql` | `skills`, `certifications`, `education` tables with RLS + CHECK constraints |
+| 25 | `...025_sponsorship_and_work_auth.sql` | `requires_sponsorship` on applications, `opt_start_date` for OPT tracker |
+| 26 | `...026_salary_details_tc.sql` | TC calculator fields: `equity_details`, `retirement_match_*`, `col_city` |
+| 27 | `...027_prep_hub.sql` | `coding_problems`, `assessments`, `behavioral_answers`, `mock_interviews`, `interview_questions`, `prep_streaks` — all with RLS |
+| 28 | `...028_chat_attachments_storage.sql` | Expand documents bucket MIME types (webp, gif, heic, heif, avif, bmp, tiff, octet-stream) |
+| 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` to allow `'chat-attachments'` as trusted second-segment in storage paths |
 
 ### Installation
 
@@ -357,7 +377,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (720 tests, 56 files)
+npm test              # Vitest (933 tests, 69 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -369,7 +389,7 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF suite, attachment-url ownership checks, parse-file sessionId + storage, search FT + ilike fallbacks, skills/certifications/education CRUD), analytics metrics, buildStages() status timeline, proxy logic + CSP nonce |
+| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF, attachment-url ownership + new path format, parse-file session-required + storage-fail-hard + image handling, search FT + ilike, skills/certifications/education CRUD, all 5 prep route groups with CSRF/auth/IDOR/validation/ownership), analytics metrics, proxy logic + CSP nonce |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
 | E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD |
 
@@ -383,9 +403,10 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Rate limiting | Redis-backed (Upstash); dual-layer on send-otp (IP + per-email) |
 | Virus scanning | Cloudmersive multi-engine AV on all uploads + URL imports (fail-open) |
 | Magic bytes | Server-side content validation prevents extension spoofing |
-| CSRF | `SameSite=Lax` + `verifyOrigin()` on all profile mutation routes, parse-file, and parse-jd |
+| CSRF | `SameSite=Lax` + `verifyOrigin()` on all mutation routes — profile, parse-file, parse-jd, all 11 prep API endpoints (POST/PATCH/DELETE) |
+| IDOR | `interview_id` ownership validated against `interviews` table before inserting `interview_questions`; `application_id` ownership validated before linking an assessment |
 | SSRF | `assertSafeUrl()` on parse-jd: DNS pre-resolution blocks loopback, RFC-1918, link-local (AWS/GCP metadata), CGNAT; post-redirect check prevents open-redirect chains |
-| Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url before signed-URL generation |
+| Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url; Storage path `{uid}/chat-attachments/…` — first segment is user ID, enforced by RLS |
 | Cron auth | `Authorization: Bearer <CRON_SECRET>` — fail-closed |
 | RLS | All tables enforce row-level security via `auth.uid()` |
 | Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |

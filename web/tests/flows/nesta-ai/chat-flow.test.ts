@@ -52,10 +52,14 @@ function makeEmptyChain() {
   return self;
 }
 
+const FLOW_SESSION_ID = "aaaabbbb-cccc-dddd-eeee-ffffffffffff";
+
 function makeServerClient(user: unknown = authedUser) {
   return {
     from: vi.fn().mockReturnValue(makeEmptyChain()),
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }) },
+    // parse-file requires storage; provide a successful stub
+    storage: { from: vi.fn().mockReturnValue({ upload: vi.fn().mockResolvedValue({ error: null }) }) },
   };
 }
 
@@ -112,26 +116,31 @@ describe("NESTAi — file upload (parse-file)", () => {
     expect(body.error).toMatch(/5 MB/i);
   });
 
-  it("returns 422 with user-friendly message when text extraction fails", async () => {
+  it("returns 400 with user-friendly message when text extraction fails", async () => {
+    // Session ID is now required; extraction failure → ApiError.badRequest (400)
     mockExtract.mockResolvedValue({ text: null, error: "Not a valid PDF" });
     const form = new FormData();
-    form.append("file", new File(["content"], "broken.pdf"));
+    form.append("file", new File(["content"], "broken.pdf", { type: "application/pdf" }));
+    form.append("session_id", FLOW_SESSION_ID);
     const req = new Request("http://localhost/api/nesta-ai/parse-file", { method: "POST", body: form });
     const res = await parseFile(req as never);
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/valid PDF|Word document/i);
   });
 
-  it("returns 200 with extracted text on success", async () => {
+  it("returns 200 with extracted text and storagePath on success", async () => {
+    // Session ID required so storage upload path is valid
     const form = new FormData();
-    form.append("file", new File(["pdf"], "resume.pdf"));
+    form.append("file", new File(["pdf"], "resume.pdf", { type: "application/pdf" }));
+    form.append("session_id", FLOW_SESSION_ID);
     const req = new Request("http://localhost/api/nesta-ai/parse-file", { method: "POST", body: form });
     const res = await parseFile(req as never);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.text).toBe("Extracted resume content");
     expect(body.fileName).toBe("resume.pdf");
+    expect(body.storagePath).toContain("chat-attachments");
   });
 });
 

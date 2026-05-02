@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Sparkles,
   UserCircle,
+  Trophy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/actions/auth";
@@ -51,6 +52,7 @@ const dashboardLinks = [
   { href: "/templates", label: "Templates", icon: Mail },
   { href: "/salary", label: "Salary", icon: DollarSign },
   { href: "/ats", label: "ATS Scan", icon: ScanSearch },
+  { href: "/prep", label: "Interview Prep", icon: Trophy },
   { href: "/nestai", label: "NESTAi", icon: Sparkles },
 ];
 
@@ -100,6 +102,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/profile") ||
     pathname.startsWith("/documents") ||
     pathname.startsWith("/ats") ||
+    pathname.startsWith("/prep") ||
     pathname.startsWith("/onboarding");
 
   useEffect(() => {

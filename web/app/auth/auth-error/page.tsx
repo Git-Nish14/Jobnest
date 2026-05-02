@@ -1,22 +1,25 @@
-import Link from "next/link";
-import { AlertCircle } from "lucide-react";
-import { Button, Card, CardContent } from "@/components/ui";
+import { AuthErrorClient } from "./auth-error-client";
 
-// Supabase sends these query params on OAuth failure:
-// ?error=<code>&error_code=<num>&error_description=<human-readable>
 interface AuthErrorPageProps {
   searchParams: Promise<{
     error?: string;
     error_code?: string;
     error_description?: string;
+    provider?: string;
   }>;
 }
 
-// Map well-known OAuth error codes to friendlier messages
-function getErrorMessage(error?: string, errorDescription?: string): string {
+function getErrorMessage(error?: string, errorCode?: string, errorDescription?: string): string {
   if (errorDescription) {
-    // Supabase URL-encodes spaces as +, decode them
-    return decodeURIComponent(errorDescription.replace(/\+/g, " "));
+    const decoded = decodeURIComponent(errorDescription.replace(/\+/g, " "));
+    // Clean up Supabase's raw internal messages
+    if (decoded.includes("User already registered")) {
+      return "An account with this email already exists. Try signing in instead.";
+    }
+    if (decoded.includes("Email not confirmed")) {
+      return "Your email hasn't been verified yet. Check your inbox for a confirmation link.";
+    }
+    return decoded;
   }
 
   switch (error) {
@@ -26,48 +29,42 @@ function getErrorMessage(error?: string, errorDescription?: string): string {
       return "The authentication server encountered an error. Please try again in a moment.";
     case "temporarily_unavailable":
       return "The authentication service is temporarily unavailable. Please try again shortly.";
+    case "invalid_request":
+      return "The sign-in link has expired or is invalid. Please start the sign-in process again.";
+    case "provider_email_needs_verification":
+      return "Your provider account email needs verification. Please verify your email and try again.";
     default:
+      if (errorCode === "otp_expired") {
+        return "Your verification code has expired. Please request a new one.";
+      }
+      if (errorCode === "email_not_confirmed") {
+        return "Your email hasn't been verified. Check your inbox for a confirmation link.";
+      }
       return "The sign-in link may have expired or already been used. Please try signing in again.";
   }
 }
 
 export default async function AuthErrorPage({ searchParams }: AuthErrorPageProps) {
   const params = await searchParams;
-  const message = getErrorMessage(params.error, params.error_description);
+  const message = getErrorMessage(params.error, params.error_code, params.error_description);
 
-  // Decide retry destination based on the OAuth provider hint embedded in the error
   const isOAuthError =
     params.error === "access_denied" ||
     params.error_code === "provider_email_needs_verification" ||
-    params.error_description?.includes("OAuth");
+    (params.error_description?.includes("OAuth") ?? false) ||
+    (params.error_description?.includes("provider") ?? false);
+
+  // Try to infer which provider caused the error from the description
+  let provider: "google" | "github" | null = null;
+  const desc = (params.error_description ?? "").toLowerCase();
+  if (desc.includes("google")) provider = "google";
+  else if (desc.includes("github")) provider = "github";
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertCircle className="h-6 w-6 text-destructive" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Sign-in failed</h2>
-              <p className="text-sm text-muted-foreground">{message}</p>
-            </div>
-            <div className="flex flex-col gap-2 pt-4">
-              <Link href="/login">
-                <Button className="w-full">
-                  {isOAuthError ? "Try a different sign-in method" : "Back to Login"}
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button variant="outline" className="w-full">
-                  Create an Account
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthErrorClient
+      message={message}
+      isOAuthError={isOAuthError}
+      provider={provider}
+    />
   );
 }

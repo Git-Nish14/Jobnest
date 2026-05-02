@@ -1108,3 +1108,44 @@
 .dark .bg-\[\#006d34\]\/14     { background-color: rgba(74,222,128,0.12) !important; }
 .dark .bg-\[\#dbc1b9\]\/30     { background-color: rgba(255,255,255,0.06) !important; }
 .dark .bg-\[\#dbc1b9\]\/15     { background-color: rgba(255,255,255,0.04) !important; }
+
+/* ── NESTAi chat attachment preview modal ────────────────────────────────────── */
+.nestai-preview-backdrop {
+  background-color: rgba(0, 0, 0, 0.60);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.nestai-preview-modal {
+  background-color: var(--atelier-surface);
+  border: 1px solid rgba(219, 193, 185, 0.18);
+}
+
+.nestai-preview-header {
+  border-bottom: 1px solid rgba(219, 193, 185, 0.18);
+  background-color: var(--atelier-surface-low);
+}
+
+.nestai-preview-img-bg {
+  background-color: var(--atelier-surface-low);
+}
+
+.nestai-preview-pdf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  background: #525659; /* matches browser native PDF viewer dark chrome */
+}
+
+.nestai-preview-text-area {
+  background-color: var(--atelier-surface);
+}
+
+/* NESTAi thinking dots — animation handled by Tailwind animate-pulse in JSX */
+
+/* Dark mode overrides */
+.dark .nestai-preview-backdrop { background-color: rgba(0, 0, 0, 0.75); }
+.dark .nestai-preview-modal    { border-color: rgba(255,255,255,0.08); }
+.dark .nestai-preview-header   { border-color: rgba(255,255,255,0.06); }
