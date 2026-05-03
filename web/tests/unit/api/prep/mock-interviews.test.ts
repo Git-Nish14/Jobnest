@@ -77,7 +77,7 @@ describe("POST /api/prep/mock-interviews — security & validation", () => {
   });
 
   it("returns 400 when scheduled_at is missing", async () => {
-    const { scheduled_at: _, ...noDate } = validBody;
+    const { scheduled_at: _scheduled_at, ...noDate } = validBody;
     const res = await POST(req("POST", noDate) as never);
     expect(res.status).toBe(400);
   });
