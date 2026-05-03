@@ -617,4 +617,6 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 _Last updated: 29 April 2026 — Full codebase audit (14 items newly marked done, 5 descriptions corrected); added HIGH PRIORITY NESTAi item: document library viewer panel + bug fix for file not being included in submitted chat message._
 
+_Last updated: 2nd May 2026 — Shipped: Custom 404 not-found page (`app/not-found.tsx`) — Atelier design, dark mode, terracotta/lime palette, Newsreader + Manrope typography, security-hardened (no stack traces, robots noindex, no path reflection)._
+
 _Last updated: 3rd May 2026 (sprint) — Shipped: Interview Prep Hub (all 10 sub-items: /prep dashboard, LeetCode tracker, system design checklist, STAR behavioral bank, take-home assessment tracker, mock interview scheduler, interview question log, daily streak, progress rings, company tags); NESTAi binary file viewer (PDF blob URL, image, TXT/MD raw fetch, DOCX open-in-browser; storagePath always persisted; edit-in-place; thinking indicator); OAuth error page Atelier redesign; 3 security fixes (CSRF on all 11 prep mutation endpoints, IDOR on interview_id/application_id, storage RLS path fix); 933 tests / 69 files all green._

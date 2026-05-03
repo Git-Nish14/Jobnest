@@ -108,7 +108,7 @@ describe("POST /api/prep/problems", () => {
   });
 
   it("returns 400 when title is missing", async () => {
-    const { title: _, ...noTitle } = validProblem;
+    const { title: _title, ...noTitle } = validProblem;
     const res = await POST(json(noTitle) as never);
     expect(res.status).toBe(400);
   });
