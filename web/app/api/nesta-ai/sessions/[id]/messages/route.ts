@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createChatMessageSchema } from "@/lib/validations/api";
 import { ApiError, errorResponse, validateBody, successResponse, HttpStatus } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,6 +11,7 @@ interface RouteParams {
 // POST /api/nesta-ai/sessions/[id]/messages - Add a message to a chat session
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id: sessionId } = await params;
     const supabase = await createClient();
 
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // Deletes the given message and all messages after it (used by edit flow)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id: sessionId } = await params;
     const from = new URL(request.url).searchParams.get("from");
     if (!from) throw ApiError.badRequest("from query parameter required");

@@ -3,10 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { ApiError, errorResponse, successResponse } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     if (!isStripeConfigured()) {
       throw ApiError.serviceUnavailable(
         "Stripe is not configured. Please contact support."

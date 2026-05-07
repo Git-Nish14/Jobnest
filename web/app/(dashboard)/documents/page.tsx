@@ -8,7 +8,7 @@ import {
   Library, Upload, Search, Loader2,
   Trash2, Download, Eye, Share2,
   Link2, X, CheckCircle2, Plus, ScanSearch,
-  ArrowLeft, Lock,
+  ArrowLeft, Lock, HardDriveDownload, CloudDownload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -262,6 +262,13 @@ export default function DocumentLibraryPage() {
               Import
             </Button>
           </div>
+
+          {/* Cloud import row */}
+          <div className="flex gap-2 flex-wrap">
+            <LibraryDropboxButton label={labelInput} onImported={fetch_} />
+            <LibraryDriveButton   label={labelInput} onImported={fetch_} />
+          </div>
+
           <p className="text-xs text-muted-foreground">
             PDF, DOCX, DOC, TXT, MD, PNG, JPEG · max 10 MB · virus scanned on upload
           </p>
@@ -532,5 +539,156 @@ function ShareDialogInline({ docId, onClose }: { docId: string; onClose: () => v
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Library Dropbox import ────────────────────────────────────────────────────
+
+function LibraryDropboxButton({ label, onImported }: { label: string; onImported: () => void }) {
+  const appKey   = process.env.NEXT_PUBLIC_DROPBOX_APP_KEY;
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    if (!appKey || document.getElementById("dropbox-js")) return;
+    const s = document.createElement("script");
+    s.id  = "dropbox-js";
+    s.src = "https://www.dropbox.com/static/api/2/dropins.js";
+    s.setAttribute("data-app-key", appKey);
+    document.head.appendChild(s);
+  }, [appKey]);
+
+  const open = async () => {
+    if (!window.Dropbox) { toast.error("Dropbox SDK not loaded yet. Try again."); return; }
+    window.Dropbox.choose({
+      success: async (files) => {
+        if (!label.trim()) { toast.error("Enter a label before importing."); return; }
+        setImporting(true);
+        try {
+          const url = files[0].link.replace("dl=0", "dl=1");
+          const res = await fetch("/api/documents/import-url", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, label: label.trim(), is_master: true }),
+          });
+          const data = await res.json();
+          if (!res.ok) { toast.error(data.error ?? "Dropbox import failed."); return; }
+          toast.success(`"${files[0].name}" imported from Dropbox.`);
+          onImported();
+        } finally {
+          setImporting(false);
+        }
+      },
+      cancel:       () => {},
+      linkType:     "direct",
+      multiselect:  false,
+      extensions:   [".pdf", ".docx", ".doc", ".txt", ".md", ".png", ".jpg", ".jpeg"],
+      folderselect: false,
+    });
+  };
+
+  if (!appKey) {
+    return (
+      <button type="button" disabled title="Set NEXT_PUBLIC_DROPBOX_APP_KEY to enable Dropbox"
+        className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground/40 cursor-not-allowed">
+        <HardDriveDownload className="h-3.5 w-3.5" /> Dropbox (not configured)
+      </button>
+    );
+  }
+
+  return (
+    <button type="button" onClick={open} disabled={importing}
+      className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50">
+      {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <HardDriveDownload className="h-3.5 w-3.5" />}
+      Import from Dropbox
+    </button>
+  );
+}
+
+// ── Library Google Drive import ───────────────────────────────────────────────
+
+function LibraryDriveButton({ label, onImported }: { label: string; onImported: () => void }) {
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const apiKey   = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const [loading, setLoading] = useState(false);
+
+  const loadScript = (src: string, id: string) =>
+    new Promise<void>((resolve) => {
+      if (document.getElementById(id)) { resolve(); return; }
+      const s = document.createElement("script");
+      s.id = id; s.src = src; s.async = true;
+      s.onload = () => resolve();
+      document.head.appendChild(s);
+    });
+
+  const open = async () => {
+    if (!clientId || !apiKey) { toast.error("Google Drive is not configured."); return; }
+    if (!label.trim()) { toast.error("Enter a label before importing."); return; }
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadScript("https://apis.google.com/js/api.js", "gapi-js"),
+        loadScript("https://accounts.google.com/gsi/client", "gsi-js"),
+      ]);
+      await new Promise<void>((res) => window.gapi!.load("picker", res));
+
+      const tc = window.google!.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope:     "https://www.googleapis.com/auth/drive.file",
+        callback:  async (resp) => {
+          if (resp.error || !resp.access_token) {
+            toast.error("Google Drive authorisation failed.");
+            setLoading(false);
+            return;
+          }
+          const token = resp.access_token;
+          const picker = new window.google!.picker.PickerBuilder()
+            .addView(window.google!.picker.ViewId.DOCS)
+            .setOAuthToken(token)
+            .setDeveloperKey(apiKey)
+            .setCallback(async (data: GooglePickerResponse) => {
+              if (data.action !== window.google!.picker.Action.PICKED) { setLoading(false); return; }
+              const file = data.docs[0];
+              try {
+                const res = await fetch("/api/documents/import-drive", {
+                  method: "POST", credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    file_id: file.id, access_token: token,
+                    file_name: file.name, mime_type: file.mimeType,
+                    application_id: null, is_master: true, label: label.trim() || file.name,
+                  }),
+                });
+                const d = await res.json();
+                if (!res.ok) { toast.error(d.error ?? "Drive import failed."); return; }
+                toast.success(`"${file.name}" imported from Google Drive.`);
+                onImported();
+              } finally { setLoading(false); }
+            })
+            .build();
+          picker.setVisible(true);
+        },
+      });
+      tc.requestAccessToken();
+    } catch {
+      toast.error("Failed to open Google Drive picker.");
+      setLoading(false);
+    }
+  };
+
+  if (!clientId) {
+    return (
+      <button type="button" disabled title="Set NEXT_PUBLIC_GOOGLE_CLIENT_ID and NEXT_PUBLIC_GOOGLE_API_KEY to enable Google Drive"
+        className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground/40 cursor-not-allowed">
+        <CloudDownload className="h-3.5 w-3.5" /> Google Drive (not configured)
+      </button>
+    );
+  }
+
+  return (
+    <button type="button" onClick={open} disabled={loading}
+      className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50">
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudDownload className="h-3.5 w-3.5" />}
+      Import from Google Drive
+    </button>
   );
 }

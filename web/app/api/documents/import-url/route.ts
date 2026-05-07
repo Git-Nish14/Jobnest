@@ -6,6 +6,7 @@ import { validateMagicBytes } from "@/lib/utils/storage";
 import { scanBuffer } from "@/lib/security/virus-scan";
 import { ALLOWED_MIME_TYPES } from "@/types/application";
 import { z } from "zod";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10 MB
 const FETCH_TIMEOUT_MS = 20_000;
@@ -163,6 +164,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();

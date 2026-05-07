@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Download, ExternalLink, File, FileText, FileImage, Lock, Loader2,
+  Download, ExternalLink, File, FileText, FileImage, Lock, Loader2, StickyNote,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -38,9 +38,10 @@ function isPreviewable(mimeType: string) {
 export interface DocPreviewDialogProps {
   doc: ApplicationDocument & { appName?: string };
   onClose: () => void;
+  onAnnotate?: () => void;
 }
 
-export function DocPreviewDialog({ doc, onClose }: DocPreviewDialogProps) {
+export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(doc.signed_url ?? null);
   const [blobUrl, setBlobUrl]     = useState<string | null>(null);
   const [loading, setLoading]     = useState(true);
@@ -111,6 +112,18 @@ export function DocPreviewDialog({ doc, onClose }: DocPreviewDialogProps) {
           {/* mr-8 reserves space for the Radix absolute close button (right-4 ~28px) */}
           {signedUrl && (
             <div className="flex items-center gap-1 shrink-0 mr-8">
+              {/* Annotate — PDF only */}
+              {onAnnotate && doc.mime_type === "application/pdf" && (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); onAnnotate(); }}
+                  title="Annotate — add sticky notes"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-[#99462a] transition-colors"
+                >
+                  <StickyNote className="h-4 w-4" />
+                  <span className="sr-only">Annotate</span>
+                </button>
+              )}
               <a
                 href={signedUrl}
                 download

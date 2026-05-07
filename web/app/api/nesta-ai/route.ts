@@ -4,6 +4,7 @@ import { nestaAiSchema } from "@/lib/validations/api";
 import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractAllDocuments } from "@/lib/utils/document-parser";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 // Rate limits per plan
 const RATE_LIMITS = {
@@ -90,6 +91,7 @@ async function setDocCache(userId: string, texts: DocTexts): Promise<void> {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
 
     const {

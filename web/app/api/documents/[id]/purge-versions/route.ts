@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { deleteFiles } from "@/lib/utils/storage";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -13,8 +14,9 @@ interface RouteContext {
  * Deletes all non-current versions for the same (application_id, label) group
  * as the document with :id. Returns bytes freed.
  */
-export async function POST(_request: NextRequest, { params }: RouteContext) {
+export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id } = await params;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

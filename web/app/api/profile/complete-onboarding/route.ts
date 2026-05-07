@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, successResponse } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 interface Body {
   displayName?: string;
@@ -9,6 +10,7 @@ interface Body {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

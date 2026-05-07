@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft } from "lucide-react";
+import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, FileUp, ChevronDown, ChevronUp, Check, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
@@ -65,6 +65,70 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
 
   const currentStatus = watch("status");
   const currentSource = watch("source");
+
+  // ── Resume autofill ──────────────────────────────────────────────────────
+  interface MasterDoc { id: string; label: string; original_name: string | null; mime_type: string }
+  interface ResumeExtracted {
+    skills: Array<{ name: string }>;
+    experience: Array<{ company: string; title: string }>;
+  }
+  const [libraryDocs,    setLibraryDocs]    = useState<MasterDoc[] | null>(null);
+  const [docsPickerOpen, setDocsPickerOpen] = useState(false);
+  const [loadingDocs,    setLoadingDocs]    = useState(false);
+  const [parsedResume,   setParsedResume]   = useState<{ data: ResumeExtracted; label: string } | null>(null);
+  const [parsingResume,  setParsingResume]  = useState(false);
+
+  const loadLibraryDocs = async () => {
+    if (libraryDocs !== null) { setDocsPickerOpen((p) => !p); return; }
+    setLoadingDocs(true);
+    try {
+      const res  = await fetch("/api/documents/list?is_master=true&include_versions=false", { credentials: "include" });
+      const json = await res.json();
+      const textable = ["application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword", "text/plain", "text/markdown"];
+      setLibraryDocs((json.documents ?? []).filter((d: MasterDoc) => textable.includes(d.mime_type)));
+      setDocsPickerOpen(true);
+    } catch {
+      toast.error("Failed to load document library.");
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const handleResumePick = async (doc: MasterDoc) => {
+    setDocsPickerOpen(false);
+    setParsingResume(true);
+    try {
+      const res  = await fetch("/api/documents/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document_id: doc.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Parse failed");
+      setParsedResume({ data: json.extracted, label: doc.label });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to parse resume.");
+    } finally {
+      setParsingResume(false);
+    }
+  };
+
+  const applyResumePosition = () => {
+    if (!parsedResume?.data.experience?.[0]?.title) return;
+    setValue("position", parsedResume.data.experience[0].title);
+  };
+
+  const applyResumeSkillsToNotes = () => {
+    if (!parsedResume?.data.skills?.length) return;
+    const skillList = parsedResume.data.skills.slice(0, 12).map((s) => s.name).join(", ");
+    const current   = watch("notes") ?? "";
+    const append    = `\nKey skills: ${skillList}`;
+    setValue("notes", current + append);
+    toast.success("Skills summary added to notes.");
+    setParsedResume(null);
+  };
 
   // ── JD Parser ────────────────────────────────────────────────────────────
   const [parseModalOpen, setParseModalOpen] = useState(false);
@@ -254,18 +318,131 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
           </p>
         </div>
         {!isEditing && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0 gap-1.5"
-            onClick={() => { setParseModalOpen(true); setParseError(null); }}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Import from job posting
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => { setParseModalOpen(true); setParseError(null); }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Import from job posting
+            </Button>
+
+            {/* Resume autofill */}
+            <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                onClick={loadLibraryDocs}
+                disabled={loadingDocs || parsingResume}
+              >
+                {loadingDocs || parsingResume
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <FileUp className="h-3.5 w-3.5" />}
+                {parsingResume ? "Parsing…" : "Fill from resume"}
+                {!loadingDocs && !parsingResume && (docsPickerOpen
+                  ? <ChevronUp className="h-3 w-3 opacity-50" />
+                  : <ChevronDown className="h-3 w-3 opacity-50" />
+                )}
+              </Button>
+
+              {docsPickerOpen && libraryDocs && (
+                <div className="absolute top-full right-0 mt-1 w-72 bg-background border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 py-2 border-b border-border">
+                    Select resume to parse
+                  </p>
+                  {libraryDocs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-4 text-center">
+                      No library resumes found.{" "}
+                      <a href="/documents" className="text-[#99462a] hover:underline font-medium">Upload one →</a>
+                    </p>
+                  ) : (
+                    libraryDocs.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => handleResumePick(doc)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-muted/60 transition-colors flex items-center gap-2.5 border-b border-border last:border-0"
+                      >
+                        <FileUp className="h-3.5 w-3.5 text-[#99462a] shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{doc.label}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{doc.original_name}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
+        {/* ── Resume autofill panel ── */}
+        {parsedResume && (
+          <div className="rounded-xl border border-[#dbc1b9]/50 bg-[#f4f3f1] dark:bg-[#1a1a1a] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#99462a]" />
+                <p className="text-sm font-semibold text-foreground">Resume parsed — {parsedResume.label}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setParsedResume(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {parsedResume.data.experience?.[0]?.title && (
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-white dark:bg-[#0a0a0a] border border-[#dbc1b9]/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Suggested position</p>
+                  <p className="text-sm text-foreground font-medium truncate">{parsedResume.data.experience[0].title}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={applyResumePosition}
+                  className="shrink-0 flex items-center gap-1 rounded-full bg-[#99462a] text-white px-2.5 py-1 text-xs font-semibold hover:bg-[#7a3620] transition-colors"
+                >
+                  <Check className="h-3 w-3" /> Use it
+                </button>
+              </div>
+            )}
+
+            {parsedResume.data.skills?.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  Key skills ({parsedResume.data.skills.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {parsedResume.data.skills.slice(0, 10).map((s) => (
+                    <span key={s.name} className="rounded-full bg-white dark:bg-[#0a0a0a] border border-[#dbc1b9]/40 px-2 py-0.5 text-xs text-[#55433d] dark:text-white/70">
+                      {s.name}
+                    </span>
+                  ))}
+                  {parsedResume.data.skills.length > 10 && (
+                    <span className="text-xs text-muted-foreground">+{parsedResume.data.skills.length - 10} more</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={applyResumeSkillsToNotes}
+                  className="text-xs font-medium text-[#99462a] hover:underline"
+                >
+                  Add skills summary to notes →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Company & Position */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

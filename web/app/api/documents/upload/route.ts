@@ -5,12 +5,14 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateMagicBytes, uploadVersionedFile } from "@/lib/utils/storage";
 import { ALLOWED_MIME_TYPES } from "@/types/application";
 import { scanBuffer } from "@/lib/security/virus-scan";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 const MAX_FILE_SIZE  = 10 * 1024 * 1024; // 10 MB
 const MAX_LABEL_LEN  = 80;
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();

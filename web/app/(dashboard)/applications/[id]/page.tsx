@@ -251,7 +251,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         <div className="space-y-6">
 
           {/* Documents — versioned, multi-type, with share and preview */}
-          <DocumentManager applicationId={id} legacyDocs={legacyDocs} />
+          <DocumentManager
+            applicationId={id}
+            legacyDocs={legacyDocs}
+            applicationCompany={application.company}
+            applicationPosition={application.position}
+          />
 
           {/* ── Application completeness — client component, live-updates on focus ── */}
           <CompletenessCard applicationId={id} />
