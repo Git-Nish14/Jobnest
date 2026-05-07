@@ -7,7 +7,7 @@ export function getStripe(): Stripe {
   if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
   if (!stripeInstance) {
     stripeInstance = new Stripe(key, {
-      apiVersion: "2026-03-25.dahlia",
+      apiVersion: "2026-04-22.dahlia",
     });
   }
   return stripeInstance;
