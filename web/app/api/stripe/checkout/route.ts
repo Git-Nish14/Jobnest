@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { ApiError, errorResponse, successResponse } from "@/lib/api/errors";
 import { verifyOrigin } from "@/lib/security/csrf";
-import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,13 +57,6 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
     }
 
-    const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData =
-      { metadata: { supabase_user_id: user.id } };
-
-    if (trial) {
-      subscriptionData.trial_period_days = 30;
-    }
-
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
@@ -72,7 +64,10 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/pricing?success=true`,
       cancel_url: `${appUrl}/pricing?canceled=true`,
       client_reference_id: user.id,
-      subscription_data: subscriptionData,
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+        ...(trial && { trial_period_days: 30 }),
+      },
       allow_promotion_codes: true,
     });
 
