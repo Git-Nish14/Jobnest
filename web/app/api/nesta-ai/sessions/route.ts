@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createChatSessionSchema } from "@/lib/validations/api";
 import { ApiError, errorResponse, successResponse, HttpStatus } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 // GET /api/nesta-ai/sessions - List all chat sessions for the user
 export async function GET() {
@@ -38,6 +39,7 @@ export async function GET() {
 // POST /api/nesta-ai/sessions - Create a new chat session
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
 
     const {

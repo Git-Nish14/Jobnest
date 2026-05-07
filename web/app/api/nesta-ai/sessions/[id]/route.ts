@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateChatSessionSchema } from "@/lib/validations/api";
 import { ApiError, errorResponse, validateBody, successResponse } from "@/lib/api/errors";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -61,6 +62,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
 // PATCH /api/nesta-ai/sessions/[id] - Update chat session title
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id } = await params;
     const supabase = await createClient();
 
@@ -97,8 +99,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/nesta-ai/sessions/[id] - Delete a chat session
-export async function DELETE(_: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id } = await params;
     const supabase = await createClient();
 

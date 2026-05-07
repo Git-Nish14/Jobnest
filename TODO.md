@@ -247,7 +247,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **Inline PDF/image viewer** — `PreviewDialog` in `DocumentManager` fetches blob via `/api/documents`, renders PDF in iframe and images in `<img>`; falls back to "Open in browser" for non-previewable types (DOCX, TXT)
 - [x] **Text document preview** — non-previewable types (DOCX/TXT/MD) show "Open in browser" CTA; full text extraction already available in `document-parser.ts` for NESTAi + ATS scan
-- [ ] **Document annotation** — sticky notes on PDF pages; deferred (requires PDF.js and annotation storage)
+- [x] **Document annotation** — PDF.js canvas renderer (`pdfjs-dist` 5.x, CDN worker); sticky notes positioned via relative x/y/width percentages; draggable, 5 colour presets, debounced auto-save; `document_annotations` table (migration 30) with RLS; GET + POST `/api/documents/[id]/annotations`, PUT + DELETE `/api/documents/[id]/annotations/[annId]`; verifyOrigin on all 3 mutation handlers; `AnnotationDialog.tsx` opens from DocumentCard (PDF only) + DocPreviewDialog shortcut button
 
 ### Access & Sharing
 
@@ -259,13 +259,13 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **ATS keyword scan** — `POST /api/documents/ats-scan` extracts resume text via `document-parser.ts`, sends to Groq (llama-3.3-70b) with job description, returns JSON: `{ score, present_keywords, missing_keywords, suggestions, summary }`; rate-limited 5/min per user
 - [x] **Document diff** — `DiffDialog.tsx` + `GET /api/documents/diff`; `diff` package installed; side-by-side version comparison
-- [ ] **Auto-fill from resume** — PARTIAL: `ResumeImportButton` parses resume into profile (skills/education/certs) but does not pre-fill new application form fields; full application form pre-fill still deferred
-- [ ] **Cover letter variable substitution preview** — live preview with `{{company}}`/`{{position}}` replaced; deferred
+- [x] **Auto-fill from resume** — "Fill from resume" button in `ApplicationForm` loads library resumes via `/api/documents/list?is_master=true`; calls `parse-resume`; suggests `position` from `experience[0].title` when field is blank; offers to append skills summary to notes; no new API routes needed
+- [x] **Cover letter variable substitution preview** — `CoverLetterPreviewDialog` in `DocumentManager`; shown on docs where label contains "cover" or MIME is text/plain or text/markdown; fetches document text, detects `{{token}}` placeholders, auto-fills `{{company}}` + `{{position}}` from application props, renders live substituted preview, copy-to-clipboard; shared `substituteVariables()` + `extractVariableKeys()` moved to `lib/utils/template-helpers.ts`
 
 ### Cloud Import
 
-- [ ] **Google Drive import** — OAuth flow; deferred (needs Google OAuth app approval)
-- [ ] **Dropbox import** — Dropbox Chooser SDK; deferred
+- [x] **Google Drive import** — Google Picker OAuth (`drive.file` scope); `GoogleDriveImportButton` component loads GAPI + GIS dynamically; server-side proxy `POST /api/documents/import-drive` fetches file from Drive API with `verifyOrigin`, rate limit (10/min), MIME + magic-byte + AV validation; wired into `DocumentManager` UploadArea and `/documents` library page; shows "not configured" disabled state when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` absent; `NEXT_PUBLIC_GOOGLE_CLIENT_ID` + `NEXT_PUBLIC_GOOGLE_API_KEY` env vars added (optional)
+- [x] **Dropbox import** — `DropboxImportButton` component loads Dropbox Chooser SDK (`dropins.js`) dynamically; chosen file URL piped through existing SSRF-protected `import-url` route (no new server route); `NEXT_PUBLIC_DROPBOX_APP_KEY` env var (optional); shows "not configured" disabled state when absent; wired into `DocumentManager` UploadArea and `/documents` library page
 - [x] **URL-based import** — `POST /api/documents/import-url`; fetches public URL, validates Content-Type + magic bytes, stores in Supabase Storage; 15s timeout, 10 MB limit; available in both `DocumentManager` (per-application) and `/documents` library page
 
 ### Storage-Level Security
@@ -406,6 +406,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Storage path traversal fix on parse-file** — `session_id` FormData value now validated against a strict UUID regex before being interpolated into the Supabase Storage path; non-conforming values silently skip the upload (text extraction still succeeds)
 - [x] **CSRF on parse-file** — `verifyOrigin()` added to the file-upload route (state-mutating POST that writes to Storage), matching the guard already on parse-jd and all profile routes
 - [x] **Path traversal belt-and-suspenders on attachment-url** — explicit `path.includes("..")` rejection before the `startsWith` ownership check; `..` segments cannot reach another user's files even if Supabase Storage were to normalise them
+- [x] **Full CSRF audit — verifyOrigin on all mutation routes** — security review identified 14 session-authenticated mutation routes missing `verifyOrigin()`: `documents/upload`, `documents/share` (POST + DELETE), `documents/ats-scan`, `documents/import-url`, `documents/[id]` DELETE, `documents/[id]/restore`, `documents/[id]/purge-versions`, `documents/[id]/annotations` (POST), `documents/[id]/annotations/[annId]` (PUT + DELETE), `nesta-ai` (POST), `nesta-ai/sessions` (POST), `nesta-ai/sessions/[id]` (PATCH + DELETE), `nesta-ai/sessions/[id]/messages` (POST + DELETE), `stripe/checkout`, `applications/[id]/status`, `profile/complete-onboarding`; all now guarded; annotation DELETE also fixed to return 404 on no-match instead of silent 200; `globals.d.ts` created for ambient Window types (Dropbox, GAPI, Google Picker)
 
 ---
 
@@ -421,10 +422,11 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - `@types/node` 20 → 25 (major; currently on `^20`)
 - [ ] **Move document parse cache to Redis** — `document-parser.ts` currently has no caching at all (stateless parse on every call); add Redis-backed SHA-256 cache before scaling
 - [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [x] **Vitest tests — 522 tests, 46 files, 100% pass (no browser, fully automated)**
-  - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure), proxy
+- [x] **Vitest tests — 933 tests, 69 files, 100% pass (no browser, fully automated)**
+  - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF, template-helpers substituteVariables), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure, prep hub), proxy
   - E2E flow tests: `tests/flows/` — full user journeys: login (remember-me), signup (age/terms), forgot-password, change-password, delete+reactivate, NESTAi chat+upload, **Stripe billing** (checkout → webhook → portal → payment failure dunning → cancellation)
-  - No Playwright — all tests run via `npm test` in any CI/CD environment
+  - Playwright E2E: `tests/e2e/` — public pages, auth flows, UI smoke tests
+  - No external services required — all run via `npm test` in any CI/CD environment
 
 ---
 
@@ -620,3 +622,5 @@ _Last updated: 29 April 2026 — Full codebase audit (14 items newly marked done
 _Last updated: 2nd May 2026 — Shipped: Custom 404 not-found page (`app/not-found.tsx`) — Atelier design, dark mode, terracotta/lime palette, Newsreader + Manrope typography, security-hardened (no stack traces, robots noindex, no path reflection)._
 
 _Last updated: 3rd May 2026 (sprint) — Shipped: Interview Prep Hub (all 10 sub-items: /prep dashboard, LeetCode tracker, system design checklist, STAR behavioral bank, take-home assessment tracker, mock interview scheduler, interview question log, daily streak, progress rings, company tags); NESTAi binary file viewer (PDF blob URL, image, TXT/MD raw fetch, DOCX open-in-browser; storagePath always persisted; edit-in-place; thinking indicator); OAuth error page Atelier redesign; 3 security fixes (CSRF on all 11 prep mutation endpoints, IDOR on interview_id/application_id, storage RLS path fix); 933 tests / 69 files all green._
+
+_Last updated: 4th May 2026 — Shipped: All 5 Document Storage items — PDF annotation (PDF.js + server-side sticky notes, migration 30), resume autofill in application form, cover-letter variable substitution preview, Google Drive import (server-side proxy + Picker OAuth), Dropbox import (Chooser SDK + import-url pipeline); full CSRF audit — verifyOrigin added to 14 previously unprotected mutation routes (documents, NESTAi sessions, Stripe checkout, application status, onboarding); annotation DELETE silent-success bug fixed; `globals.d.ts` ambient types for browser SDKs; `pdfjs-dist` 5.x added to web/package.json; 933 tests / 69 files all green; TSC ✓ · Lint ✓ · Build 72 routes ✓._

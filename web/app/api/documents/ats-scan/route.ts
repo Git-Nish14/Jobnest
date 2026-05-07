@@ -4,6 +4,7 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractDocumentText } from "@/lib/utils/document-parser";
 import { z } from "zod";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 export const ATS_PROVIDERS = ["groq", "openai", "claude", "gemini", "perplexity"] as const;
 export type ATSProvider = (typeof ATS_PROVIDERS)[number];
@@ -169,6 +170,7 @@ async function callClaude(apiKey: string, userMessage: string): Promise<string> 
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();

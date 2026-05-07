@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 /** POST /api/documents/:id/restore — makes this version the current one */
-export async function POST(_request: NextRequest, { params }: RouteContext) {
+export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const { id } = await params;
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

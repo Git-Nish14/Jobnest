@@ -72,6 +72,11 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **1 GB quota** with colour-coded progress bar
 - Filter by type (PDF/DOCX/Image/Text) and origin (Library/Applications)
 - **Inline preview popup** — PDF iframe, image viewer, download + open-in-tab
+- **PDF annotation** — full PDF.js canvas renderer; click to place colour-coded sticky notes at exact coordinates; drag to reposition; auto-save on blur; 5 colour presets; per-document server-side storage with RLS (`document_annotations` table, migration 30)
+- **Cover letter variable preview** — live substitution of `{{company}}`, `{{position}}` and any `{{token}}` found in text/markdown cover letters; auto-fills application context; one-click copy to clipboard
+- **Resume autofill in application form** — "Fill from resume" picker loads library resumes; calls `parse-resume` API; suggests position from experience; appends skills summary to notes
+- **Google Drive import** — Google Picker OAuth (`drive.file` scope); server-side file download proxy (`/api/documents/import-drive`) with verifyOrigin, rate limit, MIME check, magic-byte validation, AV scan; shows setup banner when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is absent
+- **Dropbox import** — Dropbox Chooser SDK (dynamic script); direct-link piped through existing `import-url` SSRF-protected route; shows setup notice when `NEXT_PUBLIC_DROPBOX_APP_KEY` is absent
 - **Delete gated by origin** — library docs: delete button; app-linked docs: lock icon (manage from application)
 - **ATS Scan button** on each compatible document card → `/ats?doc_id=`
 - Upload, URL import, version history, restore, purge old versions
@@ -167,6 +172,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
+| PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
+| Cloud Import | Google Picker API + Dropbox Chooser SDK |
 | Testing | Vitest (933 tests, 69 files) |
 
 ---
@@ -211,7 +218,8 @@ web/
 │   │   │   ├── weekly-digest/        # Mondays 08:00 UTC
 │   │   │   ├── follow-up-reminders/  # Daily 09:00 UTC — Day 7/14/21 auto-reminders
 │   │   │   └── re-engagement/        # Daily 10:00 UTC — 14-day inactivity emails
-│   │   ├── documents/            # list, upload, [id], ats-scan, import-url, share, shared, refresh-url
+│   │   ├── documents/            # list, upload, [id], [id]/annotations, [id]/annotations/[annId],
+│   │   │                         # ats-scan, import-url, import-drive, share, shared, refresh-url, diff, parse-resume
 │   │   ├── health/               # Liveness + readiness probe
 │   │   ├── applications/
 │   │   │   └── parse-jd/         # POST — JD URL/text → structured fields (SSRF-protected)
@@ -229,7 +237,7 @@ web/
 │   ├── auth/
 │   ├── common/
 │   ├── dashboard/
-│   ├── documents/                # DocumentManager
+│   ├── documents/                # DocumentManager, AnnotationDialog, DocPreviewDialog, DiffDialog, GoogleDriveImportButton
 │   ├── layout/                   # Navbar, BottomTabBar, NotificationBell, ThemeToggle
 │   ├── prep/                     # PrepHub, CodingProblemsTracker, SystemDesignChecklist,
 │   │                             # BehavioralBank, AssessmentsTracker, MockInterviewScheduler,
@@ -245,7 +253,8 @@ web/
 │   │   ├── completeness.ts       # Application completeness scoring (10 fields, 0–10)
 │   │   ├── document-parser.ts    # PDF/DOCX/TXT extraction
 │   │   ├── fetch-retry.ts
-│   │   └── storage.ts
+│   │   ├── storage.ts
+│   │   └── template-helpers.ts  # substituteVariables() + extractVariableKeys() — shared by cover-letter preview and email templates
 │   ├── env.ts                    # Startup env validation
 │   └── validations/              # Zod schemas
 ├── services/
@@ -311,6 +320,13 @@ PERPLEXITY_API_KEY=pplx-...  # optional
 # Virus scanning (optional — 800 free scans/month)
 CLOUDMERSIVE_API_KEY=...
 
+# Google Drive import (optional — set both or neither)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
+NEXT_PUBLIC_GOOGLE_API_KEY=...
+
+# Dropbox import (optional)
+NEXT_PUBLIC_DROPBOX_APP_KEY=...
+
 # Stripe (optional)
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -356,6 +372,7 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 27 | `...027_prep_hub.sql` | `coding_problems`, `assessments`, `behavioral_answers`, `mock_interviews`, `interview_questions`, `prep_streaks` — all with RLS |
 | 28 | `...028_chat_attachments_storage.sql` | Expand documents bucket MIME types (webp, gif, heic, heif, avif, bmp, tiff, octet-stream) |
 | 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` to allow `'chat-attachments'` as trusted second-segment in storage paths |
+| 30 | `...030_document_annotations.sql` | `document_annotations` table — page-relative x/y/width coordinates, colour, content; RLS owner-only; indexes on `document_id` + `user_id` |
 
 ### Installation
 
@@ -403,7 +420,7 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Rate limiting | Redis-backed (Upstash); dual-layer on send-otp (IP + per-email) |
 | Virus scanning | Cloudmersive multi-engine AV on all uploads + URL imports (fail-open) |
 | Magic bytes | Server-side content validation prevents extension spoofing |
-| CSRF | `SameSite=Lax` + `verifyOrigin()` on all mutation routes — profile, parse-file, parse-jd, all 11 prep API endpoints (POST/PATCH/DELETE) |
+| CSRF | `SameSite=Lax` + `verifyOrigin()` on **all** session-authenticated mutation routes — profile, documents (upload, share, ats-scan, import-url, import-drive, [id] DELETE, restore, purge-versions, annotations), NESTAi (chat, sessions CRUD, messages), Stripe checkout, application status PATCH, onboarding, parse-jd, parse-file, all 11 prep API endpoints |
 | IDOR | `interview_id` ownership validated against `interviews` table before inserting `interview_questions`; `application_id` ownership validated before linking an assessment |
 | SSRF | `assertSafeUrl()` on parse-jd: DNS pre-resolution blocks loopback, RFC-1918, link-local (AWS/GCP metadata), CGNAT; post-redirect check prevents open-redirect chains |
 | Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url; Storage path `{uid}/chat-attachments/…` — first segment is user ID, enforced by RLS |

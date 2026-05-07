@@ -4,6 +4,7 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { verifyOrigin } from "@/lib/security/csrf";
 
 const TTL_MAP: Record<string, number> = {
   "1d":  1,
@@ -19,6 +20,7 @@ const shareSchema = z.object({
 /** POST /api/documents/share — create a time-limited public share link */
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
@@ -110,6 +112,7 @@ export async function GET(request: NextRequest) {
 /** DELETE /api/documents/share?link_id=<uuid> — revoke a share link */
 export async function DELETE(request: NextRequest) {
   try {
+    if (!verifyOrigin(request)) throw ApiError.forbidden("Invalid request origin.");
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw ApiError.unauthorized();
