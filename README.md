@@ -58,7 +58,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
 - **Job description field** — paste full JD to power ATS scan + NESTAi tailoring
 - **"Import from job posting"** — paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
-- **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…)
+- **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants — LinkedIn `#0A66C2`, Indeed `#003A9B`, Glassdoor `#0CAA41`, Handshake `#E8552A`, Wellfound `#111111`, Dice `#EB1C26`, Referral violet, Recruiter Outreach amber, Job Fair cyan, Company Website slate
 - **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
 - **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
@@ -265,15 +265,16 @@ web/
 │   ├── auth/                     # plan.ts — fail-closed plan enforcement
 │   ├── email/                    # Nodemailer — all email types
 │   ├── notifications/
-│   ├── security/                 # OTP, rate-limit (Redis), CSRF, virus-scan (Cloudmersive)
+│   ├── security/                 # OTP, rate-limit (Redis), CSRF, virus-scan (Cloudmersive), sanitize.ts
 │   ├── utils/
 │   │   ├── completeness.ts       # Application completeness scoring (10 fields, 0–10)
+│   │   ├── date.ts               # Shared date/time formatting — Intl locale + IANA timezone from device; formatDate, formatDateTime, formatRelative, formatDuration helpers
 │   │   ├── document-parser.ts    # PDF/DOCX/TXT extraction
 │   │   ├── fetch-retry.ts
 │   │   ├── storage.ts
 │   │   └── template-helpers.ts  # substituteVariables() + extractVariableKeys() — shared by cover-letter preview and email templates
 │   ├── env.ts                    # Startup env validation
-│   └── validations/              # Zod schemas
+│   └── validations/              # Zod schemas; secureUrlField shared transformer (null-byte strip, scheme blocklist, new URL() check)
 ├── services/
 ├── config/                       # Constants (APPLICATION_STATUSES, APPLICATION_SOURCES, WORK_AUTHORIZATION_OPTIONS)
 ├── types/
