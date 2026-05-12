@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { Plus, Trash2, Loader2, Code, Award, GraduationCap } from "lucide-react";
 import { ResumeImportButton } from "./ResumeImportButton";
+import { GitHubSection } from "@/components/portfolio/GitHubSection";
+import { ProjectsSection } from "@/components/portfolio/ProjectsSection";
+import { LinkedInSection } from "@/components/portfolio/LinkedInSection";
+import { PortfolioSettings } from "@/components/portfolio/PortfolioSettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -357,14 +361,37 @@ export function DeveloperIdentity() {
   const handleImported = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="db-headline text-xl font-semibold text-foreground">Developer Identity</h2>
-        <ResumeImportButton onImported={handleImported} />
+    <div className="space-y-8">
+      {/* ── Core identity ── */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="db-headline text-xl font-semibold text-foreground">Developer Identity</h2>
+          <ResumeImportButton onImported={handleImported} />
+        </div>
+        <SkillsSection key={`skills-${refreshKey}`} />
+        <CertificationsSection key={`certs-${refreshKey}`} />
+        <EducationSection key={`edu-${refreshKey}`} />
       </div>
-      <SkillsSection key={`skills-${refreshKey}`} />
-      <CertificationsSection key={`certs-${refreshKey}`} />
-      <EducationSection key={`edu-${refreshKey}`} />
+
+      {/* ── Portfolio & Presence ── */}
+      <div className="space-y-6">
+        <div className="border-t border-border pt-6">
+          <h2 className="db-headline text-xl font-semibold text-foreground mb-6">Portfolio & Presence</h2>
+          {/* GitHubSection uses useSearchParams — wrap in Suspense */}
+          <div className="space-y-6">
+            <Suspense fallback={
+              <div className="db-content-card flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading GitHub…
+              </div>
+            }>
+              <GitHubSection />
+            </Suspense>
+            <ProjectsSection />
+            <LinkedInSection />
+            <PortfolioSettings />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

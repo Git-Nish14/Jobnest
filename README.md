@@ -32,6 +32,13 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **GDPR data export** — all personal data as dated JSON (rate-limited 3/day)
 - **Billing portal** — Stripe customer portal for Pro subscribers
 - **Developer Identity** — Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
+- **Portfolio settings** — claim a username slug, toggle public portfolio, opt-in contact email display (defaults off)
+
+### Developer Portfolio & Public Profile (`/p/{username}`)
+- **GitHub OAuth** — connect GitHub (OAuth `read:user public_repo`); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos for portfolio display; manual sync (rate-limited); daily cron refresh at 04:00 UTC
+- **Project showcase** — create and curate projects (title, description, tags, demo/repo URLs, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls
+- **LinkedIn strength** — store profile URL; self-assessed 8-item checklist (photo, headline, about, experience, skills, featured, recommendations, 500+ connections) with animated 0–8 strength score
+- **Public portfolio page** — shareable `/p/{username}` page; SSR with full OpenGraph metadata; sections: hero (avatar, bio, links, GitHub stats), featured projects, pinned repos, skills by category, education, certifications; contact email shown only when explicitly opted in; no job application data ever exposed
 
 ### Account Deletion (Grace Period)
 1. OTP-confirmed deletion request
@@ -174,7 +181,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (933 tests, 69 files) |
+| Testing | Vitest (983 tests, 70 files) |
 
 ---
 
@@ -205,19 +212,27 @@ web/
 │   │   ├── terms/
 │   │   ├── contact/
 │   │   └── cookies/
+│   ├── p/[username]/             # Public portfolio page — SSR, no auth required
 │   ├── api/
 │   │   ├── auth/                 # send-otp, verify-otp, reset-password
 │   │   ├── profile/              # update-name, change-password, update-about-me,
 │   │   │                         # update-nestai-context, update-notifications,
-│   │   │                         # update-work-authorization, delete-account,
-│   │   │                         # reactivate-account, verify-change-otp,
+│   │   │                         # update-work-authorization, update-portfolio-visibility,
+│   │   │                         # delete-account, reactivate-account, verify-change-otp,
 │   │   │                         # export-data (GDPR), complete-onboarding
+│   │   ├── portfolio/
+│   │   │   ├── github/           # connect (OAuth redirect), callback, disconnect,
+│   │   │   │                     # connection (GET), repos (GET/PATCH pin), sync (POST)
+│   │   │   ├── projects/         # list/create + [id] update/delete
+│   │   │   ├── linkedin/         # GET/POST — URL + strength checklist
+│   │   │   └── username/         # GET availability, POST claim
 │   │   ├── cron/
 │   │   │   ├── process-deletions/    # Daily 09:00 UTC
 │   │   │   ├── overdue-reminders/    # Daily 09:00 UTC
 │   │   │   ├── weekly-digest/        # Mondays 08:00 UTC
 │   │   │   ├── follow-up-reminders/  # Daily 09:00 UTC — Day 7/14/21 auto-reminders
-│   │   │   └── re-engagement/        # Daily 10:00 UTC — 14-day inactivity emails
+│   │   │   ├── re-engagement/        # Daily 10:00 UTC — 14-day inactivity emails
+│   │   │   └── github-sync/          # Daily 04:00 UTC — refresh all GitHub connections
 │   │   ├── documents/            # list, upload, [id], [id]/annotations, [id]/annotations/[annId],
 │   │   │                         # ats-scan, import-url, import-drive, share, shared, refresh-url, diff, parse-resume
 │   │   ├── health/               # Liveness + readiness probe
@@ -242,7 +257,9 @@ web/
 │   ├── prep/                     # PrepHub, CodingProblemsTracker, SystemDesignChecklist,
 │   │                             # BehavioralBank, AssessmentsTracker, MockInterviewScheduler,
 │   │                             # InterviewQuestionLog
-│   └── profile/                  # ProfileClient, DeletionBanner
+│   ├── portfolio/                # GitHubSection, ProjectsSection, LinkedInSection,
+│   │                             # PortfolioSettings
+│   └── profile/                  # ProfileClient, DeletionBanner, DeveloperIdentity
 ├── lib/
 │   ├── api/
 │   ├── auth/                     # plan.ts — fail-closed plan enforcement
@@ -267,7 +284,7 @@ web/
 └── proxy.ts                      # Route protection + security headers
 
 supabase/
-└── migrations/                   # SQL migration files (run in order, 000 → 022)
+└── migrations/                   # SQL migration files (run in order, 000 → 031)
 ```
 
 ---
@@ -327,6 +344,12 @@ NEXT_PUBLIC_GOOGLE_API_KEY=...
 # Dropbox import (optional)
 NEXT_PUBLIC_DROPBOX_APP_KEY=...
 
+# GitHub OAuth — Developer Portfolio (optional — portfolio features disabled without these)
+# Create app at https://github.com/settings/applications/new
+# Callback URL: https://yourdomain.com/api/portfolio/github/callback
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+
 # Stripe (optional)
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -373,6 +396,7 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 28 | `...028_chat_attachments_storage.sql` | Expand documents bucket MIME types (webp, gif, heic, heif, avif, bmp, tiff, octet-stream) |
 | 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` to allow `'chat-attachments'` as trusted second-segment in storage paths |
 | 30 | `...030_document_annotations.sql` | `document_annotations` table — page-relative x/y/width coordinates, colour, content; RLS owner-only; indexes on `document_id` + `user_id` |
+| 31 | `...031_portfolio.sql` | `usernames` (slug → user_id lookup), `github_connections` (OAuth token + profile stats), `github_repos` (cached repos, is_pinned), `projects` (showcase with optional repo link), `application_projects` (junction); FORCE RLS + `WITH CHECK` on all tables; `set_updated_at` triggers |
 
 ### Installation
 
@@ -394,7 +418,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (933 tests, 69 files)
+npm test              # Vitest (983 tests, 70 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -408,7 +432,7 @@ All tests run with **Vitest** — no browser or external service required. All d
 |---|---|---|
 | Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF, attachment-url ownership + new path format, parse-file session-required + storage-fail-hard + image handling, search FT + ilike, skills/certifications/education CRUD, all 5 prep route groups with CSRF/auth/IDOR/validation/ownership), analytics metrics, proxy logic + CSP nonce |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD, **portfolio** (GitHub connection/repos/disconnect/sync, projects CRUD, LinkedIn, username, visibility, cron auth guard) |
 
 ---
 
@@ -431,6 +455,8 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
 | Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
 | Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op) |
+| GitHub OAuth | PKCE-style HMAC-signed state stored in `httpOnly` cookie; timing-safe compare with `hex` encoding; `STATE_SECRET` throws at startup if neither `GITHUB_STATE_SECRET` nor `CSRF_SECRET` is set in production |
+| Email disclosure | `user.email` never exposed on public portfolio by default; `show_email` must be explicitly opted in via profile settings (stored in `user_metadata`, defaults `false`) |
 
 ---
 
@@ -451,6 +477,7 @@ All tests run with **Vitest** — no browser or external service required. All d
 | `/api/cron/weekly-digest` | Mondays 08:00 UTC | Digest email |
 | `/api/cron/follow-up-reminders` | Daily 09:00 UTC | Day 7/14/21 auto-reminders |
 | `/api/cron/re-engagement` | Daily 10:00 UTC | 14-day inactivity emails |
+| `/api/cron/github-sync` | Daily 04:00 UTC | Refresh GitHub profile + repos for all connected users |
 
 **`CRON_SECRET` must be set** — all cron endpoints return 401 without it.
 
