@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Calendar, Video, MapPin, Clock } from "lucide-react";
+import { formatFullDate, formatTime } from "@/lib/utils/date";
 import {
   Card,
   CardContent,
@@ -14,22 +15,7 @@ interface UpcomingInterviewsProps {
 }
 
 export function UpcomingInterviews({ interviews }: UpcomingInterviewsProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+  const formatDate = (dateString: string) => formatFullDate(dateString);
 
   return (
     <Card>

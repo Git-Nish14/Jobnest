@@ -8,6 +8,7 @@ import {
   Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck,
 } from "lucide-react";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
+import { formatDate as fmtDate } from "@/lib/utils/date";
 import { createClient } from "@/lib/supabase/client";
 import { WORK_AUTHORIZATION_OPTIONS, type WorkAuthorization } from "@/config";
 import {
@@ -60,11 +61,7 @@ type ChangePasswordStep = "current-password" | "otp" | "new-password";
 type DeleteStep = "idle" | "warn" | "sending-otp" | "otp" | "done";
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return fmtDate(iso);
 }
 
 function daysUntil(iso: string): number {

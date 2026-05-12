@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { secureUrlField } from "./application";
 
 // Interview types and statuses
 export const INTERVIEW_TYPES = [
@@ -54,12 +55,7 @@ export const interviewSchema = z.object({
     .max(255, "Location is too long")
     .optional()
     .or(z.literal("")),
-  meeting_url: z
-    .string()
-    .url("Please enter a valid URL")
-    .max(500, "URL is too long")
-    .optional()
-    .or(z.literal("")),
+  meeting_url: secureUrlField,
   interviewer_names: z
     .string()
     .max(500, "Interviewer names are too long")
@@ -121,12 +117,7 @@ export const contactFormSchema = z.object({
     .max(30, "Phone number is too long")
     .optional()
     .or(z.literal("")),
-  linkedin_url: z
-    .string()
-    .url("Please enter a valid URL")
-    .max(500, "URL is too long")
-    .optional()
-    .or(z.literal("")),
+  linkedin_url: secureUrlField,
   notes: z
     .string()
     .max(2000, "Notes are too long")

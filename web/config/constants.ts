@@ -53,6 +53,24 @@ export const APPLICATION_SOURCES = [
 
 export type ApplicationSource = (typeof APPLICATION_SOURCES)[number];
 
+export const SOURCE_COLORS: Record<
+  string,
+  { bg: string; text: string; darkBg: string; darkText: string }
+> = {
+  "LinkedIn":            { bg: "bg-[#0A66C2]/10", text: "text-[#0A66C2]",  darkBg: "dark:bg-[#0A66C2]/20", darkText: "dark:text-[#4da3ff]" },
+  "LinkedIn Easy Apply": { bg: "bg-[#0A66C2]/10", text: "text-[#0A66C2]",  darkBg: "dark:bg-[#0A66C2]/20", darkText: "dark:text-[#4da3ff]" },
+  "Indeed":              { bg: "bg-[#003A9B]/10", text: "text-[#003A9B]",  darkBg: "dark:bg-[#003A9B]/20", darkText: "dark:text-[#6ea8fe]" },
+  "Glassdoor":           { bg: "bg-[#0CAA41]/10", text: "text-[#0CAA41]",  darkBg: "dark:bg-[#0CAA41]/20", darkText: "dark:text-[#34d058]" },
+  "Handshake":           { bg: "bg-[#E8552A]/10", text: "text-[#E8552A]",  darkBg: "dark:bg-[#E8552A]/20", darkText: "dark:text-[#ff8c6b]" },
+  "Wellfound":           { bg: "bg-black/8",      text: "text-[#111111]",  darkBg: "dark:bg-white/10",     darkText: "dark:text-white" },
+  "Dice":                { bg: "bg-[#EB1C26]/10", text: "text-[#EB1C26]",  darkBg: "dark:bg-[#EB1C26]/20", darkText: "dark:text-[#ff6b6b]" },
+  "Recruiter Outreach":  { bg: "bg-amber-500/10", text: "text-amber-700",  darkBg: "dark:bg-amber-500/15", darkText: "dark:text-amber-400" },
+  "Referral":            { bg: "bg-violet-500/10",text: "text-violet-700", darkBg: "dark:bg-violet-500/15",darkText: "dark:text-violet-400" },
+  "Job Fair":            { bg: "bg-cyan-500/10",  text: "text-cyan-700",   darkBg: "dark:bg-cyan-500/15",  darkText: "dark:text-cyan-400" },
+  "Company Website":     { bg: "bg-slate-500/10", text: "text-slate-600",  darkBg: "dark:bg-slate-500/15", darkText: "dark:text-slate-400" },
+  "Other":               { bg: "bg-muted/60",     text: "text-muted-foreground/60", darkBg: "", darkText: "" },
+};
+
 export const WORK_AUTHORIZATION_OPTIONS = [
   "US Citizen",
   "Green Card",

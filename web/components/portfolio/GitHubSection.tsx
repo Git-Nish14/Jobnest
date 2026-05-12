@@ -9,6 +9,7 @@ import { GithubIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import { formatDateTime } from "@/lib/utils/date";
 
 interface GitHubConnection {
   github_username: string;
@@ -298,7 +299,7 @@ export function GitHubSection() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[28rem] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-112 overflow-y-auto pr-1">
             {repos.map((repo) => (
               <div
                 key={repo.id}
@@ -365,7 +366,7 @@ export function GitHubSection() {
 
           {conn.last_synced_at && (
             <p className="text-[10px] text-muted-foreground text-right">
-              Last synced {new Date(conn.last_synced_at).toLocaleString()}
+              Last synced {formatDateTime(conn.last_synced_at)}
             </p>
           )}
         </div>

@@ -2,6 +2,7 @@ import {
   Activity, PlusCircle, RefreshCw, Calendar, CheckCircle,
   FileText, Upload, Bell, UserPlus, Edit,
 } from "lucide-react";
+import { formatShortDate } from "@/lib/utils/date";
 import type { ActivityLog } from "@/types";
 
 interface ActivityTimelineProps {
@@ -37,7 +38,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
 
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return formatShortDate(dateString);
   };
 
   return (

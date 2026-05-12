@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, X, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
+import { formatDate as fmtDate } from "@/lib/utils/date";
 import { Button } from "@/components/ui";
 
 interface DeletionBannerProps {
@@ -15,13 +16,7 @@ function daysUntil(iso: string): number {
   return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+const formatDate = (iso: string) => fmtDate(iso);
 
 export function DeletionBanner({ scheduledDeletionAt }: DeletionBannerProps) {
   const router = useRouter();

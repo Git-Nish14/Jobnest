@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Trash2, Clock, AlertTriangle, CheckCircle2, ClipboardList } from "lucide-react";
 import type { Assessment, AssessmentStatus } from "@/types/prep";
+import { formatDateTime } from "@/lib/utils/date";
 
 const STATUS_STYLES: Record<AssessmentStatus, string> = {
   Pending:      "bg-[#55433d]/8 text-[#55433d]",
@@ -98,7 +99,7 @@ export function AssessmentsTracker({ assessments, onChange, onActivity }: Props)
       {/* Overdue warning */}
       {overdue.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#ba1a1a]/8 border border-[#ba1a1a]/15">
-          <AlertTriangle className="w-4 h-4 text-[#ba1a1a] flex-shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-[#ba1a1a] shrink-0" />
           <p className="text-sm text-[#ba1a1a] font-medium">
             {overdue.length} assessment{overdue.length > 1 ? "s" : ""} past deadline
           </p>
@@ -118,7 +119,7 @@ export function AssessmentsTracker({ assessments, onChange, onActivity }: Props)
             </button>
           ))}
         </div>
-        <button onClick={() => setShowAdd(v => !v)} className="db-btn-page-primary flex-shrink-0 flex items-center gap-1.5">
+        <button onClick={() => setShowAdd(v => !v)} className="db-btn-page-primary shrink-0 flex items-center gap-1.5">
           <Plus className="w-4 h-4" /> Add
         </button>
       </div>
@@ -211,11 +212,11 @@ export function AssessmentsTracker({ assessments, onChange, onActivity }: Props)
                     {a.deadline && (
                       <p className={`text-xs mt-1.5 font-medium ${urgent ? "text-[#ba1a1a]" : "text-[#55433d] opacity-60"}`}>
                         {days !== null && days < 0 ? "Overdue" : days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due in ${days} days`}
-                        {" — "}{new Date(a.deadline).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        {" — "}{formatDateTime(a.deadline)}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     {a.status === "Submitted" || a.status === "Pending" || a.status === "In Progress" ? (
                       <select
                         value={a.status}

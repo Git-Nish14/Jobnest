@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui";
 import type { EmailTemplate } from "@/types";
+import { formatDate } from "@/lib/utils/date";
 
 // All variables supported in templates
 const TEMPLATE_VARIABLES = [
@@ -37,7 +38,7 @@ function substituteVariables(text: string, vars: TemplateVars): string {
 
 function PreviewPanel({ template }: { template: EmailTemplate }) {
   const [vars, setVars] = useState<TemplateVars>({
-    date: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    date: formatDate(new Date().toISOString()),
   });
 
   const subject = substituteVariables(template.subject ?? "", vars);

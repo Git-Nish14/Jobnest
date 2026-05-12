@@ -1,6 +1,34 @@
 import { z } from "zod";
 import { APPLICATION_STATUSES, APPLICATION_SOURCES } from "@/config";
 
+/**
+ * Shared secure URL field for Zod schemas.
+ * - Strips null bytes before validation
+ * - Rejects javascript:, data:, vbscript:, file: schemes
+ * - Allows URLs of any practical length (2083 chars is the DB safety floor, not a UX cap)
+ */
+export const secureUrlField = z
+  .string()
+  .transform((v) => v.replace(/[\0\r\n]/g, "").trim())
+  .pipe(
+    z
+      .string()
+      .max(2083, "URL exceeds maximum allowed length")
+      .refine((v) => {
+        if (!v) return true;
+        const lower = v.toLowerCase();
+        return !["javascript:", "data:", "vbscript:", "file:", "blob:"].some((s) =>
+          lower.startsWith(s)
+        );
+      }, "URL scheme not allowed")
+      .refine((v) => {
+        if (!v) return true;
+        try { new URL(v); return true; } catch { return false; }
+      }, "Please enter a valid URL (must start with https://)")
+  )
+  .optional()
+  .or(z.literal(""));
+
 // Schema for creating/updating a job application
 export const applicationSchema = z.object({
   company: z
@@ -24,12 +52,7 @@ export const applicationSchema = z.object({
     .max(100, "Job ID is too long")
     .optional()
     .or(z.literal("")),
-  job_url: z
-    .string()
-    .url("Please enter a valid URL")
-    .max(500, "URL is too long")
-    .optional()
-    .or(z.literal("")),
+  job_url: secureUrlField,
   salary_range: z
     .string()
     .max(100, "Salary range is too long")

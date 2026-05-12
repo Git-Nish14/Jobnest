@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
 import { getUpcomingInterviews, getInterviews } from "@/services";
+import { formatFullDate, formatTime } from "@/lib/utils/date";
 
 type InterviewWithApp = {
   id: string;
@@ -29,13 +30,7 @@ export default async function InterviewsPage() {
     (i) => new Date(i.scheduled_at) < new Date() || i.status !== "Scheduled"
   );
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric", year: "numeric",
-    });
-
-  const formatTime = (dateString: string) =>
-    new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const formatDate = (dateString: string) => formatFullDate(dateString);
 
   // Atelier-toned type badge
   function typeBadge(type: string) {

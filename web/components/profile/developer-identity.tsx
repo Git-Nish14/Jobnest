@@ -9,6 +9,7 @@ import { LinkedInSection } from "@/components/portfolio/LinkedInSection";
 import { PortfolioSettings } from "@/components/portfolio/PortfolioSettings";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatShortDate } from "@/lib/utils/date";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -209,10 +210,10 @@ function CertificationsSection() {
                 <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
                 {c.provider && <p className="text-xs text-muted-foreground">{c.provider}</p>}
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Issued {new Date(c.issued_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                  Issued {formatShortDate(c.issued_at)}
                   {c.expires_at && (
                     <span className={cn("ml-2", isExpired(c.expires_at) ? "text-destructive font-medium" : expiringSoon(c.expires_at) ? "text-amber-600 dark:text-amber-400 font-medium" : "")}>
-                      · Expires {new Date(c.expires_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                      · Expires {formatShortDate(c.expires_at)}
                       {isExpired(c.expires_at) && " (expired)"}
                       {!isExpired(c.expires_at) && expiringSoon(c.expires_at) && " ⚠"}
                     </span>

@@ -65,21 +65,31 @@ export function stripHtml(str: string): string {
 }
 
 /**
- * Validate and sanitize a URL
+ * Validate and sanitize a URL.
+ * Strips null bytes, rejects dangerous schemes, and normalises via URL parser.
  */
 export function sanitizeUrl(url: string): string | null {
   if (typeof url !== "string") return null;
 
+  // Strip null bytes and control characters before parsing
+  const cleaned = url.replace(/[\0\r\n]/g, "").trim();
+  if (!cleaned) return null;
+
+  // Reject dangerous schemes before the URL parser sees them
+  const lower = cleaned.toLowerCase();
+  const BLOCKED_SCHEMES = ["javascript:", "data:", "vbscript:", "file:", "blob:"];
+  if (BLOCKED_SCHEMES.some((s) => lower.startsWith(s))) return null;
+
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(cleaned);
 
     // Only allow http and https protocols
     if (!["http:", "https:"].includes(parsed.protocol)) {
       return null;
     }
 
-    // Prevent javascript: URLs that might slip through
-    if (parsed.href.toLowerCase().includes("javascript:")) {
+    // Double-check the parsed href doesn't sneak in a dangerous scheme
+    if (BLOCKED_SCHEMES.some((s) => parsed.href.toLowerCase().includes(s))) {
       return null;
     }
 

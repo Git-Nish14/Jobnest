@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { JobApplication } from "@/types";
+import { formatDate } from "@/lib/utils/date";
 
 interface AtelierRecentAppsProps {
   applications: JobApplication[];
@@ -22,13 +23,7 @@ function statusBadgeClass(status: string): string {
   }
 }
 
-function formatAppliedDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+const formatAppliedDate = (dateStr: string) => formatDate(dateStr);
 
 export function AtelierRecentApps({ applications }: AtelierRecentAppsProps) {
   return (
@@ -71,7 +66,7 @@ export function AtelierRecentApps({ applications }: AtelierRecentAppsProps) {
                 </div>
 
                 {/* Right: date + badge */}
-                <div className="flex items-center gap-6 flex-shrink-0 mt-3 md:mt-0">
+                <div className="flex items-center gap-6 shrink-0 mt-3 md:mt-0">
                   <div className="text-right hidden md:block">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Applied</p>
                     <p className="text-sm font-medium text-foreground">

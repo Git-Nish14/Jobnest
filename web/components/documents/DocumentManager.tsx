@@ -20,6 +20,7 @@ import {
 import type { ApplicationDocument } from "@/types/application";
 import { mimeToLabel } from "@/lib/utils/storage";
 import { substituteVariables, extractVariableKeys } from "@/lib/utils/template-helpers";
+import { formatDate, formatMonthYear } from "@/lib/utils/date";
 
 // ── Legacy doc type (pre-migration docs stored on job_applications) ──────────
 export interface LegacyDoc {
@@ -76,7 +77,7 @@ function CoverLetterPreviewDialog({
   const [vars,    setVars]    = useState<Record<string, string>>({
     company:  applicationCompany ?? "",
     position: applicationPosition ?? "",
-    date:     new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    date:     formatMonthYear(new Date().toISOString()),
   });
   const [copied, setCopied] = useState(false);
 
@@ -463,7 +464,7 @@ function ShareDialog({
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-mono text-[#55433d] truncate">{link.share_url}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {link.is_expired ? "Expired" : `Expires ${new Date(link.expires_at).toLocaleDateString()}`}
+                      {link.is_expired ? "Expired" : `Expires ${formatDate(link.expires_at)}`}
                       {" · "}{link.view_count} {link.view_count === 1 ? "view" : "views"}
                     </p>
                   </div>
@@ -650,7 +651,7 @@ function DocumentCard({
                 {oldVersions.map((v) => (
                   <div key={v.id} className="flex items-center gap-2 px-3 py-2">
                     <p className="flex-1 text-xs text-[#55433d]/70 truncate">
-                      {v.original_name ?? v.label} · {formatBytes(v.size_bytes)} · {new Date(v.uploaded_at).toLocaleDateString()}
+                      {v.original_name ?? v.label} · {formatBytes(v.size_bytes)} · {formatDate(v.uploaded_at)}
                     </p>
                     <DiffDialog
                       currentId={doc.id}

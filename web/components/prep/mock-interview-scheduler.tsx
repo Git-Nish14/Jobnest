@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Star, Trash2, CheckCircle2, XCircle, Calendar } from "lucide-react";
 import type { MockInterview, MockInterviewType, MockInterviewStatus } from "@/types/prep";
+import { formatFullDate, formatTime } from "@/lib/utils/date";
 
 const TYPE_STYLES: Record<MockInterviewType, string> = {
   DSA:            "bg-[#99462a]/10 text-[#99462a]",
@@ -222,9 +223,9 @@ export function MockInterviewScheduler({ mockInterviews, onChange, onActivity }:
                       )}
                     </div>
                     <p className="font-semibold text-sm text-[#1a1c1b]">
-                      {new Date(m.scheduled_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                      {formatFullDate(m.scheduled_at)}
                       <span className="text-[#55433d] opacity-60 font-normal ml-2">
-                        {new Date(m.scheduled_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {formatTime(m.scheduled_at)}
                       </span>
                     </p>
                     {m.partner_name && <p className="text-xs text-[#55433d] opacity-60 mt-0.5">with {m.partner_name}</p>}
