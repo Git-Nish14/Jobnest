@@ -76,6 +76,16 @@ const nextConfig: NextConfig = {
     return [];
   },
 
+  // GitHub avatar images for portfolio pages
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
+    ],
+  },
+
   // Keep native Node.js modules out of the webpack client bundle
   serverExternalPackages: ["pdf-parse", "mammoth"],
 
