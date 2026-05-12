@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Reminder } from "@/types";
+import { formatShortDate } from "@/lib/utils/date";
 
 interface PendingRemindersProps {
   reminders: (Reminder & { job_applications?: { company: string; position: string } | null })[];
@@ -30,10 +31,7 @@ export function PendingReminders({ reminders }: PendingRemindersProps) {
     if (days === 1) return "Tomorrow";
     if (days < 7) return `In ${days} days`;
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    return formatShortDate(dateString);
   };
 
   const handleComplete = async (id: string, e: React.MouseEvent) => {
@@ -95,7 +93,7 @@ export function PendingReminders({ reminders }: PendingRemindersProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 flex-shrink-0 mt-0.5"
+                  className="h-6 w-6 shrink-0 mt-0.5"
                   onClick={(e) => handleComplete(reminder.id, e)}
                   title="Mark as complete"
                 >

@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Clock, ExternalLink, X } from "lucide-react";
 import { useState } from "react";
+import { formatDate } from "@/lib/utils/date";
 
 interface OPTCountdownBannerProps {
   optStartDate: string;
@@ -66,9 +67,7 @@ export function OPTCountdownBanner({ optStartDate, stemExtension }: OPTCountdown
     ? "text-amber-600/80 dark:text-amber-400/80"
     : "text-sky-600/80 dark:text-sky-400/80";
 
-  const expiryFormatted = expiry.toLocaleDateString("en-US", {
-    month: "long", day: "numeric", year: "numeric",
-  });
+  const expiryFormatted = formatDate(expiry.toISOString());
 
   let headline = "";
   let detail = "";

@@ -15,6 +15,8 @@ import {
 import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { SOURCE_COLORS } from "@/config/constants";
+import { formatDate } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
 
 interface ApplicationCardProps {
@@ -86,9 +88,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
     router.refresh();
   };
 
-  const formattedDate = new Date(application.applied_date).toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-  });
+  const formattedDate = formatDate(application.applied_date);
 
   const initial = application.company.charAt(0).toUpperCase();
   const { accent, avatar, badge } = statusTokens(application.status);
@@ -225,11 +225,17 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                 {application.salary_range}
               </span>
             )}
-            {application.source && (
-              <span className="hidden sm:inline-block text-xs text-muted-foreground/50 bg-muted/60 rounded-full px-2 py-0.5">
-                {application.source}
-              </span>
-            )}
+            {application.source && (() => {
+              const c = SOURCE_COLORS[application.source!] ?? SOURCE_COLORS["Other"];
+              return (
+                <span className={cn(
+                  "hidden sm:inline-block text-xs font-medium rounded-full px-2 py-0.5",
+                  c.bg, c.text, c.darkBg, c.darkText,
+                )}>
+                  {application.source}
+                </span>
+              );
+            })()}
 
             {/* Visa sponsorship badge */}
             {application.requires_sponsorship && (

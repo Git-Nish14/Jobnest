@@ -11,6 +11,7 @@ import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescrip
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
+import { formatTime } from "@/lib/utils/date";
 import { createClient } from "@/lib/supabase/client";
 
 interface MessageAttachment {
@@ -1447,7 +1448,7 @@ export default function NestAiPage() {
                             <div className="flex items-center gap-1 mt-1.5">
                               <CopyButton text={msg.content} />
                               <span className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                {formatTime(msg.timestamp.toISOString())}
                               </span>
                             </div>
                             {msg.suggestions && msg.suggestions.length > 0 && (

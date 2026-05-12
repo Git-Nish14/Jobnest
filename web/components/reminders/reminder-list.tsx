@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui";
 import type { Reminder } from "@/types";
+import { formatDate as fmtDate_, formatTime as formatTime_ } from "@/lib/utils/date";
 
 interface ReminderListProps {
   reminders: (Reminder & { job_applications?: { company: string; position: string } | null })[];
@@ -41,15 +42,10 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
     if (days === 1) return "Tomorrow";
     if (days < 7) return `In ${days} days`;
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    });
+    return fmtDate_(dateString);
   };
 
-  const formatTime = (dateString: string) =>
-    new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const formatTime = (dateString: string) => formatTime_(dateString);
 
   const handleComplete = async (id: string) => {
     setLoadingId(id);

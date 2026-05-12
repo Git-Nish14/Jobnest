@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ExternalLink, MapPin, Calendar } from "lucide-react";
 import type { JobApplication } from "@/types";
 import type { ApplicationStatus } from "@/config/constants";
+import { formatShortDate } from "@/lib/utils/date";
 
 const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string; darkBg: string }[] = [
   { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50",             darkBg: "dark:bg-amber-950/20" },
@@ -195,7 +196,7 @@ function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: Ka
         )}
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3 shrink-0" />
-          {new Date(app.applied_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {formatShortDate(app.applied_date)}
         </span>
       </div>
 

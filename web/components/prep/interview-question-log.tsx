@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, Trash2, MessageSquare } from "lucide-react";
 import type { InterviewQuestion, QuestionCategory, ProblemDifficulty } from "@/types/prep";
 import type { Interview } from "./prep-hub";
+import { formatShortDate, formatDate } from "@/lib/utils/date";
 
 // Supabase join can return job_applications as object or array depending on query depth
 function resolveCompany(
@@ -95,7 +96,7 @@ export function InterviewQuestionLog({ questions, interviews, onChange }: Props)
   const getInterviewLabel = (interview: InterviewQuestion["interviews"]) => {
     if (!interview) return "Unknown interview";
     const company = interview.job_applications?.company ?? "Unknown";
-    const date = new Date(interview.scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const date = formatShortDate(interview.scheduled_at);
     return `${company} — ${date}`;
   };
 
@@ -133,7 +134,7 @@ export function InterviewQuestionLog({ questions, interviews, onChange }: Props)
                 <option value="">Select interview…</option>
                 {interviews.map(i => (
                   <option key={i.id} value={i.id}>
-                    {resolveCompany(i.job_applications)} — {i.type} — {new Date(i.scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    {resolveCompany(i.job_applications)} — {i.type} — {formatDate(i.scheduled_at)}
                   </option>
                 ))}
               </select>

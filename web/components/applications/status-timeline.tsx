@@ -1,5 +1,6 @@
 import { GitCommitHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatShortDate } from "@/lib/utils/date";
 import type { ActivityLog } from "@/types";
 
 interface Props {
@@ -92,7 +93,7 @@ export function buildStages(activities: ActivityLog[], appliedDate: string): Sta
 // ── Format helpers ────────────────────────────────────────────────────────────
 
 function fmtDate(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatShortDate(d.toISOString());
 }
 
 function dayLabel(n: number, isCurrent: boolean, isTerminal: boolean): string {

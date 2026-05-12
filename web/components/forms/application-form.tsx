@@ -782,6 +782,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                   <label className="text-xs font-semibold text-muted-foreground">Job posting URL</label>
                   <input
                     type="url"
+                    autoComplete="off"
                     value={parseUrl}
                     onChange={(e) => setParseUrl(e.target.value)}
                     placeholder="https://example.com/jobs/senior-engineer"
@@ -794,6 +795,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                   <label className="text-xs font-semibold text-muted-foreground">Job description text</label>
                   <textarea
                     value={parseText}
+                    autoComplete="off"
                     onChange={(e) => setParseText(e.target.value)}
                     placeholder="Paste the full job posting here…"
                     rows={8}

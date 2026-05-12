@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { InterviewForm } from "./interview-form";
 import type { Interview } from "@/types";
+import { formatFullDate, formatTime as formatTime_ } from "@/lib/utils/date";
 
 interface InterviewListProps {
   applicationId: string;
@@ -29,13 +30,8 @@ export function InterviewList({ applicationId, interviews }: InterviewListProps)
     setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 4000);
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short", month: "short", day: "numeric", year: "numeric",
-    });
-
-  const formatTime = (dateString: string) =>
-    new Date(dateString).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const formatDate = (dateString: string) => formatFullDate(dateString);
+  const formatTime = (dateString: string) => formatTime_(dateString);
 
   // Atelier-toned status badges
   function statusBadge(status: string) {
