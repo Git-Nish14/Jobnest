@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptToken } from "@/lib/security/tokens";
 
 interface GHUser {
   id: number;
@@ -75,11 +76,18 @@ export async function POST(request: NextRequest) {
 
   for (const conn of connections) {
     try {
+      const access_token = decryptToken(conn.access_token);
+      if (!access_token) {
+        console.error(`[github-sync] user ${conn.user_id}: token decryption failed — skipping`);
+        failed++;
+        continue;
+      }
+
       const [ghUser, ghRepos] = await Promise.all([
-        ghFetch<GHUser>("https://api.github.com/user", conn.access_token),
+        ghFetch<GHUser>("https://api.github.com/user", access_token),
         ghFetch<GHRepo[]>(
           "https://api.github.com/user/repos?sort=pushed&per_page=100&type=owner",
-          conn.access_token
+          access_token
         ),
       ]);
 

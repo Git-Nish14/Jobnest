@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Check, ExternalLink, Info } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Loader2, Check, ExternalLink, Info, AlertCircle,
+  CheckCircle2, XCircle, ShieldQuestion, ClipboardList,
+} from "lucide-react";
 import { LinkedinIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -18,14 +21,14 @@ interface Checklist {
 }
 
 const CHECKLIST_ITEMS: { key: keyof Checklist; label: string; tip: string }[] = [
-  { key: "has_photo", label: "Professional profile photo", tip: "Profiles with photos get 21× more views." },
-  { key: "has_headline", label: "Compelling headline", tip: "Use role + value prop, not just job title." },
-  { key: "has_about", label: "About section written", tip: "First-person story about your work & goals." },
-  { key: "has_experience", label: "Work experience added", tip: "Include quantified achievements (%, $, ×)." },
-  { key: "has_skills", label: "Skills listed (15+)", tip: "Skills are used by recruiters to filter candidates." },
-  { key: "has_featured", label: "Featured section active", tip: "Showcase projects, posts, or a portfolio link." },
-  { key: "has_recommendations", label: "At least 1 recommendation", tip: "Written endorsements build trust." },
-  { key: "over_500_connections", label: "500+ connections", tip: "Shows active networking and social proof." },
+  { key: "has_photo",           label: "Professional profile photo",  tip: "Profiles with photos get 21× more views." },
+  { key: "has_headline",        label: "Compelling headline",         tip: "Use role + value prop, not just job title." },
+  { key: "has_about",           label: "About section written",       tip: "First-person story about your work & goals." },
+  { key: "has_experience",      label: "Work experience added",       tip: "Include quantified achievements (%, $, ×)." },
+  { key: "has_skills",          label: "Skills listed (15+)",         tip: "Skills are used by recruiters to filter candidates." },
+  { key: "has_featured",        label: "Featured section active",     tip: "Showcase projects, posts, or a portfolio link." },
+  { key: "has_recommendations", label: "At least 1 recommendation",  tip: "Written endorsements build trust." },
+  { key: "over_500_connections",label: "500+ connections",            tip: "Shows active networking and social proof." },
 ];
 
 const EMPTY_CHECKLIST: Checklist = {
@@ -34,20 +37,60 @@ const EMPTY_CHECKLIST: Checklist = {
   over_500_connections: false,
 };
 
+type UrlStatus = "idle" | "checking" | "found" | "not_found" | "private" | "blocked" | "invalid";
+
 function strengthLabel(score: number): { label: string; color: string } {
-  if (score <= 2) return { label: "Beginner", color: "text-red-500 dark:text-red-400" };
+  if (score <= 2) return { label: "Beginner",     color: "text-red-500 dark:text-red-400" };
   if (score <= 4) return { label: "Intermediate", color: "text-amber-500 dark:text-amber-400" };
-  if (score <= 6) return { label: "Strong", color: "text-blue-500 dark:text-blue-400" };
-  return { label: "All-Star", color: "text-emerald-500 dark:text-emerald-400" };
+  if (score <= 6) return { label: "Strong",       color: "text-blue-500 dark:text-blue-400" };
+  return             { label: "All-Star",      color: "text-emerald-500 dark:text-emerald-400" };
+}
+
+function UrlStatusBadge({ status }: { status: UrlStatus }) {
+  if (status === "idle")     return null;
+  if (status === "checking") return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking…
+    </span>
+  );
+  if (status === "found") return (
+    <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+      <CheckCircle2 className="h-3.5 w-3.5" /> Profile found
+    </span>
+  );
+  if (status === "not_found") return (
+    <span className="flex items-center gap-1 text-xs text-destructive">
+      <XCircle className="h-3.5 w-3.5" /> Profile not found — check the URL
+    </span>
+  );
+  if (status === "private") return (
+    <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+      <ShieldQuestion className="h-3.5 w-3.5" /> Profile may be private or requires login
+    </span>
+  );
+  if (status === "blocked") return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <AlertCircle className="h-3.5 w-3.5" /> Could not verify — LinkedIn may be blocking the check
+    </span>
+  );
+  return null;
 }
 
 export function LinkedInSection() {
-  const [url, setUrl] = useState("");
+  const [url, setUrl]           = useState("");
   const [checklist, setChecklist] = useState<Checklist>(EMPTY_CHECKLIST);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [urlSaving, setUrlSaving] = useState(false);
+  const [urlStatus, setUrlStatus] = useState<UrlStatus>("idle");
   const [urlError, setUrlError] = useState<string | null>(null);
 
+  // Auto-save checklist state
+  const [checklistSaving, setChecklistSaving] = useState(false);
+  const [checklistSaved, setChecklistSaved]   = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedUrlRef = useRef<string>("");  // track last saved URL (to pass alongside checklist auto-save)
+
+  // ── Load saved data ────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     fetch("/api/portfolio/linkedin")
@@ -55,7 +98,9 @@ export function LinkedInSection() {
       .then((d) => {
         if (cancelled) return;
         if (d) {
-          setUrl(d.linkedin_url ?? "");
+          const savedUrl = d.linkedin_url ?? "";
+          setUrl(savedUrl);
+          savedUrlRef.current = savedUrl;
           setChecklist(d.checklist ?? EMPTY_CHECKLIST);
         }
         setLoading(false);
@@ -64,35 +109,96 @@ export function LinkedInSection() {
     return () => { cancelled = true; };
   }, []);
 
-  const validateUrl = (v: string) => {
-    if (!v) { setUrlError(null); return; }
-    const ok = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_.%-]{3,100}\/?$/.test(v);
-    setUrlError(ok ? null : "Must be a linkedin.com/in/… URL");
+  // ── URL helpers ────────────────────────────────────────────────────────────
+  const normalizeUrl = (v: string): string => {
+    const trimmed = v.trim();
+    if (!trimmed) return "";
+    if (!trimmed.startsWith("http")) {
+      if (trimmed.startsWith("linkedin.com")) return `https://${trimmed}`;
+      if (trimmed.startsWith("/in/"))         return `https://linkedin.com${trimmed}`;
+      if (!trimmed.includes("/"))             return `https://linkedin.com/in/${trimmed}`;
+    }
+    return trimmed;
   };
 
-  const save = async () => {
-    if (urlError) return;
-    setSaving(true);
+  const LINKEDIN_RE = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_.%-]{3,100}\/?$/;
+
+  const validateUrl = (v: string): boolean => {
+    if (!v) { setUrlError(null); return true; }
+    const ok = LINKEDIN_RE.test(v);
+    setUrlError(ok ? null : "Must be a linkedin.com/in/your-profile URL");
+    return ok;
+  };
+
+  const verifyUrl = async (v: string) => {
+    if (!v || !LINKEDIN_RE.test(v)) return;
+    setUrlStatus("checking");
+    try {
+      const res = await fetch(`/api/portfolio/linkedin/verify?url=${encodeURIComponent(v)}`);
+      if (res.ok) {
+        const d = await res.json() as { status: UrlStatus };
+        setUrlStatus(d.status);
+      } else {
+        setUrlStatus("blocked");
+      }
+    } catch {
+      setUrlStatus("blocked");
+    }
+  };
+
+  // ── Save URL ───────────────────────────────────────────────────────────────
+  const saveUrl = async () => {
+    if (!validateUrl(url)) return;
+    setUrlSaving(true);
     const res = await fetch("/api/portfolio/linkedin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ linkedin_url: url || null, checklist }),
     });
-    setSaving(false);
+    setUrlSaving(false);
     if (res.ok) {
-      toast.success("LinkedIn profile saved.");
+      savedUrlRef.current = url;
+      toast.success("LinkedIn URL saved.");
+      // Verify after saving
+      void verifyUrl(url);
     } else {
       const d = await res.json() as { error?: string };
-      toast.error(d.error ?? "Failed to save.");
+      toast.error(d.error ?? "Failed to save URL.");
     }
   };
 
+  // ── Auto-save checklist ────────────────────────────────────────────────────
+  const persistChecklist = useCallback(async (next: Checklist) => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      setChecklistSaving(true);
+      setChecklistSaved(false);
+      const res = await fetch("/api/portfolio/linkedin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkedin_url: savedUrlRef.current || null, checklist: next }),
+      });
+      setChecklistSaving(false);
+      if (res.ok) {
+        setChecklistSaved(true);
+        setTimeout(() => setChecklistSaved(false), 2500);
+      } else {
+        toast.error("Failed to save checklist.");
+      }
+    }, 600);
+  }, []);
+
   const toggle = (key: keyof Checklist) => {
-    setChecklist((c) => ({ ...c, [key]: !c[key] }));
+    setChecklist((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      void persistChecklist(next);
+      return next;
+    });
   };
 
   const score = Object.values(checklist).filter(Boolean).length;
   const { label, color } = strengthLabel(score);
+  const allChecked = score === CHECKLIST_ITEMS.length;
 
   return (
     <div className="db-content-card space-y-5">
@@ -106,8 +212,8 @@ export function LinkedInSection() {
         </div>
       ) : (
         <>
-          {/* URL input */}
-          <div className="space-y-1">
+          {/* ── URL ── */}
+          <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Profile URL
             </label>
@@ -116,7 +222,17 @@ export function LinkedInSection() {
                 type="url"
                 placeholder="https://linkedin.com/in/your-username"
                 value={url}
-                onChange={(e) => { setUrl(e.target.value); validateUrl(e.target.value); }}
+                onChange={(e) => {
+                  const v = normalizeUrl(e.target.value);
+                  setUrl(v);
+                  validateUrl(v);
+                  setUrlStatus("idle");
+                }}
+                onBlur={(e) => {
+                  const v = normalizeUrl(e.target.value);
+                  setUrl(v);
+                  if (validateUrl(v) && v) void verifyUrl(v);
+                }}
                 className={cn(
                   "flex-1 rounded-lg border bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#99462a]",
                   urlError ? "border-destructive" : "border-border"
@@ -133,44 +249,91 @@ export function LinkedInSection() {
                   <ExternalLink className="h-4 w-4" />
                 </a>
               )}
+              <button
+                type="button"
+                onClick={() => void saveUrl()}
+                disabled={urlSaving || !!urlError}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+              >
+                {urlSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Save URL
+              </button>
             </div>
-            {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+
+            {urlError && (
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3 shrink-0" /> {urlError}
+              </p>
+            )}
+            <UrlStatusBadge status={urlStatus} />
           </div>
 
-          {/* Strength meter */}
+          {/* ── Self-assessment callout ── */}
+          <div className="flex items-start gap-3 rounded-xl border border-[#99462a]/20 dark:border-[#ccff00]/20 bg-[#99462a]/5 dark:bg-[#ccff00]/5 px-4 py-3">
+            <ClipboardList className="h-4 w-4 text-[#99462a] dark:text-[#ccff00] shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-foreground">Self-assessed checklist</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                LinkedIn doesn&apos;t share profile data publicly. Tick each item
+                <strong className="text-foreground"> you&apos;ve already completed</strong> on your LinkedIn profile.
+                Changes save automatically.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Strength meter ── */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Profile Strength
               </p>
-              <span className={cn("text-sm font-semibold", color)}>
-                {score}/8 — {label}
-              </span>
+              <div className="flex items-center gap-2">
+                {checklistSaving && (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+                  </span>
+                )}
+                {checklistSaved && !checklistSaving && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-3 w-3" /> Saved
+                  </span>
+                )}
+                <span className={cn("text-sm font-semibold", color)}>
+                  {score}/8 — {label}
+                </span>
+              </div>
             </div>
 
             {/* Progress bar */}
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#99462a] dark:bg-[#ccff00] transition-all duration-300"
-                style={{ width: `${(score / 8) * 100}%` }}
+                className="h-full rounded-full bg-[#99462a] dark:bg-[#ccff00] transition-all duration-500"
+                style={{ width: `${(score / 8) * 100}%` }} /* dynamic runtime value */
               />
             </div>
 
+            {allChecked && (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                All-Star profile! Your LinkedIn is fully optimised.
+              </div>
+            )}
+
             {/* Checklist */}
-            <div className="space-y-2">
+            <div className="divide-y divide-border/50">
               {CHECKLIST_ITEMS.map(({ key, label, tip }) => (
                 <label
                   key={key}
-                  className="flex items-start gap-3 cursor-pointer group rounded-lg px-2 py-1.5 hover:bg-muted/40 transition-colors"
+                  className="flex items-start gap-3 cursor-pointer group py-2.5 px-1 hover:bg-muted/30 rounded-lg transition-colors"
                 >
                   <div className={cn(
-                    "mt-0.5 h-4 w-4 shrink-0 rounded flex items-center justify-center border transition-colors",
+                    "mt-0.5 h-5 w-5 shrink-0 rounded-md flex items-center justify-center border-2 transition-all",
                     checklist[key]
-                      ? "bg-[#99462a] dark:bg-[#ccff00] border-[#99462a] dark:border-[#ccff00]"
-                      : "border-border bg-background"
+                      ? "bg-[#99462a] dark:bg-[#ccff00] border-[#99462a] dark:border-[#ccff00] scale-105"
+                      : "border-border bg-background group-hover:border-[#99462a]/50 dark:group-hover:border-[#ccff00]/50"
                   )}>
                     {checklist[key] && (
-                      <Check className="h-2.5 w-2.5 text-white dark:text-black" strokeWidth={3} />
+                      <Check className="h-3 w-3 text-white dark:text-black" strokeWidth={3} />
                     )}
                   </div>
                   <input
@@ -179,8 +342,11 @@ export function LinkedInSection() {
                     checked={checklist[key]}
                     onChange={() => toggle(key)}
                   />
-                  <div className="min-w-0">
-                    <p className={cn("text-sm", checklist[key] ? "text-foreground" : "text-muted-foreground")}>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn(
+                      "text-sm font-medium transition-colors",
+                      checklist[key] ? "text-foreground line-through decoration-muted-foreground/40" : "text-muted-foreground"
+                    )}>
                       {label}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -191,16 +357,6 @@ export function LinkedInSection() {
               ))}
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => void save()}
-            disabled={saving || !!urlError}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black hover:opacity-90 disabled:opacity-50 transition-opacity"
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            Save LinkedIn profile
-          </button>
         </>
       )}
     </div>

@@ -151,3 +151,27 @@ export function formatMonthYear(dateStr: string | null | undefined): string {
     timeZone: deviceTz(),
   });
 }
+
+/**
+ * "May 12 at 3:45 PM" (current year) or "May 12, 2025 at 3:45 PM" (past year).
+ * Designed for compact inline timestamps in list cards.
+ */
+export function formatCompactDateTime(dateStr: string | null | undefined): string {
+  const d = parseDate(dateStr);
+  if (!d) return "—";
+  const locale = deviceLocale();
+  const tz = deviceTz();
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const datePart = d.toLocaleDateString(locale, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: tz,
+  });
+  const timePart = d.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: tz,
+  });
+  return `${datePart} at ${timePart}`;
+}

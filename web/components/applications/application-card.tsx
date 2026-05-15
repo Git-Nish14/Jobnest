@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp,
+  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,7 @@ import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SOURCE_COLORS } from "@/config/constants";
-import { formatDate } from "@/lib/utils/date";
+import { formatDate, formatCompactDateTime } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
 
 interface ApplicationCardProps {
@@ -270,6 +270,19 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
 
             {/* Completeness ring — visual only on list; full detail on application page */}
             <CompletenessRing application={application} size={36} simple />
+          </div>
+
+          {/* ── Timestamps row ── */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1.5">
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
+              <Clock className="h-3 w-3 shrink-0" />
+              Created {formatCompactDateTime(application.created_at)}
+            </span>
+            {application.updated_at && application.updated_at !== application.created_at && (
+              <span className="text-[11px] text-muted-foreground/50">
+                · Updated {formatCompactDateTime(application.updated_at)}
+              </span>
+            )}
           </div>
         </div>
       </div>

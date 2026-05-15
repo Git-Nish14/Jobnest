@@ -5,6 +5,8 @@
  *   GitHub connection · GitHub repos (pin/unpin) · Projects CRUD
  *   LinkedIn save/load · Username claim & availability · Portfolio visibility
  *   GitHub-sync cron auth guard
+ *   Username DELETE · 30-day cooldown · image_url URL validation
+ *   Token encryption (decryptToken path in sync route)
  *
  * Pattern mirrors developer-identity-flow.test.ts: each sub-flow exercises
  * auth → CSRF/rate-limit → DB interaction end-to-end using the project-standard
@@ -26,7 +28,7 @@ import { POST as syncGitHub }     from "@/app/api/portfolio/github/sync/route";
 import { GET  as listProjects, POST as createProject }  from "@/app/api/portfolio/projects/route";
 import { PATCH as patchProject, DELETE as deleteProject } from "@/app/api/portfolio/projects/[id]/route";
 import { GET  as getLinkedIn,  POST as saveLinkedIn }   from "@/app/api/portfolio/linkedin/route";
-import { GET  as getUsername,  POST as claimUsername }  from "@/app/api/portfolio/username/route";
+import { GET  as getUsername,  POST as claimUsername, DELETE as deleteUsername } from "@/app/api/portfolio/username/route";
 import { POST as setVisibility } from "@/app/api/profile/update-portfolio-visibility/route";
 import { POST as cronSync }      from "@/app/api/cron/github-sync/route";
 
@@ -617,5 +619,183 @@ describe("Schema validation prevents DB round-trips", () => {
     mockCreate.mockResolvedValue(sc as never);
     const res = await claimUsername(postReq("/api/portfolio/username", { username: "hello world!" }));
     expect(res.status).toBe(422);
+  });
+
+  it("POST project with non-URL image_url is rejected with 422", async () => {
+    mockCreate.mockResolvedValue(serverClient(USER) as never);
+    const res = await createProject(postReq("/api/portfolio/projects", {
+      title: "My Project",
+      image_url: "not-a-url",
+    }));
+    expect(res.status).toBe(422);
+  });
+
+  it("POST project with valid https image_url passes validation", async () => {
+    mockCreate.mockResolvedValue(serverClient(USER, { data: PROJ, error: null }) as never);
+    const res = await createProject(postReq("/api/portfolio/projects", {
+      title: "My Project",
+      image_url: "https://example.com/cover.png",
+    }));
+    expect(res.status).toBe(201);
+  });
+});
+
+// ── Username DELETE ────────────────────────────────────────────────────────
+
+describe("DELETE /api/portfolio/username — remove portfolio", () => {
+  it("returns 200 and deleted:true when username exists", async () => {
+    mockCreate.mockResolvedValue(serverClient(USER) as never);
+    const adminMock = {
+      from: vi.fn(() => ({
+        ...makeChain({ data: null, error: null }),
+        delete: vi.fn().mockReturnValue(makeChain({ data: null, error: null })),
+      })),
+      auth: { admin: { updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }) } },
+    };
+    mockAdmin.mockReturnValue(adminMock as never);
+    const res = await deleteUsername(delReq("/api/portfolio/username"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).deleted).toBe(true);
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    mockCreate.mockResolvedValue(serverClient(null) as never);
+    const res = await deleteUsername(delReq("/api/portfolio/username"));
+    expect(res.status).toBe(401);
+  });
+
+  it("calls admin updateUserById to clear username and portfolio_public from metadata", async () => {
+    mockCreate.mockResolvedValue(serverClient(USER) as never);
+    const updateUserById = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const adminMock = {
+      from: vi.fn(() => ({
+        ...makeChain({ data: null, error: null }),
+        delete: vi.fn().mockReturnValue(makeChain({ data: null, error: null })),
+      })),
+      auth: { admin: { updateUserById } },
+    };
+    mockAdmin.mockReturnValue(adminMock as never);
+    await deleteUsername(delReq("/api/portfolio/username"));
+    expect(updateUserById).toHaveBeenCalledOnce();
+    const callArg = updateUserById.mock.calls[0][1] as { user_metadata: Record<string, unknown> };
+    expect(callArg.user_metadata.username).toBeNull();
+    expect(callArg.user_metadata.portfolio_public).toBe(false);
+  });
+});
+
+// ── Username 30-day cooldown ───────────────────────────────────────────────
+
+describe("POST /api/portfolio/username — 30-day change cooldown", () => {
+  it("allows first-time claim with no username_changed_at set", async () => {
+    const freshUser = { ...USER, user_metadata: {} };
+    mockCreate.mockResolvedValue(serverClient(freshUser as typeof USER) as never);
+    const adminMock = {
+      from: vi.fn((table: string) => {
+        if (table === "usernames") {
+          return {
+            ...makeChain({ data: null, error: null }),
+            delete: vi.fn().mockReturnValue(makeChain({ error: null })),
+            insert: vi.fn().mockReturnValue(makeChain({ error: null })),
+          };
+        }
+        return makeChain();
+      }),
+      auth: { admin: { updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }) } },
+    };
+    mockAdmin.mockReturnValue(adminMock as never);
+    const res = await claimUsername(postReq("/api/portfolio/username", { username: "brandnew" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).username).toBe("brandnew");
+  });
+
+  it("blocks change within 30 days of last change with 409", async () => {
+    // Simulate a user who changed username 5 days ago
+    const recentChange = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    const userWithCooldown = {
+      ...USER,
+      user_metadata: {
+        username: "current-name",
+        username_changed_at: recentChange,
+      },
+    };
+    mockCreate.mockResolvedValue(serverClient(userWithCooldown as typeof USER) as never);
+    mockAdmin.mockReturnValue(adminClient() as never);
+    const res = await claimUsername(postReq("/api/portfolio/username", { username: "new-name" }));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    // Error message should mention the cooldown period
+    expect(body.error).toMatch(/30 days|change.*available/i);
+  });
+
+  it("allows change after 30 days have elapsed", async () => {
+    // Simulate a user whose cooldown expired 31 days ago
+    const oldChange = new Date(Date.now() - 31 * 86_400_000).toISOString();
+    const userExpiredCooldown = {
+      ...USER,
+      user_metadata: {
+        username: "old-name",
+        username_changed_at: oldChange,
+      },
+    };
+    mockCreate.mockResolvedValue(serverClient(userExpiredCooldown as typeof USER) as never);
+    const adminMock = {
+      from: vi.fn((table: string) => {
+        if (table === "usernames") {
+          return {
+            ...makeChain({ data: null, error: null }),
+            delete: vi.fn().mockReturnValue(makeChain({ error: null })),
+            insert: vi.fn().mockReturnValue(makeChain({ error: null })),
+          };
+        }
+        return makeChain();
+      }),
+      auth: { admin: { updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }) } },
+    };
+    mockAdmin.mockReturnValue(adminMock as never);
+    const res = await claimUsername(postReq("/api/portfolio/username", { username: "new-name" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).username).toBe("new-name");
+  });
+
+  it("allows re-saving the same username within cooldown (no change = no block)", async () => {
+    const recentChange = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const userSameName = {
+      ...USER,
+      user_metadata: { username: "my-name", username_changed_at: recentChange },
+    };
+    mockCreate.mockResolvedValue(serverClient(userSameName as typeof USER) as never);
+    const adminMock = {
+      from: vi.fn((table: string) => {
+        if (table === "usernames") {
+          return {
+            ...makeChain({ data: null, error: null }),
+            delete: vi.fn().mockReturnValue(makeChain({ error: null })),
+            insert: vi.fn().mockReturnValue(makeChain({ error: null })),
+          };
+        }
+        return makeChain();
+      }),
+      auth: { admin: { updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }) } },
+    };
+    mockAdmin.mockReturnValue(adminMock as never);
+    // Same username as current — should bypass cooldown check
+    const res = await claimUsername(postReq("/api/portfolio/username", { username: "my-name" }));
+    expect(res.status).toBe(200);
+  });
+});
+
+// ── Sync route: decryptToken path ─────────────────────────────────────────
+
+describe("POST /api/portfolio/github/sync — token decryption", () => {
+  it("returns 400 with reconnect message when stored token cannot be decrypted", async () => {
+    mockCreate.mockResolvedValue(serverClient(USER) as never);
+    // Return an access_token value that is not a legacy token and not valid encrypted blob
+    mockAdmin.mockReturnValue({
+      from: vi.fn(() => makeChain({ data: { access_token: "invalid-garbage-token" }, error: null })),
+    } as never);
+    const res = await syncGitHub(postReq("/api/portfolio/github/sync", {}));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/reconnect/i);
   });
 });

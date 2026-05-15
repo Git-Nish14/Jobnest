@@ -32,9 +32,14 @@ export default async function ProfilePage() {
 
   const notificationPrefs = user.user_metadata?.notification_prefs ?? {};
   // user has a password only if they have an email/password identity
-  const hasPassword = (user.identities ?? []).some(
-    (id: { provider: string }) => id.provider === "email"
-  );
+  const identities: { provider: string }[] = user.identities ?? [];
+  const hasPassword = identities.some((id) => id.provider === "email");
+  // Collect distinct OAuth providers (google, github, etc.)
+  const oauthProviders = [...new Set(
+    identities
+      .map((id) => id.provider)
+      .filter((p) => p !== "email")
+  )];
 
   return (
     <>
@@ -55,6 +60,7 @@ export default async function ProfilePage() {
         optStartDate: user.user_metadata?.opt_start_date ?? null,
         stemExtension: user.user_metadata?.stem_extension ?? false,
         hasPassword,
+        oauthProviders,
         notificationPrefs: {
           overdueReminders:   notificationPrefs.overdue_reminders    ?? true,
           weeklyDigest:       notificationPrefs.weekly_digest         ?? false,

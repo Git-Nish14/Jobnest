@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { verifyOrigin } from "@/lib/security/csrf";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { decryptToken } from "@/lib/security/tokens";
 
 interface GHRepo {
   id: number;
@@ -74,7 +75,9 @@ export async function POST(request: NextRequest) {
 
     if (connErr || !conn) throw ApiError.badRequest("No GitHub connection found.");
 
-    const { access_token } = conn;
+    const access_token = decryptToken(conn.access_token);
+    if (!access_token) throw ApiError.badRequest("GitHub connection is invalid — please reconnect GitHub.");
+
     const now = new Date().toISOString();
 
     const [ghUser, ghRepos] = await Promise.all([

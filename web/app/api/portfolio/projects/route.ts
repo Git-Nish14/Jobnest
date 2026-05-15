@@ -13,7 +13,7 @@ const projectSchema = z.object({
   tags:          z.array(z.string().max(40)).max(10).optional().default([]),
   demo_url:      URL_OPTIONAL,
   repo_url:      URL_OPTIONAL,
-  image_url:     z.string().nullable().optional(),
+  image_url:     URL_OPTIONAL,
   github_repo_id: z.string().uuid().nullable().optional(),
   is_featured:   z.boolean().optional().default(false),
   display_order: z.number().int().min(0).optional().default(0),

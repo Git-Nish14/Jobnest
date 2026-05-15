@@ -13,7 +13,7 @@ const patchSchema = z.object({
   tags:           z.array(z.string().max(40)).max(10).optional(),
   demo_url:       z.string().url().nullable().optional(),
   repo_url:       z.string().url().nullable().optional(),
-  image_url:      z.string().nullable().optional(),
+  image_url:      z.string().url().nullable().optional(),
   github_repo_id: z.string().uuid().nullable().optional(),
   is_featured:    z.boolean().optional(),
   display_order:  z.number().int().min(0).optional(),

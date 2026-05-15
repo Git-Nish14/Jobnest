@@ -1,4 +1,4 @@
-# Jobnest — Job Application Tracker
+# Jobnest - Job Application Tracker
 
 A modern, secure platform to organise and manage your entire job search. Built with Next.js 16, Supabase, and TypeScript.
 
@@ -32,12 +32,13 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **GDPR data export** — all personal data as dated JSON (rate-limited 3/day)
 - **Billing portal** — Stripe customer portal for Pro subscribers
 - **Developer Identity** — Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
-- **Portfolio settings** — claim a username slug, toggle public portfolio, opt-in contact email display (defaults off)
+- **Portfolio settings** — claim a username slug (30-day change cooldown enforced server-side; DELETE to remove), toggle public/private, opt-in contact email (defaults off); share URL shown immediately after claiming
+- **Profile page structure** — four labelled groups: **Profile** (Display Name · About You · NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password · Danger Zone); sidebar shows exact OAuth providers (Google, GitHub) and correct password status
 
 ### Developer Portfolio & Public Profile (`/p/{username}`)
-- **GitHub OAuth** — connect GitHub (OAuth `read:user public_repo`); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos for portfolio display; manual sync (rate-limited); daily cron refresh at 04:00 UTC
-- **Project showcase** — create and curate projects (title, description, tags, demo/repo URLs, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls
-- **LinkedIn strength** — store profile URL; self-assessed 8-item checklist (photo, headline, about, experience, skills, featured, recommendations, 500+ connections) with animated 0–8 strength score
+- **GitHub OAuth** — connect GitHub using the same Supabase-configured OAuth app as login (no separate credentials needed); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos; manual sync (5/hr); daily cron at 04:00 UTC; access tokens **encrypted at rest** (AES-256-GCM)
+- **Project showcase** — create and curate projects (title, description, tags, demo/repo URLs, **cover image URL**, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls; image preview on cards
+- **LinkedIn strength** — URL auto-normalises on input (bare username, missing https, /in/ prefix); server-side reachability check on save; self-assessed 8-item checklist auto-saves per-toggle (no manual save needed)
 - **Public portfolio page** — shareable `/p/{username}` page; SSR with full OpenGraph metadata; sections: hero (avatar, bio, links, GitHub stats), featured projects, pinned repos, skills by category, education, certifications; contact email shown only when explicitly opted in; no job application data ever exposed
 
 ### Account Deletion (Grace Period)
@@ -61,6 +62,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants — LinkedIn `#0A66C2`, Indeed `#003A9B`, Glassdoor `#0CAA41`, Handshake `#E8552A`, Wellfound `#111111`, Dice `#EB1C26`, Referral violet, Recruiter Outreach amber, Job Fair cyan, Company Website slate
 - **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
+- **Created / Updated timestamps** — each application card shows `Created May 12 at 3:45 PM` and `· Updated May 13 at 9:20 AM` (only when modified after creation) using device-local timezone
 - **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
 - Filter by status, location, date range; sort by date/company/position
 - **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
@@ -181,7 +183,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (983 tests, 70 files) |
+| Testing | Vitest (1032 tests, 73 files) |
 
 ---
 
@@ -345,11 +347,12 @@ NEXT_PUBLIC_GOOGLE_API_KEY=...
 # Dropbox import (optional)
 NEXT_PUBLIC_DROPBOX_APP_KEY=...
 
-# GitHub OAuth — Developer Portfolio (optional — portfolio features disabled without these)
-# Create app at https://github.com/settings/applications/new
-# Callback URL: https://yourdomain.com/api/portfolio/github/callback
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
+# GitHub OAuth — Developer Portfolio
+# The portfolio GitHub connect uses the same OAuth app already configured in
+# Supabase for login (Auth → Providers → GitHub). No separate app needed.
+# Add the callback URL to Supabase → Auth → URL Configuration → Redirect URLs:
+#   https://yourdomain.com/api/portfolio/github/callback
+# GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are NOT required in the app env.
 
 # Stripe (optional)
 STRIPE_SECRET_KEY=sk_test_...
@@ -419,7 +422,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (983 tests, 70 files)
+npm test              # Vitest (1032 tests, 73 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -431,9 +434,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers (incl. parse-jd SSRF, attachment-url ownership + new path format, parse-file session-required + storage-fail-hard + image handling, search FT + ilike, skills/certifications/education CRUD, all 5 prep route groups with CSRF/auth/IDOR/validation/ownership), analytics metrics, proxy logic + CSP nonce |
+| Unit | `tests/unit/` | lib utilities (incl. **token encryption roundtrip/legacy/tamper**, **`formatCompactDateTime`**), all API route handlers (incl. parse-jd SSRF, attachment-url, search, skills/certifications/education, all 5 prep route groups, **LinkedIn verify** — all fetch status branches), analytics metrics, proxy + CSP nonce |
 | Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD, **portfolio** (GitHub connection/repos/disconnect/sync, projects CRUD, LinkedIn, username, visibility, cron auth guard) |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD, **portfolio** (GitHub connection/repos/disconnect/sync, projects CRUD + **image_url validation**, LinkedIn, username claim/availability/**DELETE**/**30-day cooldown**, visibility, cron auth, **decryptToken path**) |
 
 ---
 
@@ -456,7 +459,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
 | Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
 | Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op) |
-| GitHub OAuth | PKCE-style HMAC-signed state stored in `httpOnly` cookie; timing-safe compare with `hex` encoding; `STATE_SECRET` throws at startup if neither `GITHUB_STATE_SECRET` nor `CSRF_SECRET` is set in production |
+| GitHub OAuth | Uses Supabase-configured OAuth (same app as login); client-side `signInWithOAuth` with PKCE; `session.provider_token` extracted in server callback; `redirectTo` validated against Supabase allowed URLs |
+| GitHub token at rest | AES-256-GCM encryption in `lib/security/tokens.ts` keyed from `CSRF_SECRET`; legacy plaintext tokens (`gho_`/`ghp_`) handled transparently until users reconnect |
+| OAuth redirect hardening | `appUrl` in callback/connect routes pinned to `NEXT_PUBLIC_APP_URL`; no `x-forwarded-host` derivation for redirect targets (prevents open-redirect on non-Vercel deployments) |
 | Email disclosure | `user.email` never exposed on public portfolio by default; `show_email` must be explicitly opted in via profile settings (stored in `user_metadata`, defaults `false`) |
 
 ---

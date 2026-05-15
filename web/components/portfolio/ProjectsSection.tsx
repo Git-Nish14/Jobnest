@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Plus, Trash2, Loader2, Pencil, X, Check, ExternalLink,
-  Star, FolderKanban, ArrowUp, ArrowDown,
+  Star, FolderKanban, ArrowUp, ArrowDown, ImageIcon,
 } from "lucide-react";
 import { GithubIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ interface Project {
 
 const EMPTY_FORM = {
   title: "", description: "", tags: "", demo_url: "", repo_url: "",
-  github_repo_id: "", is_featured: false,
+  image_url: "", github_repo_id: "", is_featured: false,
 };
 
 function TagList({ tags }: { tags: string[] }) {
@@ -85,6 +85,7 @@ export function ProjectsSection() {
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       demo_url: form.demo_url.trim() || null,
       repo_url: form.repo_url.trim() || null,
+      image_url: form.image_url.trim() || null,
       github_repo_id: form.github_repo_id || null,
       is_featured: form.is_featured,
       display_order: editId
@@ -171,6 +172,7 @@ export function ProjectsSection() {
       tags: p.tags.join(", "),
       demo_url: p.demo_url ?? "",
       repo_url: p.repo_url ?? "",
+      image_url: p.image_url ?? "",
       github_repo_id: p.github_repo_id ?? "",
       is_featured: p.is_featured,
     });
@@ -239,6 +241,24 @@ export function ProjectsSection() {
               onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#99462a]"
             />
+            <div className="sm:col-span-2 flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                placeholder="Image URL (https://…) — optional cover image"
+                value={form.image_url}
+                onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#99462a]"
+              />
+              {form.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.image_url}
+                  alt="Preview"
+                  className="h-10 w-16 rounded object-cover border border-border shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              )}
+            </div>
             {repos.length > 0 && (
               <select
                 aria-label="Link GitHub repo"
@@ -324,6 +344,16 @@ export function ProjectsSection() {
                   <ArrowDown className="h-3 w-3" />
                 </button>
               </div>
+
+              {p.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.image_url}
+                  alt={p.title}
+                  className="h-14 w-20 rounded-lg object-cover border border-border shrink-0 hidden sm:block"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              )}
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">

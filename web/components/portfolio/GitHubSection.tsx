@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { formatDateTime } from "@/lib/utils/date";
+import { createClient } from "@/lib/supabase/client";
 
 interface GitHubConnection {
   github_username: string;
@@ -67,32 +68,14 @@ export function GitHubSection() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const fetchData = useCallback(async () => {
-    const [connRes, reposRes] = await Promise.all([
-      fetch("/api/portfolio/github/connection"),
-      fetch("/api/portfolio/github/repos"),
-    ]);
-    if (connRes.ok) {
-      const d = await connRes.json() as { connection: GitHubConnection | null };
-      setConn(d.connection);
-    } else {
-      setConn(null);
-    }
-    if (reposRes.ok) {
-      const d = await reposRes.json() as { repos: GitHubRepo[] };
-      setRepos(d.repos);
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
+    try {
       const [connRes, reposRes] = await Promise.all([
         fetch("/api/portfolio/github/connection"),
         fetch("/api/portfolio/github/repos"),
       ]);
-      if (cancelled) return;
       if (connRes.ok) {
         const d = await connRes.json() as { connection: GitHubConnection | null };
         setConn(d.connection);
@@ -103,6 +86,33 @@ export function GitHubSection() {
         const d = await reposRes.json() as { repos: GitHubRepo[] };
         setRepos(d.repos);
       }
+    } catch {
+      setConn(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const [connRes, reposRes] = await Promise.all([
+          fetch("/api/portfolio/github/connection"),
+          fetch("/api/portfolio/github/repos"),
+        ]);
+        if (cancelled) return;
+        if (connRes.ok) {
+          const d = await connRes.json() as { connection: GitHubConnection | null };
+          setConn(d.connection);
+        } else {
+          setConn(null);
+        }
+        if (reposRes.ok) {
+          const d = await reposRes.json() as { repos: GitHubRepo[] };
+          setRepos(d.repos);
+        }
+      } catch {
+        if (!cancelled) setConn(null);
+      }
     };
     void run();
 
@@ -110,7 +120,15 @@ export function GitHubSection() {
     const ghConnected = searchParams.get("github_connected");
     const ghError = searchParams.get("github_error");
     if (ghConnected === "1") toast.success("GitHub connected!");
-    if (ghError) toast.error(`GitHub error: ${ghError.replace(/_/g, " ")}`);
+    if (ghError) {
+      const messages: Record<string, string> = {
+        no_provider_token: "GitHub didn't return an access token. Please try connecting again.",
+        auth_error: "Authentication failed. Please try connecting again.",
+        db_error: "Failed to save your GitHub data. Please try again.",
+        server_error: "Something went wrong. Please try again.",
+      };
+      toast.error(messages[ghError] ?? `GitHub error: ${ghError.replace(/_/g, " ")}`);
+    }
 
     return () => { cancelled = true; };
   }, [searchParams]);
@@ -165,6 +183,23 @@ export function GitHubSection() {
     );
   }
 
+  const handleConnect = async () => {
+    setConnecting(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/api/portfolio/github/callback`,
+        scopes: "read:user public_repo",
+      },
+    });
+    if (error) {
+      toast.error("Failed to start GitHub connection. Please try again.");
+      setConnecting(false);
+    }
+    // On success the browser navigates away — no need to reset connecting
+  };
+
   if (!conn) {
     return (
       <div className="db-content-card space-y-4">
@@ -174,12 +209,15 @@ export function GitHubSection() {
         <p className="text-sm text-muted-foreground">
           Connect your GitHub account to showcase your repos and contributions on your public portfolio.
         </p>
-        <a
-          href="/api/portfolio/github/connect"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#24292e] dark:bg-zinc-800 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+        <button
+          type="button"
+          onClick={() => void handleConnect()}
+          disabled={connecting}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#24292e] dark:bg-zinc-800 text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
         >
-          <GithubIcon className="h-4 w-4" /> Connect GitHub
-        </a>
+          {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <GithubIcon className="h-4 w-4" />}
+          {connecting ? "Redirecting to GitHub…" : "Connect GitHub"}
+        </button>
       </div>
     );
   }
