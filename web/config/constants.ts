@@ -71,6 +71,26 @@ export const SOURCE_COLORS: Record<
   "Other":               { bg: "bg-muted/60",     text: "text-muted-foreground/60", darkBg: "", darkText: "" },
 };
 
+export const APPLICATION_PROVIDERS = [
+  "Workday",
+  "Lever",
+  "Greenhouse",
+  "Ashby",
+  "Oracle (Taleo)",
+  "SAP SuccessFactors",
+  "iCIMS",
+  "Jobvite",
+  "SmartRecruiters",
+  "BambooHR",
+  "Rippling",
+  "ADP",
+  "Recruiting.com",
+  "Company Website Portal",
+  "Other",
+] as const;
+
+export type ApplicationProvider = (typeof APPLICATION_PROVIDERS)[number];
+
 export const WORK_AUTHORIZATION_OPTIONS = [
   "US Citizen",
   "Green Card",

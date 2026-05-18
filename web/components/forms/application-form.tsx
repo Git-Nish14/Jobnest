@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, FileUp, ChevronDown, ChevronUp, Check, Zap } from "lucide-react";
+import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFile } from "@/lib/utils/storage";
 import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
 import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
-import { APPLICATION_STATUSES, APPLICATION_SOURCES } from "@/config";
+import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
 import type { JobApplication } from "@/types";
 import {
   Button,
@@ -59,12 +60,14 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       notes: application?.notes || "",
       job_description: application?.job_description || "",
       source: (application?.source as ApplicationFormData["source"]) || "",
+      ats_provider: (application?.ats_provider as ApplicationFormData["ats_provider"]) || "",
       requires_sponsorship: application?.requires_sponsorship ?? false,
     },
   });
 
-  const currentStatus = watch("status");
-  const currentSource = watch("source");
+  const currentStatus   = watch("status");
+  const currentSource   = watch("source");
+  const currentProvider = watch("ats_provider");
 
   // ── Resume autofill ──────────────────────────────────────────────────────
   interface MasterDoc { id: string; label: string; original_name: string | null; mime_type: string }
@@ -213,6 +216,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
         // Cast through string: TypeScript knows "__none__" is outside the source union,
         // but we guard against it at runtime for defence-in-depth.
         source: ((data.source as string) === "__none__" ? null : data.source) || null,
+        ats_provider: ((data.ats_provider as string) === "__none__" ? null : data.ats_provider) || null,
       };
 
       if (isEditing) {
@@ -537,6 +541,34 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             </div>
           </div>
 
+          {/* Provider */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="ats_provider">Application Portal</Label>
+              <Select
+                value={currentProvider || ""}
+                onValueChange={(value) =>
+                  setValue("ats_provider", (value === "__none__" ? "" : value) as ApplicationFormData["ats_provider"])
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Which portal did you apply through?" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Not specified —</SelectItem>
+                  {APPLICATION_PROVIDERS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      <span className="flex items-center gap-2">
+                        <AtsProviderIcon provider={p} className="h-4 w-4 shrink-0" />
+                        {p}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Sponsorship */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
@@ -641,7 +673,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                     ) : application?.resume_path ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
-                        <span className="text-sm">Current file uploaded</span>
+                        <span className="text-sm truncate">{application.resume_path.split("/").pop() ?? "resume"} · click to replace</span>
                       </>
                     ) : (
                       <>
@@ -685,7 +717,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                     ) : application?.cover_letter_path ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
-                        <span className="text-sm">Current file uploaded</span>
+                        <span className="text-sm truncate">{application.cover_letter_path.split("/").pop() ?? "cover_letter"} · click to replace</span>
                       </>
                     ) : (
                       <>

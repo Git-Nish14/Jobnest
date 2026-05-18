@@ -23,7 +23,7 @@ export async function POST(
     // Fetch the original — RLS ensures it belongs to this user
     const { data: original, error: fetchError } = await supabase
       .from("job_applications")
-      .select("company, position, job_id, job_url, salary_range, location, notes, job_description, source")
+      .select("company, position, job_id, job_url, salary_range, location, notes, job_description, source, ats_provider")
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
@@ -45,6 +45,7 @@ export async function POST(
         notes:           original.notes,
         job_description: original.job_description,
         source:          original.source,
+        ats_provider:    original.ats_provider,
         status:          "Applied",
         applied_date:    today,
       })

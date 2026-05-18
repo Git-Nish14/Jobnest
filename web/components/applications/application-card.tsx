@@ -16,6 +16,7 @@ import type { JobApplication } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SOURCE_COLORS } from "@/config/constants";
+import { AtsProviderBadge } from "@/components/ui/brand-icons";
 import { formatDate, formatCompactDateTime } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
 
@@ -236,6 +237,11 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                 </span>
               );
             })()}
+
+            {/* ATS portal badge */}
+            {application.ats_provider && (
+              <AtsProviderBadge provider={application.ats_provider} className="hidden sm:inline-flex" />
+            )}
 
             {/* Visa sponsorship badge */}
             {application.requires_sponsorship && (

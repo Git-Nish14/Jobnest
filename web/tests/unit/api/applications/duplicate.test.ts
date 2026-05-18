@@ -36,6 +36,7 @@ const ORIGINAL = {
   notes:           "Great team",
   job_description: "Build scalable systems.",
   source:          "LinkedIn",
+  ats_provider:    "Greenhouse",
 };
 
 function makeClient(user: unknown = { id: USER_ID }, fetchResult = { data: ORIGINAL, error: null }, insertResult = { data: { id: NEW_ID }, error: null }) {
@@ -171,6 +172,38 @@ describe("POST /api/applications/[id]/duplicate — success", () => {
     expect(insertedRow.notes).toBe(ORIGINAL.notes);
     expect(insertedRow.job_description).toBe(ORIGINAL.job_description);
     expect(insertedRow.source).toBe(ORIGINAL.source);
+    expect(insertedRow.ats_provider).toBe(ORIGINAL.ats_provider);
+  });
+
+  it("preserves ats_provider when original has one set", async () => {
+    const client = makeClient() as ReturnType<typeof makeClient>;
+    mockCreate.mockResolvedValue(client as never);
+
+    await POST(postRequest() as never, paramsFor(APP_ID));
+
+    const insertChainFrom = client.from.mock.results[1].value as ReturnType<typeof makeChain>;
+    const insertFn = (insertChainFrom as unknown as { insert: ReturnType<typeof vi.fn> }).insert;
+    const insertedRow = insertFn.mock.calls[0][0] as Record<string, unknown>;
+
+    expect(insertedRow.ats_provider).toBe("Greenhouse");
+  });
+
+  it("duplicates correctly when ats_provider is null on the original", async () => {
+    const originalWithoutProvider = { ...ORIGINAL, ats_provider: null };
+    const client = makeClient(
+      { id: USER_ID },
+      { data: originalWithoutProvider, error: null },
+    ) as ReturnType<typeof makeClient>;
+    mockCreate.mockResolvedValue(client as never);
+
+    const res = await POST(postRequest() as never, paramsFor(APP_ID));
+    expect(res.status).toBe(201);
+
+    const insertChainFrom = client.from.mock.results[1].value as ReturnType<typeof makeChain>;
+    const insertFn = (insertChainFrom as unknown as { insert: ReturnType<typeof vi.fn> }).insert;
+    const insertedRow = insertFn.mock.calls[0][0] as Record<string, unknown>;
+
+    expect(insertedRow.ats_provider).toBeNull();
   });
 
   it("filters fetch by both id and user_id to prevent IDOR", async () => {

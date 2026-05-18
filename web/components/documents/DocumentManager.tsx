@@ -901,7 +901,14 @@ function UploadArea({
         accept={ACCEPTED}
         aria-label="Upload document"
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          // Strip extension; fall back to the full filename for dotfiles (e.g. ".gitignore" → ".gitignore")
+          const nameWithoutExt = f.name.replace(/\.[^/.]+$/, "") || f.name;
+          if (!label.trim() || label === "Resume") setLabel(nameWithoutExt);
+          upload(f);
+        }}
       />
       <p className="text-xs text-[#55433d]/50">PDF, DOCX, DOC, TXT, MD, PNG, JPEG · max 10 MB</p>
 
@@ -938,6 +945,9 @@ export function DocumentManager({
   const [loading, setLoading] = useState(initialDocuments.length === 0);
   const [showUpload, setShowUpload] = useState(false);
 
+  // Skip the first fetch if the parent already pre-loaded documents server-side.
+  const skipFirstFetch = useRef(initialDocuments.length > 0);
+
   const fetchDocs = useCallback(async () => {
     setLoading(true);
     try {
@@ -953,7 +963,10 @@ export function DocumentManager({
     }
   }, [applicationId]);
 
-  useEffect(() => { fetchDocs(); }, [fetchDocs]);
+  useEffect(() => {
+    if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }
+    fetchDocs();
+  }, [fetchDocs]);
 
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/documents/${id}`, { method: "DELETE", credentials: "include" });

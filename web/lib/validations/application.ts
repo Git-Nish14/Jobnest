@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { APPLICATION_STATUSES, APPLICATION_SOURCES } from "@/config";
+import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
 
 /**
  * Shared secure URL field for Zod schemas.
@@ -75,6 +75,10 @@ export const applicationSchema = z.object({
     .or(z.literal("")),
   source: z
     .enum(APPLICATION_SOURCES, { message: "Please select a valid source" })
+    .optional()
+    .or(z.literal("")),
+  ats_provider: z
+    .enum(APPLICATION_PROVIDERS, { message: "Please select a valid provider" })
     .optional()
     .or(z.literal("")),
   requires_sponsorship: z.boolean().optional().default(false),

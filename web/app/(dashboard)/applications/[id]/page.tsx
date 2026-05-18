@@ -4,6 +4,7 @@ import {
   ArrowLeft, Pencil, ExternalLink,
   Calendar, MapPin, DollarSign, Hash,
 } from "lucide-react";
+import { AtsProviderBadge } from "@/components/ui/brand-icons";
 import { getApplicationById, getInterviews, getActivityLogs } from "@/services";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/utils/storage";
@@ -54,15 +55,22 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   // Bridge legacy resume_path / cover_letter_path into LegacyDoc shape so
   // DocumentManager can display them alongside new application_documents rows.
   const supabase = await createClient();
-  const legacyDocs: LegacyDoc[] = [];
-  if (application.resume_path) {
-    const url = await getSignedUrl(supabase, application.resume_path);
-    if (url) legacyDocs.push({ label: "Resume", path: application.resume_path, signedUrl: url, mimeType: "application/pdf" });
-  }
-  if (application.cover_letter_path) {
-    const url = await getSignedUrl(supabase, application.cover_letter_path);
-    if (url) legacyDocs.push({ label: "Cover Letter", path: application.cover_letter_path, signedUrl: url, mimeType: "application/pdf" });
-  }
+  const legacyPaths = [
+    application.resume_path ? { label: "Resume", path: application.resume_path } : null,
+    application.cover_letter_path ? { label: "Cover Letter", path: application.cover_letter_path } : null,
+  ].filter(Boolean) as { label: string; path: string }[];
+
+  const legacyUrls = await Promise.all(
+    legacyPaths.map(({ path }) => getSignedUrl(supabase, path))
+  );
+
+  const legacyDocs: LegacyDoc[] = legacyPaths
+    .map(({ label, path }, i) =>
+      legacyUrls[i]
+        ? { label, path, signedUrl: legacyUrls[i]!, mimeType: "application/pdf" }
+        : null
+    )
+    .filter(Boolean) as LegacyDoc[];
 
   const formattedDate = new Date(application.applied_date).toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -199,6 +207,17 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                     <Hash className="h-3.5 w-3.5" /> Job ID
                   </dt>
                   <dd className="text-[#1a1c1b] font-mono text-sm">{application.job_id}</dd>
+                </div>
+              )}
+
+              {application.ats_provider && (
+                <div>
+                  <dt className="text-xs font-bold uppercase tracking-widest text-[#55433d]/60 mb-1.5">
+                    Applied Via
+                  </dt>
+                  <dd>
+                    <AtsProviderBadge provider={application.ats_provider} />
+                  </dd>
                 </div>
               )}
 

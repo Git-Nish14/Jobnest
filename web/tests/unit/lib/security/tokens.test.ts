@@ -32,13 +32,16 @@ describe("encryptToken / decryptToken — roundtrip", () => {
     expect(decryptToken(c2)).toBe(plaintext);
   });
 
-  it("roundtrips a real-format GitHub OAuth token", () => {
-    const token = "gho_16C7e42F292c6912E7710c838347Ae178B4a";
+  it("roundtrips a GitHub OAuth token shape", () => {
+    // Deliberately short (< 36 chars after prefix) so secret scanners don't flag it.
+    // The roundtrip test only needs a gho_-prefixed string; exact length is irrelevant.
+    const token = "gho_unit_test_placeholder";
     expect(decryptToken(encryptToken(token))).toBe(token);
   });
 
-  it("roundtrips a GitHub PAT token", () => {
-    const token = "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345";
+  it("roundtrips a GitHub PAT shape", () => {
+    // Same reasoning — short enough to avoid secret-scanner false positives.
+    const token = "ghp_unit_test_placeholder";
     expect(decryptToken(encryptToken(token))).toBe(token);
   });
 
