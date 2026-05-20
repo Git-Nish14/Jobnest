@@ -49,11 +49,18 @@ A modern, secure platform to organise and manage your entire job search. Built w
 5. Right-to-erasure verification — queries 9 tables for orphaned rows post-deletion
 
 ### Dashboard
-- Stats: total applications, this week/month, active pipeline, offers
-- Weekly bar chart, status distribution chart, upcoming interviews, pending reminders
-- **Quick-access cards** — Document Library + ATS Scanner directly on dashboard
-- Recent applications list
-- **Search Intelligence** — three insight cards derived from existing data (no extra DB queries): avg days to first response (90-day capped proxy), interview-to-offer conversion rate (≥3 threshold), ghosting rate (≥5 threshold); colour-coded positive/neutral/warning tones with actionable context
+- Stats: total applications, this week/month, active pipeline, offers, upcoming interviews
+- **Application Velocity** bar chart with 4w / 8w / 12w period picker
+- Status distribution pie chart; Recent applications list; Tasks panel
+- **Quick-access cards** — Document Library + ATS Scanner; H1B cap tracker for OPT/H1B users
+- **Extended analytics** (shown when ≥ 3 applications):
+  - **Monthly Breakdown** — grouped bars (Applied / Rejected / Offers) over 6 months
+  - **Weekday Activity** — Mon–Sun submission bars with peak-day callout; uses device-local time (not UTC) to prevent off-by-one for US time zones
+  - **Top Companies** — ranked horizontal bar chart of most-applied companies
+  - **Stage Funnel** — Applied → Phone Screen → Interview → Offer → Accepted cumulative counts
+  - **Avg Salary by Source** — midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
+  - **Source Effectiveness** — response rate % per source, sorted descending; only sources with ≥ 2 applications shown
+- **Search Intelligence** — avg days to first response (90-day cap), interview-to-offer rate (≥3 threshold), ghost rate (≥5 threshold)
 
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
@@ -64,7 +71,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
 - **Created / Updated timestamps** — each application card shows `Created May 12 at 3:45 PM` and `· Updated May 13 at 9:20 AM` (only when modified after creation) using device-local timezone
 - **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
-- Filter by status, location, date range; sort by date/company/position
+- **Universal Filter dropdown** — status filter is a dropdown on all screen sizes with an active-count badge; removable active-filter chips appear below the search bar when filters are on; "Clear all" link when 2+ filters active; sort by date/company/position
 - **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
 - **Full-text search** — command palette (`⌘K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
 - Export to CSV or JSON; kanban board view toggle
@@ -183,7 +190,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1032 tests, 73 files) |
+| Testing | Vitest (1085 tests, 74 files) |
 
 ---
 
@@ -422,7 +429,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1032 tests, 73 files)
+npm test              # Vitest (1085 tests, 74 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -434,9 +441,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities (incl. **token encryption roundtrip/legacy/tamper**, **`formatCompactDateTime`**), all API route handlers (incl. parse-jd SSRF, attachment-url, search, skills/certifications/education, all 5 prep route groups, **LinkedIn verify** — all fetch status branches), analytics metrics, proxy + CSP nonce |
-| Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback, Stripe billing, developer identity full CRUD, **portfolio** (GitHub connection/repos/disconnect/sync, projects CRUD + **image_url validation**, LinkedIn, username claim/availability/**DELETE**/**30-day cooldown**, visibility, cron auth, **decryptToken path**) |
+| Unit | `tests/unit/` | lib utilities (incl. **token encryption roundtrip/legacy/tamper**, **`formatCompactDateTime`**), all API route handlers (incl. parse-jd SSRF, attachment-url, search, skills/certifications/education, all 5 prep route groups, **LinkedIn verify**), analytics (avg time to response, interview-to-offer rate, ghost rate, **sourceEffectiveness**, **avgSalaryBySource** incl. comma-thousands parsing, **stageFunnel**, **weekdayActivity** + UTC timezone regression test), **notes `.max(50000)`** Zod constraint, proxy + CSP nonce |
+| Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens; **updated for dropdown filter bar** (badge, active chips, clear-all) |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback + **body-null 502 guard** + **TransformStream multi-chunk streaming** + **malformed SSE skip**, Stripe billing, developer identity full CRUD, portfolio (GitHub, projects, LinkedIn, username) |
 
 ---
 
@@ -457,8 +464,9 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |
 | Document serving | `Content-Disposition: attachment` forced — prevents stored XSS |
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
-| Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
-| Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op) |
+| Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy; nonce passed via `x-nonce` header, applied to anti-flash `<script>` with `suppressHydrationWarning` |
+| Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op); `notes` field capped at `.max(50000)` (prevents multi-MB payload submissions) |
+| NESTAi streaming | `groqResponse.body` null-checked before `pipeTo` (returns 502 instead of throwing); `controller.enqueue()` guarded against closed-controller after client disconnect; JSON-LD `</script>` escaped in `dangerouslySetInnerHTML` |
 | GitHub OAuth | Uses Supabase-configured OAuth (same app as login); client-side `signInWithOAuth` with PKCE; `session.provider_token` extracted in server callback; `redirectTo` validated against Supabase allowed URLs |
 | GitHub token at rest | AES-256-GCM encryption in `lib/security/tokens.ts` keyed from `CSRF_SECRET`; legacy plaintext tokens (`gho_`/`ghp_`) handled transparently until users reconnect |
 | OAuth redirect hardening | `appUrl` in callback/connect routes pinned to `NEXT_PUBLIC_APP_URL`; no `x-forwarded-host` derivation for redirect targets (prevents open-redirect on non-Vercel deployments) |

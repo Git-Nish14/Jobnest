@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/layout/CookieBanner";
@@ -107,11 +108,16 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Nonce injected by proxy.ts via x-nonce header — required for CSP compliance.
+  // The anti-flash inline script must carry this nonce or it's blocked when
+  // 'unsafe-inline' is ignored (which happens whenever a nonce is present).
+  const nonce = (await headers()).get("x-nonce") ?? "";
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
@@ -128,8 +134,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
       >
-        {/* Anti-flash: reads localStorage before first paint and sets class on <html> */}
+        {/* Anti-flash: reads localStorage before first paint and sets class on <html>.
+            nonce is a per-request value injected by proxy.ts — it intentionally
+            differs between the server render and React's client reconciliation,
+            so suppressHydrationWarning is correct here (not a bug to work around). */}
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('jobnest_theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}

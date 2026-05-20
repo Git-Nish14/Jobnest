@@ -271,6 +271,37 @@ export interface DashboardAnalytics {
   topCompanies: CompanyCount[];
   upcomingInterviews: Interview[];
   pendingReminders: Reminder[];
+  /** Average parsed salary (midpoint of range) per application source. */
+  avgSalaryBySource: SourceSalary[];
+  /** Response rate (%) per application source. null sources are grouped as "Other". */
+  sourceEffectiveness: SourceEffectiveness[];
+  /** Application stage funnel counts. */
+  stageFunnel: StageFunnel[];
+  /** Applications submitted per weekday (Mon–Sun). */
+  weekdayActivity: WeekdayActivity[];
+}
+
+export interface SourceSalary {
+  source: string;
+  avgSalary: number;
+  count: number;
+}
+
+export interface SourceEffectiveness {
+  source: string;
+  total: number;
+  responded: number;
+  responseRate: number;
+}
+
+export interface StageFunnel {
+  stage: string;
+  count: number;
+}
+
+export interface WeekdayActivity {
+  day: string;   // "Mon" | "Tue" | … | "Sun"
+  count: number;
 }
 
 export interface StatusCount {

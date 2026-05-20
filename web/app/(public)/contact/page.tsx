@@ -36,9 +36,10 @@ const INFO_ITEMS = [
 ];
 
 const FAQS = [
-  { q: "Is Jobnest free?", a: "Jobnest offers a Free plan with core features and a Pro plan with advanced tools. See our pricing page for details." },
-  { q: "Is my data secure?", a: "Yes, we use industry-standard encryption." },
-  { q: "Can I export my data?", a: "Yes, you can export your data anytime." },
+  { q: "Is Jobnest free?", a: "Yes. The Free plan includes unlimited application tracking, NESTAi AI coach, ATS scanner, document library, Interview Prep Hub, and developer portfolio. Pro unlocks higher AI rate limits and priority support." },
+  { q: "Is my data secure?", a: "Yes. We use TLS in transit, AES-256 at rest, Postgres Row-Level Security (your rows are isolated at DB level), nonce-based CSP, CSRF guards on every API mutation, and SSRF protection on file imports." },
+  { q: "Can I export my data?", a: "Yes. Go to Profile → Export Data for a full GDPR-compliant JSON export of everything — applications, documents, interviews, AI chat history, prep hub, and salary data." },
+  { q: "How do I delete my account?", a: "Profile → Danger Zone → Delete Account. You get a 30-day grace period to change your mind. After that, all data is permanently purged." },
 ];
 
 export default function ContactPage() {
@@ -166,7 +167,7 @@ export default function ContactPage() {
                       type="text"
                       placeholder="Your name"
                       className="atelier-input"
-                      aria-invalid={errors.name ? "true" : undefined}
+                      aria-invalid={!!errors.name}
                       {...register("name")}
                     />
                     {errors.name && <p className="atelier-field-error">{errors.name.message}</p>}
@@ -182,7 +183,7 @@ export default function ContactPage() {
                       type="email"
                       placeholder="your@email.com"
                       className="atelier-input"
-                      aria-invalid={errors.email ? "true" : undefined}
+                      aria-invalid={!!errors.email}
                       {...register("email")}
                     />
                     {errors.email && <p className="atelier-field-error">{errors.email.message}</p>}
@@ -198,7 +199,7 @@ export default function ContactPage() {
                       type="text"
                       placeholder="How can we help?"
                       className="atelier-input"
-                      aria-invalid={errors.subject ? "true" : undefined}
+                      aria-invalid={!!errors.subject}
                       {...register("subject")}
                     />
                     {errors.subject && <p className="atelier-field-error">{errors.subject.message}</p>}
@@ -212,7 +213,7 @@ export default function ContactPage() {
                       rows={5}
                       placeholder="Tell us more about your inquiry..."
                       className="atelier-input resize-none"
-                      aria-invalid={errors.message ? "true" : undefined}
+                      aria-invalid={!!errors.message}
                       {...register("message")}
                     />
                     {errors.message && <p className="atelier-field-error">{errors.message.message}</p>}

@@ -103,9 +103,15 @@ const SESSION_COOKIES: CookieRow[] = [
 const LOCAL_STORAGE_ENTRIES = [
   {
     name: "jobnest_cookie_consent",
-    purpose: "Stores your cookie consent choice (\"all\" or \"essential\"). Prevents the banner from showing again.",
+    purpose: "Stores your cookie consent choice (\"all\" or \"essential\"). Prevents the consent banner from showing again.",
     duration: "Persistent (until manually cleared)",
     setBy: "Jobnest (CookieBanner component)",
+  },
+  {
+    name: "jobnest_theme",
+    purpose: "Stores your dark / light mode preference (\"dark\" or absent for light). Read by an inline script before first paint to prevent a flash of the wrong theme.",
+    duration: "Persistent (until manually cleared or theme is changed)",
+    setBy: "Jobnest (ThemeToggle component)",
   },
 ];
 
@@ -121,7 +127,7 @@ export default function CookiesPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Cookie Policy
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: 29 March 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: 19 May 2026</p>
             <div className="mt-4 p-4 bg-[#f4f3f1] rounded-xl border border-[#dbc1b9]/30 text-sm text-[#55433d] leading-relaxed">
               <strong className="text-[#1a1c1b]">Short version:</strong> Jobnest only uses cookies that are
               strictly necessary to run the service. We set <strong className="text-[#1a1c1b]">zero</strong>{" "}

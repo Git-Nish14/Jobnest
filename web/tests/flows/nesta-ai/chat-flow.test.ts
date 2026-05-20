@@ -316,3 +316,71 @@ describe("NESTAi — context trimming", () => {
     expect(userMsg?.content).toContain("John Doe");
   });
 });
+
+// ── Streaming robustness — body null guard + TransformStream ───────────────────
+
+describe("NESTAi — streaming body-null guard (BUG-2 regression)", () => {
+  it("returns 502 with a safe message when Groq returns a null body on a 200", async () => {
+    // This covers the body-null guard added after the TransformStream refactor.
+    // A proxy or misconfigured gateway can return a 200 with no body — without
+    // the guard the non-null assertion `groqResponse.body!.pipeTo(...)` would throw.
+    const nullBodyResponse = new Response(null, { status: 200 });
+    mockFetch.mockResolvedValue(nullBodyResponse);
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toMatch(/empty response/i);
+    // Must NOT expose internal stack trace or config
+    expect(body.error).not.toMatch(/pipeTo|body|TypeError/i);
+  });
+
+  it("streams all tokens via TransformStream when Groq SSE contains multiple chunks", async () => {
+    // Simulates chunked SSE delivery — each chunk is a separate SSE frame.
+    const tokens = ["Hello", " world", " from", " Groq"];
+    const sseBody = tokens
+      .map((t) => `data: ${JSON.stringify({ choices: [{ delta: { content: t } }] })}\n`)
+      .join("") + "data: [DONE]\n";
+
+    mockFetch.mockResolvedValue(new Response(sseBody, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    }));
+
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Say hello", history: [] }) as never);
+    expect(res.status).toBe(200);
+
+    // Read the full stream
+    const text = await res.text();
+    expect(text).toBe("Hello world from Groq");
+  });
+
+  it("skips malformed SSE chunks without throwing", async () => {
+    // One malformed JSON line surrounded by valid ones
+    const sseBody = [
+      `data: ${JSON.stringify({ choices: [{ delta: { content: "Good" } }] })}`,
+      "data: {invalid json",
+      `data: ${JSON.stringify({ choices: [{ delta: { content: " output" } }] })}`,
+      "data: [DONE]",
+    ].join("\n") + "\n";
+
+    mockFetch.mockResolvedValue(new Response(sseBody, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    }));
+
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "Test chunks", history: [] }) as never);
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    // Malformed chunk is skipped — valid tokens concatenated
+    expect(text).toBe("Good output");
+  });
+
+  it("returns 200 streaming response and rate-limit headers are all present", async () => {
+    const res = await chat(makeRequest("/api/nesta-ai", { question: "ping", history: [] }) as never);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-RateLimit-Remaining")).not.toBeNull();
+    expect(res.headers.get("X-RateLimit-Reset-In")).not.toBeNull();
+    expect(res.headers.get("X-RateLimit-Limit")).not.toBeNull();
+    expect(res.headers.get("Cache-Control")).toBe("no-cache");
+  });
+});

@@ -62,17 +62,22 @@ describe("ApplicationFilters — debounce & aria", () => {
     expect(code).toContain('aria-label="Search applications"');
   });
 
-  it("status filter group has role=group and aria-label", () => {
-    expect(code).toContain('role="group"');
-    expect(code).toContain('aria-label="Filter by status"');
+  it("status filter is a dropdown (DropdownMenu) visible on all screen sizes", () => {
+    // After the mobile-UX sprint the horizontal pill row was replaced by a
+    // universal dropdown. Verify the dropdown trigger has an aria-label and
+    // the DropdownMenuContent exists.
+    expect(code).toContain("DropdownMenu");
+    expect(code).toContain('aria-label="Filter applications"');
   });
 
-  it("filter pills use valid string aria-pressed values", () => {
-    // Boolean booleans cause ARIA validation errors; must be string literals
-    expect(code).toContain('aria-pressed={currentStatus === "all" ? "true" : "false"}');
-    expect(code).toContain('aria-pressed={currentStatus === status ? "true" : "false"}');
-    // Must NOT have bare boolean expression
-    expect(code).not.toMatch(/aria-pressed=\{currentStatus === "all"\}/);
+  it("active filter count badge is rendered when filters are on", () => {
+    expect(code).toContain("activeFilterCount");
+    expect(code).toContain("activeFilterCount > 0");
+  });
+
+  it("clear-all button appears when 2+ filters are active", () => {
+    expect(code).toContain("activeFilterCount > 1");
+    expect(code).toContain("Clear all");
   });
 
   it("sort trigger has aria-label", () => {

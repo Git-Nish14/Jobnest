@@ -64,7 +64,7 @@ export default function PrivacyPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Privacy Policy
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: 29 March 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: 19 May 2026</p>
             <div className="mt-4 p-4 bg-[#f4f3f1] rounded-xl border border-[#dbc1b9]/30 text-sm text-[#55433d] leading-relaxed">
               <strong className="text-[#1a1c1b]">Quick summary:</strong> We collect only what we need to run
               the service. We do not sell your data. You can export or delete everything at any time. We use
@@ -94,12 +94,15 @@ export default function PrivacyPage() {
                 as you use the service, and data from third-party sign-in providers (Google, GitHub).
               </p>
               <DataTable rows={[
-                ["Account", "Email address, display name, hashed password or OAuth sub", "Authentication and account management"],
-                ["Profile", "\"About Me\" context text, notification preferences", "Personalises NESTAi AI responses"],
-                ["Job applications", "Company, position, status, dates, salary, location, notes, job URL", "Core service: tracking your job search"],
-                ["Documents", "Resume and cover-letter files (PDF, DOCX, TXT, MD, PNG, JPEG)", "Stored in Supabase Storage scoped to your user ID"],
-                ["Interviews & contacts", "Interview dates, types, notes; contact names and emails", "Core service features"],
+                ["Account", "Email address, display name, hashed password or OAuth sub (Google / GitHub)", "Authentication and account management"],
+                ["Profile", "\"About Me\" context text, work authorization status, OPT start date (if provided), notification preferences", "Personalises NESTAi AI responses; powers OPT/H1B tracker"],
+                ["Job applications", "Company, position, status, dates, salary range, location, notes, job URL, application source, ATS score, sponsorship flag", "Core service: tracking your job search"],
+                ["Documents", "Resume and cover-letter files (PDF, DOCX, TXT, MD, PNG, JPEG); version history; annotation notes", "Stored in Supabase Storage scoped to your user ID"],
+                ["Interviews & contacts", "Interview dates, types, notes, meeting URLs; contact names and emails", "Core service features"],
+                ["Developer portfolio", "GitHub username and OAuth token (encrypted at rest), cached repository metadata, project descriptions, skills, certifications, education, LinkedIn profile URL, public portfolio username", "Portfolio page and GitHub sync feature; only shown publicly if you opt in"],
+                ["Interview prep", "LeetCode problem entries, system design progress, STAR behavioral answers, mock interview logs, daily prep streaks", "Interview Prep Hub — stored per user, never shared"],
                 ["AI conversations", "Chat messages sent to NESTAi, file attachments", "Generating AI responses; persisted for chat history"],
+                ["Salary & offers", "Salary ranges, RSU/equity details, 401k fields, cost-of-living city", "TC Calculator and offer comparison features"],
                 ["Security", "IP address on account-deletion requests and OTP events", "Fraud prevention and rate limiting"],
                 ["Cookies", "Session token (sb-*-auth-token), remember-me flag (sb_rm)", "Keeping you signed in — see Cookie Policy"],
                 ["Usage", "Pages visited, error events, approximate latency", "Service reliability and debugging only"],
@@ -159,10 +162,12 @@ export default function PrivacyPage() {
               </p>
               <DataTable rows={[
                 ["Supabase", "Database, file storage, authentication", "EU region by default; SOC 2 Type II; DPA available"],
-                ["Groq AI", "NESTAi AI inference (llama-3.3-70b)", "Messages sent for inference; not retained for model training"],
-                ["Vercel", "Hosting, Edge network, serverless functions", "SOC 2 Type II; global CDN"],
-                ["SMTP provider", "Transactional email delivery (OTP, password reset)", "Processes email addresses only"],
-                ["Stripe (future)", "Payment processing for Pro plan", "PCI-DSS Level 1; Stripe processes card data directly"],
+                ["Groq AI", "NESTAi AI inference (llama-3.3-70b-versatile, with llama-3.1-8b-instant fallback)", "Message content sent for inference only; not retained for model training per Groq's terms"],
+                ["Vercel", "Hosting, Edge network, serverless functions", "SOC 2 Type II; global CDN; no request body persistence"],
+                ["Upstash Redis", "Rate-limit counters and document-parse cache", "REST-based; data TTL ≤ 5 minutes; no PII stored"],
+                ["SMTP provider", "Transactional email delivery (OTP, password reset, weekly digest, overdue reminders)", "Processes email addresses only"],
+                ["Stripe", "Payment processing for Pro plan subscriptions", "PCI-DSS Level 1; Stripe collects and stores card data directly — Jobnest never sees raw card numbers"],
+                ["Cloudmersive (optional)", "Multi-engine antivirus scan on file uploads", "File bytes sent only when CLOUDMERSIVE_API_KEY is configured; not stored after scanning"],
               ]} />
               <p className="mt-4 text-sm">
                 We do not sell, rent, or trade your personal data with any third party. We do not use
@@ -227,8 +232,10 @@ export default function PrivacyPage() {
                   period.
                 </li>
                 <li>
-                  <strong className="text-[#1a1c1b]">Data portability (Art. 20):</strong> Export your
-                  job-search data as CSV/JSON from the Applications page export button.
+                  <strong className="text-[#1a1c1b]">Data portability (Art. 20):</strong> Export a full
+                  JSON copy of all your personal data (applications, interviews, contacts, documents,
+                  AI chat history, salary, prep hub, portfolio) from Profile → Export Data. Rate-limited to
+                  3 exports per day.
                 </li>
                 <li>
                   <strong className="text-[#1a1c1b]">Restriction (Art. 18):</strong> Request that we limit
@@ -278,13 +285,19 @@ export default function PrivacyPage() {
               <ul className="space-y-2 pl-5 list-disc">
                 <li>TLS 1.2+ on all data in transit</li>
                 <li>AES-256 encryption at rest via Supabase</li>
-                <li>PostgreSQL Row-Level Security — per-user data isolation</li>
+                <li>GitHub OAuth tokens encrypted at rest with AES-256-GCM</li>
+                <li>PostgreSQL Row-Level Security — per-user data isolation on every table and Storage path</li>
+                <li>Nonce-based Content Security Policy (CSP) with <code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">strict-dynamic</code> — blocks inline script injection</li>
+                <li>CSRF origin verification (<code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">verifyOrigin</code>) on all state-mutating API routes</li>
+                <li>SSRF protection on all user-supplied URL imports (DNS pre-resolution blocks private/loopback/cloud-metadata IPs)</li>
                 <li>OTP-gated account deletion and password changes</li>
-                <li>IP-level and per-email rate limiting on sensitive endpoints</li>
                 <li>Dual-layer OTP rate limiting (10/min per IP, 3/min per email)</li>
-                <li>Secure, HttpOnly session cookies with SameSite=Lax</li>
-                <li>File-type validation (MIME + magic-byte check) on document uploads</li>
-                <li>Content-Disposition: attachment forced on all document downloads (prevents stored XSS)</li>
+                <li>Redis-backed rate limiting on all AI and document endpoints (survives cold starts)</li>
+                <li>Secure, HttpOnly session cookies with SameSite=Lax; <code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">__Host-</code> prefix in production</li>
+                <li>File-type validation (MIME + magic-byte check) on all document uploads and URL imports</li>
+                <li>Multi-engine antivirus scan on upload (when configured)</li>
+                <li><code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">Content-Disposition: attachment</code> forced on all document downloads (prevents stored XSS)</li>
+                <li>Automated secrets scanning in CI (TruffleHog) and Dependabot on all dependencies</li>
               </ul>
               <p className="mt-4">
                 No system is 100% secure. If you discover a security vulnerability, please report it

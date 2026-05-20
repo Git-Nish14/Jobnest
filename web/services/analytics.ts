@@ -6,6 +6,10 @@ import type {
   WeeklyTrend,
   MonthlyTrend,
   CompanyCount,
+  SourceSalary,
+  SourceEffectiveness,
+  StageFunnel,
+  WeekdayActivity,
   Interview,
   Reminder,
 } from "@/types";
@@ -14,10 +18,11 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
   try {
     const supabase = await createClient();
 
-    // Get all applications
+    // Fetch only the columns needed for analytics — avoids pulling notes/job_description
+    // (which can be many KB each) for every row, cutting transfer size significantly.
     const { data: applications, error: appError } = await supabase
       .from("job_applications")
-      .select("*")
+      .select("id,status,applied_date,updated_at,company,source,salary_range")
       .order("applied_date", { ascending: false });
 
     if (appError) {
@@ -165,11 +170,87 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Upcoming interviews
+    // ── Source effectiveness ─────────────────────────────────────────────────
+    const RESPONDED_SET = new Set(["Phone Screen", "Interview", "Offer", "Accepted", "Rejected"]);
+    const sourceMap: Record<string, { total: number; responded: number }> = {};
+    (applications ?? []).forEach((a) => {
+      const src = a.source || "Other";
+      if (!sourceMap[src]) sourceMap[src] = { total: 0, responded: 0 };
+      sourceMap[src].total++;
+      if (RESPONDED_SET.has(a.status)) sourceMap[src].responded++;
+    });
+    const sourceEffectiveness: SourceEffectiveness[] = Object.entries(sourceMap)
+      .map(([source, { total, responded }]) => ({
+        source,
+        total,
+        responded,
+        responseRate: total > 0 ? Math.round((responded / total) * 100) : 0,
+      }))
+      .filter((s) => s.total >= 2)
+      .sort((a, b) => b.responseRate - a.responseRate);
+
+    // ── Average salary by source ─────────────────────────────────────────────
+    // Parse "X - Y" or "X" salary_range strings into a midpoint number.
+    // Step 1: strip thousands-separator commas so "$90,000" → "$90000" before
+    // the general non-numeric replacement, otherwise "90,000" splits to ["90","000"]
+    // and "000" (= 0) is filtered out, producing 90 instead of 90000.
+    const parseSalary = (range: string | null): number | null => {
+      if (!range) return null;
+      const normalized = range.replace(/,/g, ""); // strip thousands separators first
+      const nums = normalized.replace(/[^0-9.\-]/g, " ").trim().split(/\s+/).map(Number).filter((n) => !isNaN(n) && n > 0);
+      if (nums.length === 0) return null;
+      if (nums.length === 1) return nums[0];
+      return (nums[0] + nums[nums.length - 1]) / 2;
+    };
+    const salaryBySource: Record<string, { sum: number; count: number }> = {};
+    (applications ?? []).forEach((a) => {
+      const mid = parseSalary(a.salary_range);
+      if (!mid) return;
+      const src = a.source || "Other";
+      if (!salaryBySource[src]) salaryBySource[src] = { sum: 0, count: 0 };
+      salaryBySource[src].sum += mid;
+      salaryBySource[src].count++;
+    });
+    const avgSalaryBySource: SourceSalary[] = Object.entries(salaryBySource)
+      .filter(([, { count }]) => count >= 1)
+      .map(([source, { sum, count }]) => ({
+        source,
+        avgSalary: Math.round(sum / count),
+        count,
+      }))
+      .sort((a, b) => b.avgSalary - a.avgSalary);
+
+    // ── Stage funnel ─────────────────────────────────────────────────────────
+    const FUNNEL_STAGES = ["Applied", "Phone Screen", "Interview", "Offer", "Accepted"] as const;
+    const stageFunnel: StageFunnel[] = FUNNEL_STAGES.map((stage) => ({
+      stage,
+      count: (applications ?? []).filter((a) => {
+        const idx = FUNNEL_STAGES.indexOf(a.status as typeof FUNNEL_STAGES[number]);
+        return idx >= FUNNEL_STAGES.indexOf(stage);
+      }).length,
+    }));
+
+    // ── Weekday activity ─────────────────────────────────────────────────────
+    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+    const dayCounts: number[] = [0, 0, 0, 0, 0, 0, 0];
+    (applications ?? []).forEach((a) => {
+      // applied_date is a DATE string like "2026-05-18".
+      // new Date("2026-05-18") parses as UTC midnight — for users in UTC-5..UTC-8 this
+      // shifts the weekday back by one day (e.g., Monday midnight UTC = Sunday evening local).
+      // Construct in local time by splitting the parts so the weekday is always correct.
+      const [y, m, d] = (a.applied_date as string).split("-").map(Number);
+      const raw = new Date(y, m - 1, d).getDay(); // local time, 0=Sun..6=Sat
+      const idx = raw === 0 ? 6 : raw - 1;        // remap to Mon=0..Sun=6
+      dayCounts[idx]++;
+    });
+    const weekdayActivity: WeekdayActivity[] = DAYS.map((day, i) => ({ day, count: dayCounts[i] }));
+
+    // Upcoming interviews — include the parent application so the dashboard can
+    // show the company name in the "Next interview" stat card footer.
     let upcomingInterviews: Interview[] = [];
     const { data: interviews } = await supabase
       .from("interviews")
-      .select("*")
+      .select("*, job_applications(company, position)")
       .gte("scheduled_at", now.toISOString())
       .eq("status", "Scheduled")
       .order("scheduled_at", { ascending: true })
@@ -179,11 +260,11 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       upcomingInterviews = interviews as Interview[];
     }
 
-    // Pending reminders
+    // Pending reminders — select only the fields the tasks panel renders.
     let pendingReminders: Reminder[] = [];
     const { data: reminders } = await supabase
       .from("reminders")
-      .select("*")
+      .select("id, title, remind_at, is_completed, application_id")
       .eq("is_completed", false)
       .gte("remind_at", now.toISOString())
       .order("remind_at", { ascending: true })
@@ -208,6 +289,10 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         topCompanies,
         upcomingInterviews,
         pendingReminders,
+        avgSalaryBySource,
+        sourceEffectiveness,
+        stageFunnel,
+        weekdayActivity,
       },
       error: null,
     };

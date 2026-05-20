@@ -65,7 +65,7 @@ export const applicationSchema = z.object({
     .or(z.literal("")),
   notes: z
     .string()
-    .max(5000, "Notes are too long")
+    .max(50000, "Notes cannot exceed 50 000 characters")
     .optional()
     .or(z.literal("")),
   job_description: z

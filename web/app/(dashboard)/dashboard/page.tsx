@@ -9,6 +9,12 @@ import { AtelierTasksPanel } from "@/components/dashboard/atelier-tasks-panel";
 import { AnalyticsInsights } from "@/components/dashboard/analytics-insights";
 import { OPTCountdownBanner } from "@/components/dashboard/OPTCountdownBanner";
 import { H1BTrackerCard } from "@/components/dashboard/H1BTrackerCard";
+import { SourceEffectivenessChart } from "@/components/dashboard/source-effectiveness-chart";
+import { StageFunnelChart } from "@/components/dashboard/stage-funnel-chart";
+import { AvgSalaryChart } from "@/components/dashboard/avg-salary-chart";
+import { MonthlyTrendsChart } from "@/components/dashboard/monthly-trends-chart";
+import { TopCompaniesChart } from "@/components/dashboard/top-companies-chart";
+import { WeekdayActivityChart } from "@/components/dashboard/weekday-activity-chart";
 import { BarChart3, Calendar, Mail, Plus, Library, ScanSearch, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -35,8 +41,14 @@ export default async function DashboardPage() {
     ghostRate: null,
     statusDistribution: [],
     weeklyTrends: [],
+    monthlyTrends: [],
+    topCompanies: [],
     upcomingInterviews: [],
     pendingReminders: [],
+    avgSalaryBySource: [],
+    sourceEffectiveness: [],
+    stageFunnel: [],
+    weekdayActivity: [],
   };
 
   // OPT / H1B work auth
@@ -203,6 +215,36 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── Extended analytics row 1: monthly breakdown + weekday + top companies ── */}
+      {stats.totalApplications >= 3 && (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-6">
+            <MonthlyTrendsChart data={stats.monthlyTrends} />
+          </div>
+          <div className="md:col-span-3">
+            <WeekdayActivityChart data={stats.weekdayActivity} />
+          </div>
+          <div className="md:col-span-3">
+            <TopCompaniesChart data={stats.topCompanies} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Extended analytics row 2: funnel + salary + source effectiveness ── */}
+      {stats.totalApplications >= 3 && (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div className="md:col-span-4">
+            <StageFunnelChart data={stats.stageFunnel} />
+          </div>
+          <div className="md:col-span-4">
+            <AvgSalaryChart data={stats.avgSalaryBySource} />
+          </div>
+          <div className="md:col-span-4">
+            <SourceEffectivenessChart data={stats.sourceEffectiveness} />
+          </div>
+        </div>
+      )}
 
       {/* ── Search Intelligence ── */}
       <AnalyticsInsights

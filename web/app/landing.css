@@ -194,15 +194,66 @@
   }
 }
 
-/* ── Testimonials ──────────────────────────────────────────────────────────── */
+/* ── Testimonials carousel ─────────────────────────────────────────────────── */
 .landing-testimonial-card {
   background-color: var(--atelier-surface);
   box-shadow: 0 2px 16px rgba(26, 28, 27, 0.05);
+  /* Fixed width so each card takes the same horizontal space */
+  width: 22rem;
+  flex-shrink: 0;
 }
 
 .landing-quote {
   font-family: var(--font-newsreader, Georgia, serif);
   font-style: italic;
+}
+
+/* Infinite left-scroll marquee */
+@keyframes landing-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.landing-marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;      /* promote to compositor layer — avoids paint */
+  animation: landing-scroll 40s linear infinite;
+}
+
+/* Pause on hover so users can read a card */
+.landing-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Honour the OS-level "reduce motion" preference — stop the animation entirely.
+   Users with vestibular disorders can then read the cards without constant movement. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-marquee-track {
+    animation: none;
+    /* Lay cards out as a wrapping grid so content remains accessible */
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Fade edges so cards scroll in/out smoothly */
+.landing-marquee-wrap {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
 }
 
 /* ── CTA ───────────────────────────────────────────────────────────────────── */

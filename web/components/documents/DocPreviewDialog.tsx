@@ -99,9 +99,9 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
     <Dialog open onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className="w-[95vw] max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
+        className="w-[95vw] max-w-4xl h-[90dvh] flex flex-col p-0 overflow-hidden"
       >
-        <DialogHeader className="px-5 py-3.5 border-b flex-row items-center gap-3 space-y-0">
+        <DialogHeader className="px-4 sm:px-5 py-3 sm:py-3.5 border-b flex-row items-center gap-2 sm:gap-3 space-y-0 shrink-0">
           <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", mimeColour(doc.mime_type))}>
             <MimeIcon mimeType={doc.mime_type} className="h-4 w-4" />
           </div>
@@ -147,22 +147,22 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
           )}
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden min-h-0">
+        <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
           {loading && (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center flex-1">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
 
           {!loading && !signedUrl && (
-            <div className="flex flex-col items-center justify-center h-64 gap-3 text-center px-6">
+            <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center px-6">
               <Lock className="h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">Preview not available. File may have expired.</p>
             </div>
           )}
 
           {!loading && signedUrl && doc.mime_type.startsWith("image/") && (
-            <div className="flex items-center justify-center h-full p-4">
+            <div className="flex items-center justify-center flex-1 p-4 overflow-auto">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={signedUrl} alt={doc.label} className="max-h-full max-w-full object-contain rounded-lg" />
             </div>
@@ -173,7 +173,7 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
               <iframe
                 src={blobUrl}
                 title={doc.label}
-                className="w-full h-full min-h-[60vh] border-0 bg-white"
+                className="w-full flex-1 border-0 bg-white min-h-0"
               />
             ) : pdfError ? (
               <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-6">

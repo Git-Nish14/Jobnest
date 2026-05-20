@@ -39,7 +39,7 @@ export default function TermsPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Terms of Use
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: March 26, 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: 19 May 2026</p>
           </div>
 
           <div className="space-y-8 text-[#55433d] leading-relaxed">
@@ -70,15 +70,29 @@ export default function TermsPage() {
             </Section>
 
             <Section title="3. Description of Service">
-              <p>
+              <p className="mb-3">
                 Jobnest is a web application developed by{" "}
                 <a href="https://nishpatel.dev" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
                   Nish Patel
                 </a>{" "}
-                that allows users to track and manage their job applications. Our service includes features for
-                logging applications, storing documents, AI-assisted job search (NESTAi), managing contacts and
-                interview schedules, and monitoring job search progress. A free tier and optional paid Pro plan
-                are available.
+                that provides an all-in-one career workspace for job seekers. The service includes:
+              </p>
+              <ul className="space-y-1.5 pl-5 list-disc text-sm">
+                <li><strong className="text-[#1a1c1b]">Application tracking</strong> — list and kanban views, status timeline, bulk actions, and ATS completeness scoring</li>
+                <li><strong className="text-[#1a1c1b]">Document Sanctuary</strong> — versioned document library with PDF annotations, secure sharing links, Google Drive / Dropbox import, and ATS keyword scanning</li>
+                <li><strong className="text-[#1a1c1b]">NESTAi AI assistant</strong> — powered by Groq / Llama; interview prep mode, email drafting, JD parsing, and file-aware responses</li>
+                <li><strong className="text-[#1a1c1b]">Interview Prep Hub</strong> — LeetCode problem tracker, system design checklist, STAR behavioral bank, mock interview scheduler, and daily streak</li>
+                <li><strong className="text-[#1a1c1b]">Developer Portfolio</strong> — GitHub integration, project showcase, skills/education/certifications, and a public shareable <code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">/p/username</code> page</li>
+                <li><strong className="text-[#1a1c1b]">Total Compensation Calculator</strong> — RSU vesting, 401(k) match, cost-of-living normalisation, state tax estimation, and offer comparison PDF export</li>
+                <li><strong className="text-[#1a1c1b]">Analytics</strong> — application velocity, stage funnel, source effectiveness, and salary benchmarking from your own data</li>
+                <li><strong className="text-[#1a1c1b]">Reminders & contacts</strong> — follow-up automation, interview scheduling, and a contact CRM</li>
+              </ul>
+              <p className="mt-3">
+                A <strong className="text-[#1a1c1b]">Free plan</strong> and a paid{" "}
+                <strong className="text-[#1a1c1b]">Pro plan</strong> are available. Pro plan billing is
+                processed by Stripe. See our{" "}
+                <a href="/pricing" className="text-[#99462a] hover:underline font-medium">Pricing page</a> for
+                current plan details and pricing.
               </p>
             </Section>
 
@@ -117,13 +131,48 @@ export default function TermsPage() {
               </p>
             </Section>
 
-            <Section title="7. AI Features (NESTAi)">
+            <Section title="7. AI Features (NESTAi &amp; ATS Scanner)">
+              <p className="mb-3">
+                Jobnest includes an AI-powered assistant (&quot;NESTAi&quot;) powered by Groq (Llama models) and an
+                ATS Scanner supporting multiple providers (Groq, OpenAI, Anthropic Claude, Google Gemini,
+                Perplexity). AI-generated responses are provided for <strong>informational purposes only</strong> and
+                do not constitute professional career, legal, or financial advice.
+              </p>
               <p>
-                Jobnest includes an AI-powered assistant (&quot;NESTAi&quot;) powered by third-party AI services (Groq / Llama).
-                AI-generated responses are provided for informational purposes only and do not constitute professional
-                career, legal, or financial advice. You are responsible for independently verifying any AI-generated
-                content before acting on it. Uploaded documents (resumes, cover letters) are processed server-side
-                and may be transmitted to third-party AI providers solely to generate responses.
+                You are responsible for independently verifying any AI-generated content before acting on it.
+                Documents you upload (resumes, cover letters, job descriptions) are processed server-side and
+                may be transmitted to third-party AI providers solely to generate your requested response. These
+                providers are contractually prohibited from using your content to train their models. See Section 5
+                of our{" "}
+                <a href="/privacy" className="text-[#99462a] hover:underline font-medium">Privacy Policy</a>{" "}
+                for the full sub-processor list.
+              </p>
+            </Section>
+
+            <Section title="7a. Developer Portfolio &amp; Public Profile">
+              <p className="mb-3">
+                Jobnest allows you to claim a unique username and publish a public portfolio page at{" "}
+                <code className="text-xs font-mono bg-[#f4f3f1] px-1 py-0.5 rounded">jobnest.app/p/&lt;username&gt;</code>.
+                By enabling the public portfolio you agree that:
+              </p>
+              <ul className="space-y-2 pl-5 list-disc">
+                <li>The information you choose to display (name, bio, projects, skills, education, pinned GitHub repos) will be publicly accessible without authentication.</li>
+                <li>Your email address is <strong>not</strong> disclosed on your public profile unless you explicitly enable the &quot;Show email&quot; option.</li>
+                <li>Your job application data (companies applied to, statuses, salaries, notes) is <strong>never</strong> exposed on your public profile page.</li>
+                <li>Usernames may only be changed once every 30 days. We reserve the right to reclaim usernames that violate these Terms.</li>
+              </ul>
+            </Section>
+
+            <Section title="7b. Billing &amp; Pro Plan">
+              <p>
+                Pro plan subscriptions are billed monthly or annually through <strong>Stripe</strong>. By
+                subscribing you agree to Stripe&apos;s{" "}
+                <a href="https://stripe.com/ssa" target="_blank" rel="noopener noreferrer" className="text-[#99462a] hover:underline font-medium">
+                  Services Agreement
+                </a>.
+                Jobnest does not store or process your payment card details — all payment data is handled
+                directly by Stripe. Subscriptions auto-renew until cancelled. You may cancel at any time
+                via the billing portal; your Pro access continues until the end of the paid period.
               </p>
             </Section>
 

@@ -1164,8 +1164,14 @@ export default function NestAiPage() {
 
   const autoResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    e.target.style.height = "auto";
-    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+    const el = e.target;
+    el.style.height = "0";           // collapse first so scrollHeight is accurate
+    // Read the CSS max-height so JS stays in sync.
+    // parseFloat("none") returns NaN — use isFinite to detect that and fall back
+    // to an explicit 108 px (4 lines × 24 px line-height + 2 × 6 px padding).
+    const parsed = parseFloat(getComputedStyle(el).maxHeight);
+    const cap = isFinite(parsed) ? parsed : 108;
+    el.style.height = Math.min(el.scrollHeight, cap) + "px";
   };
 
   const formatRelativeDate = (dateStr: string) => {
@@ -1551,15 +1557,19 @@ export default function NestAiPage() {
                     </button>
                   </div>
                 )}
-                <div className="relative flex items-end gap-2 rounded-[2rem] border shadow-lg transition-all px-3 md:px-4 py-2.5 md:py-3 nestai-input">
+                {/* Capsule input — single-line pill that grows up to ~4 lines then scrolls.
+                    items-center keeps the icon buttons vertically centred at all heights. */}
+                <div className="nestai-input flex items-center gap-1.5 sm:gap-2 rounded-[999px] border transition-all px-2 sm:px-3 py-2">
+                  {/* Attach */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
-                    className="p-3 rounded-full text-[#55433d] hover:bg-[#99462a]/8 transition-colors disabled:opacity-40 shrink-0"
+                    className="nestai-input-btn shrink-0"
                     title="Attach file or image (PDF, DOCX, TXT, images — max 5 MB)"
+                    aria-label="Attach file"
                   >
-                    <Paperclip className="h-5 w-5" />
+                    <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <input
                     ref={fileInputRef}
@@ -1571,6 +1581,7 @@ export default function NestAiPage() {
                     onChange={handleFileChange}
                   />
 
+                  {/* Auto-growing textarea — no min-height so it starts at one line */}
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -1579,15 +1590,17 @@ export default function NestAiPage() {
                     placeholder="Ask NESTAi anything..."
                     rows={1}
                     disabled={isLoading}
-                    className="flex-1 min-w-0 resize-none bg-transparent text-sm md:text-base focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 placeholder:text-[#55433d]/50 py-2.5 min-h-[48px] md:min-h-[56px] max-h-[40vh] leading-relaxed disabled:opacity-50 text-[#1a1c1b] break-words"
+                    className="nestai-input-textarea flex-1 min-w-0"
                   />
 
+                  {/* Send / Stop */}
                   {isLoading ? (
                     <button
                       type="button"
                       onClick={stopStreaming}
-                      className="h-10 w-10 rounded-full shrink-0 bg-[#1a1c1b]/10 hover:bg-[#1a1c1b]/20 flex items-center justify-center transition-colors"
+                      className="nestai-send-btn shrink-0 bg-[#1a1c1b]/10 hover:bg-[#1a1c1b]/20"
                       title="Stop generating"
+                      aria-label="Stop generating"
                     >
                       <Square className="h-4 w-4 fill-current text-[#1a1c1b]" />
                     </button>
@@ -1598,9 +1611,9 @@ export default function NestAiPage() {
                       aria-label="Send message"
                       disabled={(!input.trim() && !attachedFile) || isLoading}
                       className={cn(
-                        "h-10 w-10 rounded-full shrink-0 flex items-center justify-center transition-all active:scale-90",
+                        "nestai-send-btn shrink-0 transition-all active:scale-90",
                         (input.trim() || attachedFile) && !isLoading
-                          ? "bg-[#99462a] hover:bg-[#d97757] text-white shadow-md"
+                          ? "bg-[#99462a] hover:bg-[#d97757] text-white shadow-sm"
                           : "bg-[#c8c6c3] text-[#88726c]"
                       )}
                     >

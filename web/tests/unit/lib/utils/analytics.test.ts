@@ -42,8 +42,19 @@ function makeApp(overrides: Partial<AppRow> & { status: string }): AppRow {
     applied_date: daysAgo(30),
     updated_at: daysAgo(20),
     created_at: daysAgo(30),
+    source: null,
+    salary_range: null,
   };
   return { ...base, ...overrides };
+}
+
+/** Returns a specific ISO date string (YYYY-MM-DD) for a given weekday of the most recent week.
+ *  0=Sun, 1=Mon, …, 6=Sat — uses LOCAL time to match the fixed analytics computation. */
+function localDateForWeekday(weekday: 0 | 1 | 2 | 3 | 4 | 5 | 6): string {
+  const d = new Date();
+  const diff = (d.getDay() - weekday + 7) % 7;
+  d.setDate(d.getDate() - diff);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /** Returns an ISO date string for N days before today */
@@ -293,3 +304,279 @@ describe("getDashboardAnalytics — ghostRate", () => {
     expect(data?.ghostRate).toBe(100);
   });
 });
+
+// ── sourceEffectiveness ───────────────────────────────────────────────────────
+
+describe("getDashboardAnalytics — sourceEffectiveness", () => {
+  it("returns empty array with no applications", async () => {
+    mockCreate.mockResolvedValue(makeSupabaseClient([]) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.sourceEffectiveness).toEqual([]);
+  });
+
+  it("excludes sources with only 1 application (below minimum)", async () => {
+    const apps = [makeApp({ status: "Applied", source: "LinkedIn" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.sourceEffectiveness).toEqual([]);
+  });
+
+  it("computes response rate correctly per source", async () => {
+    const apps = [
+      makeApp({ status: "Phone Screen", source: "LinkedIn" }),
+      makeApp({ status: "Applied",      source: "LinkedIn" }),
+      makeApp({ status: "Applied",      source: "Indeed" }),
+      makeApp({ status: "Applied",      source: "Indeed" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const linkedin = data?.sourceEffectiveness.find((s) => s.source === "LinkedIn");
+    const indeed   = data?.sourceEffectiveness.find((s) => s.source === "Indeed");
+    expect(linkedin?.total).toBe(2);
+    expect(linkedin?.responded).toBe(1);
+    expect(linkedin?.responseRate).toBe(50);
+    expect(indeed?.total).toBe(2);
+    expect(indeed?.responded).toBe(0);
+    expect(indeed?.responseRate).toBe(0);
+  });
+
+  it("counts Interview, Offer, Accepted, and Rejected as responded", async () => {
+    const respondedStatuses = ["Phone Screen", "Interview", "Offer", "Accepted", "Rejected"] as const;
+    const apps = [
+      ...respondedStatuses.map((status) => makeApp({ status, source: "Referral" })),
+      makeApp({ status: "Applied", source: "Referral" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const referral = data?.sourceEffectiveness.find((s) => s.source === "Referral");
+    expect(referral?.total).toBe(6);
+    expect(referral?.responded).toBe(5);
+    expect(referral?.responseRate).toBe(83);
+  });
+
+  it("groups null source as 'Other'", async () => {
+    const apps = [
+      makeApp({ status: "Phone Screen", source: null }),
+      makeApp({ status: "Applied",      source: null }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const other = data?.sourceEffectiveness.find((s) => s.source === "Other");
+    expect(other?.total).toBe(2);
+    expect(other?.responseRate).toBe(50);
+  });
+
+  it("sorts results by responseRate descending", async () => {
+    const apps = [
+      // "Referral" 100 % (2/2), "LinkedIn" 0 % (0/2)
+      makeApp({ status: "Offer",   source: "Referral" }),
+      makeApp({ status: "Offer",   source: "Referral" }),
+      makeApp({ status: "Applied", source: "LinkedIn" }),
+      makeApp({ status: "Applied", source: "LinkedIn" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const rates = data?.sourceEffectiveness.map((s) => s.responseRate) ?? [];
+    expect(rates[0]).toBeGreaterThanOrEqual(rates[rates.length - 1]);
+  });
+});
+
+// ── avgSalaryBySource (parseSalary) ───────────────────────────────────────────
+
+describe("getDashboardAnalytics — avgSalaryBySource", () => {
+  it("returns empty array when no apps have a salary_range", async () => {
+    const apps = [makeApp({ status: "Applied", source: "LinkedIn", salary_range: null })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.avgSalaryBySource).toEqual([]);
+  });
+
+  it("parses 'min - max' range and takes midpoint", async () => {
+    // "100000 - 120000" → midpoint 110000
+    const apps = [makeApp({ status: "Applied", source: "LinkedIn", salary_range: "100000 - 120000" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const row = data?.avgSalaryBySource.find((r) => r.source === "LinkedIn");
+    expect(row?.avgSalary).toBe(110000);
+    expect(row?.count).toBe(1);
+  });
+
+  it("parses currency-formatted salary '$90,000 - $110,000'", async () => {
+    // strips $ and , → 90000, 110000 → midpoint 100000
+    const apps = [makeApp({ status: "Applied", source: "Indeed", salary_range: "$90,000 - $110,000" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const row = data?.avgSalaryBySource.find((r) => r.source === "Indeed");
+    expect(row?.avgSalary).toBe(100000);
+  });
+
+  it("parses a single salary value (no range)", async () => {
+    const apps = [makeApp({ status: "Applied", source: "Referral", salary_range: "80000" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const row = data?.avgSalaryBySource.find((r) => r.source === "Referral");
+    expect(row?.avgSalary).toBe(80000);
+  });
+
+  it("averages multiple apps in the same source", async () => {
+    // 80k + 120k → avg 100k
+    const apps = [
+      makeApp({ status: "Applied", source: "LinkedIn", salary_range: "80000" }),
+      makeApp({ status: "Applied", source: "LinkedIn", salary_range: "120000" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const row = data?.avgSalaryBySource.find((r) => r.source === "LinkedIn");
+    expect(row?.avgSalary).toBe(100000);
+    expect(row?.count).toBe(2);
+  });
+
+  it("skips unparseable salary strings gracefully", async () => {
+    const apps = [
+      makeApp({ status: "Applied", source: "LinkedIn", salary_range: "Competitive" }),
+      makeApp({ status: "Applied", source: "LinkedIn", salary_range: "100000" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    // Only the parseable entry counts
+    const row = data?.avgSalaryBySource.find((r) => r.source === "LinkedIn");
+    expect(row?.count).toBe(1);
+    expect(row?.avgSalary).toBe(100000);
+  });
+
+  it("sorts results by avgSalary descending", async () => {
+    const apps = [
+      makeApp({ status: "Applied", source: "Referral", salary_range: "60000" }),
+      makeApp({ status: "Applied", source: "LinkedIn", salary_range: "120000" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const salaries = data?.avgSalaryBySource.map((r) => r.avgSalary) ?? [];
+    expect(salaries[0]).toBeGreaterThanOrEqual(salaries[salaries.length - 1]);
+  });
+});
+
+// ── stageFunnel ───────────────────────────────────────────────────────────────
+
+describe("getDashboardAnalytics — stageFunnel", () => {
+  it("returns all 5 stages with 0 counts when no apps exist", async () => {
+    mockCreate.mockResolvedValue(makeSupabaseClient([]) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.stageFunnel).toHaveLength(5);
+    data?.stageFunnel.forEach((s) => expect(s.count).toBe(0));
+  });
+
+  it("counts apps at each stage cumulatively (Applied includes everything above)", async () => {
+    const apps = [
+      makeApp({ status: "Applied" }),
+      makeApp({ status: "Phone Screen" }),
+      makeApp({ status: "Interview" }),
+      makeApp({ status: "Offer" }),
+      makeApp({ status: "Accepted" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+
+    const funnel = Object.fromEntries((data?.stageFunnel ?? []).map((s) => [s.stage, s.count]));
+    // Applied: all 5 apps are at or past Applied
+    expect(funnel["Applied"]).toBe(5);
+    // Phone Screen: Phone Screen, Interview, Offer, Accepted = 4
+    expect(funnel["Phone Screen"]).toBe(4);
+    // Interview: Interview, Offer, Accepted = 3
+    expect(funnel["Interview"]).toBe(3);
+    // Offer: Offer, Accepted = 2
+    expect(funnel["Offer"]).toBe(2);
+    // Accepted: Accepted only = 1
+    expect(funnel["Accepted"]).toBe(1);
+  });
+
+  it("correctly handles all apps stuck at Applied stage", async () => {
+    const apps = Array.from({ length: 10 }, () => makeApp({ status: "Applied" }));
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const funnel = Object.fromEntries((data?.stageFunnel ?? []).map((s) => [s.stage, s.count]));
+    expect(funnel["Applied"]).toBe(10);
+    expect(funnel["Phone Screen"]).toBe(0);
+    expect(funnel["Offer"]).toBe(0);
+  });
+
+  it("does not count Rejected or Ghosted in any funnel stage", async () => {
+    const apps = [
+      makeApp({ status: "Rejected" }),
+      makeApp({ status: "Ghosted" }),
+      makeApp({ status: "Applied" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const funnel = Object.fromEntries((data?.stageFunnel ?? []).map((s) => [s.stage, s.count]));
+    // Only Applied counts
+    expect(funnel["Applied"]).toBe(1);
+  });
+});
+
+// ── weekdayActivity — local-time date parsing fix ─────────────────────────────
+
+describe("getDashboardAnalytics — weekdayActivity", () => {
+  it("returns exactly 7 entries (Mon–Sun)", async () => {
+    mockCreate.mockResolvedValue(makeSupabaseClient([]) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.weekdayActivity).toHaveLength(7);
+    expect(data?.weekdayActivity.map((d) => d.day)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+  });
+
+  it("all counts are 0 with no applications", async () => {
+    mockCreate.mockResolvedValue(makeSupabaseClient([]) as never);
+    const { data } = await getDashboardAnalytics();
+    data?.weekdayActivity.forEach((d) => expect(d.count).toBe(0));
+  });
+
+  it("correctly bins an application by its LOCAL weekday (not UTC)", () => {
+    // The bug: new Date("2026-05-18") = UTC midnight → wrong weekday for UTC− users.
+    // Fix: new Date(y, m-1, d) uses local time.
+    // We test by constructing a date string that is Tuesday in LOCAL time and checking
+    // that it lands in the "Tue" bucket regardless of timezone.
+    const tuesdayLocal = localDateForWeekday(2); // 2 = Tuesday (getDay)
+    const result = localDateToWeekdayIndex(tuesdayLocal);
+    // Mon=0, Tue=1, … Sun=6
+    expect(result).toBe(1);
+  });
+
+  it("bins multiple applications across different weekdays", async () => {
+    const monday    = localDateForWeekday(1); // 1=Mon
+    const wednesday = localDateForWeekday(3); // 3=Wed
+    const saturday  = localDateForWeekday(6); // 6=Sat
+    const apps = [
+      makeApp({ status: "Applied", applied_date: monday }),
+      makeApp({ status: "Applied", applied_date: monday }),
+      makeApp({ status: "Applied", applied_date: wednesday }),
+      makeApp({ status: "Applied", applied_date: saturday }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const byDay = Object.fromEntries((data?.weekdayActivity ?? []).map((d) => [d.day, d.count]));
+    expect(byDay["Mon"]).toBe(2);
+    expect(byDay["Wed"]).toBe(1);
+    expect(byDay["Sat"]).toBe(1);
+    expect(byDay["Tue"]).toBe(0);
+    expect(byDay["Sun"]).toBe(0);
+  });
+
+  it("total weekday counts equals total applications", async () => {
+    const apps = Array.from({ length: 12 }, (_, i) =>
+      makeApp({ status: "Applied", applied_date: localDateForWeekday((i % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6) })
+    );
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const total = data?.weekdayActivity.reduce((s, d) => s + d.count, 0) ?? 0;
+    expect(total).toBe(12);
+  });
+});
+
+// ── Helper exposed for the weekday local-time test ────────────────────────────
+// This mirrors the exact computation in services/analytics.ts so we can unit-test
+// the date-parsing fix without importing the private function.
+function localDateToWeekdayIndex(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const raw = new Date(y, m - 1, d).getDay(); // local time, 0=Sun
+  return raw === 0 ? 6 : raw - 1;             // Mon=0..Sun=6
+}

@@ -82,6 +82,33 @@ describe("applicationSchema — required fields", () => {
   });
 });
 
+// ── notes field — new max constraint ─────────────────────────────────────────
+
+describe("applicationSchema — notes field (max 50 000 chars)", () => {
+  it("accepts notes within the limit", () => {
+    expect(applicationSchema.safeParse({ ...BASE, notes: "a".repeat(50000) }).success).toBe(true);
+  });
+
+  it("rejects notes exceeding 50 000 characters", () => {
+    const result = applicationSchema.safeParse({ ...BASE, notes: "a".repeat(50001) });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe("Notes cannot exceed 50 000 characters");
+  });
+
+  it("accepts undefined notes (field is optional)", () => {
+    expect(applicationSchema.safeParse({ ...BASE }).success).toBe(true);
+  });
+
+  it("accepts an empty string for notes", () => {
+    expect(applicationSchema.safeParse({ ...BASE, notes: "" }).success).toBe(true);
+  });
+
+  it("accepts multi-line notes with newlines and unicode", () => {
+    const notes = "Line one\nLine two\n• Bullet ✓ emoji 🎉 — unicode safe\n".repeat(100);
+    expect(applicationSchema.safeParse({ ...BASE, notes }).success).toBe(true);
+  });
+});
+
 // ── source field (existing, regression guard) ─────────────────────────────────
 
 describe("applicationSchema — source", () => {

@@ -373,37 +373,40 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       return NextResponse.json({ error: "Failed to get AI response. Please try again." }, { status: 500 });
     }
 
-    // Stream tokens from Groq SSE → client
+    // Guard: body can be null in edge proxies even on HTTP 200.
+    if (!groqResponse.body) {
+      return NextResponse.json({ error: "AI service returned an empty response. Please try again." }, { status: 502 });
+    }
+
+    // Stream tokens from Groq SSE → client.
+    // TransformStream avoids the Node.js internal kState.transformAlgorithm error
+    // that occurs when ReadableStream's underlying source controller is used inside
+    // Next.js's response plumbing (which wraps responses in its own TransformStream).
     const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        const reader = groqResponse.body!.getReader();
-        const decoder = new TextDecoder();
-        let doneStreaming = false;
-        try {
-          while (!doneStreaming) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const text = decoder.decode(value, { stream: true });
-            for (const line of text.split("\n")) {
-              if (!line.startsWith("data: ")) continue;
-              const payload = line.slice(6).trim();
-              if (payload === "[DONE]") { doneStreaming = true; break; }
+    const decoder = new TextDecoder();
+    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        const text = decoder.decode(chunk, { stream: true });
+        for (const line of text.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") return;
+          try {
+            const json = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+            const token = json.choices?.[0]?.delta?.content;
+            // Guard against enqueue on a controller that has already been closed
+            // (can happen if the client disconnected while a chunk was in-flight).
+            if (token) {
               try {
-                const json = JSON.parse(payload);
-                const token = json.choices?.[0]?.delta?.content;
-                if (token) controller.enqueue(encoder.encode(token));
-              } catch { /* skip malformed chunks */ }
+                controller.enqueue(encoder.encode(token));
+              } catch { /* controller closed — client disconnected mid-stream */ }
             }
-          }
-          // Close only once, on normal completion
-          controller.close();
-        } catch (err) {
-          // controller.error() terminates the stream — do NOT also call close()
-          controller.error(err);
+          } catch { /* skip malformed SSE chunks */ }
         }
       },
     });
+    // pipeTo propagates back-pressure and surfaces client-disconnect cancellations.
+    groqResponse.body.pipeTo(writable).catch(() => { /* stream aborted by client disconnect */ });
 
     const resetInSeconds = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
 
