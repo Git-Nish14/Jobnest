@@ -109,6 +109,42 @@ describe("applicationSchema — notes field (max 50 000 chars)", () => {
   });
 });
 
+// ── company_tier ─────────────────────────────────────────────────────────────
+
+describe("applicationSchema — company_tier", () => {
+  it("accepts every valid tier value", () => {
+    for (const tier of ["FAANG", "Tier 1", "Tier 2", "Tier 3", "Startup"] as const) {
+      const result = applicationSchema.safeParse({ ...BASE, company_tier: tier });
+      expect(result.success, `expected '${tier}' to be valid`).toBe(true);
+    }
+  });
+
+  it("accepts undefined (field is optional)", () => {
+    const result = applicationSchema.safeParse({ ...BASE });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty string (maps to null in form cleanData)", () => {
+    const result = applicationSchema.safeParse({ ...BASE, company_tier: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an arbitrary string not in the enum", () => {
+    const result = applicationSchema.safeParse({ ...BASE, company_tier: "Unicorn" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects wrong casing ('faang')", () => {
+    const result = applicationSchema.safeParse({ ...BASE, company_tier: "faang" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an injection-style string", () => {
+    const result = applicationSchema.safeParse({ ...BASE, company_tier: "'; DROP TABLE job_applications;--" });
+    expect(result.success).toBe(false);
+  });
+});
+
 // ── source field (existing, regression guard) ─────────────────────────────────
 
 describe("applicationSchema — source", () => {

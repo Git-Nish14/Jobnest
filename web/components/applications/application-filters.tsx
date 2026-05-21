@@ -5,9 +5,11 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   Search, X, ChevronDown,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, ChevronsUpDown,
-  Stamp, Filter,
+  Stamp, Filter, Building2,
 } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/config";
+import { COMPANY_TIERS } from "@/types/application";
+import type { CompanyTier } from "@/types/application";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -31,9 +33,10 @@ export function ApplicationFilters() {
   const currentStatus           = searchParams.get("status") || "all";
   const currentSort             = searchParams.get("sort")   || "date_desc";
   const sponsorshipOnly         = searchParams.get("sponsorship") === "true";
+  const currentTier             = (searchParams.get("tier") || "all") as CompanyTier | "all";
 
   // Count active non-sort filters for the badge
-  const activeFilterCount = (currentStatus !== "all" ? 1 : 0) + (sponsorshipOnly ? 1 : 0);
+  const activeFilterCount = (currentStatus !== "all" ? 1 : 0) + (sponsorshipOnly ? 1 : 0) + (currentTier !== "all" ? 1 : 0);
 
   const push = useCallback(
     (qs: string) => startTransition(() => router.push(`/applications?${qs}`)),
@@ -66,7 +69,7 @@ export function ApplicationFilters() {
 
   const handleSearchSubmit = (e: React.FormEvent) => { e.preventDefault(); push(createQS({ search })); };
   const clearSearch = () => { setSearch(""); push(createQS({ search: "" })); };
-  const clearAllFilters = () => push(createQS({ status: "", sponsorship: "" }));
+  const clearAllFilters = () => push(createQS({ status: "", sponsorship: "", tier: "" }));
 
   const currentSortOption = SORT_OPTIONS.find((o) => o.value === currentSort) ?? SORT_OPTIONS[0];
 
@@ -151,6 +154,28 @@ export function ApplicationFilters() {
               Needs Sponsorship
               {sponsorshipOnly && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#99462a]" />}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[10px] text-[#55433d]/50 uppercase tracking-widest font-semibold">
+              Company tier
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => push(createQS({ tier: "" }))}
+              className={cn("flex items-center gap-2.5", currentTier === "all" && "font-semibold text-[#99462a]")}
+            >
+              All tiers
+              {currentTier === "all" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#99462a]" />}
+            </DropdownMenuItem>
+            {COMPANY_TIERS.map((tier) => (
+              <DropdownMenuItem
+                key={tier}
+                onClick={() => push(createQS({ tier }))}
+                className={cn("flex items-center gap-2.5", currentTier === tier && "font-semibold text-[#99462a]")}
+              >
+                <Building2 className="h-3.5 w-3.5 opacity-50" />
+                {tier}
+                {currentTier === tier && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#99462a]" />}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -208,6 +233,17 @@ export function ApplicationFilters() {
             >
               <Stamp className="h-3 w-3" />
               Needs Sponsorship
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          {currentTier !== "all" && (
+            <button
+              type="button"
+              onClick={() => push(createQS({ tier: "" }))}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#99462a]/10 dark:bg-[#ccff00]/10 text-[#99462a] dark:text-[#ccff00] border border-[#99462a]/20 dark:border-[#ccff00]/20 hover:bg-[#99462a]/20 transition-colors"
+            >
+              <Building2 className="h-3 w-3" />
+              {currentTier}
               <X className="h-3 w-3" />
             </button>
           )}

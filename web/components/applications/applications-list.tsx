@@ -18,6 +18,7 @@ interface Filters {
   location?: string;
   dateRange?: string;
   sponsorship?: string;
+  tier?: string;
 }
 
 interface Props {
@@ -70,15 +71,18 @@ export function ApplicationsList({
         .from("job_applications")
         .select("*");
 
-      // Replicate server-side filters on the client
+      // Replicate server-side filters on the client.
+      // Strip PostgREST meta-characters from free-text terms to prevent filter injection.
+      const sanitize = (s: string) => s.replace(/[,()."']/g, " ").slice(0, 200);
       if (filters.search) {
-        query = query.or(`company.ilike.%${filters.search}%,position.ilike.%${filters.search}%`);
+        const s = sanitize(filters.search);
+        query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
       }
       if (filters.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
       if (filters.location) {
-        query = query.ilike("location", `%${filters.location}%`);
+        query = query.ilike("location", `%${sanitize(filters.location)}%`);
       }
       if (filters.dateRange && filters.dateRange !== "all") {
         const now = new Date();
@@ -96,13 +100,24 @@ export function ApplicationsList({
       if (filters.sponsorship === "true") {
         query = query.eq("requires_sponsorship", true);
       }
+      if (filters.tier && filters.tier !== "all") {
+        query = query.eq("company_tier", filters.tier);
+      }
 
       // Decode cursor: base64("applied_date|id")
-      const [cursorDate, cursorId] = atob(cursor).split("|");
-      if (cursorDate && cursorId) {
-        query = query.or(
-          `applied_date.lt.${cursorDate},and(applied_date.eq.${cursorDate},id.lt.${cursorId})`
-        );
+      // atob() throws DOMException on invalid base64 — wrap it so load-more never crashes.
+      // Strict format validation also prevents PostgREST filter injection.
+      const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      try {
+        const [cursorDate, cursorId] = atob(cursor).split("|");
+        if (cursorDate && cursorId && DATE_RE.test(cursorDate) && UUID_RE.test(cursorId)) {
+          query = query.or(
+            `applied_date.lt.${cursorDate},and(applied_date.eq.${cursorDate},id.lt.${cursorId})`
+          );
+        }
+      } catch {
+        // Invalid base64 cursor — skip pagination rather than crashing
       }
 
       const { data, error } = await query

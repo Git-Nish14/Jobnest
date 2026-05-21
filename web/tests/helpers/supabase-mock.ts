@@ -21,8 +21,15 @@ export function makeChain(result: unknown = { data: null, error: null }) {
   self.gte = chainMethod();
   self.lte = chainMethod();
   self.in = chainMethod();
+  self.or = chainMethod();
+  self.ilike = chainMethod();
+  self.filter = chainMethod();
+  self.contains = chainMethod();
+  self.textSearch = chainMethod();
+  self.range = chainMethod();
   self.order = chainMethod();
   self.limit = chainMethod();
+  self.offset = chainMethod();
   // single / maybeSingle terminate the chain with a real Promise
   self.single = vi.fn().mockResolvedValue(result);
   self.maybeSingle = vi.fn().mockResolvedValue(result);

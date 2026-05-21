@@ -60,11 +60,14 @@ describe("verifyOrigin", () => {
     expect(verifyOrigin(req)).toBe(true);
   });
 
-  it("allows localhost via Host header even when NEXT_PUBLIC_APP_URL is production URL", () => {
-    // Simulates: dev server at localhost:3000 with NEXT_PUBLIC_APP_URL pointing to prod
+  it("blocks localhost when NEXT_PUBLIC_APP_URL is set to a production URL", () => {
+    // Static URL is now the sole authority in production.
+    // Developers must set NEXT_PUBLIC_APP_URL=http://localhost:3000 in .env.local
+    // for local dev — they cannot rely on x-forwarded-host or host fallback when
+    // a production URL is configured.
     process.env.NEXT_PUBLIC_APP_URL = "https://jobnest.nishpatel.dev";
     const req = makeRequest("http://localhost:3000", undefined, { host: "localhost:3000" });
-    expect(verifyOrigin(req)).toBe(true);
+    expect(verifyOrigin(req)).toBe(false);
   });
 
   it("allows production request via x-forwarded-host", () => {
@@ -81,15 +84,23 @@ describe("verifyOrigin", () => {
     expect(verifyOrigin(req)).toBe(false);
   });
 
-  it("fails open in non-production when NEXT_PUBLIC_APP_URL is absent", () => {
+  it("blocks arbitrary origins in dev when NEXT_PUBLIC_APP_URL is absent and host does not match", () => {
+    // Without a configured URL, only origins matching the actual Host header are allowed.
+    // "Fail-open to anything" was removed because it allowed x-forwarded-host spoofing.
     const original = process.env.NEXT_PUBLIC_APP_URL;
     delete process.env.NEXT_PUBLIC_APP_URL;
-    const originalNodeEnv = process.env.NODE_ENV;
-    // In test environment (non-production) should allow
+    // No host header → origin cannot be corroborated → block
     const req = makeRequest("https://anywhere.com");
-    const result = verifyOrigin(req);
-    expect(result).toBe(true);
+    expect(verifyOrigin(req)).toBe(false);
     process.env.NEXT_PUBLIC_APP_URL = original;
-    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it("allows in dev when NEXT_PUBLIC_APP_URL is absent and host matches origin", () => {
+    const original = process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    // host header present and matches → dev fallback allows the request
+    const req = makeRequest("http://localhost:3000", undefined, { host: "localhost:3000" });
+    expect(verifyOrigin(req)).toBe(true);
+    process.env.NEXT_PUBLIC_APP_URL = original;
   });
 });

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Newsreader, Manrope } from "next/font/google";
 import { Navbar, BottomTabBar } from "@/components/layout";
+import { NPSFeedback } from "@/components/layout/NPSFeedback";
 import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -60,10 +61,11 @@ export default async function DashboardLayout({
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />
       )}
       {/* pb-36: clears bottom tab bar (4rem) + NESTAi fixed input on mobile */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 md:pb-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 md:pb-8">
         {children}
       </main>
       <BottomTabBar />
+      <NPSFeedback />
     </div>
   );
 }

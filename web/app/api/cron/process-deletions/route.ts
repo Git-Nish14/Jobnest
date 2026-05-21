@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import {
   sendDeletionReminderEmail,
   sendDeletionFinalWarningEmail,
@@ -42,6 +43,90 @@ export async function GET(request: NextRequest) {
   } else {
     for (const record of dueForDeletion ?? []) {
       try {
+        // ── Storage purge — delete all files under {userId}/ prefix ──────────
+        // Must happen before auth.deleteUser so we still have the user context.
+        // Paginate until all objects are deleted — list() returns at most 1000 per call.
+        // We also recurse into sub-folders (applicationId/label/...) by listing prefixes.
+        let storagePurgeError = false;
+        let totalPurged = 0;
+
+        const purgePrefix = async (prefix: string): Promise<void> => {
+          let offset = 0;
+          const PAGE = 1000;
+          while (true) {
+            const { data: items, error: listErr } = await supabaseAdmin.storage
+              .from("documents")
+              .list(prefix, { limit: PAGE, offset });
+
+            if (listErr) {
+              console.warn(`[cron] storage list failed (${prefix}) for ${record.email}:`, listErr.message);
+              storagePurgeError = true;
+              break;
+            }
+            if (!items || items.length === 0) break;
+
+            // Separate files (have metadata) from folder-like prefixes (metadata === null)
+            const filePaths: string[] = [];
+            const subFolders: string[] = [];
+            for (const item of items) {
+              if (item.id) {
+                filePaths.push(`${prefix}/${item.name}`);
+              } else {
+                // No id = directory placeholder; recurse into it
+                subFolders.push(`${prefix}/${item.name}`);
+              }
+            }
+
+            if (filePaths.length > 0) {
+              const { error: removeErr } = await supabaseAdmin.storage
+                .from("documents")
+                .remove(filePaths);
+              if (removeErr) {
+                console.warn(`[cron] storage remove failed for ${record.email}:`, removeErr.message);
+                storagePurgeError = true;
+              } else {
+                totalPurged += filePaths.length;
+              }
+            }
+
+            for (const sub of subFolders) {
+              await purgePrefix(sub);
+            }
+
+            if (items.length < PAGE) break;
+            offset += PAGE;
+          }
+        };
+
+        await purgePrefix(record.user_id);
+
+        if (!storagePurgeError) {
+          console.log(`[cron] purged ${totalPurged} storage objects for ${record.email}`);
+        } else {
+          console.warn(`[cron] storage purge incomplete for ${record.email} — ${totalPurged} objects removed before error`);
+          results.errors.push(`storage-purge ${record.email}: incomplete (${totalPurged} removed)`);
+        }
+
+        // ── Stripe customer purge ─────────────────────────────────────────────
+        if (isStripeConfigured()) {
+          const { data: sub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("stripe_customer_id")
+            .eq("user_id", record.user_id)
+            .maybeSingle();
+
+          if (sub?.stripe_customer_id) {
+            try {
+              await getStripe().customers.del(sub.stripe_customer_id);
+              console.log(`[cron] stripe customer deleted for ${record.email}`);
+            } catch (stripeErr) {
+              const msg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr);
+              console.warn(`[cron] stripe delete failed for ${record.email}:`, msg);
+              // Non-fatal — Stripe data is secondary; proceed with auth delete
+            }
+          }
+        }
+
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(record.user_id);
 
         if (deleteError) {

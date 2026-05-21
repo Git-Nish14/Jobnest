@@ -9,7 +9,7 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.ts", "tests/flows/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["lib/**", "app/api/**", "proxy.ts"],
+      include: ["lib/**", "app/api/**", "services/**", "proxy.ts"],
       exclude: [
         "**/*.d.ts",
         "node_modules/**",

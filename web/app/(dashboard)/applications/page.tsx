@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
 import { getApplications, getApplicationsPage } from "@/services";
-import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle } from "@/components/applications";
+import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
 
 const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
@@ -22,6 +22,7 @@ interface PageProps {
     sort?: string;
     view?: string;
     sponsorship?: string;
+    tier?: string;
   }>;
 }
 
@@ -47,6 +48,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       dateRange: toDateRange(params.dateRange),
       sort: params.sort,
       sponsorshipOnly,
+      tier: params.tier,
     });
     if (error) console.error("Error fetching applications:", error.message);
     apps = applications ?? [];
@@ -57,6 +59,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       location: params.location,
       dateRange: toDateRange(params.dateRange),
       sponsorshipOnly,
+      tier: params.tier,
     });
     if (page.error) console.error("Error fetching applications page:", page.error);
     apps = page.data;
@@ -76,6 +79,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </div>
         <div className="flex items-center gap-3">
           <ViewToggle />
+          <ImportButton />
           <ExportButton />
           <Link href="/applications/new" className="db-btn-page-primary">
             <Plus className="h-4 w-4" />
@@ -102,12 +106,13 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
               location: params.location,
               dateRange: params.dateRange,
               sponsorship: params.sponsorship,
+              tier: params.tier,
             }}
           />
         )
       ) : (
         /* Empty state — differentiate filtered vs brand-new user */
-        params.search || params.status || params.location || params.dateRange ? (
+        params.search || params.status || params.location || params.dateRange || params.sponsorship || params.tier ? (
           /* Filtered, no results */
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
+import { COMPANY_TIERS } from "@/types/application";
 
 /**
  * Shared secure URL field for Zod schemas.
@@ -82,6 +83,10 @@ export const applicationSchema = z.object({
     .optional()
     .or(z.literal("")),
   requires_sponsorship: z.boolean().optional().default(false),
+  company_tier: z
+    .enum(COMPANY_TIERS as [string, ...string[]], { message: "Invalid company tier" })
+    .optional()
+    .or(z.literal("")),
 });
 
 export type ApplicationFormData = z.infer<typeof applicationSchema>;

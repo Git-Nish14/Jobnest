@@ -19,15 +19,25 @@ function encodeCursor(app: JobApplication): string {
   return btoa(`${app.applied_date}|${app.id}`);
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function decodeCursor(cursor: string): { date: string; id: string } | null {
   try {
     const raw = atob(cursor);
     const [date, id] = raw.split("|");
     if (!date || !id) return null;
+    // Strict format validation prevents PostgREST filter-string injection
+    if (!DATE_RE.test(date) || !UUID_RE.test(id)) return null;
     return { date, id };
   } catch {
     return null;
   }
+}
+
+/** Strip characters that have special meaning in PostgREST .or() filter grammar. */
+function sanitizeFilterTerm(s: string): string {
+  return s.replace(/[,()."']/g, " ").slice(0, 200);
 }
 
 /**
@@ -45,15 +55,14 @@ export async function getApplicationsPage(
 
     // Apply the same filters as getApplications
     if (params?.search) {
-      query = query.or(
-        `company.ilike.%${params.search}%,position.ilike.%${params.search}%`
-      );
+      const s = sanitizeFilterTerm(params.search);
+      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
     }
     if (params?.status && params.status !== "all") {
       query = query.eq("status", params.status);
     }
     if (params?.location) {
-      query = query.ilike("location", `%${params.location}%`);
+      query = query.ilike("location", `%${sanitizeFilterTerm(params.location)}%`);
     }
     if (params?.dateRange && params.dateRange !== "all") {
       const now = new Date();
@@ -70,6 +79,9 @@ export async function getApplicationsPage(
     }
     if (params?.sponsorshipOnly) {
       query = query.eq("requires_sponsorship", true);
+    }
+    if (params?.tier && params.tier !== "all") {
+      query = query.eq("company_tier", params.tier);
     }
 
     // Keyset cursor: fetch rows after the last seen (applied_date, id) pair.
@@ -117,9 +129,8 @@ export async function getApplications(
 
     // Search filter
     if (params?.search) {
-      query = query.or(
-        `company.ilike.%${params.search}%,position.ilike.%${params.search}%`
-      );
+      const s = sanitizeFilterTerm(params.search);
+      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
     }
 
     // Status filter
@@ -129,7 +140,7 @@ export async function getApplications(
 
     // Location filter
     if (params?.location) {
-      query = query.ilike("location", `%${params.location}%`);
+      query = query.ilike("location", `%${sanitizeFilterTerm(params.location)}%`);
     }
 
     // Date range filter
@@ -166,6 +177,9 @@ export async function getApplications(
     // Sponsorship filter
     if (params?.sponsorshipOnly) {
       query = query.eq("requires_sponsorship", true);
+    }
+    if (params?.tier && params.tier !== "all") {
+      query = query.eq("company_tier", params.tier);
     }
 
     // Sorting

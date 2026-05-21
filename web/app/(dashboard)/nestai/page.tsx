@@ -5,7 +5,7 @@ import {
   Send, Sparkles, Loader2, Trash2, Plus, PanelLeftClose, PanelLeft,
   MoreHorizontal, Pencil, X, Check, BrainCircuit, TrendingUp, Calendar,
   Bell, Building2, Target, MessageSquare, Zap, Copy, CheckCheck,
-  Square, Pin, PinOff, Paperclip, Mail,
+  Square, Pin, PinOff, Paperclip, Mail, FileDown,
 } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1332,6 +1332,16 @@ export default function NestAiPage() {
             >
               <Mail className="h-3.5 w-3.5" /> Draft
             </button>
+            {messages.length > 0 && currentSessionId && (
+              <a
+                href={`/api/nesta-ai/sessions/${currentSessionId}/export-pdf`}
+                download
+                title="Export this chat as PDF"
+                className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs text-[#55433d] hover:text-[#1a1c1b] hover:bg-[#f4f3f1] rounded-full transition-colors"
+              >
+                <FileDown className="h-3.5 w-3.5" /> Export
+              </a>
+            )}
             {messages.length > 0 && (
               <button
                 type="button"
@@ -1444,7 +1454,11 @@ export default function NestAiPage() {
                   ) : (
                     <div className="flex gap-3 group">
                       <AssistantAvatar thinking={!!(msg.isStreaming && !msg.content)} />
-                      <div className="flex-1 min-w-0">
+                      <div
+                        className="flex-1 min-w-0"
+                        aria-live="polite"
+                        aria-atomic="false"
+                      >
                         {msg.isStreaming && !msg.content
                           ? <ThinkingIndicator />
                           : <MarkdownRenderer content={msg.content} isStreaming={msg.isStreaming} />

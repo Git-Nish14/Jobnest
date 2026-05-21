@@ -1,0 +1,6 @@
+Contact: mailto:security@nishpatel.dev
+Expires: 2027-05-20T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://jobnest.nishpatel.dev/.well-known/security.txt
+Policy: https://jobnest.nishpatel.dev/privacy
+Acknowledgments: https://jobnest.nishpatel.dev/security-acknowledgments

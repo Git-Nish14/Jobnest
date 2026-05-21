@@ -31,6 +31,8 @@ export interface QueryParams {
   cursor?: string;
   /** When true, only return applications where requires_sponsorship = true. */
   sponsorshipOnly?: boolean;
+  /** Filter by company tier. */
+  tier?: string;
 }
 
 /** Items per page used by cursor-paginated queries. Defined here (not in services/)

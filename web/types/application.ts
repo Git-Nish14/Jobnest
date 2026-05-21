@@ -1,5 +1,8 @@
 import type { ApplicationStatus } from "@/config/constants";
 
+export type CompanyTier = "FAANG" | "Tier 1" | "Tier 2" | "Tier 3" | "Startup";
+export const COMPANY_TIERS: CompanyTier[] = ["FAANG", "Tier 1", "Tier 2", "Tier 3", "Startup"];
+
 export interface JobApplication {
   id: string;
   user_id: string;
@@ -17,6 +20,7 @@ export interface JobApplication {
   ats_provider: string | null;
   ats_score: number | null;
   requires_sponsorship: boolean;
+  company_tier: CompanyTier | null;
   resume_path: string | null;
   cover_letter_path: string | null;
   created_at: string;

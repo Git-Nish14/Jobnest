@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/layout/CookieBanner";
 import "./globals.css";
@@ -145,9 +146,16 @@ export default async function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('jobnest_theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}
         />
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[200] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+        >
+          Skip to content
+        </a>
         {children}
         <Toaster richColors position="top-right" />
         <CookieBanner />
+        <SpeedInsights />
       </body>
     </html>
   );

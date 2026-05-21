@@ -74,6 +74,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Universal Filter dropdown** — status filter is a dropdown on all screen sizes with an active-count badge; removable active-filter chips appear below the search bar when filters are on; "Clear all" link when 2+ filters active; sort by date/company/position
 - **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
 - **Full-text search** — command palette (`⌘K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
+- **Company tier tagging** — tag each application as FAANG / Tier 1 / Tier 2 / Tier 3 / Startup; filter pill in the applications list with removable chip; Zod-validated in the application form; migration 33
+- **CSV bulk import** — "Import CSV" button opens a 4-step wizard (upload → column-map with auto-matching → 5-row preview → confirm); papaparse parses in-browser; server validates every row with Zod (company + position required; status/date default when absent); dangerous URL schemes (`javascript:`, `data:`, etc.) rejected; partial success shows per-row errors; 2 MB file cap + 500-row server cap; rate-limited 5/min
 - Export to CSV or JSON; kanban board view toggle
 
 ### ATS Scanner (`/ats`)
@@ -125,7 +127,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### NESTAi — AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
-- **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking…" indicator while awaiting first token
+- **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking…" indicator while awaiting first token; `aria-live="polite"` on the streaming bubble so screen readers announce incoming content
+- **Chat-to-PDF export** — "Export" button in NESTAi topbar; `GET /api/nesta-ai/sessions/[id]/export-pdf`; styled PDF with user/AI bubbles, timestamps, and session title via `@react-pdf/renderer`; downloads as `nestai-{title}.pdf`; RLS-enforced
 - **Work authorization aware** — user's visa status injected into system prompt
 - **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary always stored to Supabase Storage via `parse-file`; binary-only preview modal: PDF → CSP-safe blob URL iframe (full native PDF viewer with controls), Image → `<img>`, TXT/MD → raw file bytes, DOCX → "Open in browser"; preview independent from AI text extraction; 10-min signed URLs; preview survives page navigation (storagePath persisted in `chat_messages.metadata`)
 - **Edit messages in-place** — edited message stays at same position; AI response replaces the one after it; file attachment preserved through edit
@@ -190,7 +193,9 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1085 tests, 74 files) |
+| Testing | Vitest (1151 tests, 78 files) |
+| Error monitoring | Sentry (`@sentry/nextjs`) |
+| Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
 ---
 
@@ -294,7 +299,7 @@ web/
 └── proxy.ts                      # Route protection + security headers
 
 supabase/
-└── migrations/                   # SQL migration files (run in order, 000 → 031)
+└── migrations/                   # SQL migration files (run in order, 000 → 034)
 ```
 
 ---
@@ -408,6 +413,9 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` to allow `'chat-attachments'` as trusted second-segment in storage paths |
 | 30 | `...030_document_annotations.sql` | `document_annotations` table — page-relative x/y/width coordinates, colour, content; RLS owner-only; indexes on `document_id` + `user_id` |
 | 31 | `...031_portfolio.sql` | `usernames` (slug → user_id lookup), `github_connections` (OAuth token + profile stats), `github_repos` (cached repos, is_pinned), `projects` (showcase with optional repo link), `application_projects` (junction); FORCE RLS + `WITH CHECK` on all tables; `set_updated_at` triggers |
+| 32 | `...032_ats_provider.sql` | `ats_provider` column on `job_applications` |
+| 33 | `...033_company_tier.sql` | `company_tier` enum (FAANG/Tier 1/Tier 2/Tier 3/Startup) + nullable column on `job_applications`; partial index on `(user_id, company_tier)` |
+| 34 | `...034_feedback.sql` | `user_feedback` table (score 0–10 CHECK, optional comment, RLS: insert-only); index on `created_at DESC` for admin analytics |
 
 ### Installation
 
@@ -429,7 +437,7 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1085 tests, 74 files)
+npm test              # Vitest (1151 tests, 78 files)
 npm run test:coverage # Coverage report
 ```
 
@@ -441,9 +449,11 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities (incl. **token encryption roundtrip/legacy/tamper**, **`formatCompactDateTime`**), all API route handlers (incl. parse-jd SSRF, attachment-url, search, skills/certifications/education, all 5 prep route groups, **LinkedIn verify**), analytics (avg time to response, interview-to-offer rate, ghost rate, **sourceEffectiveness**, **avgSalaryBySource** incl. comma-thousands parsing, **stageFunnel**, **weekdayActivity** + UTC timezone regression test), **notes `.max(50000)`** Zod constraint, proxy + CSP nonce |
-| Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens; **updated for dropdown filter bar** (badge, active chips, clear-all) |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload+model-fallback + **body-null 502 guard** + **TransformStream multi-chunk streaming** + **malformed SSE skip**, Stripe billing, developer identity full CRUD, portfolio (GitHub, projects, LinkedIn, username) |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics, Zod schemas; **new this sprint**: `bulk-import` (18 tests — gates, row validation, partial success, error message no-leak), `feedback` (16 tests — score 0–10 boundary, comment length, all gates), `export-pdf` (8 tests — IDOR guard, auth, Content-Disposition filename), `company_tier` schema (6 tests), `services/applications-filter` (11 tests — `sanitizeFilterTerm` strips `,()."'`, cursor injection prevention for date/UUID format and invalid base64, tier `.eq()` applied/skipped) |
+| Security | `tests/unit/lib/security/csrf.test.ts` | Updated for new `verifyOrigin`: static URL is sole authority in production; dynamic host fallback dev-only and host-header only; `x-forwarded-host` spoofing no longer passes |
+| Cron | `tests/unit/api/cron/process-deletions.test.ts` | **New**: storage purge (list + remove called, empty bucket, list error non-fatal), Stripe purge (customer.del called, skip when unconfigured, deletion succeeds when Stripe throws) |
+| Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
+| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
 
 ---
 
@@ -460,6 +470,8 @@ All tests run with **Vitest** — no browser or external service required. All d
 | SSRF | `assertSafeUrl()` on parse-jd: DNS pre-resolution blocks loopback, RFC-1918, link-local (AWS/GCP metadata), CGNAT; post-redirect check prevents open-redirect chains |
 | Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url; Storage path `{uid}/chat-attachments/…` — first segment is user ID, enforced by RLS |
 | Cron auth | `Authorization: Bearer <CRON_SECRET>` — fail-closed |
+| Right-to-erasure | Deletion cron purges Supabase Storage (`documents` bucket, recursive pagination) and Stripe customer before `auth.admin.deleteUser()`; orphan verification queries 9 tables post-delete |
+| CSRF origin | `verifyOrigin()` validates `Origin` against `NEXT_PUBLIC_APP_URL` (static allowlist — no `x-forwarded-host` spoofing); dev-only fallback checks unforwardable `host` header |
 | RLS | All tables enforce row-level security via `auth.uid()` |
 | Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |
 | Document serving | `Content-Disposition: attachment` forced — prevents stored XSS |

@@ -12,6 +12,7 @@ import { uploadFile } from "@/lib/utils/storage";
 import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
 import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
+import { COMPANY_TIERS } from "@/types/application";
 import type { JobApplication } from "@/types";
 import {
   Button,
@@ -62,12 +63,14 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       source: (application?.source as ApplicationFormData["source"]) || "",
       ats_provider: (application?.ats_provider as ApplicationFormData["ats_provider"]) || "",
       requires_sponsorship: application?.requires_sponsorship ?? false,
+      company_tier: (application?.company_tier as ApplicationFormData["company_tier"]) || "",
     },
   });
 
   const currentStatus   = watch("status");
   const currentSource   = watch("source");
   const currentProvider = watch("ats_provider");
+  const currentTier     = watch("company_tier");
 
   // ── Resume autofill ──────────────────────────────────────────────────────
   interface MasterDoc { id: string; label: string; original_name: string | null; mime_type: string }
@@ -217,6 +220,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
         // but we guard against it at runtime for defence-in-depth.
         source: ((data.source as string) === "__none__" ? null : data.source) || null,
         ats_provider: ((data.ats_provider as string) === "__none__" ? null : data.ats_provider) || null,
+        company_tier: ((data.company_tier as string) === "__none__" ? null : data.company_tier) || null,
       };
 
       if (isEditing) {
@@ -226,7 +230,8 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             ...cleanData,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", application.id);
+          .eq("id", application.id)
+          .eq("user_id", userId); // defence-in-depth on top of RLS
 
         if (updateError) throw updateError;
         toast.success("Application updated successfully");
@@ -567,6 +572,27 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Company tier */}
+          <div className="space-y-2">
+            <Label htmlFor="company_tier">Company Tier <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Select
+              value={currentTier || ""}
+              onValueChange={(value) =>
+                setValue("company_tier", (value === "__none__" ? "" : value) as ApplicationFormData["company_tier"])
+              }
+            >
+              <SelectTrigger id="company_tier">
+                <SelectValue placeholder="Select tier…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {COMPANY_TIERS.map((tier) => (
+                  <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Sponsorship */}

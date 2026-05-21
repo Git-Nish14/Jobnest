@@ -4,6 +4,40 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## 🚨 Next Up
+
+- [ ] **PDF upload — preserve original filename** — when a resume or cover letter is uploaded in the application form, the document should display the file's original name (e.g. `John_Doe_Resume.pdf`) not the generic label "resume" / "cover_letter"; migrate form uploads to insert into `application_documents` with `original_name = file.name` so DocumentManager shows the real filename
+- [ ] **TC / Salary comparison broken** — the "Offer Comparison" table on `/salary` only shows applications with `status = "Offer"`, but users add salary data during interviews and applied stages too; table should cover all applications with salary data and show a status badge per row; the page subtitle "Compare and track total compensation packages across your applications" implies all-apps scope
+- [ ] **Rejected status dot & colour broken** — in the Status Journey timeline the Rejected dot is visually broken compared to Applied and other stages: (1) **dot size** — the Rejected circle appears smaller/offset relative to the Applied amber dot; both should be the same `w-4 h-4` solid circle with no border/shadow difference; (2) **dot style** — the Rejected dot appears to render with a slightly different visual treatment (darker fill, possible inner-shadow or border artefact) making it look like a ring rather than a solid disc; (3) **colour consistency** — `bg-[#ba1a1a]` is used for the timeline dot, but the `db-status-rejected` CSS badge class and the card left-accent bar should all use the same token; audit `status-timeline.tsx` `STATUS_META.Rejected.dot`, `dashboard.css .db-status-rejected`, and `application-card.tsx` `statusTokens.Rejected.accent` to ensure they all render identically and match the visual weight of other status dots (see screenshot: Applied = large clean amber disc, Rejected = visually inconsistent red)
+- [ ] **Duplicate application warning** — when the user types a company + position in the new/edit form, check existing applications for the same pair and show a non-blocking inline note ("You already applied to Stripe as a Software Engineer — still adding?"); do not block submission, just inform
+- [ ] **Dashboard chart colours** — all 6 analytics charts use shades of terracotta/grey only; apply distinct purposeful colours: Rejected → red, Offers → emerald, Applied → amber, funnel stages warm→cool; ensure legibility in both light and dark mode
+
+---
+
+## ✅ Sprint Shipped (May 2026 — Security, UX & Features Sprint)
+
+- [x] **security.txt** — `/.well-known/security.txt` with contact, expires, canonical, policy headers (RFC 9116 compliant)
+- [x] **Skip-to-content link** — `<a href="#main-content">` as first focusable element in root layout; `id="main-content"` on `<main>` in dashboard, public, and auth layouts
+- [x] **ARIA live regions** — Sonner `<Toaster>` wrapped in `role="status" aria-live="polite"`; NESTAi streaming assistant bubble gets `aria-live="polite" aria-atomic="false"`
+- [x] **Core Web Vitals** — `@vercel/speed-insights` installed; `<SpeedInsights />` added to root layout
+- [x] **Sentry error monitoring** — `@sentry/nextjs` installed; `sentry.client/server/edge.config.ts`; `withSentryConfig` wraps `next.config.ts`; tunnel route `/monitoring`; CSP updated for `*.sentry.io`; gated on `NEXT_PUBLIC_SENTRY_DSN`
+- [x] **Redis document-parse cache** — `document-parser.ts` gains SHA-256-keyed Upstash cache (1h TTL); Upstash pipeline POST used for SET (avoids `/` path-segment corruption); falls back silently when Redis not configured; covers PDF + DOCX parse paths
+- [x] **Company tier tagging** — `company_tier` enum migration (FAANG/Tier 1/Tier 2/Tier 3/Startup); Zod schema field + form select; filter dropdown pill + removable chip; `?tier=` param threaded through server page → service → client load-more; both `getApplicationsPage` and `getApplications` filter by tier
+- [x] **Chat-to-PDF export** — "Export" button in NESTAi topbar; `GET /api/nesta-ai/sessions/[id]/export-pdf`; styled PDF via `@react-pdf/renderer` with user/AI chat bubbles + timestamps; RLS + `user_id` IDOR guard
+- [x] **CSV bulk import** — 4-step wizard (upload → auto-map columns → 5-row preview → confirm); papaparse client-side parse; `POST /api/applications/bulk-import` validates every row with Zod; status defaults to Applied; dangerous URL schemes blocked; partial success; 2 MB file cap + 500-row server cap; rate-limited; "Import CSV" button in applications header
+- [x] **NPS / in-app feedback** — `user_feedback` table (migration 34, RLS insert-only); `POST /api/feedback` (Zod: score 0–10 int, comment ≤1000); `NPSFeedback` bottom-right modal fires 7 days after `first_seen` (lazily stamped), dismissible, marks `nps_submitted` to prevent re-show; timer properly cleaned up on unmount
+- [x] **Right to erasure — Storage + Stripe purge** — deletion cron (`process-deletions`) now recursively paginates Supabase Storage to delete all `{userId}/…` objects before auth deletion; also calls `stripe.customers.del()` when Stripe is configured; both failures are non-fatal (logged, user still deleted)
+- [x] **CSRF hardening** — `verifyOrigin()` rewrote priority: `NEXT_PUBLIC_APP_URL`/`NEXT_PUBLIC_SITE_URL` is sole authority in production; `x-forwarded-host` spoofing bypass eliminated; dev fallback uses unforwardable `host` header only, gated on `NODE_ENV !== "production"`
+- [x] **PostgREST filter injection prevention** — `sanitizeFilterTerm()` strips `,()."'` from `search` and `location` before interpolation into `.or()` / `.ilike()`; cursor validated with strict date + UUID regexes; client-side `atob()` wrapped in try/catch; applied on both server service and client load-more
+- [x] **Bulk-import URL scheme guard** — `javascript:`, `data:`, `vbscript:`, `file:`, `blob:` blocked in the CSV import `job_url` field (matches `secureUrlField` in the main schema)
+- [x] **Empty-state bug fix** — applications empty-state now checks `sponsorship` and `tier` params (previously showed "Add your first application" when only those filters were active with no results)
+- [x] **Update query user_id guard** — `application-form.tsx` update now chains `.eq("user_id", userId)` for defence-in-depth alongside RLS
+- [x] **Skip-link target on all layouts** — `id="main-content"` added to `<main>` in public layout and wrapped around `{children}` in auth layout
+- [x] **Tests** — 1151 tests / 78 files / 100% pass; 4 new test files: `bulk-import.test.ts` (18), `feedback.test.ts` (16), `export-pdf.test.ts` (8), `services/applications-filter.test.ts` (11); `company_tier` schema tests added (6); `csrf.test.ts` updated for new verifyOrigin behaviour (2 tests replaced); `process-deletions.test.ts` updated with storage mock + 6 new storage/Stripe tests; `makeChain` helper extended with `.or()`, `.ilike()`, `.filter()`, `.contains()`, `.offset()`, `.range()`, `.textSearch()`
+- [x] **CI** — lint ✓ · typecheck ✓ · build (all routes) ✓
+
+---
+
 ## ✅ Sprint Shipped (May 2026)
 
 - [x] **Landing page refresh** — removed "New:" badge and feature strip; fixed large whitespace gaps between sections (how-it-works `mb-24` removed, CTA `py-32` → `pt-10 pb-20`); 6-card infinite auto-scroll testimonials carousel with `prefers-reduced-motion` support, `aria-hidden` on duplicate set, and `role="list"` guard corrected
@@ -365,7 +399,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ### 🏢 Company Intelligence
 
-- [ ] **Company tier tagging** — enum on `job_applications`: FAANG/MAANG, Tier 2 (Stripe/Databricks/Figma/OpenAI tier), Tier 3 (mid-size), Startup (Series A-C), Startup (Pre-seed/Seed), Government/Non-profit; filter and analytics by tier
+- [x] **Company tier tagging** — `company_tier` enum (FAANG/Tier 1/Tier 2/Tier 3/Startup); filter pill + removable chip; form select; migrations 33; server + client filter paths updated
 - [ ] **Sponsorship reputation** — community-sourced boolean per company: "Sponsors H1B" (Yes / No / Unknown); pre-seeded list of top 500 US tech employers; user can flag/correct; surfaced as a badge when adding an application to a known company
 - [ ] **Interview process wiki** — after completing an interview loop, user can contribute their anonymised process (rounds, question types, timeline, outcome) to a per-company wiki visible to all users; e.g. "Google SWE E3: 1 phone screen, 5 onsite, 1 Googleyness round, 4-6 week timeline"
 - [ ] **Glassdoor / Blind sentiment** — link company name to Glassdoor search results page; show overall Glassdoor rating (fetched from a free public data source or user-input); "Work-life balance" and "CEO approval" sub-ratings for quick filtering
@@ -449,9 +483,10 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - ~~`pdf-parse` 1.x → 2.x~~ ✓ upgraded to `2.4.5`
   - `eslint` 9 → 10 (major — config format may change; currently on 9.x)
   - `@types/node` 20 → 25 (major; currently on `^20`)
-- [ ] **Move document parse cache to Redis** — `document-parser.ts` currently has no caching at all (stateless parse on every call); add Redis-backed SHA-256 cache before scaling
-- [ ] **Error monitoring** — integrate Sentry for server-side and client-side error tracking
-- [x] **Vitest tests — 1032 tests, 73 files, 100% pass (no browser, fully automated)**
+- [x] **Move document parse cache to Redis** — SHA-256 keyed Upstash cache (1h TTL) in `document-parser.ts`; Upstash pipeline POST for SET (avoids `/` corruption); covers PDF + DOCX
+- [x] **Error monitoring** — Sentry integrated (see Observability section)
+- [x] **`@types/node` 25** — already on `^25` in devDependencies
+- [x] **Vitest tests — 1151 tests, 78 files, 100% pass (no browser, fully automated)**
   - Unit tests: `tests/unit/` — lib utilities (incl. signupFormSchema age+terms, rate-limit async/Redis, verifyOrigin CSRF, template-helpers substituteVariables, **token encryption roundtrip/legacy/tamper**, **date formatCompactDateTime**), all API route handlers (auth, profile, documents, export, Stripe webhook + portal, GDPR export, cron + erasure, prep hub, **LinkedIn verify**), proxy
   - E2E flow tests: `tests/flows/` — full user journeys: login (remember-me), signup (age/terms), forgot-password, change-password, delete+reactivate, NESTAi chat+upload, **Stripe billing** (checkout → webhook → portal → payment failure dunning → cancellation), **Portfolio** (GitHub connection/repos/disconnect/sync, projects CRUD + image_url validation, LinkedIn, username claim/availability/**DELETE**/30-day-cooldown, portfolio visibility, cron auth, schema validation, decryptToken path)
   - Playwright E2E: `tests/e2e/` — public pages, auth flows, UI smoke tests
@@ -484,7 +519,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **Redis-backed rate limiting** — Upstash REST API; falls back to in-memory when env var absent; all 20+ callers migrated (shipped — see Security section)
 - [x] **Full-text search** — GIN-indexed `search_vector` tsvector; `websearch_to_tsquery`; `/api/search` endpoint (shipped — see Recently Shipped)
 - [x] **Cursor-based pagination** — keyset pagination on applications list; "Load more" appends pages (shipped — see Recently Shipped)
-- [ ] **Redis document-parse cache** — `document-parser.ts` has no caching at all; add Upstash Redis cache keyed on SHA-256 of file bytes, `CACHE_TTL=1h`
+- [x] **Redis document-parse cache** — SHA-256 keyed Upstash cache in `document-parser.ts`; 1h TTL; pipeline POST for reliable SET of text containing `/`
 - [ ] **Database connection pooling** — route Supabase connections through **PgBouncer** (Supabase's built-in pooler at port 6543) to prevent connection exhaustion at high concurrency
 - [ ] **CDN & asset optimisation** — ensure `next/image` uses Vercel Image Optimisation CDN; add far-future `Cache-Control` headers on `/public` static assets; consider Cloudflare in front of Vercel for global edge caching
 - [ ] **Background job queue** — move heavy operations (PDF parse, email sending, AI calls) off the request path; use [Trigger.dev](https://trigger.dev) or Vercel Queue; prevents Vercel 10s timeout on large uploads
@@ -495,9 +530,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🔭 Observability & Reliability
 
-- [ ] **Sentry** — integrate `@sentry/nextjs`; capture unhandled server errors, client errors, and slow API routes (> 2s); set `tracesSampleRate: 0.1` in production
+- [x] **Sentry** — `@sentry/nextjs` installed; client/server/edge configs; `withSentryConfig` wraps next.config; tunnel route `/monitoring`; `tracesSampleRate: 0.1`; gated on `NEXT_PUBLIC_SENTRY_DSN`
 - [ ] **Structured server logging** — replace `console.log` with [Pino](https://github.com/pinojs/pino); emit JSON logs to Vercel Log Drains → Datadog / Logtail / Better Stack
-- [ ] **Web Vitals dashboard** — send `reportWebVitals` data to a `/api/vitals` collector or Vercel Speed Insights; alert if LCP > 2.5 s
+- [x] **Web Vitals dashboard** — `@vercel/speed-insights` added to root layout; Vercel Speed Insights dashboard available
 - [ ] **Uptime monitoring** — add external synthetic checks on `/api/health` (Checkly / Better Uptime / UptimeRobot); page on-call channel if p99 > 3 s or error rate > 1%
 - [x] **`/api/health` endpoint** — liveness + readiness probe; checks: Supabase ping, SMTP connectivity, Groq API reachability; returns `{ ok: true, checks: {...} }`
 - [ ] **Alerting** — Slack / PagerDuty alerts for: Stripe webhook failures, cron job failures, error rate spikes, DB connection pool exhaustion
@@ -534,7 +569,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - [x] **Storage RLS fixed** — old path `chat-attachments/{uid}/…` failed RLS (`foldername[1]` was `chat-attachments`, not uid); new path `{uid}/chat-attachments/…` passes the existing policy; `user_owns_application()` extended to allow `'chat-attachments'` as a trusted second-segment; bucket MIME types expanded (migration 28/29)
   - [x] **`storagePath` always set** — `pendingStorageIdRef` generates a UUID before the first session exists so files uploaded on the very first message get a storagePath; `parse-file` now requires `session_id` and returns 500 (not silent null) if storage upload fails; all file types (images, txt, md) go through parse-file so every attachment is stored
   - [x] **Thinking indicator** — pulsing terracotta dots + avatar ping animation while waiting for the first streaming token; replaces previous bare empty-bubble state
-- [ ] **Chat to PDF export** — "Export chat" button in the NESTAi sidebar or chat header; renders the entire conversation (user messages, AI responses including markdown, file attachment cards, timestamps) into a formatted single PDF; useful for saving interview prep sessions, sharing AI-generated advice with a mentor, or keeping a record of a job search strategy session
+- [x] **Chat to PDF export** — "Export" button in NESTAi topbar; `GET /api/nesta-ai/sessions/[id]/export-pdf`; styled PDF via `@react-pdf/renderer`; RLS + IDOR guard
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
 
 ---
@@ -548,7 +583,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **A/B testing** — use Vercel Experiments or custom `x-variant` cookie + Edge Config; start with pricing page CTA button copy and plan layout
 - [x] **Weekly digest email** — `/api/cron/weekly-digest` (Mondays 08:00 UTC) fully implemented; fetches per-user stats (apps this week, active pipeline, upcoming interviews, overdue reminders), recent apps and upcoming interview rows; sends via `sendWeeklyDigestEmail`; opt-in via `notification_prefs.weekly_digest`
 - [x] **Re-engagement emails** — `/api/cron/re-engagement` (daily 10:00 UTC); targets users inactive ≥14 days; 30-day cooldown; opt-out toggle in profile notifications; PII-safe logs
-- [ ] **NPS / in-app feedback** — show a 1-question NPS survey after 7 days of use and after major events (first offer recorded, account upgrade); store responses in `feedback` table
+- [x] **NPS / in-app feedback** — `user_feedback` table (migration 34); `POST /api/feedback`; `NPSFeedback` modal fires 7 days after `first_seen`, dismissible, re-show prevention via `nps_submitted` flag
 
 ---
 
@@ -559,7 +594,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Google Calendar sync** — OAuth scope `calendar.events`; on interview creation, create a Google Calendar event with meeting URL and notes; sync updates/cancellations
 - [ ] **Public REST API** (`/api/v1/`) — JWT-authenticated CRUD for applications, interviews, contacts; documented with OpenAPI 3.1; rate-limited per API key; enables Zapier / Make / n8n integrations
 - [ ] **Zapier / Make native integration** — publish a Jobnest app on Zapier; triggers: "New Application", "Interview Scheduled"; actions: "Add Application", "Update Status"
-- [ ] **CSV bulk import** — upload a CSV of applications (from LinkedIn "Applied Jobs" export or spreadsheet); map columns wizard; validate + preview before commit
+- [x] **CSV bulk import** — 4-step wizard; papaparse + Zod; partial success; 2 MB + 500-row cap; "Import CSV" button in applications header
 
 ---
 
@@ -581,9 +616,9 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ## ♿ Accessibility & Internationalisation
 
 - [ ] **WCAG 2.1 AA audit** — run [axe-core](https://github.com/dequelabs/axe-core) automated scan + manual keyboard-nav pass on every page; fix all critical / serious violations before launch
-- [ ] **Skip-to-content link** — `<a href="#main-content">` as first focusable element; critical for screen reader and keyboard-only users
+- [x] **Skip-to-content link** — `<a href="#main-content">` in root layout; `id="main-content"` on `<main>` in dashboard, public, and auth layouts
 - [ ] **Focus management on route change** — on SPA navigation, move focus to the new `<h1>` so screen readers announce the new page
-- [ ] **ARIA live regions** — toast notifications and streaming NESTAi responses should be wrapped in `role="status"` / `aria-live="polite"` so screen readers announce them
+- [x] **ARIA live regions** — Sonner `<Toaster>` wrapped in `role="status" aria-live="polite"`; NESTAi streaming bubble gets `aria-live="polite" aria-atomic="false"`
 - [ ] **Colour contrast audit** — verify terracotta `#99462a` on parchment `#faf9f7` meets AA (4.5:1 for normal text, 3:1 for large); fix any failing combinations
 - [ ] **i18n foundation** — add `next-intl`; externalise all UI strings to `messages/en.json`; add locale routing (`/en/`, `/es/`) even if only English ships initially — retrofitting i18n later is expensive
 - [ ] **RTL support** — once i18n is in place, add `dir="rtl"` CSS mirroring for Arabic / Hebrew; Tailwind 4 has RTL utilities
@@ -596,7 +631,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [ ] **Subresource Integrity (SRI)** — add `integrity` hashes to any third-party `<script>` / `<link>` tags loaded from CDNs
 - [x] **Secrets scanning in CI** — `.github/workflows/secrets-scan.yml` using `trufflesecurity/trufflehog@v3.95.2` on push/PR to main
 - [x] **Dependency update automation** — `.github/dependabot.yml` covering npm (`/web`) + GitHub Actions; weekly on Mondays
-- [ ] **Security.txt** (`/.well-known/security.txt`) — disclose responsible disclosure policy and contact email; required by many bug bounty programs and enterprise customers
+- [x] **Security.txt** (`/.well-known/security.txt`) — RFC 9116 compliant; contact, expires, canonical, policy fields
 - [ ] **WAF** — put Cloudflare WAF in front of Vercel; enable OWASP Core Rule Set; add geo-blocking for high-abuse regions; bot management for scraping protection
 - [ ] **Penetration test** — engage a third-party pentest firm before reaching 10k users; focus on auth flows, file upload, API, and Stripe webhook signature bypass
 
@@ -606,7 +641,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 - [x] **GDPR data export** — `GET /api/profile/export-data`; exports profile + 9 data tables (applications, contacts, interviews, reminders, salary, templates, documents, NESTAi sessions, account_status) as a timestamped JSON attachment; rate-limited to 3/day; GDPR Art. 20 compliant
 - [x] **Right to erasure verification** — deletion cron (`/api/cron/process-deletions`) now queries 9 tables after `deleteUser()` and logs `ERASURE WARNING` with row counts for any orphaned data; errors surfaced in cron response JSON
-- [ ] **Right to erasure — Storage + Stripe** — verify Supabase Storage objects and Stripe customer are also purged after account deletion (Storage RLS cascade handles DB rows but Storage objects need explicit delete)
+- [x] **Right to erasure — Storage + Stripe** — deletion cron recursively paginates Storage bucket and calls `stripe.customers.del()` before `auth.admin.deleteUser()`; both failures non-fatal
 - [ ] **Data Processing Agreement (DPA)** — publish a DPA on the website for EU business customers; required by GDPR when a controller uses a processor
 - [x] **CCPA compliance** — "Do Not Sell My Info" link added to landing page footer + pricing page footer; links to `/privacy#do-not-sell`; privacy page CCPA section anchored with `id="do-not-sell"`
 - [ ] **Accessibility statement** — publish conformance level, known exceptions, and contact for accommodation requests; required for public-sector customers in many jurisdictions
@@ -632,7 +667,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 - [x] **`robots.txt`** — `public/robots.txt` with Disallow for all dashboard/API/auth routes; sitemap URL included
 - [x] **OpenGraph & Twitter Card meta** — per-page `openGraph` + `twitter` metadata on all 6 public pages (landing, pricing, privacy, terms, cookies, contact); global fallback in root layout; `summary_large_image` on landing page
 - [x] **Schema.org structured data** — `SoftwareApplication` + `WebSite` (SearchAction) + `FAQPage` JSON-LD on landing; `Product`+`Offer` schema on pricing; improves Google rich results + AI search engines (ChatGPT, Perplexity)
-- [ ] **Core Web Vitals** — target: LCP < 2.5 s, INP < 200 ms, CLS < 0.1 on all public pages; measure with `@vercel/speed-insights`; fix before indexing push
+- [x] **Core Web Vitals** — `@vercel/speed-insights` installed; `<SpeedInsights />` in root layout; Vercel dashboard auto-populates LCP/INP/CLS
 - [ ] **Blog / content hub** (`/blog`) — 3-5 SEO-targeted articles (e.g. "How to track job applications", "Best job search tools 2026"); drives organic traffic and internal links to pricing
 
 ---

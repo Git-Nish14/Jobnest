@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // Enforce HTTPS in production
@@ -43,7 +44,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io",
               "frame-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
@@ -87,7 +88,7 @@ const nextConfig: NextConfig = {
   },
 
   // Keep native Node.js modules out of the webpack client bundle
-  serverExternalPackages: ["pdf-parse", "mammoth"],
+  serverExternalPackages: ["pdf-parse", "mammoth", "@react-pdf/renderer"],
 
   // Security-related experimental features
   experimental: {
@@ -98,4 +99,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Only upload source maps when DSN is configured (skips local / preview envs)
+  silent: !process.env.SENTRY_DSN,
+  widenClientFileUpload: true,
+  // Tunnel Sentry requests through own domain so ad-blockers don't drop them
+  tunnelRoute: "/monitoring",
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
