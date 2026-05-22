@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, FileUp, ChevronDown, ChevronUp, Check, Zap } from "lucide-react";
+import { ApplicationJsonImport } from "./application-json-import";
 import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -338,6 +339,20 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               <Sparkles className="h-3.5 w-3.5" />
               Import from job posting
             </Button>
+
+            {/* JSON import */}
+            <ApplicationJsonImport
+              onImport={(importedData, fieldsImported) => {
+                (Object.entries(importedData) as [keyof ApplicationFormData, ApplicationFormData[keyof ApplicationFormData]][]).forEach(
+                  ([key, value]) => setValue(key, value as never)
+                );
+                toast.success(
+                  fieldsImported.length > 0
+                    ? `${fieldsImported.length} fields imported: ${fieldsImported.join(", ")}`
+                    : "No fields imported."
+                );
+              }}
+            />
 
             {/* Resume autofill */}
             <div className="relative">
