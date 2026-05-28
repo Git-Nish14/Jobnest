@@ -17,7 +17,8 @@ export type NotificationType =
   | "upcoming_interview"
   | "system"
   | "account"
-  | "billing";
+  | "billing"
+  | "document_purge";
 
 export interface NotificationInput {
   userId: string;

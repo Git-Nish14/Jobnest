@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { CompletenessCard } from "@/components/applications/completeness-card";
 import { TailoringChecklist } from "@/components/applications/tailoring-checklist";
 import { StatusTimeline } from "@/components/applications/status-timeline";
+import { DocumentPurgeBanner } from "@/components/applications/document-purge-banner";
+import { DeleteApplicationButton } from "@/components/applications/delete-application-button";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,18 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   // Bridge legacy resume_path / cover_letter_path into LegacyDoc shape so
   // DocumentManager can display them alongside new application_documents rows.
   const supabase = await createClient();
+
+  // Fetch pending document purge entry (only for Rejected apps)
+  let purgeEntry: { purge_at: string } | null = null;
+  if (application.status === "Rejected") {
+    const { data: pq } = await supabase
+      .from("document_purge_queue")
+      .select("purge_at")
+      .eq("application_id", id)
+      .eq("status", "pending")
+      .maybeSingle();
+    purgeEntry = pq ?? null;
+  }
   const legacyPaths = [
     application.resume_path ? { label: "Resume", path: application.resume_path } : null,
     application.cover_letter_path ? { label: "Cover Letter", path: application.cover_letter_path } : null,
@@ -79,6 +93,15 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   const initial = application.company.charAt(0).toUpperCase();
   const { avatar, badge, accent } = statusTokens(application.status);
 
+  // Compute purge countdown server-side before the render return.
+  // This is a server component — Date.now() runs exactly once on the server
+  // and is never called during a client re-render.
+  // eslint-disable-next-line react-hooks/purity
+  const _serverNow    = Date.now();
+  const purgeDaysLeft = purgeEntry
+    ? Math.max(0, Math.ceil((new Date(purgeEntry.purge_at).getTime() - _serverNow) / 86_400_000))
+    : null;
+
   return (
     <div>
 
@@ -92,12 +115,26 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           <span className="hidden sm:inline">Back to Applications</span>
           <span className="sm:hidden">Back</span>
         </Link>
-        {/* Edit button — visible on sm+ in the header; hidden on mobile (uses sticky bar below) */}
-        <Link href={`/applications/${id}/edit`} className="hidden sm:inline-flex db-btn-page-primary">
-          <Pencil className="h-4 w-4" />
-          Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          <DeleteApplicationButton applicationId={id} />
+          {/* Edit button — visible on sm+ in the header; hidden on mobile (uses sticky bar below) */}
+          <Link href={`/applications/${id}/edit`} className="hidden sm:inline-flex db-btn-page-primary">
+            <Pencil className="h-4 w-4" />
+            Edit
+          </Link>
+        </div>
       </div>
+
+      {/* ── Document purge countdown banner ── */}
+      {purgeEntry && purgeDaysLeft !== null && (
+        <div className="mb-4">
+          <DocumentPurgeBanner
+            applicationId={id}
+            daysLeft={purgeDaysLeft}
+            purgeAt={purgeEntry.purge_at}
+          />
+        </div>
+      )}
 
       {/* ── Hero Header ── */}
       <section className="relative bg-[#f4f3f1] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-hidden">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,6 +72,46 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
   const currentSource   = watch("source");
   const currentProvider = watch("ats_provider");
   const currentTier     = watch("company_tier");
+  const watchedCompany  = watch("company");
+  const watchedPosition = watch("position");
+
+  // ── Duplicate detection ──────────────────────────────────────────────────
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    const company  = watchedCompany?.trim();
+    const position = watchedPosition?.trim();
+    if (!company || !position || company.length < 2 || position.length < 2) {
+      setDuplicateWarning(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const supabase = createClient();
+      // Each chained method returns a new builder instance — must capture it.
+      let query = supabase
+        .from("job_applications")
+        .select("id, status")
+        .ilike("company", company)
+        .ilike("position", position)
+        .limit(3);
+
+      // Exclude current application when editing
+      if (application?.id) query = query.neq("id", application.id);
+
+      const { data } = await query;
+      if (data && data.length > 0) {
+        const existing = data[0];
+        setDuplicateWarning(
+          `You already have an application for this role (status: ${existing.status}). Submitting will create a separate entry.`
+        );
+      } else {
+        setDuplicateWarning(null);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [watchedCompany, watchedPosition, application?.id]);
 
   // ── Resume autofill ──────────────────────────────────────────────────────
   interface MasterDoc { id: string; label: string; original_name: string | null; mime_type: string }
@@ -260,6 +300,28 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
           resumeFile,
           "resume"
         );
+        // Persist original filename in application_documents.
+        // mime_type is hardcoded — the form only accepts PDFs and file.type
+        // is browser-controlled so must not be trusted for security decisions.
+        if (resumePath) {
+          await supabase.from("application_documents")
+            .update({ is_current: false })
+            .eq("application_id", applicationId)
+            .eq("user_id", userId)
+            .eq("label", "Resume")
+            .eq("is_current", true);
+          await supabase.from("application_documents").insert({
+            application_id: applicationId,
+            user_id:        userId,
+            label:          "Resume",
+            storage_path:   resumePath,
+            mime_type:      "application/pdf",
+            size_bytes:     resumeFile.size,
+            is_current:     true,
+            is_master:      false,
+            original_name:  resumeFile.name,
+          });
+        }
       }
 
       if (coverLetterFile && applicationId) {
@@ -270,17 +332,39 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
           coverLetterFile,
           "cover_letter"
         );
+        // Persist original filename in application_documents.
+        if (coverLetterPath) {
+          await supabase.from("application_documents")
+            .update({ is_current: false })
+            .eq("application_id", applicationId)
+            .eq("user_id", userId)
+            .eq("label", "Cover Letter")
+            .eq("is_current", true);
+          await supabase.from("application_documents").insert({
+            application_id: applicationId,
+            user_id:        userId,
+            label:          "Cover Letter",
+            storage_path:   coverLetterPath,
+            mime_type:      "application/pdf",
+            size_bytes:     coverLetterFile.size,
+            is_current:     true,
+            is_master:      false,
+            original_name:  coverLetterFile.name,
+          });
+        }
       }
 
-      // Update file paths if files were uploaded
+      // Update file paths if files were uploaded.
+      // Includes explicit user_id guard alongside RLS (defence-in-depth).
       if ((resumeFile || coverLetterFile) && applicationId) {
         const { error: fileUpdateError } = await supabase
           .from("job_applications")
           .update({
-            resume_path: resumePath,
+            resume_path:       resumePath,
             cover_letter_path: coverLetterPath,
           })
-          .eq("id", applicationId);
+          .eq("id", applicationId)
+          .eq("user_id", userId);
 
         if (fileUpdateError) throw fileUpdateError;
       }
@@ -495,6 +579,12 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
               {errors.position && (
                 <p className="text-sm text-destructive">
                   {errors.position.message}
+                </p>
+              )}
+              {duplicateWarning && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                  <span className="shrink-0 mt-0.5">⚠</span>
+                  {duplicateWarning}
                 </p>
               )}
             </div>

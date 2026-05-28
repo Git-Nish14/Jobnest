@@ -57,7 +57,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
   - **Monthly Breakdown** — grouped bars (Applied / Rejected / Offers) over 6 months
   - **Weekday Activity** — Mon–Sun submission bars with peak-day callout; uses device-local time (not UTC) to prevent off-by-one for US time zones
   - **Top Companies** — ranked horizontal bar chart of most-applied companies
-  - **Stage Funnel** — Applied → Phone Screen → Interview → Offer → Accepted cumulative counts
+  - **Stage Funnel** — Applied → Phone Screen → Interview → Offer → Accepted cumulative counts; warm-to-cool colour gradient (amber → orange → terracotta → emerald) makes each stage visually distinct
+  - **Monthly Breakdown** — purposeful semantic colours: Applied → amber, Rejected → red (not grey), Offers → emerald; all three fills are distinct
   - **Avg Salary by Source** — midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
   - **Source Effectiveness** — response rate % per source, sorted descending; only sources with ≥ 2 applications shown
 - **Search Intelligence** — avg days to first response (90-day cap), interview-to-offer rate (≥3 threshold), ghost rate (≥5 threshold)
@@ -71,7 +72,10 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
 - **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
 - **Created / Updated timestamps** — each application card shows `Created May 12 at 3:45 PM` and `· Updated May 13 at 9:20 AM` (only when modified after creation) using device-local timezone
-- **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries)
+- **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries); each status dot uses its own semantic ring colour (amber for Applied, red for Rejected, emerald for Offer/Accepted) so every stage is visually distinct in both light and dark mode
+- **Duplicate application warning** — while typing company + position on the new/edit form, a debounced (600 ms) check queries existing applications; non-blocking amber inline note appears if a match is found; never blocks submission
+- **Delete application** — two-step delete available from both the card three-dot dropdown (menu stays open after first click so "Confirm delete" is immediately visible) and a "Delete" button on the application detail page header (inline "Are you sure? · Yes, delete · Cancel" strip); server-side `DELETE /api/applications/:id` cleans up all associated Storage files before the DB cascade; backed by Playwright E2E tests
+- **Document auto-purge on rejection** — when an application is rejected, a 30-day countdown begins to delete its Storage files; countdown + "Save to library" / "Keep files" banner shown on the application detail page; in-app notifications fire every 5 days; purge can be cancelled or files saved to the master library at any time; only Storage files are removed — the application row and all DB data are kept
 - **Universal Filter dropdown** — status filter is a dropdown on all screen sizes with an active-count badge; removable active-filter chips appear below the search bar when filters are on; "Clear all" link when 2+ filters active; sort by date/company/position
 - **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
 - **Full-text search** — command palette (`⌘K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
@@ -123,7 +127,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Salary Tracker
 - Base salary, bonus, signing bonus, equity, benefits per application
-- Multi-currency; comparison across all offers
+- **Salary Comparison table** — shows **all** applications with salary data (not just Offers); status badge per row so Applied/Interview/Offer/Rejected context is visible at a glance; full TC, take-home estimate, and effective hourly rate columns
+- Multi-currency; state income tax take-home estimate; effective hourly rate adjusted for PTO and working hours
 - **Offer Decision Helper** — select up to 3 offers, rate 5 criteria (Total Comp, Career Growth, Location, Culture, Benefits), adjust global importance weights; live weighted score + winner callout
 
 ### NESTAi — AI Job Search Assistant

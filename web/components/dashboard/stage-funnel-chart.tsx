@@ -6,12 +6,13 @@ interface Props {
   data: StageFunnel[];
 }
 
+// Applied → Phone Screen → Interview → Offer → Accepted: warm amber fading to emerald
 const STAGE_COLOURS = [
-  "fill-[#99462a] dark:fill-[#ccff00]",
-  "fill-[#b85a36] dark:fill-[#b8e600]",
-  "fill-[#cc7a5a] dark:fill-[#99cc00]",
-  "fill-[#e0a88a] dark:fill-[#779900]",
-  "fill-[#f0ccb8] dark:fill-[#556600]",
+  "fill-amber-500   dark:fill-amber-400",     // Applied
+  "fill-orange-500  dark:fill-orange-400",    // Phone Screen / In Review
+  "fill-[#99462a]   dark:fill-[#cc7a5a]",    // Interview
+  "fill-emerald-600 dark:fill-emerald-400",   // Offer
+  "fill-emerald-700 dark:fill-emerald-300",   // Accepted
 ];
 
 export function StageFunnelChart({ data }: Props) {

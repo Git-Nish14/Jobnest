@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui";
 import type { JobApplication } from "@/types";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { SOURCE_COLORS } from "@/config/constants";
 import { AtsProviderBadge } from "@/components/ui/brand-icons";
@@ -66,27 +65,31 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
     }
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: Event) => {
+    // Prevent Radix from closing the dropdown so the user can see "Confirm delete"
+    // without having to re-open the menu.
+    e.preventDefault();
     setConfirmingDelete(true);
-    setTimeout(() => setConfirmingDelete(false), 4000);
+    setTimeout(() => setConfirmingDelete(false), 5000);
   };
 
   const handleDeleteConfirm = async () => {
     setConfirmingDelete(false);
     setDeleting(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("job_applications")
-      .delete()
-      .eq("id", application.id);
-
-    if (error) {
-      toast.error("Failed to delete application");
+    try {
+      const res = await fetch(`/api/applications/${application.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Delete failed");
+      }
+      toast.success("Application deleted");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete application");
       setDeleting(false);
-      return;
     }
-    toast.success("Application deleted");
-    router.refresh();
   };
 
   const formattedDate = formatDate(application.applied_date);
@@ -181,14 +184,16 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     {confirmingDelete ? (
                       <DropdownMenuItem
                         onClick={handleDeleteConfirm}
-                        className="text-destructive focus:text-destructive font-medium"
+                        className="text-destructive focus:text-destructive font-semibold"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Confirm delete
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
-                        onClick={handleDeleteClick}
+                        // preventDefault keeps the dropdown open so the
+                        // "Confirm delete" item becomes visible immediately.
+                        onSelect={handleDeleteClick}
                         disabled={deleting}
                         className="text-destructive focus:text-destructive"
                       >

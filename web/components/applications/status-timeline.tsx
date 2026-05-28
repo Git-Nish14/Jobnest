@@ -20,22 +20,22 @@ interface Stage {
 
 // ── Status presentation tokens ────────────────────────────────────────────────
 
-const STATUS_META: Record<string, { dot: string; badge: string }> = {
-  Applied:        { dot: "bg-amber-400",         badge: "bg-amber-50   text-amber-700   dark:bg-amber-950/40  dark:text-amber-300"  },
-  "Phone Screen": { dot: "bg-[#99462a]",          badge: "bg-[#ffdbd0]/40 text-[#99462a] dark:bg-[#99462a]/20 dark:text-[#ccff00]" },
-  "In Review":    { dot: "bg-[#d97757]",          badge: "bg-orange-50  text-orange-700  dark:bg-orange-950/30 dark:text-orange-300" },
-  Interview:      { dot: "bg-[#006d34]",          badge: "bg-emerald-50 text-[#006d34]   dark:bg-emerald-950/30 dark:text-emerald-300" },
-  Offer:          { dot: "bg-[#006d34]",          badge: "bg-emerald-50 text-[#006d34]   dark:bg-emerald-950/30 dark:text-emerald-300" },
-  Accepted:       { dot: "bg-[#40a45f]",          badge: "bg-emerald-50 text-[#40a45f]   dark:bg-emerald-950/30 dark:text-emerald-300" },
-  Rejected:       { dot: "bg-[#ba1a1a]",          badge: "bg-red-50    text-[#ba1a1a]   dark:bg-red-950/30    dark:text-red-300"    },
-  Withdrawn:      { dot: "bg-muted-foreground",   badge: "bg-muted     text-muted-foreground"                                       },
-  Ghosted:        { dot: "bg-zinc-400",            badge: "bg-zinc-100  text-zinc-600    dark:bg-zinc-800/40   dark:text-zinc-400"   },
+const STATUS_META: Record<string, { dot: string; ring: string; badge: string }> = {
+  Applied:        { dot: "bg-amber-400  dark:bg-amber-400",        ring: "ring-amber-400/25",                          badge: "bg-amber-50   text-amber-700   dark:bg-amber-950/40  dark:text-amber-300"  },
+  "Phone Screen": { dot: "bg-[#99462a] dark:bg-[#cc7a5a]",        ring: "ring-[#99462a]/25",                          badge: "bg-[#ffdbd0]/40 text-[#99462a] dark:bg-[#99462a]/20 dark:text-[#ccff00]" },
+  "In Review":    { dot: "bg-[#d97757] dark:bg-[#d97757]",        ring: "ring-orange-400/25",                         badge: "bg-orange-50  text-orange-700  dark:bg-orange-950/30 dark:text-orange-300" },
+  Interview:      { dot: "bg-[#006d34] dark:bg-emerald-400",      ring: "ring-emerald-500/25",                        badge: "bg-emerald-50 text-[#006d34]   dark:bg-emerald-950/30 dark:text-emerald-300" },
+  Offer:          { dot: "bg-[#006d34] dark:bg-emerald-400",      ring: "ring-emerald-500/25",                        badge: "bg-emerald-50 text-[#006d34]   dark:bg-emerald-950/30 dark:text-emerald-300" },
+  Accepted:       { dot: "bg-[#40a45f] dark:bg-emerald-400",      ring: "ring-emerald-400/25",                        badge: "bg-emerald-50 text-[#40a45f]   dark:bg-emerald-950/30 dark:text-emerald-300" },
+  Rejected:       { dot: "bg-[#ba1a1a] dark:bg-red-400",          ring: "ring-red-500/25  dark:ring-red-400/25",      badge: "bg-red-50    text-[#ba1a1a]   dark:bg-red-950/30    dark:text-red-300"    },
+  Withdrawn:      { dot: "bg-muted-foreground",                   ring: "ring-muted-foreground/20",                   badge: "bg-muted     text-muted-foreground"                                       },
+  Ghosted:        { dot: "bg-zinc-400  dark:bg-zinc-500",         ring: "ring-zinc-400/20",                           badge: "bg-zinc-100  text-zinc-600    dark:bg-zinc-800/40   dark:text-zinc-400"   },
 };
 
 const TERMINAL = new Set(["Offer", "Accepted", "Rejected", "Withdrawn", "Ghosted"]);
 
 function getMeta(status: string) {
-  return STATUS_META[status] ?? { dot: "bg-border", badge: "bg-muted text-muted-foreground" };
+  return STATUS_META[status] ?? { dot: "bg-border", ring: "ring-border/20", badge: "bg-muted text-muted-foreground" };
 }
 
 // ── Timeline builder ──────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ export function StatusTimeline({ activities, appliedDate, currentStatus }: Props
       <div className="hidden sm:block overflow-x-auto pb-2">
         <div className="flex items-start min-w-max gap-0">
           {stages.map((stage, i) => {
-            const { dot, badge } = getMeta(stage.status);
+            const { dot, ring, badge } = getMeta(stage.status);
             const isLast = i === stages.length - 1;
 
             return (
@@ -140,7 +140,7 @@ export function StatusTimeline({ activities, appliedDate, currentStatus }: Props
                     <div className={cn(
                       "w-3 h-3 rounded-full shrink-0 ring-4 ring-background",
                       dot,
-                      stage.isCurrent && "ring-[#99462a]/20 dark:ring-[#ccff00]/20"
+                      stage.isCurrent && ring
                     )} />
                   </div>
 
@@ -184,16 +184,17 @@ export function StatusTimeline({ activities, appliedDate, currentStatus }: Props
         <div className="absolute left-2.25 top-3 bottom-3 w-px bg-border" />
 
         {stages.map((stage, i) => {
-          const { dot, badge } = getMeta(stage.status);
+          const { dot, ring, badge } = getMeta(stage.status);
           const isLast = i === stages.length - 1;
 
           return (
             <div key={i} className={cn("relative flex items-start gap-3", !isLast && "pb-5")}>
-              {/* Dot */}
+              {/* Dot — same 12px as desktop, ring uses per-status colour when current */}
               <div className={cn(
-                "mt-0.5 w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center z-10",
+                "mt-0.5 w-3 h-3 rounded-full shrink-0 z-10",
                 "ring-4 ring-background",
-                dot
+                dot,
+                stage.isCurrent && ring
               )} />
 
               {/* Content */}

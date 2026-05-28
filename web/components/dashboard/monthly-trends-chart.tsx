@@ -7,9 +7,9 @@ interface Props { data: MonthlyTrend[] }
 const CHART_H = 160;
 
 const SERIES = [
-  { key: "count",      label: "Applied",   fill: "fill-[#99462a] dark:fill-[#ccff00]",        opacity: "opacity-90" },
-  { key: "rejections", label: "Rejected",  fill: "fill-[#c8c6c3] dark:fill-white/20",          opacity: "opacity-80" },
-  { key: "offers",     label: "Offers",    fill: "fill-emerald-500 dark:fill-emerald-400",      opacity: "opacity-90" },
+  { key: "count",      label: "Applied",   fill: "fill-amber-500  dark:fill-amber-400",         opacity: "opacity-90" },
+  { key: "rejections", label: "Rejected",  fill: "fill-red-500    dark:fill-red-400",            opacity: "opacity-85" },
+  { key: "offers",     label: "Offers",    fill: "fill-emerald-500 dark:fill-emerald-400",       opacity: "opacity-90" },
 ] as const;
 
 export function MonthlyTrendsChart({ data }: Props) {
