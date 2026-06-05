@@ -323,6 +323,314 @@ export function ApplicationDetailSkeleton() {
   );
 }
 
+// ── SalarySkeleton
+export function SalarySkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="db-page-header">
+        <div className="space-y-2">
+          <AtelierShimmer className="h-10 w-44 rounded-lg" />
+          <AtelierShimmer className="h-5 w-80 rounded" />
+        </div>
+        <AtelierShimmer className="h-9 w-28 rounded-full" />
+      </div>
+
+      {/* 4 stat cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="db-content-card space-y-3">
+            <div className="flex items-center gap-2">
+              <AtelierShimmer className="h-4 w-4 rounded" />
+              <AtelierShimmer className="h-3 w-28 rounded" />
+            </div>
+            <AtelierShimmer className="h-9 w-24 rounded" />
+            <AtelierShimmer className="h-3 w-32 rounded" />
+          </div>
+        ))}
+      </div>
+
+      {/* Comparison table */}
+      <div className="space-y-3">
+        <AtelierShimmer className="h-7 w-48 rounded" />
+        <div className="db-content-card">
+          {/* Table header */}
+          <div className="flex gap-4 pb-3 border-b border-[#dbc1b9]/20">
+            {[48, 40, 24, 20, 20, 20, 20, 24, 24, 20].map((w, i) => (
+              <AtelierShimmer key={i} className={`h-3 w-${w} rounded shrink-0`} />
+            ))}
+          </div>
+          {/* Table rows */}
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex gap-4 py-3 border-b border-[#dbc1b9]/10 last:border-0">
+              <AtelierShimmer className="h-4 w-28 rounded shrink-0" />
+              <AtelierShimmer className="h-4 w-32 rounded shrink-0" />
+              <AtelierShimmer className="h-5 w-16 rounded-full shrink-0" />
+              {[...Array(7)].map((__, j) => (
+                <AtelierShimmer key={j} className="h-4 w-16 rounded shrink-0" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ATSSkeleton
+export function ATSSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="db-page-header">
+        <div className="space-y-2">
+          <AtelierShimmer className="h-10 w-36 rounded-lg" />
+          <AtelierShimmer className="h-5 w-96 rounded" />
+        </div>
+      </div>
+
+      {/* Two-column scanner layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: document picker + JD textarea */}
+        <div className="db-content-card space-y-5">
+          <AtelierShimmer className="h-6 w-36 rounded" />
+          <AtelierShimmer className="h-10 w-full rounded-lg" />
+          <div className="space-y-2">
+            <AtelierShimmer className="h-4 w-32 rounded" />
+            <AtelierShimmer className="h-40 w-full rounded-xl" />
+          </div>
+          <AtelierShimmer className="h-10 w-full rounded-full" />
+        </div>
+
+        {/* Right: results panel */}
+        <div className="db-content-card space-y-5">
+          <div className="flex items-center justify-between">
+            <AtelierShimmer className="h-6 w-28 rounded" />
+            <AtelierShimmer className="h-10 w-10 rounded-full" />
+          </div>
+          {/* Score ring placeholder */}
+          <div className="flex items-center gap-5">
+            <AtelierShimmer className="h-24 w-24 rounded-full shrink-0" />
+            <div className="flex-1 space-y-3">
+              <AtelierShimmer className="h-4 w-32 rounded" />
+              <AtelierShimmer className="h-3 w-48 rounded" />
+              <AtelierShimmer className="h-3 w-40 rounded" />
+            </div>
+          </div>
+          {/* Keyword rows */}
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <AtelierShimmer className="h-4 w-4 rounded-full shrink-0" />
+                <AtelierShimmer className="h-4 flex-1 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── DocumentsSkeleton
+export function DocumentsSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="db-page-header">
+        <div className="space-y-2">
+          <AtelierShimmer className="h-10 w-48 rounded-lg" />
+          <AtelierShimmer className="h-5 w-72 rounded" />
+        </div>
+        <AtelierShimmer className="h-9 w-28 rounded-full" />
+      </div>
+
+      {/* Quota bar */}
+      <div className="db-content-card space-y-3">
+        <div className="flex items-center justify-between">
+          <AtelierShimmer className="h-4 w-40 rounded" />
+          <AtelierShimmer className="h-4 w-24 rounded" />
+        </div>
+        <AtelierShimmer className="h-2 w-full rounded-full" />
+      </div>
+
+      {/* Search + filter pills */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <AtelierShimmer className="h-10 w-full sm:w-64 rounded-lg shrink-0" />
+        <div className="flex gap-2">
+          {[...Array(5)].map((_, i) => (
+            <AtelierShimmer key={i} className="h-8 w-14 rounded-full shrink-0" />
+          ))}
+        </div>
+      </div>
+
+      {/* Document card grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="db-content-card space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <AtelierShimmer className="h-10 w-10 rounded-lg shrink-0" />
+              <AtelierShimmer className="h-5 w-12 rounded-full shrink-0" />
+            </div>
+            <div className="space-y-1.5">
+              <AtelierShimmer className="h-4 w-full rounded" />
+              <AtelierShimmer className="h-3 w-24 rounded" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <AtelierShimmer className="h-7 w-16 rounded-full" />
+              <AtelierShimmer className="h-7 w-16 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── PrepSkeleton
+export function PrepSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header with 4 rings */}
+      <div className="db-content-card">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+          <div className="space-y-2">
+            <AtelierShimmer className="h-10 w-52 rounded-lg" />
+            <AtelierShimmer className="h-5 w-64 rounded" />
+          </div>
+          <div className="flex gap-6 sm:ml-auto">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <AtelierShimmer className="h-16 w-16 rounded-full" />
+                <AtelierShimmer className="h-3 w-16 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-[#dbc1b9]/30 pb-px">
+        {[...Array(4)].map((_, i) => (
+          <AtelierShimmer key={i} className="h-9 w-28 rounded-t-lg" />
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="db-content-card space-y-4">
+        <div className="flex items-center justify-between">
+          <AtelierShimmer className="h-6 w-44 rounded" />
+          <AtelierShimmer className="h-9 w-28 rounded-full" />
+        </div>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-2 border-b border-[#dbc1b9]/10 last:border-0">
+            <AtelierShimmer className="h-5 w-5 rounded shrink-0" />
+            <div className="flex-1 space-y-1">
+              <AtelierShimmer className="h-4 w-64 rounded" />
+              <AtelierShimmer className="h-3 w-40 rounded" />
+            </div>
+            <AtelierShimmer className="h-6 w-16 rounded-full shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── NotificationsSkeleton
+export function NotificationsSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="db-page-header">
+        <div className="space-y-2">
+          <AtelierShimmer className="h-10 w-44 rounded-lg" />
+          <AtelierShimmer className="h-5 w-64 rounded" />
+        </div>
+        <AtelierShimmer className="h-9 w-24 rounded-full" />
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-2">
+        {[...Array(3)].map((_, i) => (
+          <AtelierShimmer key={i} className="h-8 w-20 rounded-full" />
+        ))}
+      </div>
+
+      {/* Notification rows */}
+      <div className="db-content-card divide-y divide-[#dbc1b9]/15">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex items-start gap-4 py-4">
+            <AtelierShimmer className="h-9 w-9 rounded-full shrink-0" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <AtelierShimmer className="h-4 w-64 rounded" />
+              <AtelierShimmer className="h-3 w-48 rounded" />
+              <AtelierShimmer className="h-3 w-24 rounded" />
+            </div>
+            <AtelierShimmer className="h-2 w-2 rounded-full shrink-0 mt-2" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── ProfileSkeleton
+export function ProfileSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <AtelierShimmer className="h-10 w-28 rounded-lg" />
+        <AtelierShimmer className="h-5 w-60 rounded" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="db-content-card space-y-4">
+            <AtelierShimmer className="h-16 w-16 rounded-full mx-auto" />
+            <div className="space-y-2 text-center">
+              <AtelierShimmer className="h-5 w-32 rounded mx-auto" />
+              <AtelierShimmer className="h-3 w-40 rounded mx-auto" />
+              <AtelierShimmer className="h-5 w-16 rounded-full mx-auto" />
+            </div>
+          </div>
+          <div className="db-content-card space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <AtelierShimmer className="h-4 w-4 rounded shrink-0" />
+                <AtelierShimmer className="h-3 w-28 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main settings column */}
+        <div className="lg:col-span-3 space-y-5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="db-content-card space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-[#dbc1b9]/20">
+                <AtelierShimmer className="h-8 w-8 rounded-lg shrink-0" />
+                <AtelierShimmer className="h-5 w-36 rounded" />
+              </div>
+              <div className="space-y-3">
+                {[...Array(i === 2 ? 2 : 1)].map((__, j) => (
+                  <div key={j} className="space-y-1.5">
+                    <AtelierShimmer className="h-3 w-24 rounded" />
+                    <AtelierShimmer className="h-10 w-full rounded-lg" />
+                  </div>
+                ))}
+              </div>
+              <AtelierShimmer className="h-9 w-28 rounded-full mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── GenericPageSkeleton
 export function GenericPageSkeleton() {
   return (

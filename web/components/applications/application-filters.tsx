@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
-  Search, X, ChevronDown,
+  Search, X, ChevronDown, Loader2,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, ChevronsUpDown,
   Stamp, Filter, Building2,
 } from "lucide-react";
@@ -27,7 +27,7 @@ const SORT_OPTIONS = [
 export function ApplicationFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const [search, setSearch]   = useState(searchParams.get("search") || "");
   const currentStatus           = searchParams.get("status") || "all";
@@ -81,7 +81,10 @@ export function ApplicationFilters() {
 
         {/* Search */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#55433d]/50 pointer-events-none" />
+          {isPending
+            ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99462a] animate-spin pointer-events-none" />
+            : <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#55433d]/50 pointer-events-none" />
+          }
           <input
             type="text"
             className="db-filter-search w-full"
@@ -90,7 +93,7 @@ export function ApplicationFilters() {
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Search applications"
           />
-          {search && (
+          {search && !isPending && (
             <button
               type="button"
               onClick={clearSearch}

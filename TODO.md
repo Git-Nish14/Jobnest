@@ -4,6 +4,17 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## ✅ Sprint Shipped (May 2026 — Filter/search bugs fixed + loading skeletons)
+
+- [x] **Search & filter "loads but doesn't show" — two root-cause bugs fixed**
+  - **Bug 1 — stale `extraApps` after filter change**: `ApplicationsList` stores "Load more" pages in `useState`. When filters change, the server passes new `initialApplications` but `extraApps` never resets — so `allApps` became `[...newFilteredResults, ...staleOldExtras]`, showing wrong apps. Fixed by adding a `key` prop to `<ApplicationsList>` in `page.tsx` that encodes all active filter params; React remounts the component clean on every filter change.
+  - **Bug 2 — `isPending` discarded, no loading feedback**: `const [, startTransition] = useTransition()` threw away the `isPending` boolean. During the server round-trip (1–2 s) the UI sat frozen on the old list with no spinner. Fixed by capturing `isPending` and swapping the static `Search` icon for a terracotta `Loader2 animate-spin` during the transition; the ✕ clear button is also hidden mid-flight to prevent double navigations.
+- [x] **Loading skeletons — 6 new Atelier-themed skeletons** — `SalarySkeleton` (4 stat cards + comparison table rows), `ATSSkeleton` (header + 2-col: doc-picker panel + results ring), `DocumentsSkeleton` (quota bar + filter pills + 6 document cards), `PrepSkeleton` (4 progress rings + tab bar + content rows), `NotificationsSkeleton` (filter tabs + 6 notification rows), `ProfileSkeleton` (sidebar avatar/nav + 4 settings sections); all use the `AtelierShimmer` component with the warm parchment palette; exported from `@/components/common`
+- [x] **Loading pages fixed/added** — replaced 4 broken `loading.tsx` files (`ats`, `documents`, `prep`, `salary` — all used raw inline divs or generic `Skeleton` that didn't match page structure) with the proper new skeletons; added 2 missing `loading.tsx` files (`notifications`, `profile` — previously fell through to the layout-level `GenericPageSkeleton`)
+- [x] **Playwright E2E** (`tests/e2e/application-filters.spec.ts`, 12 authenticated tests with real Supabase): spinner visible during transition, search by company/position, ✕ clear restores all, no-results empty state, status filter chip shows/clears correctly, URL reflects filter state, direct URL navigation sets correct filter UI, stale-data fix verified (switching filter shows only new results), combined search + status filter
+
+---
+
 ## ✅ Sprint Shipped (May 2026 — Application delete flow fixed + E2E tests)
 
 - [x] **Application delete — root-cause fix** — two independent bugs: (1) clicking "Delete" in the card three-dot dropdown fired Radix's `onSelect` which closed the menu before "Confirm delete" was visible — users had no idea they needed to re-open the menu; fixed by adding `onSelect={(e) => e.preventDefault()}` on the Delete item so the menu stays open and "Confirm delete" is immediately in-place; (2) there was zero delete affordance on the `/applications/[id]` detail page — users could only delete from the list view
@@ -88,6 +99,16 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 ---
 
 ## 🚨 URGENT — Fix Before Next Release
+
+- [ ] **Application detail — show only that application's documents with user-entered name** — the Documents section on `/applications/[id]` must filter to documents belonging to that application only (no bleed from other apps); the label displayed must be exactly the name the user typed when uploading — preserve it through the entire flow (upload → storage path → DB row → UI card); currently the file system name or a generic label is shown instead of the user's chosen name
+
+- [ ] **"Fill from JSON" modal — JSON-only, not full application autofill** — the AI prompt inside the "Fill from JSON" modal currently describes the whole application object; scope the prompt and the paste/import flow strictly to JSON generation/parsing (i.e. the user pastes raw JSON, the modal only handles reading and mapping it); it should not overlap with or replace the separate "Import from job posting" or "Fill from resume" flows
+
+- [ ] **"Import from job posting" broken — fix and make truly dynamic** — the job-posting import (URL or paste) is currently not working; fix the underlying parse/fetch pipeline and make extraction fully dynamic: it should reliably pull company, role, location, salary range, job description, and any other structured fields from any real-world job posting URL (LinkedIn, Indeed, Glassdoor, Greenhouse, Lever, Workday, Ashby, etc.) and map them to the correct application form fields without manual correction
+
+- [ ] **Documents library page (`/documents`) — exclude application-specific docs** — the `/documents` page is intended as a personal library of reusable master documents (templates, generic resumes, certificates, etc.); it must not surface documents that are tied to a specific application (`application_id IS NOT NULL`); filter the query to `is_master = true` or `application_id IS NULL` only so application docs stay scoped to their application detail page
+
+- [ ] **Application Velocity chart — daily / weekly / monthly filter + full account history** — the velocity chart currently shows a fixed window; add a filter toggle (Daily / Weekly / Monthly) and extend the date range to cover the full lifetime of the account (from signup date to today) so the chart reflects a realistic and complete picture of the user's job search activity over time; the x-axis should scale and label correctly for each granularity
 
 - [ ] **Implement loading animations / loaders for query states**  
       Add a polished loading state that matches both dark and light mode themes across the platform. Currently, when users perform actions (e.g., searching for a job application), the content area appears empty and then suddenly renders, which creates a poor UX.
@@ -596,6 +617,7 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
   - [x] **Thinking indicator** — pulsing terracotta dots + avatar ping animation while waiting for the first streaming token; replaces previous bare empty-bubble state
 - [x] **Chat to PDF export** — "Export" button in NESTAi topbar; `GET /api/nesta-ai/sessions/[id]/export-pdf`; styled PDF via `@react-pdf/renderer`; RLS + IDOR guard
 - [ ] **NESTAi usage analytics** — track which features users use most (resume upload, JD parse, interview prep); feed back into product roadmap
+- [ ] **NESTAi gated by plan — free users get no/limited access, Pro gets near-unlimited** — Groq free tier caps at 12 000 TPM which is insufficient for real usage (a single request already hits 30 000 tokens); the solution is to upgrade to Groq Dev/paid tier and gate access by plan: free users get no NESTAi (or a very small daily cap, e.g. 5 messages/day), Pro users get near-unlimited chat; this directly covers the Groq API cost from subscription revenue; implementation: (1) upgrade Groq account to paid tier and raise `INPUT_TOKEN_BUDGET` back to `80_000`, (2) add a plan check at the top of `POST /api/nesta-ai/route.ts` — free users hitting the endpoint get a 402 with an upgrade prompt instead of a response, (3) update the NESTAi UI to show a locked/upgrade state for free users rather than letting them hit the API and fail
 
 ---
 
@@ -697,8 +719,19 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ---
 
+## 🎨 Visual Polish
+
+- [ ] **Application card — status-tinted background** — cards currently only show a left vertical accent line per status; extend the treatment to a subtle full-card background tint (e.g. very low-opacity wash of the status colour) so the status is immediately obvious at a glance without being overwhelming; tints must look good for all statuses (Applied, Interview, Offer, Rejected, Withdrawn, Ghosted, etc.)
+- [ ] **Charts & graphs — more colourful in light mode** — dashboard charts (Monthly Breakdown bars, Stage Funnel, Source Effectiveness, Avg Salary by Source, etc.) feel flat and muted in light mode; use richer, more saturated fills while keeping the Atelier palette; ensure each series / segment has a clearly distinct, vivid colour so charts read at a glance
+- [ ] **Dark mode — full visual audit & polish** — do a deep pass through every dark-mode screen; charts, cards, badges, backgrounds, and borders should use proper dark-mode-aware colours (not just inverted light colours); aim for a rich, intentional dark palette that feels designed rather than default; specific areas to check: chart fills and grid lines, card surface layering, status badge tints, skeleton loaders, dialog/popover overlays, empty-state illustrations, and the NESTAi sidebar
+
+---
+
 ## 🐛 Known Issues
 
+- [ ] **Delete application — no loading state** — when the delete action is triggered, there is no loading/spinner shown while the deletion is in progress; the UI appears frozen until the request completes
+- [ ] **Rejected badge clipped on application detail** — the "Rejected" status badge/ball is cut off at the top when viewing a particular application's detail page
+- [ ] **Filter dropdown overflows screen** — the filter list can be taller than the viewport with no scroll; add `overflow-y-auto max-h-[…]` so it is scrollable when content exceeds screen height
 - [ ] Document parser has no cache at all — `document-parser.ts` parses on every call (stateless); add SHA-256 Redis cache before scaling
 - [x] ~~Rate limiter is in-memory — resets on Vercel cold starts~~ — **fixed**: Upstash Redis-backed with in-memory fallback
 - [x] ~~`pdf-parse` v1 + Turbopack issues~~ — **fixed**: upgraded to 2.4.5; new entry point used

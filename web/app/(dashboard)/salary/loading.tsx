@@ -1,5 +1,5 @@
-import { GenericPageSkeleton } from "@/components/common";
+import { SalarySkeleton } from "@/components/common";
 
 export default function SalaryLoading() {
-  return <GenericPageSkeleton />;
+  return <SalarySkeleton />;
 }

@@ -762,7 +762,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              autoGrow
+              rows={6}
               placeholder="Interview notes, contacts, etc."
               {...register("notes")}
             />

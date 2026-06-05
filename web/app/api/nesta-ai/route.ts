@@ -357,6 +357,21 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
     let usedModel = PRIMARY_MODEL;
     let isDegraded = false;
 
+    // Handle "request too large" (400) separately: re-trim aggressively and retry
+    // rather than falling back to the smaller model (which has the same context limit).
+    if (!groqResponse.ok && groqResponse.status === 400) {
+      const errBody = await groqResponse.json().catch(() => ({}));
+      const msg: string = errBody?.error?.message ?? "";
+      if (msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("context")) {
+        console.warn("[nestai] Request too large, applying emergency trim and retrying");
+        context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 10 });
+        context = context.slice(0, 20_000) + "\n\n[Context trimmed due to size limits. Ask about specific applications for full detail.]";
+        groqMessages = makeMessages(context, []);
+        groqResponse = await callGroq(PRIMARY_MODEL);
+        isDegraded = true;
+      }
+    }
+
     if (!groqResponse.ok && (groqResponse.status === 429 || groqResponse.status >= 500)) {
       console.warn(`[nestai] ${PRIMARY_MODEL} failed (${groqResponse.status}), falling back to ${FALLBACK_MODEL}`);
       groqResponse = await callGroq(FALLBACK_MODEL);
@@ -435,10 +450,12 @@ function estimateTokens(text: string): number {
 }
 
 /**
- * The model's context window is 128 K tokens. We reserve 3 500 tokens for
- * the response + overhead, leaving a 124 500-token input budget.
+ * Groq free tier caps at 12 000 TPM. A single request must stay under that.
+ * We target 8 000 estimated input tokens (×~1.25 BPE correction ≈ 10 000 real
+ * tokens), leaving ~2 000 tokens for the 1 500-token output + overhead.
+ * On a paid Groq Dev tier raise this to 80_000+ (model context is 128 K).
  */
-const INPUT_TOKEN_BUDGET = 124_500;
+const INPUT_TOKEN_BUDGET = 8_000;
 
 interface TrimOptions {
   maxDocCharsEach?: number | null; // undefined = full, null = skip docs, N = max chars

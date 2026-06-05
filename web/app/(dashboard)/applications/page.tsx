@@ -97,6 +97,14 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           <KanbanBoard applications={apps} />
         ) : (
           <ApplicationsList
+            key={[
+              params.search ?? "",
+              params.status ?? "",
+              params.location ?? "",
+              params.dateRange ?? "",
+              params.sponsorship ?? "",
+              params.tier ?? "",
+            ].join("|")}
             applications={apps}
             hasMore={hasMore}
             nextCursor={nextCursor}
