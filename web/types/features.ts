@@ -266,6 +266,7 @@ export interface DashboardAnalytics {
    *  null when totalApplications < 5. */
   ghostRate: number | null;
   statusDistribution: StatusCount[];
+  dailyTrends: DailyTrend[];
   weeklyTrends: WeeklyTrend[];
   monthlyTrends: MonthlyTrend[];
   topCompanies: CompanyCount[];
@@ -306,6 +307,11 @@ export interface WeekdayActivity {
 
 export interface StatusCount {
   status: string;
+  count: number;
+}
+
+export interface DailyTrend {
+  date: string;  // "May 1", "May 2", …
   count: number;
 }
 

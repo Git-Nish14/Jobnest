@@ -94,9 +94,10 @@ export function ApplicationJsonImport({ onImport }: ApplicationJsonImportProps) 
         size="sm"
         className="shrink-0 gap-1.5"
         onClick={() => setOpen(true)}
+        title="Use any AI to generate a JSON payload, then paste it here to auto-fill all application fields"
       >
         <Braces className="h-3.5 w-3.5" />
-        Fill from JSON
+        AI JSON autofill
       </Button>
 
       {open && (
@@ -112,7 +113,7 @@ export function ApplicationJsonImport({ onImport }: ApplicationJsonImportProps) 
             <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
               <div className="flex items-center gap-2">
                 <Braces className="h-4 w-4 text-[#99462a]" />
-                <span className="font-semibold text-sm">Fill from JSON</span>
+                <span className="font-semibold text-sm">AI JSON autofill</span>
               </div>
               <button
                 type="button"

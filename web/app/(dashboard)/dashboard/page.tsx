@@ -40,6 +40,7 @@ export default async function DashboardPage() {
     interviewToOfferRate: null,
     ghostRate: null,
     statusDistribution: [],
+    dailyTrends: [],
     weeklyTrends: [],
     monthlyTrends: [],
     topCompanies: [],
@@ -157,7 +158,11 @@ export default async function DashboardPage() {
 
         {/* ── Row 2: Chart + Tasks ── */}
         <div className="md:col-span-8">
-          <AtelierChart data={stats.weeklyTrends} />
+          <AtelierChart
+            dailyData={stats.dailyTrends}
+            weeklyData={stats.weeklyTrends}
+            monthlyData={stats.monthlyTrends}
+          />
         </div>
 
         <div className="md:col-span-4">

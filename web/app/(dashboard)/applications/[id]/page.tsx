@@ -7,7 +7,7 @@ import {
 import { AtsProviderBadge } from "@/components/ui/brand-icons";
 import { getApplicationById, getInterviews, getActivityLogs } from "@/services";
 import { createClient } from "@/lib/supabase/server";
-import { getSignedUrl } from "@/lib/utils/storage";
+import { getSignedUrl, getSignedUrls } from "@/lib/utils/storage";
 import { InterviewList } from "@/components/interviews";
 import { ActivityTimeline } from "@/components/activity";
 import { DocumentManager } from "@/components/documents";
@@ -57,6 +57,25 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   // Bridge legacy resume_path / cover_letter_path into LegacyDoc shape so
   // DocumentManager can display them alongside new application_documents rows.
   const supabase = await createClient();
+
+  // Pre-fetch application_documents server-side to skip the client-side loading
+  // spinner in DocumentManager and show documents immediately on first paint.
+  const { data: initialDocs } = await supabase
+    .from("application_documents")
+    .select("*")
+    .eq("application_id", id)
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .order("uploaded_at", { ascending: false });
+
+  // Attach signed URLs for the pre-fetched documents
+  const preFetchedPaths = (initialDocs ?? []).map((d) => d.storage_path);
+  const preFetchedUrlMap = preFetchedPaths.length > 0
+    ? await getSignedUrls(supabase, preFetchedPaths)
+    : {};
+  const preloadedDocs = (initialDocs ?? []).map((d) => ({
+    ...d,
+    signed_url: preFetchedUrlMap[d.storage_path] ?? null,
+  }));
 
   // Fetch pending document purge entry (only for Rejected apps)
   let purgeEntry: { purge_at: string } | null = null;
@@ -137,7 +156,10 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       )}
 
       {/* ── Hero Header ── */}
-      <section className="relative bg-[#f4f3f1] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-hidden">
+      {/* overflow-clip instead of overflow-hidden: clips the glow blob but
+          does NOT create a new scroll container, so the status badge pill
+          never gets clipped by the section boundary. */}
+      <section className="relative bg-[#f4f3f1] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-clip">
         {/* Subtle gradient glow in the corner */}
         <div className={cn("absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 blur-3xl -mr-16 -mt-16", accent)} />
 
@@ -306,9 +328,10 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         {/* ── Sidebar ── */}
         <div className="space-y-6">
 
-          {/* Documents — versioned, multi-type, with share and preview */}
+          {/* Documents — pre-fetched server-side to avoid loading flash */}
           <DocumentManager
             applicationId={id}
+            initialDocuments={preloadedDocs}
             legacyDocs={legacyDocs}
             applicationCompany={application.company}
             applicationPosition={application.position}

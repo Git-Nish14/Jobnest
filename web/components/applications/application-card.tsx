@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp, Clock,
+  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp, Clock, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -98,7 +98,20 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
   const { accent, avatar, badge } = statusTokens(application.status);
 
   return (
-    <div className={cn("db-app-card group relative overflow-hidden pl-5 sm:pl-6", selected && "ring-2 ring-[#99462a] dark:ring-[#ccff00]")}>
+    <div className={cn(
+      "db-app-card group relative overflow-hidden pl-5 sm:pl-6",
+      selected && "ring-2 ring-[#99462a] dark:ring-[#ccff00]",
+      deleting && "pointer-events-none opacity-50"
+    )}>
+      {/* Deletion in-progress overlay */}
+      {deleting && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-[1px] rounded-xl">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-background/90 px-3 py-1.5 rounded-full shadow-sm border border-border">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Deleting…
+          </div>
+        </div>
+      )}
       <div className={cn("absolute left-0 inset-y-0 w-1.5 rounded-l-xl", accent)} />
 
       {/* Selection checkbox — shown in selectable mode */}

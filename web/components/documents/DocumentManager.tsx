@@ -560,7 +560,7 @@ function DocumentCard({
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-[#1a1c1b] truncate">{doc.label}</p>
             <p className="text-xs text-[#55433d]/70 truncate">
-              {doc.original_name ?? "—"} · {mimeToLabel(doc.mime_type)} · {formatBytes(doc.size_bytes)}
+              {doc.original_name ?? doc.label} · {mimeToLabel(doc.mime_type)} · {formatBytes(doc.size_bytes)}
             </p>
           </div>
 

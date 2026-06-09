@@ -26,6 +26,89 @@ Do not include markdown. Use null for any field you cannot find. Keep job_descri
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+// ── Board-specific API adapters ────────────────────────────────────────────────
+// These boards expose public JSON APIs that are more reliable than scraping HTML.
+
+/** Greenhouse public job API. URL pattern: boards.greenhouse.io/{company}/jobs/{jobId} */
+async function tryGreenhouse(url: string): Promise<string | null> {
+  const m = url.match(/boards\.greenhouse\.io\/([^/]+)\/jobs\/(\d+)/);
+  if (!m) return null;
+  const [, company, jobId] = m;
+  try {
+    const res = await fetch(
+      `https://boards-api.greenhouse.io/v1/boards/${company}/jobs/${jobId}`,
+      { signal: AbortSignal.timeout(8_000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json() as { title?: string; location?: { name?: string }; content?: string; departments?: { name: string }[] };
+    const text = [
+      data.title && `Role: ${data.title}`,
+      data.location?.name && `Location: ${data.location.name}`,
+      data.departments?.[0]?.name && `Department: ${data.departments[0].name}`,
+      data.content?.replace(/<[^>]+>/g, " ").replace(/\s{2,}/g, " ").trim(),
+    ].filter(Boolean).join("\n");
+    return text.length > 50 ? text.slice(0, 12_000) : null;
+  } catch { return null; }
+}
+
+/** Lever public job API. URL pattern: jobs.lever.co/{company}/{jobId} */
+async function tryLever(url: string): Promise<string | null> {
+  const m = url.match(/jobs\.lever\.co\/([^/]+)\/([0-9a-f-]+)/);
+  if (!m) return null;
+  const [, company, jobId] = m;
+  try {
+    const res = await fetch(
+      `https://api.lever.co/v0/postings/${company}/${jobId}`,
+      { signal: AbortSignal.timeout(8_000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json() as { text?: string; categories?: { location?: string; team?: string }; descriptionPlain?: string; additionalPlain?: string };
+    const text = [
+      data.text && `Role: ${data.text}`,
+      data.categories?.location && `Location: ${data.categories.location}`,
+      data.categories?.team && `Team: ${data.categories.team}`,
+      data.descriptionPlain,
+      data.additionalPlain,
+    ].filter(Boolean).join("\n");
+    return text.length > 50 ? text.slice(0, 12_000) : null;
+  } catch { return null; }
+}
+
+/** Try extracting JSON-LD structured data (JobPosting schema) before HTML parse. */
+function extractJsonLd(html: string): string | null {
+  const matches = html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  for (const match of matches) {
+    try {
+      const raw = match[1].trim();
+      const obj = JSON.parse(raw) as Record<string, unknown>;
+      const items = Array.isArray(obj) ? obj : [obj];
+      for (const item of items) {
+        if ((item["@type"] as string)?.toLowerCase() !== "jobposting") continue;
+        const parts = [
+          item.title && `Role: ${item.title}`,
+          item.hiringOrganization && `Company: ${(item.hiringOrganization as { name?: string }).name ?? item.hiringOrganization}`,
+          item.jobLocation && `Location: ${JSON.stringify(item.jobLocation)}`,
+          item.description && String(item.description).replace(/<[^>]+>/g, " ").replace(/\s{2,}/g, " ").trim(),
+        ].filter(Boolean);
+        if (parts.length > 1) return parts.join("\n").slice(0, 12_000);
+      }
+    } catch { continue; }
+  }
+  return null;
+}
+
+/** Domains that block server-side fetches — fail fast with a helpful message. */
+function isBlockedBoard(url: string): string | null {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.includes("linkedin.com"))    return "LinkedIn blocks automated access. Please paste the job description text instead.";
+    if (host.includes("indeed.com"))      return "Indeed blocks automated access. Please paste the job description text instead.";
+    if (host.includes("glassdoor.com"))   return "Glassdoor blocks automated access. Please paste the job description text instead.";
+    if (host.includes("ziprecruiter.com")) return "ZipRecruiter blocks automated access. Please paste the job description text instead.";
+  } catch { /**/ }
+  return null;
+}
+
 // ── SSRF protection ────────────────────────────────────────────────────────
 // Rejects URLs that resolve to private, loopback, or link-local IPs so a
 // logged-in user cannot use this route to probe internal infrastructure
@@ -98,45 +181,72 @@ export async function POST(request: NextRequest) {
 
     // Try fetching the URL if provided
     if (url) {
-      try {
-        // SSRF guard: reject URLs that resolve to private/internal IPs.
-        await assertSafeUrl(url);
+      // Fast-path: detect boards that block server-side requests
+      const blockMsg = isBlockedBoard(url);
+      if (blockMsg && !jobText) {
+        return NextResponse.json({ fetchFailed: true, error: blockMsg }, { status: 422 });
+      }
 
-        const res = await fetch(url, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0)" },
-          signal: AbortSignal.timeout(10_000),
-          redirect: "follow",
-        });
+      if (!blockMsg) {
+        // 1. Try board-specific APIs (more reliable than HTML scraping)
+        const boardText = await tryGreenhouse(url) ?? await tryLever(url);
 
-        // Post-redirect SSRF check: reject if the final URL (after redirects)
-        // resolves to a private address, e.g. public→private open-redirect attack.
-        if (res.url && res.url !== url) {
-          try { await assertSafeUrl(res.url); } catch { throw new SsrfError(); }
-        }
+        if (boardText) {
+          jobText = boardText;
+        } else {
+          // 2. Fall back to HTML fetch with JSON-LD extraction
+          try {
+            await assertSafeUrl(url);
 
-        if (res.ok) {
-          const html = await res.text();
-          // Strip HTML tags and collapse whitespace
-          jobText = html
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-            .replace(/<[^>]+>/g, " ")
-            .replace(/&nbsp;/g, " ")
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/\s{2,}/g, " ")
-            .trim()
-            .slice(0, 12_000);
-        }
-      } catch {
-        // URL fetch failed (network error, SSRF block, non-2xx) —
-        // fall back to whatever text was provided.
-        if (!jobText) {
-          return NextResponse.json(
-            { fetchFailed: true, error: "Couldn't fetch that URL automatically. Please paste the job description text instead." },
-            { status: 422 }
-          );
+            const res = await fetch(url, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0; +https://jobnest.app)",
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+              },
+              signal: AbortSignal.timeout(10_000),
+              redirect: "follow",
+            });
+
+            // Post-redirect SSRF check
+            if (res.url && res.url !== url) {
+              try { await assertSafeUrl(res.url); } catch { throw new SsrfError(); }
+            }
+
+            if (res.ok) {
+              const html = await res.text();
+
+              // Try JSON-LD first — structured data is more accurate than raw HTML
+              const ldText = extractJsonLd(html);
+
+              if (ldText) {
+                jobText = ldText;
+              } else {
+                // Strip HTML and collapse whitespace
+                jobText = html
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                  .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, "")
+                  .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+                  .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+                  .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+                  .replace(/<[^>]+>/g, " ")
+                  .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+                  .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                  .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+                  .replace(/\s{2,}/g, " ")
+                  .trim()
+                  .slice(0, 12_000);
+              }
+            }
+          } catch {
+            if (!jobText) {
+              return NextResponse.json(
+                { fetchFailed: true, error: "Couldn't fetch that URL automatically. Please paste the job description text instead." },
+                { status: 422 }
+              );
+            }
+          }
         }
       }
     }

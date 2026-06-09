@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import {
   Library, Upload, Search, Loader2,
   Trash2, Download, Eye, Share2,
@@ -37,12 +36,11 @@ function formatBytes(bytes: number): string {
 
 // ── Extended doc type ──────────────────────────────────────────────────────────
 
-type DocWithMeta = ApplicationDocument & { appName?: string };
+type DocWithMeta = ApplicationDocument;
 
 // ── Filter type ───────────────────────────────────────────────────────────────
 
 type FilterType = "all" | "pdf" | "docx" | "image" | "text";
-type OriginFilter = "all" | "library" | "application";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -54,7 +52,6 @@ export default function DocumentLibraryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
-  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const [uploading, setUploading] = useState(false);
   const [labelInput, setLabelInput] = useState("Master Resume");
   const [showUpload, setShowUpload] = useState(false);
@@ -75,31 +72,14 @@ export default function DocumentLibraryPage() {
     }
   }, [quotaPct]);
 
-  // Fetch ALL documents (library + application-linked), enrich with app names
+  // Fetch ONLY master/library documents — application-specific docs live on their
+  // respective application detail pages and must not appear here.
   const fetch_ = useCallback(async () => {
     setLoading(true);
     try {
-      const supabase = createClient();
-
-      const [docsRes, { data: apps }] = await Promise.all([
-        fetch("/api/documents/list?include_versions=false", { credentials: "include" }),
-        supabase.from("job_applications").select("id, company"),
-      ]);
-
-      const docsData = docsRes.ok ? await docsRes.json() : { documents: [] };
-
-      // Build applicationId → company name map
-      const appMap: Record<string, string> = {};
-      for (const app of (apps ?? [])) {
-        appMap[app.id] = app.company;
-      }
-
-      const enriched: DocWithMeta[] = (docsData.documents ?? []).map((d: ApplicationDocument) => ({
-        ...d,
-        appName: d.application_id ? appMap[d.application_id] : undefined,
-      }));
-
-      setAllDocs(enriched);
+      const res = await fetch("/api/documents/list?master=true&include_versions=false", { credentials: "include" });
+      const data = res.ok ? await res.json() : { documents: [] };
+      setAllDocs(data.documents ?? []);
     } finally {
       setLoading(false);
     }
@@ -107,20 +87,16 @@ export default function DocumentLibraryPage() {
 
   useEffect(() => { fetch_(); }, [fetch_]);
 
-  // Filter + search
+  // Filter + search — all docs here are already library-only (master=true)
   const filtered = allDocs.filter((d) => {
-    const matchSearch = search === "" || [d.label, d.original_name ?? "", d.appName ?? ""].join(" ").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = search === "" || [d.label, d.original_name ?? ""].join(" ").toLowerCase().includes(search.toLowerCase());
     const matchType =
       filter === "all" ||
       (filter === "pdf"   && d.mime_type === "application/pdf") ||
       (filter === "docx"  && (d.mime_type.includes("wordprocessing") || d.mime_type === "application/msword")) ||
       (filter === "image" && d.mime_type.startsWith("image/")) ||
       (filter === "text"  && (d.mime_type === "text/plain" || d.mime_type === "text/markdown"));
-    const matchOrigin =
-      originFilter === "all" ||
-      (originFilter === "library"     && !d.application_id) ||
-      (originFilter === "application" && !!d.application_id);
-    return matchSearch && matchType && matchOrigin;
+    return matchSearch && matchType;
   });
 
   const upload = async (file: File) => {
@@ -222,9 +198,7 @@ export default function DocumentLibraryPage() {
           />
         </div>
         <p className="text-xs text-muted-foreground mt-1.5">
-          {allDocs.length} document{allDocs.length !== 1 ? "s" : ""} ·{" "}
-          {allDocs.filter((d) => !d.application_id).length} library ·{" "}
-          {allDocs.filter((d) => !!d.application_id).length} from applications
+          {allDocs.length} document{allDocs.length !== 1 ? "s" : ""} in library
         </p>
       </div>
 
@@ -296,21 +270,6 @@ export default function DocumentLibraryPage() {
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 shrink-0">
-          {/* Origin filter */}
-          {(["all", "library", "application"] as OriginFilter[]).map((o) => (
-            <button
-              type="button"
-              key={o}
-              onClick={() => setOriginFilter(o)}
-              className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors border",
-                originFilter === o ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 text-muted-foreground border-border/50"
-              )}
-            >
-              {o === "all" ? "All" : o === "library" ? "Library" : "Applications"}
-            </button>
-          ))}
-          <div className="w-px bg-border/50 self-stretch" />
           {/* Type filter */}
           {TYPE_FILTERS.map((f) => (
             <button
@@ -376,18 +335,10 @@ export default function DocumentLibraryPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground truncate text-sm">{doc.label}</p>
-                    <p className="text-xs text-muted-foreground truncate">{doc.original_name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {doc.original_name ?? doc.label}
+                    </p>
                   </div>
-                  {/* Origin tag */}
-                  {doc.application_id ? (
-                    <span className="shrink-0 text-[10px] font-medium rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5">
-                      {doc.appName ?? "App"}
-                    </span>
-                  ) : (
-                    <span className="shrink-0 text-[10px] font-medium rounded-full bg-muted text-muted-foreground px-2 py-0.5">
-                      Library
-                    </span>
-                  )}
                 </div>
 
                 {/* Meta */}

@@ -126,7 +126,7 @@ export function ApplicationFilters() {
               <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuContent align="start" className="w-52 max-h-80 overflow-y-auto">
             <DropdownMenuLabel className="text-[10px] text-[#55433d]/50 uppercase tracking-widest font-semibold">
               Filter by status
             </DropdownMenuLabel>

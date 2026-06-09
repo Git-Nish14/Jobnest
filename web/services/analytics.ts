@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   DashboardAnalytics,
   StatusCount,
+  DailyTrend,
   WeeklyTrend,
   MonthlyTrend,
   CompanyCount,
@@ -115,9 +116,22 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         ? Math.round((ghosted / totalApplications) * 100)
         : null;
 
-    // Weekly trends (last 8 weeks)
+    // Daily trends — last 30 days
+    const dailyTrends: DailyTrend[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const day = new Date(now);
+      day.setDate(now.getDate() - i);
+      const dayStr = day.toISOString().split("T")[0]; // "YYYY-MM-DD"
+      const count = applications?.filter((app) => app.applied_date === dayStr).length || 0;
+      dailyTrends.push({
+        date: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        count,
+      });
+    }
+
+    // Weekly trends — last 24 weeks (full ~6-month history)
     const weeklyTrends: WeeklyTrend[] = [];
-    for (let i = 7; i >= 0; i--) {
+    for (let i = 23; i >= 0; i--) {
       const weekStart = new Date(now);
       weekStart.setDate(now.getDate() - (i * 7) - now.getDay());
       weekStart.setHours(0, 0, 0, 0);
@@ -137,9 +151,21 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       });
     }
 
-    // Monthly trends (last 6 months)
+    // Monthly trends — full account history (from first application, up to 36 months)
     const monthlyTrends: MonthlyTrend[] = [];
-    for (let i = 5; i >= 0; i--) {
+    const firstApp = applications?.reduce((earliest, app) => {
+      const d = new Date(app.applied_date);
+      return !earliest || d < earliest ? d : earliest;
+    }, null as Date | null);
+
+    const historyStart = firstApp ?? new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    // Clamp to 36 months max to avoid extremely large arrays
+    const monthsBack = Math.min(
+      (now.getFullYear() - historyStart.getFullYear()) * 12 + (now.getMonth() - historyStart.getMonth()),
+      35
+    );
+
+    for (let i = monthsBack; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
 
@@ -284,6 +310,7 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         interviewToOfferRate,
         ghostRate,
         statusDistribution,
+        dailyTrends,
         weeklyTrends,
         monthlyTrends,
         topCompanies,
