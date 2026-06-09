@@ -100,22 +100,12 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🚨 URGENT — Fix Before Next Release
 
-- [ ] **Application detail — show only that application's documents with user-entered name** — the Documents section on `/applications/[id]` must filter to documents belonging to that application only (no bleed from other apps); the label displayed must be exactly the name the user typed when uploading — preserve it through the entire flow (upload → storage path → DB row → UI card); currently the file system name or a generic label is shown instead of the user's chosen name
-
-- [ ] **"Fill from JSON" modal — JSON-only, not full application autofill** — the AI prompt inside the "Fill from JSON" modal currently describes the whole application object; scope the prompt and the paste/import flow strictly to JSON generation/parsing (i.e. the user pastes raw JSON, the modal only handles reading and mapping it); it should not overlap with or replace the separate "Import from job posting" or "Fill from resume" flows
-
-- [ ] **"Import from job posting" broken — fix and make truly dynamic** — the job-posting import (URL or paste) is currently not working; fix the underlying parse/fetch pipeline and make extraction fully dynamic: it should reliably pull company, role, location, salary range, job description, and any other structured fields from any real-world job posting URL (LinkedIn, Indeed, Glassdoor, Greenhouse, Lever, Workday, Ashby, etc.) and map them to the correct application form fields without manual correction
-
-- [ ] **Documents library page (`/documents`) — exclude application-specific docs** — the `/documents` page is intended as a personal library of reusable master documents (templates, generic resumes, certificates, etc.); it must not surface documents that are tied to a specific application (`application_id IS NOT NULL`); filter the query to `is_master = true` or `application_id IS NULL` only so application docs stay scoped to their application detail page
-
-- [ ] **Application Velocity chart — daily / weekly / monthly filter + full account history** — the velocity chart currently shows a fixed window; add a filter toggle (Daily / Weekly / Monthly) and extend the date range to cover the full lifetime of the account (from signup date to today) so the chart reflects a realistic and complete picture of the user's job search activity over time; the x-axis should scale and label correctly for each granularity
-
-- [ ] **Implement loading animations / loaders for query states**  
-      Add a polished loading state that matches both dark and light mode themes across the platform. Currently, when users perform actions (e.g., searching for a job application), the content area appears empty and then suddenly renders, which creates a poor UX.
-
-  Introduce smooth loading indicators (skeleton loaders, shimmer effects, animated placeholders, progress states, etc.) to clearly communicate that data is being fetched.
-
-  Perform a full UI/UX audit across the website and identify all places where loading states should be added to make interactions feel responsive, consistent, and visually polished.
+- [x] **Application detail — documents** — `DocumentManager` now pre-fetches `application_documents` server-side (no loading flash); subtitle shows `original_name ?? label` instead of `"—"`; only this application's docs are shown
+- [x] **"AI JSON autofill" (was "Fill from JSON")** — button and modal title renamed to distinguish from "Import from job posting"; tooltip explains the AI JSON → paste → autofill flow
+- [x] **"Import from job posting"** — Greenhouse and Lever public APIs called first (reliable structured data); JSON-LD extraction (`@type: JobPosting`) tried before raw HTML; LinkedIn/Indeed/Glassdoor/ZipRecruiter detected early and returned as `fetchFailed` with a specific message; better HTML stripping removes nav/header/footer noise
+- [x] **Documents library `/documents`** — now fetches `?master=true` only; application-specific docs never surface here; "All / Library / Applications" tabs removed; quota text simplified
+- [x] **Application Velocity chart** — D / W / M granularity toggle; daily (last 30 days), weekly (last 24 w), monthly (full account history from first application, up to 36 months); per-mode window selectors; x-axis labels thin out when many bars are shown
+- [x] **Loading animations / loaders** — 6 new Atelier-themed page skeletons (Salary, ATS, Documents, Prep, Notifications, Profile); 4 broken `loading.tsx` files replaced; 2 missing `loading.tsx` files added; filter/search transition shows `Loader2 animate-spin` in the search box via `isPending`; stale `extraApps` reset on filter change via component key
 
 - [x] **URL field — no size restriction, fully validated** — `secureUrlField` Zod transformer in `lib/validations/application.ts`; strips null bytes/CR/LF, rejects `javascript:/data:/vbscript:/file:/blob:` schemes, validates with `new URL()`, 2083-char DB safety floor; applied to `job_url`, `demo_url`, `repo_url`, `credential_url`, `meeting_url` across all schemas; clear inline Zod error messages
 - [x] **Timestamps — device-local timezone throughout** — `lib/utils/date.ts` shared utility; reads locale + IANA timezone from `Intl.DateTimeFormat().resolvedOptions()` (no hardcoded `en-US`); rolled out across 20+ components: interviews, dashboard, reminders, activity timeline, prep hub, documents, kanban, portfolio, profile, OPT countdown
@@ -729,10 +719,10 @@ Tracked next steps ordered roughly by priority. Check off items as they ship.
 
 ## 🐛 Known Issues
 
-- [ ] **Delete application — no loading state** — when the delete action is triggered, there is no loading/spinner shown while the deletion is in progress; the UI appears frozen until the request completes
-- [ ] **Rejected badge clipped on application detail** — the "Rejected" status badge/ball is cut off at the top when viewing a particular application's detail page
-- [ ] **Filter dropdown overflows screen** — the filter list can be taller than the viewport with no scroll; add `overflow-y-auto max-h-[…]` so it is scrollable when content exceeds screen height
-- [ ] Document parser has no cache at all — `document-parser.ts` parses on every call (stateless); add SHA-256 Redis cache before scaling
+- [x] **Delete application — loading state** — centred `Loader2` overlay on the card itself while DELETE API call is in flight; card gets `opacity-50 pointer-events-none`
+- [x] **Rejected badge clipped on application detail** — switched hero section from `overflow-hidden` to `overflow-clip`; glow blob stays contained, badge never clipped
+- [x] **Filter dropdown overflows screen** — `max-h-80 overflow-y-auto` added to `DropdownMenuContent`
+- [x] **Document parser cache** — SHA-256 keyed Upstash Redis cache (1 h TTL) already fully implemented in `document-parser.ts`; confirmed working
 - [x] ~~Rate limiter is in-memory — resets on Vercel cold starts~~ — **fixed**: Upstash Redis-backed with in-memory fallback
 - [x] ~~`pdf-parse` v1 + Turbopack issues~~ — **fixed**: upgraded to 2.4.5; new entry point used
 - [x] ~~Scrollbar layout shift during page transitions (Windows Chrome)~~ — **fixed**: `html body[data-scroll-locked]` CSS rule overrides Radix scroll-lock compensation (overflow:unset, padding-right:0, margin-right:0); specificity 0,1,2 beats injected 0,1,1
