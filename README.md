@@ -12,100 +12,106 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Authentication & Security
 - Email/Password with **6-digit OTP verification** (Nodemailer, not Supabase Auth emails)
-- **Google & GitHub OAuth** — `/auth/callback` exchanges code and sets session
-- **Age verification + Terms acceptance** — required at signup before email or OAuth proceeds
-- **Stay signed in 30 days** — `sb_rm=1` persistent; unchecked = session-only via `sessionStorage`; `__Host-` cookie prefix in production
-- **Cross-tab logout sync** — `AuthSync` listens to `onAuthStateChange`
-- **Auto-redirect** — authenticated users bounce from auth pages to `/dashboard`
+- **Google & GitHub OAuth**: `/auth/callback` exchanges code and sets session
+- **Age verification + Terms acceptance**: required at signup before email or OAuth proceeds
+- **Stay signed in 30 days**: `sb_rm=1` persistent; unchecked = session-only via `sessionStorage`; `__Host-` cookie prefix in production
+- **Cross-tab logout sync**: `AuthSync` listens to `onAuthStateChange`
+- **Auto-redirect**: authenticated users bounce from auth pages to `/dashboard`
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
-- **Nonce-based CSP** — per-request cryptographic nonce injected into `script-src`; `unsafe-eval` removed; `strict-dynamic` enables Next.js code-splitting without whitelisting chunk URLs; fires on HTTPS and `x-forwarded-proto: https` (covers staging behind load balancers)
+- **Nonce-based CSP**: per-request cryptographic nonce injected into `script-src`; `unsafe-eval` removed; `strict-dynamic` enables Next.js code-splitting without whitelisting chunk URLs; fires on HTTPS and `x-forwarded-proto: https` (covers staging behind load balancers)
 - HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy headers
 - Redis-backed rate limiting (Upstash); dual-layer on send-otp (IP + per-email)
 - SHA-256 hashed OTPs with timing-safe comparison
 
 ### Profile Page
 - Display name, About Me (bio), NESTAi Context (AI-specific instructions)
-- **Work Authorization** — US visa status dropdown (8 options); shown as sidebar badge; injected into NESTAi system prompt
-- **Notifications** — toggle: overdue reminders, weekly digest, re-engagement emails
-- **Change / Set password** — 3-step OTP-verified; OAuth users can add a password
-- **Delete account** — OTP-confirmed soft delete, 30-day grace period
-- **GDPR data export** — all personal data as dated JSON (rate-limited 3/day)
-- **Billing portal** — Stripe customer portal for Pro subscribers
-- **Developer Identity** — Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
-- **Portfolio settings** — claim a username slug (30-day change cooldown enforced server-side; DELETE to remove), toggle public/private, opt-in contact email (defaults off); share URL shown immediately after claiming
-- **Profile page structure** — four labelled groups: **Profile** (Display Name · About You · NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password · Danger Zone); sidebar shows exact OAuth providers (Google, GitHub) and correct password status
+- **Work Authorization**: US visa status dropdown (8 options); shown as sidebar badge; injected into NESTAi system prompt
+- **Notifications**: toggle for overdue reminders, weekly digest, re-engagement emails
+- **Change / Set password**: 3-step OTP-verified; OAuth users can add a password
+- **Delete account**: OTP-confirmed soft delete, 30-day grace period
+- **GDPR data export**: all personal data as dated JSON (rate-limited 3/day)
+- **Billing portal**: Stripe customer portal for Pro subscribers
+- **Developer Identity**: Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
+- **Portfolio settings**: claim a username slug (30-day change cooldown enforced server-side; DELETE to remove), toggle public/private, opt-in contact email (defaults off); share URL shown immediately after claiming
+- **Profile page structure**: four labelled groups - **Profile** (Display Name, About You, NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password, Danger Zone); sidebar shows exact OAuth providers (Google, GitHub) and correct password status
 
 ### Developer Portfolio & Public Profile (`/p/{username}`)
-- **GitHub OAuth** — connect GitHub using the same Supabase-configured OAuth app as login (no separate credentials needed); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos; manual sync (5/hr); daily cron at 04:00 UTC; access tokens **encrypted at rest** (AES-256-GCM)
-- **Project showcase** — create and curate projects (title, description, tags, demo/repo URLs, **cover image URL**, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls; image preview on cards
-- **LinkedIn strength** — URL auto-normalises on input (bare username, missing https, /in/ prefix); server-side reachability check on save; self-assessed 8-item checklist auto-saves per-toggle (no manual save needed)
-- **Public portfolio page** — shareable `/p/{username}` page; SSR with full OpenGraph metadata; sections: hero (avatar, bio, links, GitHub stats), featured projects, pinned repos, skills by category, education, certifications; contact email shown only when explicitly opted in; no job application data ever exposed
+- **GitHub OAuth**: connect GitHub using the same Supabase-configured OAuth app as login (no separate credentials needed); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos; manual sync (5/hr); daily cron at 04:00 UTC; access tokens **encrypted at rest** (AES-256-GCM)
+- **Project showcase**: create and curate projects (title, description, tags, demo/repo URLs, **cover image URL**, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls; image preview on cards
+- **LinkedIn strength**: URL auto-normalises on input (bare username, missing https, /in/ prefix); server-side reachability check on save; self-assessed 8-item checklist auto-saves per-toggle (no manual save needed)
+- **Public portfolio page**: shareable `/p/{username}` page; SSR with full OpenGraph metadata; sections: hero (avatar, bio, links, GitHub stats), featured projects, pinned repos, skills by category, education, certifications; contact email shown only when explicitly opted in; no job application data ever exposed
 
 ### Account Deletion (Grace Period)
 1. OTP-confirmed deletion request
 2. Scheduled 30 days out; account stays fully accessible
 3. 7-day reminder emails, 24h final warning email
 4. Daily cron permanently erases after 30 days (RLS cascade)
-5. Right-to-erasure verification — queries 9 tables for orphaned rows post-deletion
+5. Right-to-erasure verification - queries 9 tables for orphaned rows post-deletion
 
 ### Dashboard
 - Stats: total applications, this week/month, active pipeline, offers, upcoming interviews
-- **Application Velocity** bar chart with 4w / 8w / 12w period picker
+- **Application Velocity**: D / W / M granularity toggle; last 30 days (daily), last 24 weeks (weekly), or full account history from first application (monthly); per-mode window selectors; x-axis labels thin out automatically when many bars are shown
 - Status distribution pie chart; Recent applications list; Tasks panel
-- **Quick-access cards** — Document Library + ATS Scanner; H1B cap tracker for OPT/H1B users
-- **Extended analytics** (shown when ≥ 3 applications):
-  - **Monthly Breakdown** — grouped bars (Applied / Rejected / Offers) over 6 months
-  - **Weekday Activity** — Mon–Sun submission bars with peak-day callout; uses device-local time (not UTC) to prevent off-by-one for US time zones
-  - **Top Companies** — ranked horizontal bar chart of most-applied companies
-  - **Stage Funnel** — Applied → Phone Screen → Interview → Offer → Accepted cumulative counts; warm-to-cool colour gradient (amber → orange → terracotta → emerald) makes each stage visually distinct
-  - **Monthly Breakdown** — purposeful semantic colours: Applied → amber, Rejected → red (not grey), Offers → emerald; all three fills are distinct
-  - **Avg Salary by Source** — midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
-  - **Source Effectiveness** — response rate % per source, sorted descending; only sources with ≥ 2 applications shown
-- **Search Intelligence** — avg days to first response (90-day cap), interview-to-offer rate (≥3 threshold), ghost rate (≥5 threshold)
+- **Quick-access cards**: Document Library + ATS Scanner; H1B cap tracker for OPT/H1B users
+- **Extended analytics** (shown when 3 or more applications):
+  - **Monthly Breakdown**: grouped bars (Applied / Rejected / Offers); Applied is amber, Rejected is red, Offers are emerald so all three series are semantically distinct
+  - **Weekday Activity**: Mon-Sun submission bars with peak-day callout; uses device-local time (not UTC) to prevent off-by-one for US time zones
+  - **Top Companies**: ranked horizontal bar chart of most-applied companies
+  - **Stage Funnel**: Applied to Phone Screen to Interview to Offer to Accepted cumulative counts; warm-to-cool colour gradient (amber to orange to terracotta to emerald) makes each stage visually distinct
+  - **Avg Salary by Source**: midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
+  - **Source Effectiveness**: response rate % per source, sorted descending; only sources with 2 or more applications shown
+- **Search Intelligence**: avg days to first response (90-day cap), interview-to-offer rate (3 threshold), ghost rate (5 threshold)
 
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
-- **Job description field** — paste full JD to power ATS scan + NESTAi tailoring
-- **"Import from job posting"** — paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
-- **"Fill from JSON" — AI-assisted autofill** — copy a structured prompt from the new application form, paste it into any external AI (ChatGPT, Claude, Gemini) with your resume and the job posting, paste the returned JSON back, and all 13 fields auto-fill instantly; client-side only (no API key or extra service required); parser strips null bytes, validates real calendar dates, normalises URLs to canonical `href` form, and rejects dangerous schemes (`javascript:`, `data:`, etc.); invalid enum values produce non-blocking inline warnings with the modal staying open for review
-- **Source tracking** — 11 sources (LinkedIn, Indeed, Referral, Company Website…); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants — LinkedIn `#0A66C2`, Indeed `#003A9B`, Glassdoor `#0CAA41`, Handshake `#E8552A`, Wellfound `#111111`, Dice `#EB1C26`, Referral violet, Recruiter Outreach amber, Job Fair cyan, Company Website slate
-- **Application completeness score** — 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
-- **ATS score badge** — persisted to DB after each scan; shown in bottom meta row
-- **Created / Updated timestamps** — each application card shows `Created May 12 at 3:45 PM` and `· Updated May 13 at 9:20 AM` (only when modified after creation) using device-local timezone
-- **Status Journey** — visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries); each status dot uses its own semantic ring colour (amber for Applied, red for Rejected, emerald for Offer/Accepted) so every stage is visually distinct in both light and dark mode
-- **Duplicate application warning** — while typing company + position on the new/edit form, a debounced (600 ms) check queries existing applications; non-blocking amber inline note appears if a match is found; never blocks submission
-- **Delete application** — two-step delete available from both the card three-dot dropdown (menu stays open after first click so "Confirm delete" is immediately visible) and a "Delete" button on the application detail page header (inline "Are you sure? · Yes, delete · Cancel" strip); server-side `DELETE /api/applications/:id` cleans up all associated Storage files before the DB cascade; backed by Playwright E2E tests
-- **Document auto-purge on rejection** — when an application is rejected, a 30-day countdown begins to delete its Storage files; countdown + "Save to library" / "Keep files" banner shown on the application detail page; in-app notifications fire every 5 days; purge can be cancelled or files saved to the master library at any time; only Storage files are removed — the application row and all DB data are kept
-- **Universal Filter dropdown** — status filter is a dropdown on all screen sizes with an active-count badge; removable active-filter chips appear below the search bar when filters are on; "Clear all" link when 2+ filters active; sort by date/company/position; search shows a terracotta spinner during the server round-trip so there is always visual feedback while results load; filter changes remount the list cleanly so stale "Load more" pages never pollute filtered views
-- **Cursor-paginated list view** — keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
-- **Full-text search** — command palette (`⌘K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
-- **Company tier tagging** — tag each application as FAANG / Tier 1 / Tier 2 / Tier 3 / Startup; filter pill in the applications list with removable chip; Zod-validated in the application form; migration 33
-- **CSV bulk import** — "Import CSV" button opens a 4-step wizard (upload → column-map with auto-matching → 5-row preview → confirm); papaparse parses in-browser; server validates every row with Zod (company + position required; status/date default when absent); dangerous URL schemes (`javascript:`, `data:`, etc.) rejected; partial success shows per-row errors; 2 MB file cap + 500-row server cap; rate-limited 5/min
+- **Job description field**: paste full JD to power ATS scan + NESTAi tailoring
+- **Import from job posting**: paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; Greenhouse and Lever public APIs called first for reliable structured data; JSON-LD (`@type: JobPosting`) extracted before raw HTML; LinkedIn/Indeed/Glassdoor detected early with a specific paste-text message; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
+- **AI JSON autofill**: copy a structured prompt from the new application form, paste it into any external AI (ChatGPT, Claude, Gemini) with your resume and the job posting, paste the returned JSON back, and all 13 fields auto-fill instantly; client-side only (no API key or extra service required); parser strips null bytes, validates real calendar dates, normalises URLs to canonical `href` form, and rejects dangerous schemes (`javascript:`, `data:`, etc.); invalid enum values produce non-blocking inline warnings with the modal staying open for review
+- **Source tracking**: 11 sources (LinkedIn, Indeed, Referral, Company Website...); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants
+- **Application completeness score**: 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
+- **ATS score badge**: persisted to DB after each scan; shown in bottom meta row
+- **Created / Updated timestamps**: each application card shows device-local timestamps; only shown when the two differ
+- **Status Journey**: visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries); each status dot uses its own semantic ring colour (amber for Applied, red for Rejected, emerald for Offer/Accepted) so every stage is visually distinct in both light and dark mode
+- **Duplicate application warning**: while typing company + position on the new/edit form, a debounced (600 ms) check queries existing applications; non-blocking amber inline note appears if a match is found; never blocks submission
+- **Delete application**: two-step delete available from both the card three-dot dropdown (menu stays open after first click so "Confirm delete" is immediately visible) and a "Delete" button on the application detail page header; server-side `DELETE /api/applications/:id` cleans up all associated Storage files before the DB cascade; animated spinner overlay shown on the card during deletion; backed by Playwright E2E tests
+- **Document auto-purge on rejection**: when an application is rejected, a 30-day countdown begins to delete its Storage files; countdown + "Save to library" / "Keep files" banner shown on the application detail page; in-app notifications fire every 5 days; purge can be cancelled or files saved to the master library at any time; only Storage files are removed, the application row and all DB data are kept
+- **Universal Filter dropdown**: status filter is a dropdown on all screen sizes with an active-count badge; removable active-filter chips appear below the search bar when filters are on; "Clear all" link when 2+ filters active; sort by date/company/position; search shows a terracotta spinner during the server round-trip so there is always visual feedback while results load; filter changes remount the list cleanly so stale "Load more" pages never pollute filtered views
+- **Cursor-paginated list view**: keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
+- **Full-text search**: command palette (`Cmd+K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
+- **Company tier tagging**: tag each application as FAANG / Tier 1 / Tier 2 / Tier 3 / Startup; filter pill in the applications list with removable chip; Zod-validated in the application form; migration 33
+- **CSV bulk import**: "Import CSV" button opens a 4-step wizard (upload to column-map with auto-matching to 5-row preview to confirm); papaparse parses in-browser; server validates every row with Zod (company + position required; status/date default when absent); dangerous URL schemes rejected; partial success shows per-row errors; 2 MB file cap + 500-row server cap; rate-limited 5/min
 - Export to CSV or JSON; kanban board view toggle
 
 ### ATS Scanner (`/ats`)
 - Upload any resume (PDF/DOCX/TXT/MD) + paste a job description
-- **5 AI providers** — Groq (Llama 3.3 70B), OpenAI (GPT-4o mini), Anthropic (Claude Haiku 4.5), Google (Gemini 1.5 Flash), Perplexity (Sonar Small); UI shows only configured providers
+- **5 AI providers**: Groq (Llama 3.3 70B), OpenAI (GPT-4o mini), Anthropic (Claude Haiku 4.5), Google (Gemini 1.5 Flash), Perplexity (Sonar Small); UI shows only configured providers
 - Server-side keyword overlap pre-computation anchors AI score to real data (no "always 82" bias)
-- Returns: match score 0–100, missing keywords, matched keywords, improvement suggestions
-- **Continue in NESTAi** — pre-fills NESTAi input with contextual follow-up message
+- Returns: match score 0-100, missing keywords, matched keywords, improvement suggestions
+- **Continue in NESTAi**: pre-fills NESTAi input with contextual follow-up message
 
 ### Document Library (`/documents`)
-- All documents in one place: library uploads + application-linked files
+- Personal library of reusable master documents (resumes, cover letter templates, certificates)
+- Application-specific documents stay scoped to their application detail page
 - **1 GB quota** with colour-coded progress bar
-- Filter by type (PDF/DOCX/Image/Text) and origin (Library/Applications)
-- **Inline preview popup** — PDF iframe, image viewer, download + open-in-tab
-- **PDF annotation** — full PDF.js canvas renderer; click to place colour-coded sticky notes at exact coordinates; drag to reposition; auto-save on blur; 5 colour presets; per-document server-side storage with RLS (`document_annotations` table, migration 30)
-- **Cover letter variable preview** — live substitution of `{{company}}`, `{{position}}` and any `{{token}}` found in text/markdown cover letters; auto-fills application context; one-click copy to clipboard
-- **Resume autofill in application form** — "Fill from resume" picker loads library resumes; calls `parse-resume` API; suggests position from experience; appends skills summary to notes
-- **Google Drive import** — Google Picker OAuth (`drive.file` scope); server-side file download proxy (`/api/documents/import-drive`) with verifyOrigin, rate limit, MIME check, magic-byte validation, AV scan; shows setup banner when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is absent
-- **Dropbox import** — Dropbox Chooser SDK (dynamic script); direct-link piped through existing `import-url` SSRF-protected route; shows setup notice when `NEXT_PUBLIC_DROPBOX_APP_KEY` is absent
-- **Delete gated by origin** — library docs: delete button; app-linked docs: lock icon (manage from application)
-- **ATS Scan button** on each compatible document card → `/ats?doc_id=`
+- Filter by type (PDF/DOCX/Image/Text)
+- **Inline preview popup**: PDF iframe, image viewer, download + open-in-tab
+- **PDF annotation**: full PDF.js canvas renderer; click to place colour-coded sticky notes at exact coordinates; drag to reposition; auto-save on blur; 5 colour presets; per-document server-side storage with RLS (`document_annotations` table, migration 30)
+- **Cover letter variable preview**: live substitution of `{{company}}`, `{{position}}` and any `{{token}}` found in text/markdown cover letters; auto-fills application context; one-click copy to clipboard
+- **Resume autofill in application form**: "Fill from resume" picker loads library resumes; calls `parse-resume` API; suggests position from experience; appends skills summary to notes
+- **Google Drive import**: Google Picker OAuth (`drive.file` scope); server-side file download proxy (`/api/documents/import-drive`) with verifyOrigin, rate limit, MIME check, magic-byte validation, AV scan; shows setup banner when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is absent
+- **Dropbox import**: Dropbox Chooser SDK (dynamic script); direct-link piped through existing `import-url` SSRF-protected route; shows setup notice when `NEXT_PUBLIC_DROPBOX_APP_KEY` is absent
 - Upload, URL import, version history, restore, purge old versions
-- **Virus scanned on upload** — Cloudmersive multi-engine AV (fail-open when key absent)
+- **Virus scanned on upload**: Cloudmersive multi-engine AV (fail-open when key absent)
 - Shareable links (1d/7d/30d expiry) with view count analytics
 - Magic-byte server-side content validation on all uploads
+- **ATS Scan button** on each compatible document card directs to `/ats?doc_id=`
+
+### Application Documents (per-application)
+- Each application has its own document section on the detail page
+- Documents pre-fetched server-side for instant display with no loading flash
+- Original filename preserved and shown as the subtitle (`original_name` stored on upload)
+- Version history with restore and diff comparison
+- Share links per document with expiry and view count
 
 ### Interviews
 - Schedule per application; types: Phone Screen, Technical, Behavioral, On-site, Final
@@ -119,7 +125,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 ### Reminders
 - Manual and **auto-generated cadence** (Day 7, 14, 21 for Applied/Phone Screen apps)
 - Types: Follow Up, Interview, Deadline; mark complete; overdue detection
-- **Re-engagement emails** — automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
+- **Re-engagement emails**: automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
 
 ### Email Templates
 - Reusable templates by category; variable placeholders (`{{company}}`, `{{position}}`)
@@ -127,50 +133,55 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Salary Tracker
 - Base salary, bonus, signing bonus, equity, benefits per application
-- **Salary Comparison table** — shows **all** applications with salary data (not just Offers); status badge per row so Applied/Interview/Offer/Rejected context is visible at a glance; full TC, take-home estimate, and effective hourly rate columns
+- **Salary Comparison table**: shows **all** applications with salary data (not just Offers); status badge per row so Applied/Interview/Offer/Rejected context is visible at a glance; full TC, take-home estimate, and effective hourly rate columns
 - Multi-currency; state income tax take-home estimate; effective hourly rate adjusted for PTO and working hours
-- **Offer Decision Helper** — select up to 3 offers, rate 5 criteria (Total Comp, Career Growth, Location, Culture, Benefits), adjust global importance weights; live weighted score + winner callout
+- **Offer Decision Helper**: select up to 3 offers, rate 5 criteria (Total Comp, Career Growth, Location, Culture, Benefits), adjust global importance weights; live weighted score + winner callout
 
-### NESTAi — AI Job Search Assistant
+### Loading States
+- Every dashboard page has an Atelier-themed skeleton (SalarySkeleton, ATSSkeleton, DocumentsSkeleton, PrepSkeleton, NotificationsSkeleton, ProfileSkeleton) that renders instantly during server-side data fetching
+- Search box shows a terracotta spinner (`Loader2 animate-spin`) while the server re-renders after a filter change
+- Application cards show a centred spinner overlay during deletion
+
+### NESTAi - AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
-- **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking…" indicator while awaiting first token; `aria-live="polite"` on the streaming bubble so screen readers announce incoming content
-- **Chat-to-PDF export** — "Export" button in NESTAi topbar; `GET /api/nesta-ai/sessions/[id]/export-pdf`; styled PDF with user/AI bubbles, timestamps, and session title via `@react-pdf/renderer`; downloads as `nestai-{title}.pdf`; RLS-enforced
-- **Work authorization aware** — user's visa status injected into system prompt
-- **File attachments** — PDF, DOCX, TXT, MD, images up to 5 MB; binary always stored to Supabase Storage via `parse-file`; binary-only preview modal: PDF → CSP-safe blob URL iframe (full native PDF viewer with controls), Image → `<img>`, TXT/MD → raw file bytes, DOCX → "Open in browser"; preview independent from AI text extraction; 10-min signed URLs; preview survives page navigation (storagePath persisted in `chat_messages.metadata`)
-- **Edit messages in-place** — edited message stays at same position; AI response replaces the one after it; file attachment preserved through edit
-- **Interview Prep** — "Prep" button opens a modal; pick an active application → 5 tailored STAR behavioral questions generated from the stored JD; provide draft answers for specific AI feedback
-- **Email Draft Assistant** — "Draft" button opens a modal; pick an email category (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal) and an optional contact; Groq drafts a professional email into the chat input for review and editing
-- **Model fallback** — primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
+- **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking..." indicator while awaiting first token; `aria-live="polite"` on the streaming bubble so screen readers announce incoming content
+- **Chat-to-PDF export**: "Export" button in NESTAi topbar; styled PDF with user/AI bubbles, timestamps, and session title via `@react-pdf/renderer`; downloads as `nestai-{title}.pdf`; RLS-enforced
+- **Work authorization aware**: user's visa status injected into system prompt
+- **File attachments**: PDF, DOCX, TXT, MD, images up to 5 MB; binary always stored to Supabase Storage via `parse-file`; binary-only preview modal (PDF to CSP-safe blob URL iframe with full native PDF viewer, Image to `<img>`, TXT/MD to raw file bytes, DOCX to "Open in browser"); preview independent from AI text extraction; 10-min signed URLs; preview survives page navigation (storagePath persisted in `chat_messages.metadata`)
+- **Edit messages in-place**: edited message stays at same position; AI response replaces the one after it; file attachment preserved through edit
+- **Interview Prep**: "Prep" button opens a modal; pick an active application to generate 5 tailored STAR behavioral questions from the stored JD; provide draft answers for specific AI feedback
+- **Email Draft Assistant**: "Draft" button opens a modal; pick an email category (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal) and an optional contact; Groq drafts a professional email into the chat input for review and editing
+- **Model fallback**: primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
 - Pin chats, edit messages, rename/delete sessions with confirm dialog
 - Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown and progress bar
 - Smart context trimming (4-step, 124,500-token budget); 100-message history
-- **NESTAi handoff from ATS** — sessionStorage pre-fills input after a scan
+- **NESTAi handoff from ATS**: sessionStorage pre-fills input after a scan
 
 ### Technical Interview Prep Hub (`/prep`)
-- **Dashboard** — 4 SVG progress rings (DSA solved, system design comfortable, behavioral drafted, mocks completed) + daily streak counter with longest-streak badge
-- **Coding tracker** — LeetCode-style problem log: title, URL, difficulty, topic, status (Todo/Attempted/Solved/Review), company tags, solve time, notes; filter by topic/difficulty; spaced-repetition Review queue surfaces problems not visited in 7+ days
-- **System design checklist** — 15 topics (Load Balancer, CDN, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL…); click to cycle Not Started → Reading → Comfortable; links to system-design-primer; persisted to DB
-- **STAR behavioral bank** — 15 pre-seeded questions across 8 competencies; expandable Situation/Task/Action/Result form per question; filter by competency; word count shown
-- **Take-home assessment tracker** — platform, deadline, time limit, tech stack, status (Pending/In Progress/Submitted/Passed/Failed), score; link to a job application; overdue detection
-- **Mock interview scheduler** — schedule sessions by type (DSA/Behavioral/System Design/Mixed); log post-session score (1–5 stars), feedback, topics to revisit
-- **Interview question log** — log questions asked in real interviews, grouped by interview; category + difficulty tags; builds a personal question bank over time
-- **Daily prep streak** — any prep activity increments the streak; resets after a gap day; longest streak preserved
+- **Dashboard**: 4 SVG progress rings (DSA solved, system design comfortable, behavioral drafted, mocks completed) + daily streak counter with longest-streak badge
+- **Coding tracker**: LeetCode-style problem log with title, URL, difficulty, topic, status (Todo/Attempted/Solved/Review), company tags, solve time, notes; filter by topic/difficulty; spaced-repetition Review queue surfaces problems not visited in 7+ days
+- **System design checklist**: 15 topics (Load Balancer, CDN, CAP Theorem, Rate Limiting, Message Queues, Caching, Consistent Hashing, SQL vs NoSQL...); click to cycle Not Started to Reading to Comfortable; links to system-design-primer; persisted to DB
+- **STAR behavioral bank**: 15 pre-seeded questions across 8 competencies; expandable Situation/Task/Action/Result form per question; filter by competency; word count shown
+- **Take-home assessment tracker**: platform, deadline, time limit, tech stack, status (Pending/In Progress/Submitted/Passed/Failed), score; link to a job application; overdue detection
+- **Mock interview scheduler**: schedule sessions by type (DSA/Behavioral/System Design/Mixed); log post-session score (1-5 stars), feedback, topics to revisit
+- **Interview question log**: log questions asked in real interviews, grouped by interview; category + difficulty tags; builds a personal question bank over time
+- **Daily prep streak**: any prep activity increments the streak; resets after a gap day; longest streak preserved
 
 ### Notifications
 - Bell polls every 60s; badge caps at 99+; popover with quick links
-- `/notifications` page — All/Unread/Read tabs, bulk mark-read/clear, cursor pagination
+- `/notifications` page - All/Unread/Read tabs, bulk mark-read/clear, cursor pagination
 - Daily cron: in-app notifications for overdue reminders + upcoming interviews (24h window)
 - Idempotent via `(user_id, source_type, source_id)` partial unique index
 
 ### Billing & Payments (Stripe)
 - Checkout, 4 webhook events, billing portal, dunning email, 30-day trial, annual toggle
 - Plan enforcement fail-closed (reads `subscriptions` via service-role, returns "free" on DB error)
-- Student discount — server-side `.edu` allow-list (16 academic TLDs)
-- Mid-cycle proration for monthly ↔ annual switch
+- Student discount - server-side `.edu` allow-list (16 academic TLDs)
+- Mid-cycle proration for monthly to annual switch
 
 ### SEO & GEO
-- **JSON-LD** — `SoftwareApplication`, `WebSite` (SearchAction), `FAQPage` on landing; `Product`+`Offer` on pricing
-- **llms.txt** — plain-English site description for ChatGPT, Perplexity, Google AI, Claude
+- **JSON-LD**: `SoftwareApplication`, `WebSite` (SearchAction), `FAQPage` on landing; `Product`+`Offer` on pricing
+- **llms.txt**: plain-English site description for ChatGPT, Perplexity, Google AI, Claude
 - Per-page `openGraph` + `twitter` metadata on all 6 public pages
 - Sitemap auto-generated at `/sitemap.xml` via `app/sitemap.ts`
 - `robots.txt` with all authenticated routes disallowed
@@ -186,20 +197,20 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Database | Supabase (PostgreSQL + RLS) |
 | Storage | Supabase Storage |
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email + Google/GitHub OAuth) |
-| AI — NESTAi | Groq (`llama-3.3-70b-versatile`) |
-| AI — ATS Scanner | Groq, OpenAI, Anthropic, Google Gemini, Perplexity |
+| AI - NESTAi | Groq (`llama-3.3-70b-versatile`) |
+| AI - ATS Scanner | Groq, OpenAI, Anthropic, Google Gemini, Perplexity |
 | Email | Nodemailer (SMTP) |
 | Billing | Stripe (checkout, webhooks, portal, dunning) |
 | Virus scanning | Cloudmersive (multi-engine AV, fail-open) |
 | Rate limiting | Upstash Redis (falls back to in-memory) |
-| Styling | Tailwind CSS 4 + dark mode — Intellectual Atelier design system |
+| Styling | Tailwind CSS 4 + dark mode - Intellectual Atelier design system |
 | UI | Radix UI primitives + custom atelier-themed components |
 | Forms | React Hook Form + Zod |
 | Icons | Lucide React |
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1151 tests, 78 files) |
+| Testing | Vitest (1265 tests, 83 files) + Playwright E2E |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -215,7 +226,7 @@ web/
 │   │   ├── dashboard/
 │   │   ├── applications/         # List + [id] detail + [id]/edit + new
 │   │   ├── ats/                  # ATS Scanner (server component, pre-fetches docs)
-│   │   ├── documents/            # Document Library
+│   │   ├── documents/            # Document Library (master docs only)
 │   │   ├── interviews/
 │   │   ├── reminders/
 │   │   ├── contacts/
@@ -232,7 +243,7 @@ web/
 │   │   ├── terms/
 │   │   ├── contact/
 │   │   └── cookies/
-│   ├── p/[username]/             # Public portfolio page — SSR, no auth required
+│   ├── p/[username]/             # Public portfolio page - SSR, no auth required
 │   ├── api/
 │   │   ├── auth/                 # send-otp, verify-otp, reset-password
 │   │   ├── profile/              # update-name, change-password, update-about-me,
@@ -244,35 +255,43 @@ web/
 │   │   │   ├── github/           # connect (OAuth redirect), callback, disconnect,
 │   │   │   │                     # connection (GET), repos (GET/PATCH pin), sync (POST)
 │   │   │   ├── projects/         # list/create + [id] update/delete
-│   │   │   ├── linkedin/         # GET/POST — URL + strength checklist
+│   │   │   ├── linkedin/         # GET/POST - URL + strength checklist
 │   │   │   └── username/         # GET availability, POST claim
 │   │   ├── cron/
-│   │   │   ├── process-deletions/    # Daily 09:00 UTC
-│   │   │   ├── overdue-reminders/    # Daily 09:00 UTC
-│   │   │   ├── weekly-digest/        # Mondays 08:00 UTC
-│   │   │   ├── follow-up-reminders/  # Daily 09:00 UTC — Day 7/14/21 auto-reminders
-│   │   │   ├── re-engagement/        # Daily 10:00 UTC — 14-day inactivity emails
-│   │   │   └── github-sync/          # Daily 04:00 UTC — refresh all GitHub connections
+│   │   │   ├── process-deletions/        # Daily 09:00 UTC
+│   │   │   ├── overdue-reminders/        # Daily 09:00 UTC
+│   │   │   ├── weekly-digest/            # Mondays 08:00 UTC
+│   │   │   ├── follow-up-reminders/      # Daily 09:00 UTC - Day 7/14/21 auto-reminders
+│   │   │   ├── re-engagement/            # Daily 10:00 UTC - 14-day inactivity emails
+│   │   │   ├── github-sync/              # Daily 04:00 UTC - refresh all GitHub connections
+│   │   │   └── purge-rejected-documents/ # Daily 03:00 UTC - 30-day document cleanup
 │   │   ├── documents/            # list, upload, [id], [id]/annotations, [id]/annotations/[annId],
 │   │   │                         # ats-scan, import-url, import-drive, share, shared, refresh-url, diff, parse-resume
 │   │   ├── health/               # Liveness + readiness probe
 │   │   ├── applications/
-│   │   │   └── parse-jd/         # POST — JD URL/text → structured fields (SSRF-protected)
+│   │   │   ├── [id]/             # DELETE (with Storage cleanup), status PATCH, duplicate POST,
+│   │   │   │                     # tailoring-checklist POST, retain-documents POST
+│   │   │   ├── parse-jd/         # POST - JD URL/text to structured fields (SSRF-protected)
+│   │   │   └── bulk-import/      # POST - CSV row validation + insert
 │   │   ├── nesta-ai/             # Chat (streaming), sessions, messages, parse-file,
 │   │   │                         # attachment-url (signed URL for chat file preview)
 │   │   ├── notifications/
 │   │   ├── stripe/               # checkout, webhook, portal, student-verify, update-subscription
 │   │   └── contact/
 │   ├── sitemap.ts                # Auto-generates /sitemap.xml (8 public pages)
-│   └── opengraph-image.tsx       # 1200×630 OG image
+│   └── opengraph-image.tsx       # 1200x630 OG image
 ├── components/
 │   ├── ui/
-│   ├── applications/             # ApplicationCard (completeness ring), CompletenessCard, CompletenessRing
+│   ├── applications/             # ApplicationCard (with delete spinner overlay),
+│   │                             # DeleteApplicationButton, DocumentPurgeBanner,
+│   │                             # CompletenessCard, CompletenessRing, StatusTimeline
 │   ├── ats/                      # ATSScanner client component
 │   ├── auth/
-│   ├── common/
+│   ├── common/                   # Skeletons (Dashboard, Applications, ApplicationDetail,
+│   │                             # Salary, ATS, Documents, Prep, Notifications, Profile,
+│   │                             # NestAi, Generic), Loading, EmptyState
 │   ├── dashboard/
-│   ├── documents/                # DocumentManager, AnnotationDialog, DocPreviewDialog, DiffDialog, GoogleDriveImportButton
+│   ├── documents/                # DocumentManager, AnnotationDialog, DocPreviewDialog, DiffDialog
 │   ├── layout/                   # Navbar, BottomTabBar, NotificationBell, ThemeToggle
 │   ├── prep/                     # PrepHub, CodingProblemsTracker, SystemDesignChecklist,
 │   │                             # BehavioralBank, AssessmentsTracker, MockInterviewScheduler,
@@ -282,30 +301,30 @@ web/
 │   └── profile/                  # ProfileClient, DeletionBanner, DeveloperIdentity
 ├── lib/
 │   ├── api/
-│   ├── auth/                     # plan.ts — fail-closed plan enforcement
-│   ├── email/                    # Nodemailer — all email types
+│   ├── auth/                     # plan.ts - fail-closed plan enforcement
+│   ├── email/                    # Nodemailer - all email types
 │   ├── notifications/
 │   ├── security/                 # OTP, rate-limit (Redis), CSRF, virus-scan (Cloudmersive), sanitize.ts
 │   ├── utils/
-│   │   ├── completeness.ts       # Application completeness scoring (10 fields, 0–10)
-│   │   ├── date.ts               # Shared date/time formatting — Intl locale + IANA timezone from device; formatDate, formatDateTime, formatRelative, formatDuration helpers
-│   │   ├── document-parser.ts    # PDF/DOCX/TXT extraction
+│   │   ├── completeness.ts       # Application completeness scoring (10 fields, 0-10)
+│   │   ├── date.ts               # Shared date/time formatting - Intl locale + IANA timezone from device
+│   │   ├── document-parser.ts    # PDF/DOCX/TXT extraction with SHA-256 Redis cache (1h TTL)
 │   │   ├── fetch-retry.ts
 │   │   ├── storage.ts
-│   │   └── template-helpers.ts  # substituteVariables() + extractVariableKeys() — shared by cover-letter preview and email templates
+│   │   └── template-helpers.ts  # substituteVariables() + extractVariableKeys()
 │   ├── env.ts                    # Startup env validation
-│   └── validations/              # Zod schemas; secureUrlField shared transformer (null-byte strip, scheme blocklist, new URL() check)
+│   └── validations/              # Zod schemas; secureUrlField shared transformer
 ├── services/
 ├── config/                       # Constants (APPLICATION_STATUSES, APPLICATION_SOURCES, WORK_AUTHORIZATION_OPTIONS)
 ├── types/
 ├── public/
 │   ├── llms.txt                  # LLM-readable site description (GEO)
 │   └── robots.txt
-├── vercel.json                   # 5 cron job schedules
+├── vercel.json                   # 7 cron job schedules
 └── proxy.ts                      # Route protection + security headers
 
 supabase/
-└── migrations/                   # SQL migration files (run in order, 000 → 034)
+└── migrations/                   # SQL migration files (run in order, 000 to 035)
 ```
 
 ---
@@ -317,10 +336,10 @@ supabase/
 - Node.js 18+, npm
 - Supabase project
 - SMTP server (OTP + lifecycle emails)
-- Groq API key (NESTAi — required)
-- Stripe account (billing — optional, degrades gracefully)
-- Upstash Redis (rate limiting — optional, falls back to in-memory)
-- Cloudmersive API key (virus scanning — optional, skipped when absent)
+- Groq API key (NESTAi - required)
+- Stripe account (billing - optional, degrades gracefully)
+- Upstash Redis (rate limiting - optional, falls back to in-memory)
+- Cloudmersive API key (virus scanning - optional, skipped when absent)
 - Google / GitHub OAuth credentials (optional)
 
 ### Environment Variables
@@ -348,29 +367,28 @@ SMTP_USER=your@gmail.com
 SMTP_PASS=your_app_password
 CONTACT_EMAIL=contact@yourdomain.com
 
-# AI — NESTAi (required) + ATS Scanner providers (optional)
+# AI - NESTAi (required) + ATS Scanner providers (optional)
 GROQ_API_KEY=gsk_...
 OPENAI_API_KEY=sk-...        # optional
 ANTHROPIC_API_KEY=sk-ant-... # optional
 GEMINI_API_KEY=...           # optional
 PERPLEXITY_API_KEY=pplx-...  # optional
 
-# Virus scanning (optional — 800 free scans/month)
+# Virus scanning (optional - 800 free scans/month)
 CLOUDMERSIVE_API_KEY=...
 
-# Google Drive import (optional — set both or neither)
+# Google Drive import (optional - set both or neither)
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
 NEXT_PUBLIC_GOOGLE_API_KEY=...
 
 # Dropbox import (optional)
 NEXT_PUBLIC_DROPBOX_APP_KEY=...
 
-# GitHub OAuth — Developer Portfolio
+# GitHub OAuth - Developer Portfolio
 # The portfolio GitHub connect uses the same OAuth app already configured in
-# Supabase for login (Auth → Providers → GitHub). No separate app needed.
-# Add the callback URL to Supabase → Auth → URL Configuration → Redirect URLs:
+# Supabase for login (Auth > Providers > GitHub). No separate app needed.
+# Add the callback URL to Supabase > Auth > URL Configuration > Redirect URLs:
 #   https://yourdomain.com/api/portfolio/github/callback
-# GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are NOT required in the app env.
 
 # Stripe (optional)
 STRIPE_SECRET_KEY=sk_test_...
@@ -402,7 +420,7 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 08 | `...008_chat_pin.sql` | Pin chats |
 | 09 | `...009_chat_message_metadata.sql` | File attachment metadata |
 | 10 | `...010_subscriptions.sql` | Stripe billing |
-| 11–15 | Rate limits, RLS fixes, index cleanup | Performance + security |
+| 11-15 | Rate limits, RLS fixes, index cleanup | Performance + security |
 | 16 | `...016_application_documents.sql` | Document versioning table |
 | 17 | `...017_storage_expanded_mime.sql` | Extended MIME types |
 | 18 | `...018_per_app_rls.sql` | Per-application Storage RLS |
@@ -410,18 +428,19 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 20 | `...020_notifications.sql` | Notifications table |
 | 21 | `...021_ats_fields.sql` | `job_description`, `source`, Ghosted/Withdrawn statuses |
 | 22 | `...022_ats_score.sql` | `ats_score` column |
-| 23 | `...023_fulltext_search.sql` | `search_vector` tsvector + GIN index + trigger on `job_applications` |
-| 24 | `...024_developer_identity.sql` | `skills`, `certifications`, `education` tables with RLS + CHECK constraints |
-| 25 | `...025_sponsorship_and_work_auth.sql` | `requires_sponsorship` on applications, `opt_start_date` for OPT tracker |
+| 23 | `...023_fulltext_search.sql` | `search_vector` tsvector + GIN index + trigger |
+| 24 | `...024_developer_identity.sql` | `skills`, `certifications`, `education` tables with RLS |
+| 25 | `...025_sponsorship_and_work_auth.sql` | `requires_sponsorship`, `opt_start_date` |
 | 26 | `...026_salary_details_tc.sql` | TC calculator fields: `equity_details`, `retirement_match_*`, `col_city` |
-| 27 | `...027_prep_hub.sql` | `coding_problems`, `assessments`, `behavioral_answers`, `mock_interviews`, `interview_questions`, `prep_streaks` — all with RLS |
-| 28 | `...028_chat_attachments_storage.sql` | Expand documents bucket MIME types (webp, gif, heic, heif, avif, bmp, tiff, octet-stream) |
-| 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` to allow `'chat-attachments'` as trusted second-segment in storage paths |
-| 30 | `...030_document_annotations.sql` | `document_annotations` table — page-relative x/y/width coordinates, colour, content; RLS owner-only; indexes on `document_id` + `user_id` |
-| 31 | `...031_portfolio.sql` | `usernames` (slug → user_id lookup), `github_connections` (OAuth token + profile stats), `github_repos` (cached repos, is_pinned), `projects` (showcase with optional repo link), `application_projects` (junction); FORCE RLS + `WITH CHECK` on all tables; `set_updated_at` triggers |
+| 27 | `...027_prep_hub.sql` | `coding_problems`, `assessments`, `behavioral_answers`, `mock_interviews`, `interview_questions`, `prep_streaks` |
+| 28 | `...028_chat_attachments_storage.sql` | Expand documents bucket MIME types |
+| 29 | `...029_allow_chat_attachments_path.sql` | Extend `user_owns_application()` for chat-attachments paths |
+| 30 | `...030_document_annotations.sql` | `document_annotations` table with RLS |
+| 31 | `...031_portfolio.sql` | `usernames`, `github_connections`, `github_repos`, `projects`, `application_projects` |
 | 32 | `...032_ats_provider.sql` | `ats_provider` column on `job_applications` |
-| 33 | `...033_company_tier.sql` | `company_tier` enum (FAANG/Tier 1/Tier 2/Tier 3/Startup) + nullable column on `job_applications`; partial index on `(user_id, company_tier)` |
-| 34 | `...034_feedback.sql` | `user_feedback` table (score 0–10 CHECK, optional comment, RLS: insert-only); index on `created_at DESC` for admin analytics |
+| 33 | `...033_company_tier.sql` | `company_tier` enum + column |
+| 34 | `...034_feedback.sql` | `user_feedback` table |
+| 35 | `...035_document_purge_queue.sql` | `document_purge_queue` table + DB trigger that schedules 30-day file purge on rejection |
 
 ### Installation
 
@@ -443,23 +462,22 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1151 tests, 78 files)
+npm test              # Vitest (1265 tests, 83 files)
 npm run test:coverage # Coverage report
+npm run test:e2e      # Playwright E2E (requires E2E_TEST_EMAIL + E2E_TEST_PASSWORD)
 ```
 
 ---
 
 ## Testing
 
-All tests run with **Vitest** — no browser or external service required. All dependencies mocked.
+**Vitest** unit and flow tests run entirely without a browser or external service. Playwright E2E tests require a live Supabase backend and are skipped automatically when credentials are absent.
 
-| Suite | Location | Coverage |
+| Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics, Zod schemas; **new this sprint**: `bulk-import` (18 tests — gates, row validation, partial success, error message no-leak), `feedback` (16 tests — score 0–10 boundary, comment length, all gates), `export-pdf` (8 tests — IDOR guard, auth, Content-Disposition filename), `company_tier` schema (6 tests), `services/applications-filter` (11 tests — `sanitizeFilterTerm` strips `,()."'`, cursor injection prevention for date/UUID format and invalid base64, tier `.eq()` applied/skipped) |
-| Security | `tests/unit/lib/security/csrf.test.ts` | Updated for new `verifyOrigin`: static URL is sole authority in production; dynamic host fallback dev-only and host-header only; `x-forwarded-host` spoofing no longer passes |
-| Cron | `tests/unit/api/cron/process-deletions.test.ts` | **New**: storage purge (list + remove called, empty bucket, list error non-fatal), Stripe purge (customer.del called, skip when unconfigured, deletion succeeds when Stripe throws) |
-| Mobile/UX | `tests/unit/mobile/` | Responsive layout, aria labels, CSS tokens |
-| E2E flows | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics, Zod schemas, security helpers |
+| Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
+| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status filter) |
 
 ---
 
@@ -471,24 +489,21 @@ All tests run with **Vitest** — no browser or external service required. All d
 | Rate limiting | Redis-backed (Upstash); dual-layer on send-otp (IP + per-email) |
 | Virus scanning | Cloudmersive multi-engine AV on all uploads + URL imports (fail-open) |
 | Magic bytes | Server-side content validation prevents extension spoofing |
-| CSRF | `SameSite=Lax` + `verifyOrigin()` on **all** session-authenticated mutation routes — profile, documents (upload, share, ats-scan, import-url, import-drive, [id] DELETE, restore, purge-versions, annotations), NESTAi (chat, sessions CRUD, messages), Stripe checkout, application status PATCH, onboarding, parse-jd, parse-file, all 11 prep API endpoints |
-| IDOR | `interview_id` ownership validated against `interviews` table before inserting `interview_questions`; `application_id` ownership validated before linking an assessment |
+| CSRF | `SameSite=Lax` + `verifyOrigin()` on all session-authenticated mutation routes |
+| IDOR | Application and document ownership verified server-side before every mutation |
 | SSRF | `assertSafeUrl()` on parse-jd: DNS pre-resolution blocks loopback, RFC-1918, link-local (AWS/GCP metadata), CGNAT; post-redirect check prevents open-redirect chains |
-| Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected in attachment-url; Storage path `{uid}/chat-attachments/…` — first segment is user ID, enforced by RLS |
-| Cron auth | `Authorization: Bearer <CRON_SECRET>` — fail-closed |
-| Right-to-erasure | Deletion cron purges Supabase Storage (`documents` bucket, recursive pagination) and Stripe customer before `auth.admin.deleteUser()`; orphan verification queries 9 tables post-delete |
-| CSRF origin | `verifyOrigin()` validates `Origin` against `NEXT_PUBLIC_APP_URL` (static allowlist — no `x-forwarded-host` spoofing); dev-only fallback checks unforwardable `host` header |
+| Path traversal | `session_id` validated as UUID before use in Storage path; `..` segments rejected; Storage paths scoped to `{uid}/` prefix with ownership check before all admin operations |
+| Cron auth | `Authorization: Bearer <CRON_SECRET>` - fail-closed (401 if secret missing) |
+| Right-to-erasure | Deletion cron purges Supabase Storage and Stripe customer before `auth.admin.deleteUser()`; orphan verification queries 9 tables post-delete |
+| CSRF origin | `verifyOrigin()` validates `Origin` against `NEXT_PUBLIC_APP_URL` (static allowlist); `x-forwarded-host` spoofing not accepted in production |
 | RLS | All tables enforce row-level security via `auth.uid()` |
-| Plan enforcement | Reads `subscriptions` via service-role — fail-closed, never grants Pro on error |
-| Document serving | `Content-Disposition: attachment` forced — prevents stored XSS |
+| Plan enforcement | Reads `subscriptions` via service-role - fail-closed, never grants Pro on error |
+| Document serving | `Content-Disposition: attachment` forced - prevents stored XSS |
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
-| Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy; nonce passed via `x-nonce` header, applied to anti-flash `<script>` with `suppressHydrationWarning` |
-| Input validation | UUID format check on all profile DELETE routes (returns 400 not 500); DELETE returns 404 when no row is found (prevents silent no-op); `notes` field capped at `.max(50000)` (prevents multi-MB payload submissions) |
-| NESTAi streaming | `groqResponse.body` null-checked before `pipeTo` (returns 502 instead of throwing); `controller.enqueue()` guarded against closed-controller after client disconnect; JSON-LD `</script>` escaped in `dangerouslySetInnerHTML` |
-| GitHub OAuth | Uses Supabase-configured OAuth (same app as login); client-side `signInWithOAuth` with PKCE; `session.provider_token` extracted in server callback; `redirectTo` validated against Supabase allowed URLs |
-| GitHub token at rest | AES-256-GCM encryption in `lib/security/tokens.ts` keyed from `CSRF_SECRET`; legacy plaintext tokens (`gho_`/`ghp_`) handled transparently until users reconnect |
-| OAuth redirect hardening | `appUrl` in callback/connect routes pinned to `NEXT_PUBLIC_APP_URL`; no `x-forwarded-host` derivation for redirect targets (prevents open-redirect on non-Vercel deployments) |
-| Email disclosure | `user.email` never exposed on public portfolio by default; `show_email` must be explicitly opted in via profile settings (stored in `user_metadata`, defaults `false`) |
+| Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
+| Input validation | UUID format check on all profile DELETE routes; `notes` field capped at 50,000 chars |
+| GitHub token at rest | AES-256-GCM encryption in `lib/security/tokens.ts` keyed from `CSRF_SECRET` |
+| Email disclosure | `user.email` never exposed on public portfolio by default; `show_email` must be explicitly opted in |
 
 ---
 
@@ -496,22 +511,23 @@ All tests run with **Vitest** — no browser or external service required. All d
 
 ### Vercel
 
-1. Push to GitHub → import project (root: `web/`)
+1. Push to GitHub then import project (root: `web/`)
 2. Add all environment variables
 3. Deploy
 
-`vercel.json` schedules 5 cron jobs automatically:
+`vercel.json` schedules 7 cron jobs automatically:
 
 | Endpoint | Schedule | Purpose |
 |---|---|---|
-| `/api/cron/process-deletions` | Daily 09:00 UTC | Grace-period deletion |
+| `/api/cron/process-deletions` | Daily 09:00 UTC | Grace-period account deletion |
 | `/api/cron/overdue-reminders` | Daily 09:00 UTC | In-app notifications + emails |
 | `/api/cron/weekly-digest` | Mondays 08:00 UTC | Digest email |
 | `/api/cron/follow-up-reminders` | Daily 09:00 UTC | Day 7/14/21 auto-reminders |
 | `/api/cron/re-engagement` | Daily 10:00 UTC | 14-day inactivity emails |
 | `/api/cron/github-sync` | Daily 04:00 UTC | Refresh GitHub profile + repos for all connected users |
+| `/api/cron/purge-rejected-documents` | Daily 03:00 UTC | Delete Storage files 30 days after application rejection |
 
-**`CRON_SECRET` must be set** — all cron endpoints return 401 without it.
+**`CRON_SECRET` must be set** - all cron endpoints return 401 without it.
 
 ---
 
@@ -523,7 +539,7 @@ Found a bug? [Open an issue on GitHub](https://github.com/Git-Nish14/Jobnest/iss
 
 ## License
 
-Private — All rights reserved
+Private - All rights reserved
 
 ---
 
