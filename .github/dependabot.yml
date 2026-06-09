@@ -1,5 +1,5 @@
 # Dependabot keeps npm packages and GitHub Actions up to date automatically.
-# Weekly PRs on Mondays; grouped to reduce noise.
+# Weekly PRs on Mondays; one PR per dependency so broken builds are easy to isolate.
 
 version: 2
 
@@ -12,14 +12,8 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    # Group all non-major updates into a single PR to reduce noise.
-    groups:
-      dependencies:
-        update-types:
-          - minor
-          - patch
-    # Open separate PRs for major version bumps (breaking changes).
-    open-pull-requests-limit: 5
+    # No groups — each dependency gets its own PR.
+    open-pull-requests-limit: 20
     labels:
       - dependencies
       - automated
@@ -34,12 +28,8 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    groups:
-      actions:
-        update-types:
-          - minor
-          - patch
-    open-pull-requests-limit: 3
+    # No groups — each action gets its own PR.
+    open-pull-requests-limit: 20
     labels:
       - dependencies
       - github-actions
