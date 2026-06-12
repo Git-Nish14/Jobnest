@@ -46,15 +46,27 @@
 .db-panel {
   background-color: var(--atelier-surface);
   border-radius: 1rem;
-  padding: 2rem;
+  /* Responsive padding — tighter on mobile so content has room to breathe */
+  padding: 1.25rem;
   border: 1px solid rgba(219, 193, 185, 0.15);
   box-shadow: 0 2px 16px rgba(26, 28, 27, 0.04);
+  /* Clip only horizontal overflow (chart bar labels on narrow screens).
+     overflow-x rather than overflow so the chart tooltip (absolute -top-7)
+     is not clipped vertically on hover.                                   */
+  overflow-x: hidden;
+}
+@media (min-width: 640px) {
+  .db-panel { padding: 2rem; }
 }
 
 .db-panel-title {
   font-family: var(--font-newsreader, Georgia, serif);
-  font-size: 1.5rem;
+  /* Mobile: 1.2rem keeps the title from overflowing the controls row */
+  font-size: 1.2rem;
   color: var(--atelier-on-surface);
+}
+@media (min-width: 640px) {
+  .db-panel-title { font-size: 1.5rem; }
 }
 
 /* ── Application list rows ─────────────────────────────────────────────────── */
@@ -254,13 +266,64 @@
   min-height: 176px;
 }
 
-/* ── Bottom tab bar ────────────────────────────────────────────────────────── */
+/* ── Bottom tab bar — iOS 26-style liquid glass floating pill ──────────────── */
+/*
+ * Positioning: inset-x-3 (left/right) comes from Tailwind on the <nav>.
+ * We control bottom here so env(safe-area-inset-bottom) can be used in calc().
+ * The pill floats 0.5rem above the safe-area so content peeks through the glass.
+ *
+ * When the mobile nav drawer opens, Navbar adds .nav-open to <html>.
+ * The tab bar slides off the bottom so the full drawer is visible.
+ */
 .bottom-tab-bar {
-  background-color: rgba(250, 249, 247, 0.97);
-  border-top: 1px solid rgba(219, 193, 185, 0.25);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Floating position */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+  border-radius: 2rem;
+
+  /* Smooth slide for open/close and nav-open hide */
+  transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Liquid glass layers (light mode) ────────────────────────────────────
+     Layer 1 (backdrop): heavy blur + saturation + contrast pulls vivid
+       content colour through while keeping it soft and luminous.
+     Layer 2 (background): gradient heavy-white at top (mirror sheen) fading
+       to near-transparent at the bottom (content bleeds through).
+     Layer 3 (border): bright semi-opaque white ring → the glass edge.
+     Layer 4 (box-shadow): stacked inset highlights that give a 3-D curved
+       glass look: top specular line, soft inner glow, side catches, plus
+       3-layer outer floating drop shadow for lift.                       */
+  -webkit-backdrop-filter: blur(72px) saturate(2.2) brightness(1.06) contrast(1.04);
+  backdrop-filter: blur(72px) saturate(2.2) brightness(1.06) contrast(1.04);
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.64) 0%,    /* top mirror sheen — very bright */
+      rgba(255, 255, 255, 0.30) 22%,
+      rgba(255, 255, 255, 0.12) 60%,
+      rgba(248, 246, 244, 0.05) 100%   /* bottom — almost fully transparent */
+    );
+
+  border: 1px solid rgba(255, 255, 255, 0.80);
+
+  box-shadow:
+    /* ── Inner glass highlights (create the 3-D curved surface feel) ── */
+    inset 0  2px   0    rgba(255, 255, 255, 1.00),  /* top mirror line — pure white */
+    inset 0  0     18px rgba(255, 255, 255, 0.18),  /* soft inner glow / fill */
+    inset 0 -1px   0    rgba(0,   0,   0,   0.06),  /* bottom inner edge depth */
+    inset  1px 0   0    rgba(255, 255, 255, 0.35),  /* left side catch */
+    inset -1px 0   0    rgba(255, 255, 255, 0.35),  /* right side catch */
+    /* ── Outer floating shadow (3 layers for soft aerial depth) ── */
+    0 18px 50px rgba(0, 0, 0, 0.13),
+    0  6px 16px rgba(0, 0, 0, 0.09),
+    0  2px  4px rgba(0, 0, 0, 0.06);
+}
+
+/* Slide the tab bar off the bottom when the mobile nav drawer is open */
+html.nav-open .bottom-tab-bar {
+  opacity: 0;
+  transform: translateY(calc(100% + 1rem));
+  pointer-events: none;
 }
 
 .bottom-tab-active {
@@ -276,8 +339,34 @@
   opacity: 1;
 }
 
+/* Utility — adds padding for the iOS home indicator inside any element that
+   sits flush against the bottom edge. Used by tab-bar inner items and any
+   future fixed-bottom elements that need safe-area clearance.              */
 .pb-safe {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+}
+
+/* ── NESTAi tab pill ───────────────────────────────────────────────────────── */
+.nestai-tab-pill-idle {
+  background: rgba(153, 70, 42, 0.11);
+}
+.nestai-tab-pill-active {
+  background: linear-gradient(135deg, #99462a 0%, #d97757 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),      /* specular on pill */
+    0 0 0 3px rgba(153, 70, 42, 0.14),
+    0 4px 14px rgba(153, 70, 42, 0.32);
+}
+
+/* Sparkle icon — gentle rotate + scale pulse.
+   transform and opacity are GPU-composited (no layout/paint) — ideal for animation. */
+@keyframes nestai-tab-sparkle {
+  0%, 100% { transform: scale(1)    rotate(-6deg); opacity: 0.85; }
+  50%       { transform: scale(1.1) rotate( 6deg); opacity: 1; }
+}
+.nestai-tab-sparkle {
+  will-change: transform, opacity;
+  animation: nestai-tab-sparkle 3s ease-in-out infinite;
 }
 
 /* ── NESTAi chat container ─────────────────────────────────────────────────── */
@@ -294,7 +383,8 @@
 
 .nestai-input-area {
   position: fixed;
-  bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); /* sits above the bottom tab bar */
+  /* Pill height (4.75rem) + pill bottom offset (0.5rem) + clearance (0.75rem) */
+  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   z-index: 40;
@@ -347,7 +437,9 @@
 .nestai-input-textarea {
   resize: none;
   background: transparent;
-  font-size: 0.9375rem;   /* between text-sm and text-base */
+  /* 1rem (16px) on mobile prevents iOS Safari from auto-zooming on focus.
+     Restored to 0.9375rem on sm+ where the viewport is wide enough. */
+  font-size: 1rem;
   line-height: 1.5rem;    /* 24px — exactly one "row" */
   min-height: 1.5rem;     /* single-line start */
   /* 4 lines × 24px + 2 × 6px vertical padding = 108px.
@@ -358,6 +450,11 @@
   color: #1a1c1b;
   word-break: break-words;
   overflow-wrap: anywhere;
+}
+@media (min-width: 640px) {
+  .nestai-input-textarea {
+    font-size: 0.9375rem; /* tighten back on larger screens */
+  }
 }
 .nestai-input-textarea::-webkit-scrollbar { width: 3px; }
 .nestai-input-textarea::-webkit-scrollbar-track { background: transparent; }
@@ -561,10 +658,14 @@
   border: 1px solid rgba(219, 193, 185, 0.25);
   border-radius: 0.625rem;
   padding: 0.65rem 1rem 0.65rem 2.75rem;
-  font-size: 0.875rem;
+  /* 1rem (16px) on mobile prevents iOS Safari auto-zoom on focus */
+  font-size: 1rem;
   color: var(--atelier-on-surface);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+@media (min-width: 640px) {
+  .db-filter-search { font-size: 0.875rem; }
 }
 .db-filter-search:focus {
   border-color: rgba(153, 70, 42, 0.35);
@@ -666,14 +767,18 @@
 @media (prefers-reduced-motion: reduce) {
   .db-fab,
   .db-filter-pill,
-  .bottom-tab-bar,
   .nestai-input-area,
-  .db-mobile-action-bar {
+  .db-mobile-action-bar,
+  .bottom-tab-bar {
     transition: none;
   }
   .db-fab:hover  { transform: none; }
   .db-fab:active { transform: none; }
   .db-filter-pill:active { transform: none; }
+  /* Instant hide/show when nav opens — no slide animation */
+  html.nav-open .bottom-tab-bar { transform: none; }
+  /* Stop sparkle rotation for users who prefer reduced motion */
+  .nestai-tab-sparkle { animation: none; }
 }
 
 /* ── Horizontal scroll (tables on small screens) ───────────────────────────── */
@@ -694,7 +799,8 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  /* Pill height (4.75rem) + pill bottom offset (0.5rem) + clearance (0.75rem) */
+  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   z-index: 30;
   display: flex;
   gap: 0.75rem;
@@ -858,10 +964,39 @@
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* ── Bottom tab bar ──────────────────────────────────────────────────────── */
+/* ── Bottom tab bar — dark liquid glass ─────────────────────────────────── */
 .dark .bottom-tab-bar {
-  background-color: rgba(0, 0, 0, 0.95);
-  border-top-color: rgba(204, 255, 0, 0.08);
+  -webkit-backdrop-filter: blur(72px) saturate(1.8) brightness(0.78) contrast(1.08);
+  backdrop-filter: blur(72px) saturate(1.8) brightness(0.78) contrast(1.08);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(110, 110, 110, 0.62) 0%,
+      rgba(45,  45,  45,  0.50) 30%,
+      rgba(12,  12,  12,  0.44) 100%
+    );
+  border-color: rgba(255, 255, 255, 0.20);
+  box-shadow:
+    inset 0  2px   0    rgba(255, 255, 255, 0.28),  /* top specular */
+    inset 0  0     18px rgba(255, 255, 255, 0.06),  /* inner glow */
+    inset 0 -1px   0    rgba(0,   0,   0,   0.35),  /* bottom edge */
+    inset  1px 0   0    rgba(255, 255, 255, 0.12),  /* left side */
+    inset -1px 0   0    rgba(255, 255, 255, 0.12),  /* right side */
+    0 18px 50px rgba(0, 0, 0, 0.70),
+    0  6px 16px rgba(0, 0, 0, 0.55),
+    0  2px  4px rgba(0, 0, 0, 0.40);
+}
+
+/* ── NESTAi tab pill — dark mode ─────────────────────────────────────────── */
+.dark .nestai-tab-pill-idle {
+  background: rgba(204, 255, 0, 0.10);
+}
+.dark .nestai-tab-pill-active {
+  background: linear-gradient(135deg, #ccff00 0%, #b8e600 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 0 3px rgba(204, 255, 0, 0.12),
+    0 4px 14px rgba(204, 255, 0, 0.28);
 }
 
 /* ── Mobile action bar ───────────────────────────────────────────────────── */

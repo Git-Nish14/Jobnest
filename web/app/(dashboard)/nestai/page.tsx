@@ -1422,7 +1422,7 @@ export default function NestAiPage() {
                               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSubmit(msg.id); }
                               if (e.key === "Escape") { setEditingMessageId(null); setEditInput(""); setEditingAttachment(undefined); }
                             }}
-                            className="w-full rounded-2xl rounded-tr-sm border-2 border-primary/40 bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary resize-none"
+                            className="w-full rounded-2xl rounded-tr-sm border-2 border-primary/40 bg-background px-4 py-2.5 text-[16px] sm:text-sm focus:outline-none focus:border-primary resize-none"
                           />
                           <div className="flex justify-end gap-2">
                             <Button size="sm" variant="ghost" onClick={() => { setEditingMessageId(null); setEditInput(""); setEditingAttachment(undefined); }}>
@@ -1909,7 +1909,7 @@ function SessionRow({
             type="text"
             value={editTitle}
             onChange={(e) => onRenameChange(e.target.value)}
-            className="flex-1 text-xs bg-background border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/40 text-foreground"
+            className="flex-1 text-[16px] sm:text-xs bg-background border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary/40 text-foreground"
             autoFocus
             aria-label="Chat title"
             title="Rename chat"

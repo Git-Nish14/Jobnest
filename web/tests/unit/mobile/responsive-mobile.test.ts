@@ -26,19 +26,23 @@ describe("BottomTabBar component", () => {
   });
 
   it("includes the four primary tabs", () => {
+    // Overview, Applications, Interviews are in REGULAR_TABS (object href property);
+    // NESTAi is a separate hardcoded <Link href="/nestai"> — check JSX attribute form.
     expect(src).toContain('href: "/dashboard"');
     expect(src).toContain('href: "/applications"');
     expect(src).toContain('href: "/interviews"');
-    expect(src).toContain('href: "/nestai"');
+    expect(src).toContain('href="/nestai"');
   });
 
   it("is hidden on md+ screens (md:hidden)", () => {
     expect(src).toContain("md:hidden");
   });
 
-  it("is fixed at the bottom with z-50", () => {
+  it("is fixed at the bottom via CSS class and z-50", () => {
+    // Bottom positioning is controlled by .bottom-tab-bar { bottom: calc(...) }
+    // in dashboard.css so the component itself no longer carries bottom-0.
     expect(src).toContain("fixed");
-    expect(src).toContain("bottom-0");
+    expect(src).toContain("bottom-tab-bar"); // CSS class that owns the bottom value
     expect(src).toContain("z-50");
   });
 

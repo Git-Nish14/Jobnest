@@ -60,7 +60,7 @@ export default async function DashboardLayout({
       {pendingDeletion && (
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />
       )}
-      {/* pb-36: clears bottom tab bar (4rem) + NESTAi fixed input on mobile */}
+      {/* pb-36: clears bottom tab bar (4.75rem) + NESTAi fixed input on mobile */}
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-36 md:pb-8">
         {children}
       </main>

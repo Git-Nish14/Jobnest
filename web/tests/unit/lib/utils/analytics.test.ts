@@ -303,6 +303,45 @@ describe("getDashboardAnalytics — ghostRate", () => {
     const { data } = await getDashboardAnalytics();
     expect(data?.ghostRate).toBe(100);
   });
+
+  it("counts Applied apps silent for >30 days as implicit ghosts", async () => {
+    // 3 recent Applied (10 days old — not yet ghosted), 2 old Applied (31 days — implicit ghost)
+    const apps = [
+      makeApp({ status: "Applied", applied_date: daysAgo(10) }),
+      makeApp({ status: "Applied", applied_date: daysAgo(10) }),
+      makeApp({ status: "Applied", applied_date: daysAgo(10) }),
+      makeApp({ status: "Applied", applied_date: daysAgo(31) }),
+      makeApp({ status: "Applied", applied_date: daysAgo(31) }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    // 2 implicit ghosts / 5 total = 40%
+    expect(data?.ghostRate).toBe(40);
+  });
+
+  it("does not count Applied apps at the 30-day boundary as ghosted", async () => {
+    // Exactly 30 days is within the threshold (> 30 required)
+    const apps = Array.from({ length: 6 }, () =>
+      makeApp({ status: "Applied", applied_date: daysAgo(30) })
+    );
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.ghostRate).toBe(0);
+  });
+
+  it("combines explicit Ghosted status with implicit Applied >30d", async () => {
+    const apps = [
+      makeApp({ status: "Ghosted",  applied_date: daysAgo(40) }),   // explicit
+      makeApp({ status: "Applied",  applied_date: daysAgo(35) }),   // implicit
+      makeApp({ status: "Applied",  applied_date: daysAgo(10) }),   // recent — not ghosted
+      makeApp({ status: "Rejected", applied_date: daysAgo(20) }),
+      makeApp({ status: "Interview",applied_date: daysAgo(15) }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    // 1 explicit + 1 implicit = 2 ghosted / 5 total = 40%
+    expect(data?.ghostRate).toBe(40);
+  });
 });
 
 // ── sourceEffectiveness ───────────────────────────────────────────────────────

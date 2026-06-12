@@ -48,11 +48,12 @@ export function AtelierChart({ dailyData, weeklyData, monthlyData }: AtelierChar
 
   return (
     <div className="db-panel h-full flex flex-col">
-      <div className="flex justify-between items-center mb-8">
-        <h2 className="db-panel-title">Application Velocity</h2>
-        <div className="flex items-center gap-1">
+      {/* Header — stacks vertically on mobile, row on sm+ */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
+        <h2 className="db-panel-title leading-tight">Application Velocity</h2>
+        <div className="flex items-center gap-1 flex-wrap">
           {/* Granularity toggle: D / W / M */}
-          <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5 mr-2">
+          <div className="flex items-center gap-0.5 rounded-full bg-muted p-0.5 mr-1">
             {(["D", "W", "M"] as Granularity[]).map((g) => (
               <button
                 key={g}

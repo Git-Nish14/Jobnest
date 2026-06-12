@@ -77,7 +77,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             Manage and track your job applications with thoughtful intentionality.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <ViewToggle />
           <ImportButton />
           <ExportButton />

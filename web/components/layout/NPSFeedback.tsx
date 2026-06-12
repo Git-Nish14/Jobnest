@@ -6,8 +6,24 @@ import { toast } from "sonner";
 import { X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DISMISSED_KEY = "jobnest_nps_dismissed";
-const NPS_DAYS = 7;
+// How long after signup before the first show
+const FIRST_SHOW_DAYS = 7;
+// Minimum gap between any two shows (submit OR dismiss)
+// 15 days ≈ twice a month
+const INTERVAL_DAYS = 15;
+
+// localStorage key — stores ISO timestamp of last dismissal
+const DISMISSED_AT_KEY = "jobnest_nps_dismissed_at";
+
+/** ms in one day */
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+function daysSince(isoOrTimestamp: string | number): number {
+  const ts = typeof isoOrTimestamp === "number"
+    ? isoOrTimestamp
+    : new Date(isoOrTimestamp).getTime();
+  return (Date.now() - ts) / DAY_MS;
+}
 
 export function NPSFeedback() {
   const [show, setShow]       = useState(false);
@@ -18,38 +34,52 @@ export function NPSFeedback() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Check localStorage dismissal first (no network needed)
+    // ── Fast-path: check localStorage dismiss timestamp ────────────────────
+    // If the user dismissed within the last INTERVAL_DAYS days, skip network.
     try {
-      if (localStorage.getItem(DISMISSED_KEY)) return;
-    } catch { /* private mode */ }
+      const dismissedAt = localStorage.getItem(DISMISSED_AT_KEY);
+      if (dismissedAt && daysSince(parseInt(dismissedAt, 10)) < INTERVAL_DAYS) {
+        return; // still inside the quiet window
+      }
+      // Expired dismissal — clear it so the next check is a fresh start
+      if (dismissedAt) localStorage.removeItem(DISMISSED_AT_KEY);
+    } catch { /* private / restricted mode */ }
 
     let cancelled = false;
+
     const check = async () => {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user || cancelled) return;
 
+        // ── Stamp first_seen on first visit ─────────────────────────────────
         let firstSeen: string | undefined = user.user_metadata?.first_seen;
-
-        // First visit — stamp the date so the 7-day countdown starts now
         if (!firstSeen) {
           firstSeen = new Date().toISOString();
           await supabase.auth.updateUser({ data: { first_seen: firstSeen } });
-          return; // don't show immediately; let the countdown run
+          return; // don't show immediately on first visit
         }
 
-        const daysSince = (Date.now() - new Date(firstSeen).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSince < NPS_DAYS) return;
+        // ── Require FIRST_SHOW_DAYS since sign-up ───────────────────────────
+        if (daysSince(firstSeen) < FIRST_SHOW_DAYS) return;
 
-        // Don't re-show if user already submitted feedback (check user_metadata flag)
-        if (user.user_metadata?.nps_submitted) return;
+        // ── Twice-a-month: check last submission timestamp ──────────────────
+        // Legacy: users who had the old boolean `nps_submitted: true` will
+        // have no nps_last_submitted_at — treat as if they submitted a very
+        // long time ago so the new interval check takes over cleanly.
+        const lastSubmittedAt: string | undefined =
+          user.user_metadata?.nps_last_submitted_at;
+
+        if (lastSubmittedAt && daysSince(lastSubmittedAt) < INTERVAL_DAYS) {
+          return; // submitted too recently — respect the interval
+        }
 
         if (!cancelled) setShow(true);
-      } catch { /* non-fatal */ }
+      } catch { /* non-fatal — don't break the dashboard */ }
     };
 
-    // Delay 3 s after mount so it doesn't interrupt first paint
+    // Small delay so the widget doesn't fight with first-paint
     const t = setTimeout(check, 3000);
     return () => {
       cancelled = true;
@@ -59,7 +89,10 @@ export function NPSFeedback() {
   }, []);
 
   function dismiss() {
-    try { localStorage.setItem(DISMISSED_KEY, "1"); } catch { /* private mode */ }
+    // Store the current timestamp so we respect the INTERVAL_DAYS quiet window
+    try {
+      localStorage.setItem(DISMISSED_AT_KEY, Date.now().toString());
+    } catch { /* private mode */ }
     setShow(false);
   }
 
@@ -72,12 +105,19 @@ export function NPSFeedback() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score, comment }),
       });
+
       if (res.ok) {
-        // Mark in user_metadata so we don't re-show
+        // Stamp the submission time so the widget won't re-show for INTERVAL_DAYS
         const supabase = createClient();
-        await supabase.auth.updateUser({ data: { nps_submitted: true } });
+        await supabase.auth.updateUser({
+          data: { nps_last_submitted_at: new Date().toISOString() },
+        });
+
+        // Clear any lingering dismiss timestamp — the submission timestamp takes over
+        try { localStorage.removeItem(DISMISSED_AT_KEY); } catch { /* ok */ }
+
         setDone(true);
-        closeTimerRef.current = setTimeout(() => setShow(false), 2000);
+        closeTimerRef.current = setTimeout(() => setShow(false), 2500);
       } else {
         toast.error("Couldn't save feedback — please try again.");
       }
@@ -140,7 +180,7 @@ export function NPSFeedback() {
             ))}
           </div>
 
-          {/* Optional comment */}
+          {/* Optional comment — font-size 16px on mobile prevents iOS zoom */}
           {score !== null && (
             <textarea
               value={comment}
@@ -148,7 +188,7 @@ export function NPSFeedback() {
               placeholder="Any thoughts? (optional)"
               rows={2}
               maxLength={1000}
-              className="w-full text-xs rounded-xl border border-border bg-background px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+              className="w-full text-[16px] sm:text-xs rounded-xl border border-border bg-background px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           )}
 

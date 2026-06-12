@@ -60,7 +60,13 @@ A modern, secure platform to organise and manage your entire job search. Built w
   - **Stage Funnel**: Applied to Phone Screen to Interview to Offer to Accepted cumulative counts; warm-to-cool colour gradient (amber to orange to terracotta to emerald) makes each stage visually distinct
   - **Avg Salary by Source**: midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
   - **Source Effectiveness**: response rate % per source, sorted descending; only sources with 2 or more applications shown
-- **Search Intelligence**: avg days to first response (90-day cap), interview-to-offer rate (3 threshold), ghost rate (5 threshold)
+- **Search Intelligence** — 6 context-aware metric cards (hidden until the user has ≥1 application):
+  - **Avg. response time** — mean days from `applied_date` to first status change past Applied; 90-day cap filters outliers; requires ≥2 responded apps
+  - **Interview → Offer** — `(Offer + Accepted) / (Interview + Offer + Accepted) × 100`; requires ≥3 at-interview apps to avoid misleading 100% on a single offer
+  - **Ghosting rate** — counts both explicitly-Ghosted apps *and* Applied apps silent for >30 days (implicit ghosting); requires ≥5 total apps; fixes the "always 0%" bug where users who never manually set "Ghosted" status saw no signal
+  - **Live opportunities** — Phone Screen + Interview app count; your hot active pipeline right now
+  - **Weekly momentum** — this week's applications vs the trailing 4-week average (% change, capped at +500% so a burst week doesn't render "+9800%"); null when trailing average is zero
+  - **Best source** — the application source (LinkedIn, Indeed, Referral…) with the highest response rate; requires ≥2 apps from at least one source
 
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
@@ -210,7 +216,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1265 tests, 83 files) + Playwright E2E |
+| Testing | Vitest (1268 tests, 83 files) + Playwright E2E (8 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -462,9 +468,9 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1265 tests, 83 files)
+npm test              # Vitest (1268 tests, 83 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E (requires E2E_TEST_EMAIL + E2E_TEST_PASSWORD)
+npm run test:e2e      # Playwright E2E — 8 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 ```
 
 ---
@@ -475,9 +481,9 @@ npm run test:e2e      # Playwright E2E (requires E2E_TEST_EMAIL + E2E_TEST_PASSW
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics, Zod schemas, security helpers |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers |
 | Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
-| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status filter) |
+| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status filter), **Search Intelligence** (all 6 cards visible, ghost rate non-zero with Ghosted app, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar 4-tab structure + desktop hide, nav-open slide-away, nav deduplication, NPS feedback API live submission, chart no horizontal overflow) |
 
 ---
 

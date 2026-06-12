@@ -39,6 +39,9 @@ export default async function DashboardPage() {
     averageTimeToResponse: null,
     interviewToOfferRate: null,
     ghostRate: null,
+    activePipeline: 0,
+    weeklyMomentum: null,
+    topSource: null,
     statusDistribution: [],
     dailyTrends: [],
     weeklyTrends: [],
@@ -223,14 +226,14 @@ export default async function DashboardPage() {
 
       {/* ── Extended analytics row 1: monthly breakdown + weekday + top companies ── */}
       {stats.totalApplications >= 3 && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
+          <div className="sm:col-span-2 lg:col-span-6">
             <MonthlyTrendsChart data={stats.monthlyTrends} />
           </div>
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <WeekdayActivityChart data={stats.weekdayActivity} />
           </div>
-          <div className="md:col-span-3">
+          <div className="lg:col-span-3">
             <TopCompaniesChart data={stats.topCompanies} />
           </div>
         </div>
@@ -238,16 +241,10 @@ export default async function DashboardPage() {
 
       {/* ── Extended analytics row 2: funnel + salary + source effectiveness ── */}
       {stats.totalApplications >= 3 && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-4">
-            <StageFunnelChart data={stats.stageFunnel} />
-          </div>
-          <div className="md:col-span-4">
-            <AvgSalaryChart data={stats.avgSalaryBySource} />
-          </div>
-          <div className="md:col-span-4">
-            <SourceEffectivenessChart data={stats.sourceEffectiveness} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StageFunnelChart data={stats.stageFunnel} />
+          <AvgSalaryChart data={stats.avgSalaryBySource} />
+          <SourceEffectivenessChart data={stats.sourceEffectiveness} />
         </div>
       )}
 
@@ -257,6 +254,9 @@ export default async function DashboardPage() {
         interviewToOfferRate={stats.interviewToOfferRate}
         ghostRate={stats.ghostRate}
         totalApplications={stats.totalApplications}
+        activePipeline={stats.activePipeline}
+        weeklyMomentum={stats.weeklyMomentum}
+        topSource={stats.topSource}
       />
 
       <Link

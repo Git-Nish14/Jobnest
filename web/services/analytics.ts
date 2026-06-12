@@ -109,8 +109,19 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       atInterview >= 3 ? Math.round((atOffer / atInterview) * 100) : null;
 
     // Ghosting rate — percentage of all applications that went silent.
+    // "Ghosted" covers both explicit status and implicit cases: Applied apps
+    // that have been sitting for more than 30 days with no progression.
+    // Use local date arithmetic (same as weekday logic) to avoid UTC-offset shifts.
     // Require ≥5 total applications before surfacing this metric.
-    const ghosted = statusCounts["Ghosted"] || 0;
+    const GHOST_DAYS = 30;
+    const nowMs = now.getTime();
+    const implicitGhosts = (applications ?? []).filter((a) => {
+      if (a.status !== "Applied" || !a.applied_date) return false;
+      const [y, mo, d] = (a.applied_date as string).split("-").map(Number);
+      const appliedMs = new Date(y, mo - 1, d).getTime();
+      return Math.floor((nowMs - appliedMs) / (1000 * 60 * 60 * 24)) > GHOST_DAYS;
+    }).length;
+    const ghosted = (statusCounts["Ghosted"] || 0) + implicitGhosts;
     const ghostRate: number | null =
       totalApplications >= 5
         ? Math.round((ghosted / totalApplications) * 100)
@@ -271,6 +282,29 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
     });
     const weekdayActivity: WeekdayActivity[] = DAYS.map((day, i) => ({ day, count: dayCounts[i] }));
 
+    // ── Active pipeline ──────────────────────────────────────────────────────
+    const activePipeline =
+      (statusCounts["Phone Screen"] || 0) + (statusCounts["Interview"] || 0);
+
+    // ── Weekly momentum ──────────────────────────────────────────────────────
+    // Compare this week's application count to the trailing 4-week average.
+    // weeklyTrends always has 24 entries (the loop above is fixed-size), so
+    // slice(-5, -1) always yields exactly 4 weeks of prior data.
+    // Capped at ±500% so a burst week doesn't render "+9800%" in the UI.
+    const priorWeeks = weeklyTrends.slice(-5, -1);
+    const priorAvg = priorWeeks.reduce((s, w) => s + w.count, 0) / priorWeeks.length;
+    const weeklyMomentum: number | null =
+      priorAvg > 0
+        ? Math.min(500, Math.round(((thisWeek - priorAvg) / priorAvg) * 100))
+        : null;
+
+    // ── Top source ───────────────────────────────────────────────────────────
+    // sourceEffectiveness is already sorted descending by responseRate.
+    const topSource =
+      sourceEffectiveness.length > 0
+        ? { source: sourceEffectiveness[0].source, responseRate: sourceEffectiveness[0].responseRate }
+        : null;
+
     // Upcoming interviews — include the parent application so the dashboard can
     // show the company name in the "Next interview" stat card footer.
     let upcomingInterviews: Interview[] = [];
@@ -309,6 +343,9 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         averageTimeToResponse,
         interviewToOfferRate,
         ghostRate,
+        activePipeline,
+        weeklyMomentum,
+        topSource,
         statusDistribution,
         dailyTrends,
         weeklyTrends,

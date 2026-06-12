@@ -262,9 +262,16 @@ export interface DashboardAnalytics {
   /** (Offer + Accepted) / (Interview + Offer + Accepted) × 100.
    *  null when the denominator is below 3 (not yet statistically meaningful). */
   interviewToOfferRate: number | null;
-  /** Ghosted / totalApplications × 100.
+  /** (Ghosted status + Applied apps silent for >30 days) / totalApplications × 100.
    *  null when totalApplications < 5. */
   ghostRate: number | null;
+  /** Applications currently in Phone Screen or Interview stage. */
+  activePipeline: number;
+  /** This week's applications vs 4-week trailing average (% change).
+   *  null when trailing data is insufficient or the average is zero. */
+  weeklyMomentum: number | null;
+  /** Source with the highest response rate (≥2 data points), or null. */
+  topSource: { source: string; responseRate: number } | null;
   statusDistribution: StatusCount[];
   dailyTrends: DailyTrend[];
   weeklyTrends: WeeklyTrend[];

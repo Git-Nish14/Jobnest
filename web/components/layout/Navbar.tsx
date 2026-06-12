@@ -56,6 +56,12 @@ const dashboardLinks = [
   { href: "/nestai", label: "NESTAi", icon: Sparkles },
 ];
 
+// Links shown in the mobile slide panel — excludes items already in the
+// bottom tab bar (Overview, Applications, Interviews, NESTAi) to avoid
+// showing the same destination twice on small screens.
+const BOTTOM_TAB_HREFS = new Set(["/dashboard", "/applications", "/interviews", "/nestai"]);
+const mobileSlideLinks = dashboardLinks.filter((l) => !BOTTOM_TAB_HREFS.has(l.href));
+
 /** Renders the correct logo for light/dark mode */
 function Logo({ size = 34 }: { size?: number }) {
   return (
@@ -135,6 +141,17 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  // Sync nav-open class to <html> so CSS can slide the bottom tab bar away
+  useEffect(() => {
+    const html = document.documentElement;
+    if (mobileMenuOpen) {
+      html.classList.add("nav-open");
+    } else {
+      html.classList.remove("nav-open");
+    }
+    return () => { html.classList.remove("nav-open"); };
+  }, [mobileMenuOpen]);
 
   const isAuthenticated = !!user;
 
@@ -284,8 +301,13 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 </div>
 
                 <nav className="flex-1 overflow-y-auto py-4">
+                  {/* Bottom tab bar already covers Overview, Applications,
+                      Interviews and NESTAi — only show the remaining pages here */}
+                  <p className="px-6 pb-2 text-[10px] font-semibold uppercase tracking-widest atelier-nav-link-inactive opacity-50">
+                    More pages
+                  </p>
                   <ul className="space-y-1 px-3">
-                    {dashboardLinks.map((link) => {
+                    {mobileSlideLinks.map((link) => {
                       const Icon = link.icon;
                       const isActive =
                         pathname === link.href ||
