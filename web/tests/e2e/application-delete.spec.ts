@@ -97,7 +97,7 @@ test.describe("Application delete — authenticated", () => {
       const { company } = await createTestApplication(page, "card-menu-open");
 
       // Find the card for this application
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
 
       // Open the three-dot dropdown
@@ -115,7 +115,7 @@ test.describe("Application delete — authenticated", () => {
     test("confirms deletion removes the application from the list", async ({ page }) => {
       const { company } = await createTestApplication(page, "card-confirm");
 
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
 
       // Three-dot menu → Delete → Confirm delete
@@ -133,7 +133,7 @@ test.describe("Application delete — authenticated", () => {
     test("cancels if user does not confirm within the timeout window", async ({ page }) => {
       const { company } = await createTestApplication(page, "card-cancel");
 
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
 
       // Open menu and click Delete (keeps menu open)
@@ -159,7 +159,7 @@ test.describe("Application delete — authenticated", () => {
       const { company } = await createTestApplication(page, "detail-visible");
 
       // Navigate into the detail page
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
       await card.getByRole("link", { name: new RegExp("Test Engineer detail-visible") }).click();
       await expect(page).toHaveURL(/\/applications\/.+/, { timeout: 10_000 });
@@ -177,7 +177,7 @@ test.describe("Application delete — authenticated", () => {
     test("clicking Delete shows inline confirmation (Are you sure? / Yes, delete / Cancel)", async ({ page }) => {
       const { company } = await createTestApplication(page, "detail-confirm-ui");
 
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
       await card.getByRole("link", { name: /Test Engineer detail-confirm-ui/i }).click();
       await expect(page).toHaveURL(/\/applications\/.+/, { timeout: 10_000 });
@@ -198,7 +198,7 @@ test.describe("Application delete — authenticated", () => {
     test("Cancel leaves the user on the detail page with application intact", async ({ page }) => {
       const { company } = await createTestApplication(page, "detail-cancel");
 
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
 
       // Record detail URL before entering
@@ -223,7 +223,7 @@ test.describe("Application delete — authenticated", () => {
     test("confirming delete navigates to /applications and the application is gone", async ({ page }) => {
       const { company } = await createTestApplication(page, "detail-gone");
 
-      const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+      const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
       await expect(card).toBeVisible({ timeout: 10_000 });
       await card.getByRole("link", { name: /Test Engineer detail-gone/i }).click();
       await expect(page).toHaveURL(/\/applications\/.+/, { timeout: 10_000 });

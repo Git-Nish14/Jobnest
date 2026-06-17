@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle2, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { computeCompleteness, completenessColor } from "@/lib/utils/completeness";
+import { computeCompleteness, completenessColor, type CompletenessExtras } from "@/lib/utils/completeness";
 import { cn } from "@/lib/utils";
 import type { JobApplication } from "@/types";
 
@@ -14,16 +14,27 @@ const RING_STROKE = 5;
 
 export function CompletenessCard({ applicationId }: Props) {
   const [app, setApp] = useState<JobApplication | null>(null);
+  const [docExtras, setDocExtras] = useState<CompletenessExtras>({});
 
   function load(cancelled: { current: boolean }) {
-    createClient()
-      .from("job_applications")
-      .select("*")
-      .eq("id", applicationId)
-      .single()
-      .then(({ data }) => {
-        if (!cancelled.current && data) setApp(data as JobApplication);
-      });
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("job_applications").select("*").eq("id", applicationId).single(),
+      supabase.from("application_documents")
+        .select("label")
+        .eq("application_id", applicationId)
+        .eq("is_current", true),
+    ]).then(([{ data: appData }, { data: docs }]) => {
+      if (cancelled.current) return;
+      if (appData) setApp(appData as JobApplication);
+      if (docs) {
+        const labels = docs.map((d) => d.label.toLowerCase());
+        setDocExtras({
+          hasResumeDoc:       labels.some((l) => l.includes("resume")),
+          hasCoverLetterDoc:  labels.some((l) => l.includes("cover")),
+        });
+      }
+    });
   }
 
   useEffect(() => {
@@ -65,7 +76,7 @@ export function CompletenessCard({ applicationId }: Props) {
     );
   }
 
-  const { score, total, missing } = computeCompleteness(app);
+  const { score, total, missing } = computeCompleteness(app, docExtras);
   const level = completenessColor(score);
   const pct = (score / total) * 100;
 
@@ -85,8 +96,8 @@ export function CompletenessCard({ applicationId }: Props) {
     : "text-red-500";
 
   const allFields: { label: string; met: boolean }[] = [
-    { label: "Resume uploaded",  met: !!app.resume_path },
-    { label: "Cover letter",     met: !!app.cover_letter_path },
+    { label: "Resume uploaded",  met: !!app.resume_path || !!docExtras.hasResumeDoc },
+    { label: "Cover letter",     met: !!app.cover_letter_path || !!docExtras.hasCoverLetterDoc },
     { label: "Job description",  met: !!app.job_description },
     { label: "Salary range",     met: !!app.salary_range },
     { label: "Job URL",          met: !!app.job_url },

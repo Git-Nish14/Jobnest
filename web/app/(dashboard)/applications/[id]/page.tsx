@@ -67,15 +67,30 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
     .order("uploaded_at", { ascending: false });
 
+  // Applications created on/after 2026-06-12 always write docs to
+  // application_documents — legacy path fields are unused and showing them
+  // as "Legacy" cards creates duplicates.
+  const isNewApp = new Date(application.created_at) >= new Date("2026-06-12");
+
   // Attach signed URLs for the pre-fetched documents
   const preFetchedPaths = (initialDocs ?? []).map((d) => d.storage_path);
   const preFetchedUrlMap = preFetchedPaths.length > 0
     ? await getSignedUrls(supabase, preFetchedPaths)
     : {};
-  const preloadedDocs = (initialDocs ?? []).map((d) => ({
-    ...d,
-    signed_url: preFetchedUrlMap[d.storage_path] ?? null,
-  }));
+
+  // For old apps: exclude application_documents rows whose storage_path matches
+  // a legacy field so the same file doesn't appear twice (once as Legacy card,
+  // once as a regular DocumentCard).
+  const legacyStoragePathSet = isNewApp
+    ? new Set<string>()
+    : new Set<string>([application.resume_path, application.cover_letter_path].filter(Boolean) as string[]);
+
+  const preloadedDocs = (initialDocs ?? [])
+    .filter((d) => !legacyStoragePathSet.has(d.storage_path))
+    .map((d) => ({
+      ...d,
+      signed_url: preFetchedUrlMap[d.storage_path] ?? null,
+    }));
 
   // Fetch pending document purge entry (only for Rejected apps)
   let purgeEntry: { purge_at: string } | null = null;
@@ -88,22 +103,26 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       .maybeSingle();
     purgeEntry = pq ?? null;
   }
-  const legacyPaths = [
-    application.resume_path ? { label: "Resume", path: application.resume_path } : null,
-    application.cover_letter_path ? { label: "Cover Letter", path: application.cover_letter_path } : null,
-  ].filter(Boolean) as { label: string; path: string }[];
+  // Legacy docs: only for applications predating 2026-06-12
+  let legacyDocs: LegacyDoc[] = [];
+  if (!isNewApp) {
+    const legacyPaths = [
+      application.resume_path ? { label: "Resume", path: application.resume_path } : null,
+      application.cover_letter_path ? { label: "Cover Letter", path: application.cover_letter_path } : null,
+    ].filter(Boolean) as { label: string; path: string }[];
 
-  const legacyUrls = await Promise.all(
-    legacyPaths.map(({ path }) => getSignedUrl(supabase, path))
-  );
+    const legacyUrls = await Promise.all(
+      legacyPaths.map(({ path }) => getSignedUrl(supabase, path))
+    );
 
-  const legacyDocs: LegacyDoc[] = legacyPaths
-    .map(({ label, path }, i) =>
-      legacyUrls[i]
-        ? { label, path, signedUrl: legacyUrls[i]!, mimeType: "application/pdf" }
-        : null
-    )
-    .filter(Boolean) as LegacyDoc[];
+    legacyDocs = legacyPaths
+      .map(({ label, path }, i) =>
+        legacyUrls[i]
+          ? { label, path, signedUrl: legacyUrls[i]!, mimeType: "application/pdf" }
+          : null
+      )
+      .filter(Boolean) as LegacyDoc[];
+  }
 
   const formattedDate = new Date(application.applied_date).toLocaleDateString("en-US", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -333,6 +352,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             applicationId={id}
             initialDocuments={preloadedDocs}
             legacyDocs={legacyDocs}
+            excludeStoragePaths={legacyStoragePathSet.size > 0 ? Array.from(legacyStoragePathSet) : undefined}
             applicationCompany={application.company}
             applicationPosition={application.position}
           />

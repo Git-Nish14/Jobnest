@@ -75,7 +75,7 @@ async function deleteApp(page: Page, company: string) {
   await page.goto("/applications");
   await expect(page).toHaveURL(/\/applications/, { timeout: 10_000 });
 
-  const card = page.locator("[class*='db-app-card']", { hasText: company }).first();
+  const card = page.locator('[data-testid="application-card"]', { hasText: company }).first();
   if (!(await card.isVisible({ timeout: 5_000 }).catch(() => false))) return;
 
   await card.getByRole("button", { name: /options|more/i }).click();
@@ -122,7 +122,7 @@ test.describe("Application filters — authenticated", () => {
       await expect(page).toHaveURL(/\/applications$/);
 
       // Start typing — the spinner should appear before the 400 ms debounce fires
-      const searchInput = page.getByPlaceholder(/search company, role/i);
+      const searchInput = page.getByPlaceholder(/search company/i);
       await searchInput.fill(companyA);
 
       // The spinner (Loader2 animate-spin) should briefly replace the search icon
@@ -151,13 +151,13 @@ test.describe("Application filters — authenticated", () => {
       await page.goto("/applications");
 
       // Type the distinctive company name
-      await page.getByPlaceholder(/search company, role/i).fill(companyMatch);
+      await page.getByPlaceholder(/search company/i).fill(companyMatch);
 
       // Wait for results to settle
-      await expect(page.locator("[class*='db-app-card']", { hasText: companyMatch })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: companyMatch })).toBeVisible({ timeout: 10_000 });
 
       // The non-matching card should be gone
-      await expect(page.locator("[class*='db-app-card']", { hasText: companyNoMatch })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: companyNoMatch })).not.toBeVisible({ timeout: 5_000 });
 
       // Clean up
       await deleteApp(page, companyMatch);
@@ -172,10 +172,10 @@ test.describe("Application filters — authenticated", () => {
       await createApp(page, { company: other,           position: "Different Role" });
 
       await page.goto("/applications");
-      await page.getByPlaceholder(/search company, role/i).fill(position);
+      await page.getByPlaceholder(/search company/i).fill(position);
 
-      await expect(page.locator("[class*='db-app-card']", { hasText: position })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: other })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: position })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: other })).not.toBeVisible({ timeout: 5_000 });
 
       await deleteApp(page, `${TAG}-SRP-Co`);
       await deleteApp(page, other);
@@ -189,18 +189,18 @@ test.describe("Application filters — authenticated", () => {
       await createApp(page, { company: companyB, position: "Engineer Clear B" });
 
       await page.goto("/applications");
-      const searchInput = page.getByPlaceholder(/search company, role/i);
+      const searchInput = page.getByPlaceholder(/search company/i);
 
       // Filter down
       await searchInput.fill(companyA);
-      await expect(page.locator("[class*='db-app-card']", { hasText: companyB })).not.toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: companyB })).not.toBeVisible({ timeout: 8_000 });
 
       // Clear with the ✕ button
       await page.getByRole("button", { name: /clear search/i }).click();
 
       // Both cards should reappear
-      await expect(page.locator("[class*='db-app-card']", { hasText: companyA })).toBeVisible({ timeout: 8_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: companyB })).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: companyA })).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: companyB })).toBeVisible({ timeout: 5_000 });
 
       await deleteApp(page, companyA);
       await deleteApp(page, companyB);
@@ -212,11 +212,11 @@ test.describe("Application filters — authenticated", () => {
     });
   });
 
-  // ── Status filter ───────────────────────────────────────────────────────────
+  // ── Status filter (now a horizontal pill row, not a dropdown) ──────────────
 
   test.describe("status filter", () => {
-    test("filtering by status shows only applications with that status", async ({ page }) => {
-      const appliedCo  = `${TAG}-StatusApplied`;
+    test("clicking a status pill shows only applications with that status", async ({ page }) => {
+      const appliedCo   = `${TAG}-StatusApplied`;
       const interviewCo = `${TAG}-StatusInterview`;
 
       await createApp(page, { company: appliedCo,   position: "Eng Status", status: "Applied" });
@@ -224,41 +224,43 @@ test.describe("Application filters — authenticated", () => {
 
       await page.goto("/applications");
 
-      // Open filter dropdown and select "Interview"
-      await page.getByRole("button", { name: /filter/i }).click();
-      await page.getByRole("menuitem", { name: /^interview$/i }).click();
+      // The pill group has aria-label="Filter by status". Click "Interview".
+      const pillGroup = page.getByRole("group", { name: /filter by status/i });
+      await expect(pillGroup).toBeVisible({ timeout: 10_000 });
+      await pillGroup.getByRole("button", { name: /^interview$/i }).click();
 
       // Only the Interview card should be visible
-      await expect(page.locator("[class*='db-app-card']", { hasText: interviewCo })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: appliedCo })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: interviewCo })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: appliedCo })).not.toBeVisible({ timeout: 5_000 });
 
-      // Status chip appears
-      await expect(page.getByRole("button", { name: /interview.*×|interview/i }).first()).toBeVisible();
+      // URL should carry the status param
+      await expect(page).toHaveURL(/status=Interview/);
 
       // Clean up
       await deleteApp(page, appliedCo);
       await deleteApp(page, interviewCo);
     });
 
-    test("clearing status filter chip restores all applications", async ({ page }) => {
-      const appliedCo  = `${TAG}-ChipClearApplied`;
-      const interviewCo = `${TAG}-ChipClearInterview`;
+    test("clicking the 'All' pill resets the status filter", async ({ page }) => {
+      const appliedCo   = `${TAG}-PillClearApplied`;
+      const interviewCo = `${TAG}-PillClearInterview`;
 
-      await createApp(page, { company: appliedCo,   position: "Eng CC", status: "Applied" });
-      await createApp(page, { company: interviewCo, position: "Eng CC", status: "Interview" });
+      await createApp(page, { company: appliedCo,   position: "Eng PC", status: "Applied" });
+      await createApp(page, { company: interviewCo, position: "Eng PC", status: "Interview" });
 
       // Navigate with the filter already set via URL
       await page.goto("/applications?status=Interview");
 
-      await expect(page.locator("[class*='db-app-card']", { hasText: interviewCo })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: appliedCo })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: interviewCo })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: appliedCo })).not.toBeVisible({ timeout: 5_000 });
 
-      // Click the Interview chip's ✕
-      await page.getByRole("button", { name: /interview/i }).filter({ has: page.locator("svg") }).click();
+      // Click "All" pill to reset — no separate chip to dismiss in the new design
+      const pillGroup = page.getByRole("group", { name: /filter by status/i });
+      await pillGroup.getByRole("button", { name: /^all$/i }).click();
 
       // Both should now be visible
-      await expect(page.locator("[class*='db-app-card']", { hasText: appliedCo })).toBeVisible({ timeout: 8_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: interviewCo })).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: appliedCo })).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: interviewCo })).toBeVisible({ timeout: 5_000 });
 
       await deleteApp(page, appliedCo);
       await deleteApp(page, interviewCo);
@@ -270,24 +272,27 @@ test.describe("Application filters — authenticated", () => {
   test.describe("URL state", () => {
     test("search term is reflected in the URL query string", async ({ page }) => {
       await page.goto("/applications");
-      await page.getByPlaceholder(/search company, role/i).fill("TestSearchTerm");
+      await page.getByPlaceholder(/search company/i).fill("TestSearchTerm");
       await expect(page).toHaveURL(/search=TestSearchTerm/, { timeout: 5_000 });
     });
 
-    test("status filter is reflected in the URL query string", async ({ page }) => {
+    test("clicking a status pill reflects status in the URL query string", async ({ page }) => {
       await page.goto("/applications");
-      await page.getByRole("button", { name: /filter/i }).click();
-      await page.getByRole("menuitem", { name: /^offer$/i }).click();
+      const pillGroup = page.getByRole("group", { name: /filter by status/i });
+      await expect(pillGroup).toBeVisible({ timeout: 10_000 });
+      await pillGroup.getByRole("button", { name: /^offer$/i }).click();
       await expect(page).toHaveURL(/status=Offer/, { timeout: 5_000 });
     });
 
-    test("navigating directly to a filtered URL shows the correct filter state", async ({ page }) => {
+    test("navigating directly to a filtered URL highlights the correct status pill", async ({ page }) => {
       await page.goto("/applications?status=Rejected");
-      // Filter chip for "Rejected" should be visible
-      await expect(page.getByRole("button", { name: /rejected/i })).toBeVisible({ timeout: 8_000 });
-      // Status filter dropdown should show "Rejected" as active
-      const filterBtn = page.getByRole("button", { name: /filter/i });
-      await expect(filterBtn).toContainText("1");
+      // The "Rejected" pill should be visible and be the active one
+      const pillGroup = page.getByRole("group", { name: /filter by status/i });
+      await expect(pillGroup).toBeVisible({ timeout: 8_000 });
+      // The pill text "Rejected" must be present in the pill row
+      await expect(pillGroup.getByRole("button", { name: /^rejected$/i })).toBeVisible();
+      // URL should retain the status param
+      await expect(page).toHaveURL(/status=Rejected/);
     });
   });
 
@@ -303,13 +308,13 @@ test.describe("Application filters — authenticated", () => {
 
       // Filter by Rejected — see the rejected app
       await page.goto("/applications?status=Rejected");
-      await expect(page.locator("[class*='db-app-card']", { hasText: rejectedCo })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: offeredCo })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: rejectedCo })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: offeredCo })).not.toBeVisible({ timeout: 5_000 });
 
       // Now switch to Offer filter — should ONLY show offeredCo, not rejectedCo
       await page.goto("/applications?status=Offer");
-      await expect(page.locator("[class*='db-app-card']", { hasText: offeredCo })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: rejectedCo })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: offeredCo })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: rejectedCo })).not.toBeVisible({ timeout: 5_000 });
 
       await deleteApp(page, rejectedCo);
       await deleteApp(page, offeredCo);
@@ -325,8 +330,8 @@ test.describe("Application filters — authenticated", () => {
       // Status = Applied, Search = matchCo partial string
       await page.goto(`/applications?status=Applied&search=${encodeURIComponent(matchCo)}`);
 
-      await expect(page.locator("[class*='db-app-card']", { hasText: matchCo })).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[class*='db-app-card']", { hasText: noMatchCo })).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: matchCo })).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('[data-testid="application-card"]', { hasText: noMatchCo })).not.toBeVisible({ timeout: 5_000 });
 
       await deleteApp(page, matchCo);
       await deleteApp(page, noMatchCo);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeCompleteness, completenessColor } from "@/lib/utils/completeness";
+import { computeCompleteness, completenessColor, type CompletenessExtras } from "@/lib/utils/completeness";
 import type { JobApplication } from "@/types";
 
 function makeApp(overrides: Partial<JobApplication> = {}): JobApplication {
@@ -71,6 +71,61 @@ describe("computeCompleteness", () => {
 
   it("pct reflects score proportionally", () => {
     const { pct } = computeCompleteness(makeApp({ job_url: "https://x.com", location: "NYC" }));
+    expect(pct).toBe(20);
+  });
+});
+
+describe("computeCompleteness — extras (application_documents fallback)", () => {
+  it("hasResumeDoc marks 'Resume uploaded' as met when resume_path is null", () => {
+    const extras: CompletenessExtras = { hasResumeDoc: true };
+    const { score, missing } = computeCompleteness(makeApp(), extras);
+    expect(score).toBe(1);
+    expect(missing).not.toContain("Resume uploaded");
+    expect(missing).toContain("Cover letter");
+  });
+
+  it("hasCoverLetterDoc marks 'Cover letter' as met when cover_letter_path is null", () => {
+    const extras: CompletenessExtras = { hasCoverLetterDoc: true };
+    const { score, missing } = computeCompleteness(makeApp(), extras);
+    expect(score).toBe(1);
+    expect(missing).not.toContain("Cover letter");
+    expect(missing).toContain("Resume uploaded");
+  });
+
+  it("both extras together score 2 with no legacy paths", () => {
+    const extras: CompletenessExtras = { hasResumeDoc: true, hasCoverLetterDoc: true };
+    const { score, missing } = computeCompleteness(makeApp(), extras);
+    expect(score).toBe(2);
+    expect(missing).not.toContain("Resume uploaded");
+    expect(missing).not.toContain("Cover letter");
+  });
+
+  it("extras do not double-count when legacy paths are already set", () => {
+    const extras: CompletenessExtras = { hasResumeDoc: true, hasCoverLetterDoc: true };
+    const { score } = computeCompleteness(
+      makeApp({ resume_path: "p/r.pdf", cover_letter_path: "p/cl.pdf" }),
+      extras,
+    );
+    // Score should still be 2 for these two fields — not 4
+    expect(score).toBe(2);
+  });
+
+  it("calling without extras is backward-compatible (no extras → resume_path drives score)", () => {
+    const { score, missing } = computeCompleteness(makeApp({ resume_path: "p/r.pdf" }));
+    expect(score).toBe(1);
+    expect(missing).not.toContain("Resume uploaded");
+  });
+
+  it("false extras leave fields as unmet when legacy paths are also null", () => {
+    const extras: CompletenessExtras = { hasResumeDoc: false, hasCoverLetterDoc: false };
+    const { score } = computeCompleteness(makeApp(), extras);
+    expect(score).toBe(0);
+  });
+
+  it("pct reflects score including extras correctly", () => {
+    const extras: CompletenessExtras = { hasResumeDoc: true };
+    const { pct } = computeCompleteness(makeApp({ job_url: "https://x.com" }), extras);
+    // resume (1) + job_url (1) = 2 → 20%
     expect(pct).toBe(20);
   });
 });

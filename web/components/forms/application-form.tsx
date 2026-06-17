@@ -180,8 +180,6 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
 
     try {
       let applicationId = application?.id;
-      let resumePath = application?.resume_path;
-      let coverLetterPath = application?.cover_letter_path;
 
       // Clean up empty strings to null
       const cleanData = {
@@ -227,18 +225,9 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
         toast.success("Application created successfully");
       }
 
-      // Upload files if provided
+      // Upload files — only stored in application_documents (no legacy path fields)
       if (resumeFile && applicationId) {
-        resumePath = await uploadFile(
-          supabase,
-          userId,
-          applicationId,
-          resumeFile,
-          "resume"
-        );
-        // Persist original filename in application_documents.
-        // mime_type is hardcoded — the form only accepts PDFs and file.type
-        // is browser-controlled so must not be trusted for security decisions.
+        const resumePath = await uploadFile(supabase, userId, applicationId, resumeFile, "resume");
         if (resumePath) {
           await supabase.from("application_documents")
             .update({ is_current: false })
@@ -261,14 +250,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       }
 
       if (coverLetterFile && applicationId) {
-        coverLetterPath = await uploadFile(
-          supabase,
-          userId,
-          applicationId,
-          coverLetterFile,
-          "cover_letter"
-        );
-        // Persist original filename in application_documents.
+        const coverLetterPath = await uploadFile(supabase, userId, applicationId, coverLetterFile, "cover_letter");
         if (coverLetterPath) {
           await supabase.from("application_documents")
             .update({ is_current: false })
@@ -288,21 +270,6 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
             original_name:  coverLetterFile.name,
           });
         }
-      }
-
-      // Update file paths if files were uploaded.
-      // Includes explicit user_id guard alongside RLS (defence-in-depth).
-      if ((resumeFile || coverLetterFile) && applicationId) {
-        const { error: fileUpdateError } = await supabase
-          .from("job_applications")
-          .update({
-            resume_path:       resumePath,
-            cover_letter_path: coverLetterPath,
-          })
-          .eq("id", applicationId)
-          .eq("user_id", userId);
-
-        if (fileUpdateError) throw fileUpdateError;
       }
 
       router.push("/applications");

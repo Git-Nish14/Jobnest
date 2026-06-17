@@ -76,7 +76,7 @@ async function deleteApp(page: Page, company: string) {
   await expect(page).toHaveURL(/\/applications/, { timeout: 10_000 });
 
   const card = page
-    .locator("[class*='db-app-card']", { hasText: company })
+    .locator('[data-testid="application-card"]', { hasText: company })
     .first();
   if (!(await card.isVisible({ timeout: 5_000 }).catch(() => false))) return;
 

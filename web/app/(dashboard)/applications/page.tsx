@@ -73,7 +73,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       <header className="db-page-header">
         <div>
           <h1 className="db-page-title">Applications</h1>
-          <p className="db-page-subtitle">
+          <p className="db-page-subtitle hidden sm:block">
             Manage and track your job applications with thoughtful intentionality.
           </p>
         </div>
@@ -81,7 +81,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           <ViewToggle />
           <ImportButton />
           <ExportButton />
-          <Link href="/applications/new" className="db-btn-page-primary">
+          {/* Desktop-only "New Application" — mobile gets the FAB below */}
+          <Link href="/applications/new" className="hidden sm:inline-flex db-btn-page-primary">
             <Plus className="h-4 w-4" />
             New Application
           </Link>
@@ -224,13 +225,24 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
 
       {/* ── Footer quote (list view only) ── */}
       {apps.length > 0 && view === "list" && (
-        <footer className="mt-20 flex flex-col items-center text-center">
+        <footer className="mt-16 sm:mt-20 flex flex-col items-center text-center pb-2">
           <div className="w-12 h-px bg-[#dbc1b9]/30 mb-6" />
-          <p className="db-headline italic text-muted-foreground/50 text-sm mb-1">
+          <p className="db-headline italic text-muted-foreground/50 text-sm">
             Refining the search for meaningful contribution.
           </p>
         </footer>
       )}
+
+      {/* ── Mobile FAB — "New Application" above the bottom tab bar ──
+           Hidden on sm+ where the header button is visible.            */}
+      <Link
+        href="/applications/new"
+        className="sm:hidden fixed right-4 z-40 db-fab app-mobile-fab flex items-center justify-center w-14 h-14 rounded-full"
+        aria-label="New application"
+        title="New application"
+      >
+        <Plus className="w-6 h-6" strokeWidth={2.5} />
+      </Link>
     </div>
   );
 }

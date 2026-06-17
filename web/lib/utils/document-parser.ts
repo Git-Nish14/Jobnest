@@ -207,6 +207,13 @@ export async function extractAllDocuments(
     position: string;
     resume_path: string | null;
     cover_letter_path: string | null;
+  }>,
+  extraPaths?: Array<{
+    applicationId: string;
+    company: string;
+    position: string;
+    path: string;
+    label: string;
   }>
 ): Promise<Array<{
   applicationId: string;
@@ -249,6 +256,21 @@ export async function extractAllDocuments(
         type: "cover_letter",
       });
     }
+  }
+
+  // Supplement with application_documents paths (new apps no longer write to resume_path)
+  for (const extra of extraPaths ?? []) {
+    if (seen.has(extra.path)) continue;
+    seen.add(extra.path);
+    const lbl = extra.label.toLowerCase();
+    const type: "resume" | "cover_letter" = lbl.includes("cover") ? "cover_letter" : "resume";
+    tasks.push({
+      path: extra.path,
+      applicationId: extra.applicationId,
+      company: extra.company,
+      position: extra.position,
+      type,
+    });
   }
 
   // Parse all unique documents in parallel

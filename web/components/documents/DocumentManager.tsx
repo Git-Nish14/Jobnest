@@ -53,6 +53,13 @@ interface DocumentManagerProps {
   applicationId: string;
   initialDocuments?: ApplicationDocument[];
   legacyDocs?: LegacyDoc[];
+  /**
+   * Storage paths that are already displayed as Legacy cards (resume_path /
+   * cover_letter_path on job_applications). Any application_documents row
+   * whose storage_path is in this list is excluded from the regular doc list
+   * so the same file never appears twice.
+   */
+  excludeStoragePaths?: string[];
   /** Application metadata for cover-letter variable substitution */
   applicationCompany?: string;
   applicationPosition?: string;
@@ -938,10 +945,19 @@ export function DocumentManager({
   applicationId,
   initialDocuments = [],
   legacyDocs = [],
+  excludeStoragePaths,
   applicationCompany,
   applicationPosition,
 }: DocumentManagerProps) {
-  const [docs, setDocs]       = useState<ApplicationDocument[]>(initialDocuments);
+  // Build a stable Set so we can filter in O(1) without re-creating on every render.
+  // The prop is set once from the server component and never changes.
+  const excludeSet = useRef(new Set(excludeStoragePaths ?? [])).current;
+
+  const [docs, setDocs]       = useState<ApplicationDocument[]>(
+    // Filter out any pre-loaded docs that match legacy storage paths so the
+    // same file doesn't appear as both a Legacy card and a regular card.
+    initialDocuments.filter((d) => !excludeSet.has(d.storage_path))
+  );
   const [loading, setLoading] = useState(initialDocuments.length === 0);
   const [showUpload, setShowUpload] = useState(false);
 
@@ -957,11 +973,14 @@ export function DocumentManager({
       );
       if (!res.ok) return;
       const data = await res.json();
-      setDocs(data.documents ?? []);
+      // Apply the same exclusion filter so legacy-duplicate docs don't
+      // reappear after uploads, deletes, or version restores.
+      const all: ApplicationDocument[] = data.documents ?? [];
+      setDocs(excludeSet.size > 0 ? all.filter((d) => !excludeSet.has(d.storage_path)) : all);
     } finally {
       setLoading(false);
     }
-  }, [applicationId]);
+  }, [applicationId, excludeSet]);
 
   useEffect(() => {
     if (skipFirstFetch.current) { skipFirstFetch.current = false; return; }

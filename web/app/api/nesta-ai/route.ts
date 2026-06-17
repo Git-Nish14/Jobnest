@@ -187,11 +187,12 @@ export async function POST(request: NextRequest) {
     // ── Fetch tags + salary details using application IDs ──────────────────
     let tags: Array<{ application_id: string; tag_name: string }> = [];
     let salaryDetails: SalaryRow[] = [];
+    const docsByApp: Record<string, { label: string; name: string; storage_path: string }[]> = {};
 
     if (applications && applications.length > 0) {
       const appIds = applications.map((a) => a.id);
 
-      const [{ data: tagRows }, { data: salaryRows }] = await Promise.all([
+      const [{ data: tagRows }, { data: salaryRows }, { data: appDocRows }] = await Promise.all([
         supabase
           .from("application_tags")
           .select("application_id, tags(name)")
@@ -201,6 +202,12 @@ export async function POST(request: NextRequest) {
           .from("salary_details")
           .select("application_id, base_salary, bonus, signing_bonus, equity, benefits, final_offer, offer_deadline, currency, notes")
           .in("application_id", appIds),
+
+        supabase
+          .from("application_documents")
+          .select("application_id, label, original_name, storage_path")
+          .in("application_id", appIds)
+          .eq("is_current", true),
       ]);
 
       if (tagRows) {
@@ -213,6 +220,19 @@ export async function POST(request: NextRequest) {
       if (salaryRows) {
         salaryDetails = salaryRows;
       }
+
+      // Build a map of application_id → doc metadata for context building and text extraction
+      if (appDocRows) {
+        for (const row of appDocRows) {
+          if (!row.application_id) continue;
+          if (!docsByApp[row.application_id]) docsByApp[row.application_id] = [];
+          docsByApp[row.application_id].push({
+            label:        row.label,
+            name:         row.original_name ?? row.label,
+            storage_path: row.storage_path,
+          });
+        }
+      }
     }
 
     // ── Extract full text from uploaded resumes & cover letters ─────────────
@@ -223,7 +243,21 @@ export async function POST(request: NextRequest) {
       if (cached) {
         documentTexts = cached;
       } else {
-        documentTexts = await extractAllDocuments(supabase, applications);
+        // Build supplementary paths from application_documents (new apps no longer write to resume_path)
+        const extraPaths = Object.entries(docsByApp).flatMap(([appId, docs]) => {
+          const app = (applications ?? []).find((a) => a.id === appId);
+          if (!app) return [];
+          return docs
+            .filter((d) => !d.storage_path.startsWith("http")) // skip external URLs
+            .map((d) => ({
+              applicationId: appId,
+              company:  app.company,
+              position: app.position,
+              path:     d.storage_path,
+              label:    d.label,
+            }));
+        });
+        documentTexts = await extractAllDocuments(supabase, applications, extraPaths);
         await setDocCache(user.id, documentTexts);
       }
     }
@@ -241,6 +275,7 @@ export async function POST(request: NextRequest) {
       salaryDetails,
       emailTemplates,
       documentTexts,
+      docsByApp,
     ] as const;
 
     const groqApiKey = process.env.GROQ_API_KEY;
@@ -572,6 +607,7 @@ function buildContext(
   salaryDetails: SalaryRow[],
   emailTemplates: TemplateRow[] | null,
   documentTexts: DocResult[],
+  docsByApp: Record<string, { label: string; name: string; storage_path: string }[]>,
   opts: TrimOptions = {},
 ): string {
   const parts: string[] = [];
@@ -603,8 +639,12 @@ function buildContext(
       if (d >= thisWeekStart) thisWeekCount++;
     });
 
-    const appsWithResume = applications.filter((a) => a.resume_path).length;
-    const appsWithCoverLetter = applications.filter((a) => a.cover_letter_path).length;
+    const appsWithResume = applications.filter(
+      (a) => a.resume_path || docsByApp[a.id]?.some((d) => d.label.toLowerCase().includes("resume"))
+    ).length;
+    const appsWithCoverLetter = applications.filter(
+      (a) => a.cover_letter_path || docsByApp[a.id]?.some((d) => d.label.toLowerCase().includes("cover"))
+    ).length;
 
     parts.push(
       `APPLICATIONS — Total: ${applications.length} | This week: ${thisWeekCount} | This month: ${thisMonthCount}`,
@@ -619,6 +659,12 @@ function buildContext(
       const docs: string[] = [];
       if (app.resume_path) docs.push(`resume: "${fileName(app.resume_path)}"`);
       if (app.cover_letter_path) docs.push(`cover letter: "${fileName(app.cover_letter_path)}"`);
+      for (const d of docsByApp[app.id] ?? []) {
+        const key = d.label.toLowerCase();
+        if (!app.resume_path && key.includes("resume")) docs.push(`resume: "${d.name}"`);
+        else if (!app.cover_letter_path && key.includes("cover")) docs.push(`cover letter: "${d.name}"`);
+        else if (!key.includes("resume") && !key.includes("cover")) docs.push(`${d.label}: "${d.name}"`);
+      }
 
       const salParts: string[] = [];
       if (sal) {

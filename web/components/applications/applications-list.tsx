@@ -221,9 +221,9 @@ export function ApplicationsList({
 
   return (
     <div>
-      {/* ── Bulk actions bar ── */}
+      {/* ── Bulk actions bar — stacks above the sticky filter bar ── */}
       {selectable && (
-        <div className="sticky top-16 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#99462a]/30 dark:border-[#ccff00]/30 bg-background/95 backdrop-blur px-4 py-2.5 shadow-md">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#99462a]/30 dark:border-[#ccff00]/30 bg-background px-4 py-2.5 shadow-sm">
           <span className="text-xs font-semibold text-foreground mr-1">
             {effectiveSelected.size} selected
           </span>
@@ -299,8 +299,19 @@ export function ApplicationsList({
         </div>
       )}
 
-      {/* ── Cards ── */}
-      <div className={cn("space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
+      {/* ── Count row ── */}
+      <p className="text-xs text-muted-foreground mb-3 px-0.5">
+        {allApps.length} application{allApps.length !== 1 ? "s" : ""}
+        {hasMore && " (showing first page)"}
+        {effectiveSelected.size > 0 && (
+          <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
+            · {effectiveSelected.size} selected
+          </span>
+        )}
+      </p>
+
+      {/* ── Cards — tighter gap on mobile, comfortable on desktop ── */}
+      <div className={cn("space-y-3 sm:space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
         {allApps.map((app) => (
           <ApplicationCard
             key={app.id}
@@ -319,11 +330,11 @@ export function ApplicationsList({
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 text-sm font-medium px-6 py-2.5 rounded-full border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50"
           >
             {loadingMore
               ? <><Loader2 className="h-4 w-4 animate-spin" />Loading…</>
-              : <>Load more applications</>}
+              : <>Load more</>}
           </button>
         </div>
       )}

@@ -74,7 +74,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Import from job posting**: paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; Greenhouse and Lever public APIs called first for reliable structured data; JSON-LD (`@type: JobPosting`) extracted before raw HTML; LinkedIn/Indeed/Glassdoor detected early with a specific paste-text message; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
 - **AI JSON autofill**: copy a structured prompt from the new application form, paste it into any external AI (ChatGPT, Claude, Gemini) with your resume and the job posting, paste the returned JSON back, and all 13 fields auto-fill instantly; client-side only (no API key or extra service required); parser strips null bytes, validates real calendar dates, normalises URLs to canonical `href` form, and rejects dangerous schemes (`javascript:`, `data:`, etc.); invalid enum values produce non-blocking inline warnings with the modal staying open for review
 - **Source tracking**: 11 sources (LinkedIn, Indeed, Referral, Company Website...); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants
-- **Application completeness score**: 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus)
+- **Application completeness score**: 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus); "Resume uploaded" and "Cover letter" fields check both the legacy `resume_path` field and `application_documents` rows so new applications (which no longer write to the legacy path) score correctly
 - **ATS score badge**: persisted to DB after each scan; shown in bottom meta row
 - **Created / Updated timestamps**: each application card shows device-local timestamps; only shown when the two differ
 - **Status Journey**: visual stepper on application detail showing days spent at each status stage; horizontal on desktop, vertical on mobile; derived from activity logs (zero extra DB queries); each status dot uses its own semantic ring colour (amber for Applied, red for Rejected, emerald for Offer/Accepted) so every stage is visually distinct in both light and dark mode
@@ -116,6 +116,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Each application has its own document section on the detail page
 - Documents pre-fetched server-side for instant display with no loading flash
 - Original filename preserved and shown as the subtitle (`original_name` stored on upload)
+- **Single storage path** — files uploaded via the new application form are stored only in `application_documents`; the legacy `resume_path` / `cover_letter_path` fields on `job_applications` are no longer written for applications created on/after 2026-06-12, eliminating the previous duplicate-card bug
 - Version history with restore and diff comparison
 - Share links per document with expiry and view count
 
@@ -216,7 +217,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1268 tests, 83 files) + Playwright E2E (8 spec files) |
+| Testing | Vitest (1268 tests, 83 files) + Playwright E2E (9 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -470,7 +471,7 @@ npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
 npm test              # Vitest (1268 tests, 83 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 8 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run test:e2e      # Playwright E2E — 9 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 ```
 
 ---
@@ -483,7 +484,7 @@ npm run test:e2e      # Playwright E2E — 8 spec files; authenticated suites re
 |---|---|---|
 | Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers |
 | Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
-| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status filter), **Search Intelligence** (all 6 cards visible, ghost rate non-zero with Ghosted app, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar 4-tab structure + desktop hide, nav-open slide-away, nav deduplication, NPS feedback API live submission, chart no horizontal overflow) |
+| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden) |
 
 ---
 

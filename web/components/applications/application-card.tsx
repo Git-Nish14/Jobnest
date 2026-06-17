@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
-  MapPin, DollarSign, Calendar, ScanSearch, Copy, Check, Stamp, Clock, Loader2,
+  MapPin, DollarSign, Calendar, ScanSearch, Copy,
+  Check, Stamp, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,8 +17,33 @@ import type { JobApplication } from "@/types";
 import { cn } from "@/lib/utils";
 import { SOURCE_COLORS } from "@/config/constants";
 import { AtsProviderBadge } from "@/components/ui/brand-icons";
-import { formatDate, formatCompactDateTime } from "@/lib/utils/date";
+import { formatDate } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
+
+// ── Per-status tokens ─────────────────────────────────────────────────────────
+// tint: very-low-opacity wash on the card background — the TODO item finally shipped.
+// accent: left border colour.
+// avatar: reuses existing dashboard.css db-status-* classes for the company initial.
+// badge: same db-status-* for the pill badge.
+const STATUS_TOKENS: Record<
+  string,
+  { tint: string; accent: string; avatar: string; badge: string }
+> = {
+  "Applied":      { tint: "bg-amber-500/[0.05] dark:bg-amber-500/[0.08]",    accent: "bg-amber-400",    avatar: "db-status-applied",   badge: "db-status-applied" },
+  "Phone Screen": { tint: "bg-orange-500/[0.05] dark:bg-orange-500/[0.08]",  accent: "bg-[#99462a]",    avatar: "db-status-phone",     badge: "db-status-phone" },
+  "Interview":    { tint: "bg-emerald-500/[0.06] dark:bg-emerald-500/[0.09]", accent: "bg-emerald-500",  avatar: "db-status-interview", badge: "db-status-interview" },
+  "Offer":        { tint: "bg-emerald-500/[0.08] dark:bg-emerald-500/[0.11]", accent: "bg-emerald-600",  avatar: "db-status-offer",     badge: "db-status-offer" },
+  "Accepted":     { tint: "bg-emerald-500/[0.10] dark:bg-emerald-500/[0.13]", accent: "bg-emerald-700",  avatar: "db-status-accepted",  badge: "db-status-accepted" },
+  "Rejected":     { tint: "bg-red-500/[0.05] dark:bg-red-500/[0.08]",         accent: "bg-red-400",      avatar: "db-status-rejected",  badge: "db-status-rejected" },
+  "Withdrawn":    { tint: "",                                                   accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
+  "Ghosted":      { tint: "bg-zinc-500/[0.04] dark:bg-zinc-500/[0.07]",       accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-ghosted",   badge: "db-status-ghosted" },
+};
+
+function tokens(status: string) {
+  return STATUS_TOKENS[status] ?? {
+    tint: "", accent: "bg-border", avatar: "db-status-default", badge: "db-status-default",
+  };
+}
 
 interface ApplicationCardProps {
   application: JobApplication;
@@ -26,26 +52,26 @@ interface ApplicationCardProps {
   onSelect?: (id: string) => void;
 }
 
-function statusTokens(status: string) {
-  const map: Record<string, { accent: string; avatar: string; badge: string }> = {
-    "Interview":    { accent: "bg-[#006d34]",  avatar: "db-status-interview", badge: "db-status-interview" },
-    "Phone Screen": { accent: "bg-primary",     avatar: "db-status-phone",    badge: "db-status-phone" },
-    "Applied":      { accent: "bg-amber-500",   avatar: "db-status-applied",  badge: "db-status-applied" },
-    "Offer":        { accent: "bg-[#006d34]",   avatar: "db-status-offer",    badge: "db-status-offer" },
-    "Accepted":     { accent: "bg-[#006d34]",   avatar: "db-status-accepted", badge: "db-status-accepted" },
-    "Rejected":     { accent: "bg-[#ba1a1a]",   avatar: "db-status-rejected", badge: "db-status-rejected" },
-    "Withdrawn":    { accent: "bg-muted-foreground", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
-    "Ghosted":      { accent: "bg-zinc-400",    avatar: "db-status-ghosted",  badge: "db-status-ghosted" },
-  };
-  return map[status] ?? { accent: "bg-border", avatar: "db-status-default", badge: "db-status-default" };
-}
-
 export function ApplicationCard({ application, selectable, selected, onSelect }: ApplicationCardProps) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]               = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [duplicating, setDuplicating] = useState(false);
-  const [duplicated, setDuplicated] = useState(false);
+  const [duplicating, setDuplicating]         = useState(false);
+  const [duplicated, setDuplicated]           = useState(false);
+
+  const tok      = tokens(application.status);
+  const initial  = application.company.charAt(0).toUpperCase();
+  const dateStr  = formatDate(application.applied_date);
+
+  const sourceColor = application.source
+    ? (SOURCE_COLORS[application.source] ?? SOURCE_COLORS["Other"])
+    : null;
+
+  const atsColor =
+    application.ats_score == null ? "" :
+    application.ats_score >= 70   ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
+    application.ats_score >= 45   ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
+                                    "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300";
 
   const handleDuplicate = async () => {
     setDuplicating(true);
@@ -66,9 +92,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
   };
 
   const handleDeleteClick = (e: Event) => {
-    // Prevent Radix from closing the dropdown so the user can see "Confirm delete"
-    // without having to re-open the menu.
-    e.preventDefault();
+    e.preventDefault(); // keep dropdown open for confirm step
     setConfirmingDelete(true);
     setTimeout(() => setConfirmingDelete(false), 5000);
   };
@@ -77,9 +101,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
     setConfirmingDelete(false);
     setDeleting(true);
     try {
-      const res = await fetch(`/api/applications/${application.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/applications/${application.id}`, { method: "DELETE" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Delete failed");
@@ -92,70 +114,85 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
     }
   };
 
-  const formattedDate = formatDate(application.applied_date);
-
-  const initial = application.company.charAt(0).toUpperCase();
-  const { accent, avatar, badge } = statusTokens(application.status);
-
   return (
-    <div className={cn(
-      "db-app-card group relative overflow-hidden pl-5 sm:pl-6",
-      selected && "ring-2 ring-[#99462a] dark:ring-[#ccff00]",
-      deleting && "pointer-events-none opacity-50"
-    )}>
-      {/* Deletion in-progress overlay */}
+    <div
+      data-testid="application-card"
+      className={cn(
+        // ── Shell ──────────────────────────────────────────────────────────
+        "group relative rounded-2xl border overflow-hidden transition-all duration-200",
+        "border-[#dbc1b9]/40 dark:border-white/[0.07]",
+        "hover:border-[#dbc1b9]/70 dark:hover:border-white/12 hover:shadow-md",
+        // Status tint — very subtle background wash per status
+        tok.tint,
+        selected && "ring-2 ring-[#99462a] dark:ring-[#ccff00] border-transparent",
+        deleting && "pointer-events-none opacity-50",
+      )}
+    >
+      {/* ── Deletion overlay ── */}
       {deleting && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-[1px] rounded-xl">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-background/90 px-3 py-1.5 rounded-full shadow-sm border border-border">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-2xl">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-background/95 px-3.5 py-2 rounded-full shadow-sm border border-border">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Deleting…
           </div>
         </div>
       )}
-      <div className={cn("absolute left-0 inset-y-0 w-1.5 rounded-l-xl", accent)} />
 
-      {/* Selection checkbox — shown in selectable mode */}
+      {/* ── Left accent bar (status colour) ── */}
+      <div className={cn("absolute left-0 inset-y-0 w-0.75 rounded-l-2xl", tok.accent)} />
+
+      {/* ── Selection checkbox — tap target 44×44 on mobile ── */}
       {selectable && (
         <button
           type="button"
           onClick={() => onSelect?.(application.id)}
-          aria-label={selected ? "Deselect application" : "Select application"}
-          className="absolute top-3 right-3 z-10 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors
-            border-muted-foreground/30 hover:border-[#99462a] dark:hover:border-[#ccff00]
-            bg-background data-checked:bg-[#99462a] dark:data-checked:bg-[#ccff00]"
-          data-checked={selected || undefined}
-        >
-          {selected && <Check className="h-3 w-3 text-white dark:text-black" />}
-        </button>
+          aria-label={selected ? "Deselect" : "Select application"}
+          className={cn(
+            "absolute top-0 left-0 z-10 h-full w-full bg-transparent",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#99462a]",
+          )}
+        />
       )}
 
-      <div className="flex items-start gap-4 sm:gap-5">
-        <div className={cn("db-company-avatar-lg shrink-0", avatar)}>
-          {initial}
-        </div>
+      {/* ── Card body ── */}
+      <div className="relative pl-6 pr-4 py-4 sm:pl-7 sm:pr-5 sm:py-4.5">
+        <div className="flex gap-3 sm:gap-3.5">
 
-        <div className="flex-1 min-w-0">
+          {/* Company avatar — status-coloured background */}
+          <div
+            className={cn(
+              "h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center",
+              "shrink-0 text-base sm:text-lg font-bold db-headline select-none",
+              "transition-transform group-hover:scale-105",
+              tok.avatar,
+            )}
+            aria-hidden="true"
+          >
+            {initial}
+          </div>
 
-          {/* ── Top row: title / company + status + actions ── */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+
+            {/* ── Row 1: Position + Actions ── */}
+            <div className="flex items-start gap-2">
               <Link
                 href={`/applications/${application.id}`}
-                className="db-headline text-lg sm:text-xl font-semibold text-foreground hover:text-[#99462a] dark:hover:text-[#ccff00] transition-colors leading-tight line-clamp-2 block"
+                className={cn(
+                  "flex-1 min-w-0 block",
+                  selectable && "pointer-events-auto relative z-10",
+                )}
               >
-                {application.position}
+                <h3 className="font-semibold text-[15px] sm:text-base text-foreground hover:text-[#99462a] dark:hover:text-[#ccff00] transition-colors leading-snug line-clamp-2">
+                  {application.position}
+                </h3>
               </Link>
-              <p className="text-muted-foreground text-sm font-medium mt-0.5 truncate">
-                {application.company}
-              </p>
-            </div>
 
-            {/* Status + actions — clean, no data badges */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className={cn("db-status-badge hidden sm:inline-block", badge)}>
-                {application.status}
-              </span>
-              <div className="flex items-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              {/* Actions — always visible, no hover-only on mobile */}
+              <div className={cn(
+                "flex items-center gap-0.5 shrink-0 -mt-0.5 relative z-10",
+                selectable && "pointer-events-auto",
+              )}>
                 {application.job_url && (
                   <a
                     href={application.job_url}
@@ -163,7 +200,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     rel="noopener noreferrer"
                     aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
-                    className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-[#99462a]/8 dark:hover:bg-[#ccff00]/8 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -172,26 +209,27 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-[#99462a]/8 dark:hover:bg-[#ccff00]/8 transition-colors"
                       aria-label={`Options for ${application.position} at ${application.company}`}
-                      title="More options"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     >
-                      <MoreHorizontal className="h-3.5 w-3.5" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-44">
                     <DropdownMenuItem asChild>
                       <Link href={`/applications/${application.id}/edit`} className="flex items-center">
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
+                        <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/applications/${application.id}`} className="flex items-center">
+                        <ExternalLink className="mr-2 h-3.5 w-3.5" /> View details
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleDuplicate} disabled={duplicating || duplicated}>
-                      {duplicated ? (
-                        <><Check className="mr-2 h-4 w-4 text-emerald-600" />Duplicated</>
-                      ) : (
-                        <><Copy className="mr-2 h-4 w-4" />{duplicating ? "Duplicating…" : "Duplicate"}</>
-                      )}
+                      {duplicated
+                        ? <><Check className="mr-2 h-3.5 w-3.5 text-emerald-600" />Duplicated!</>
+                        : <><Copy className="mr-2 h-3.5 w-3.5" />{duplicating ? "Duplicating…" : "Duplicate"}</>}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {confirmingDelete ? (
@@ -199,122 +237,105 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                         onClick={handleDeleteConfirm}
                         className="text-destructive focus:text-destructive font-semibold"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Confirm delete
+                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Confirm delete
                       </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem
-                        // preventDefault keeps the dropdown open so the
-                        // "Confirm delete" item becomes visible immediately.
                         onSelect={handleDeleteClick}
                         disabled={deleting}
                         className="text-destructive focus:text-destructive"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {deleting ? "Deleting…" : "Delete"}
+                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
-          </div>
 
-          {/* Mobile-only status badge */}
-          <span className={cn("db-status-badge sm:hidden mt-2 inline-block", badge)}>
-            {application.status}
-          </span>
+            {/* ── Row 2: Company + Status badge ── */}
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-sm text-muted-foreground font-medium leading-none">
+                {application.company}
+              </span>
+              <span className={cn("db-status-badge shrink-0", tok.badge)}>
+                {application.status}
+              </span>
+              {application.requires_sponsorship && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 shrink-0">
+                  <Stamp className="h-2.5 w-2.5 shrink-0" />
+                  Visa
+                </span>
+              )}
+            </div>
 
-          {/* ── Bottom row: meta info + completeness ring + ATS ── */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2.5">
-            {/* Date / location / salary */}
-            <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
-              <Calendar className="h-3.5 w-3.5 shrink-0" />
-              {formattedDate}
-            </span>
-            {application.location && (
-              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate max-w-28 sm:max-w-none">{application.location}</span>
+            {/* ── Row 3: Meta info ── */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 shrink-0" />
+                {dateStr}
               </span>
-            )}
-            {application.salary_range && (
-              <span className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground/75">
-                <DollarSign className="h-3.5 w-3.5 shrink-0" />
-                {application.salary_range}
-              </span>
-            )}
-            {application.source && (() => {
-              const c = SOURCE_COLORS[application.source!] ?? SOURCE_COLORS["Other"];
-              return (
+              {application.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate max-w-28 sm:max-w-none">{application.location}</span>
+                </span>
+              )}
+              {application.salary_range && (
+                <span className="hidden sm:flex items-center gap-1">
+                  <DollarSign className="h-3 w-3 shrink-0" />
+                  {application.salary_range}
+                </span>
+              )}
+              {sourceColor && application.source && (
                 <span className={cn(
-                  "hidden sm:inline-block text-xs font-medium rounded-full px-2 py-0.5",
-                  c.bg, c.text, c.darkBg, c.darkText,
+                  "hidden sm:inline-block text-[11px] font-medium rounded-full px-2 py-0.5",
+                  sourceColor.bg, sourceColor.text, sourceColor.darkBg, sourceColor.darkText,
                 )}>
                   {application.source}
                 </span>
-              );
-            })()}
+              )}
+            </div>
 
-            {/* ATS portal badge */}
-            {application.ats_provider && (
-              <AtsProviderBadge provider={application.ats_provider} className="hidden sm:inline-flex" />
-            )}
+            {/* ── Row 4: Quality signals ── */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {application.ats_provider && (
+                <AtsProviderBadge provider={application.ats_provider} />
+              )}
+              {application.ats_score != null && (
+                <Link
+                  href="/ats"
+                  onClick={(e) => e.stopPropagation()}
+                  title="ATS keyword match — click to re-scan"
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums hover:opacity-80 transition-opacity",
+                    atsColor,
+                  )}
+                >
+                  <ScanSearch className="h-3 w-3 shrink-0" />
+                  ATS {application.ats_score}%
+                </Link>
+              )}
+              {/* Spacer pushes ring to right */}
+              <span className="flex-1" />
+              <CompletenessRing application={application} size={30} simple />
+            </div>
 
-            {/* Visa sponsorship badge */}
-            {application.requires_sponsorship && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                <Stamp className="h-3 w-3 shrink-0" />
-                Visa
-              </span>
-            )}
-
-            {/* Spacer pushes quality signals to the right */}
-            <span className="flex-1" />
-
-            {/* ATS score pill */}
-            {application.ats_score !== null && application.ats_score !== undefined && (
-              <Link
-                href={`/ats`}
-                title="ATS keyword match — click to re-scan"
-                onClick={(e) => e.stopPropagation()}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-80",
-                  application.ats_score >= 70
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                    : application.ats_score >= 45
-                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                    : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
-                )}
-              >
-                <ScanSearch className="h-3 w-3 shrink-0" />
-                ATS {application.ats_score}%
-              </Link>
-            )}
-
-            {/* Completeness ring — visual only on list; full detail on application page */}
-            <CompletenessRing application={application} size={36} simple />
-          </div>
-
-          {/* ── Timestamps row ── */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1.5">
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
-              <Clock className="h-3 w-3 shrink-0" />
-              Created {formatCompactDateTime(application.created_at)}
-            </span>
-            {application.updated_at && application.updated_at !== application.created_at && (
-              <span className="text-[11px] text-muted-foreground/50">
-                · Updated {formatCompactDateTime(application.updated_at)}
-              </span>
+            {/* ── Notes preview ── */}
+            {application.notes && (
+              <p className="mt-2 text-xs text-muted-foreground/60 italic line-clamp-1 border-t border-border/30 pt-1.5">
+                &ldquo;{application.notes}&rdquo;
+              </p>
             )}
           </div>
         </div>
       </div>
 
-      {application.notes && (
-        <p className="db-card-notes ml-0 sm:ml-21 line-clamp-2 mt-1">
-          &ldquo;{application.notes}&rdquo;
-        </p>
+      {/* ── Selection tick (shown when selected) ── */}
+      {selectable && selected && (
+        <div className="absolute top-3 right-3 z-20 h-5 w-5 rounded-full bg-[#99462a] dark:bg-[#ccff00] flex items-center justify-center shadow-sm pointer-events-none">
+          <Check className="h-3 w-3 text-white dark:text-black" strokeWidth={3} />
+        </div>
       )}
     </div>
   );

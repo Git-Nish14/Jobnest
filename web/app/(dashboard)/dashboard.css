@@ -687,6 +687,15 @@ html.nav-open .bottom-tab-bar {
 }
 .db-filter-pills::-webkit-scrollbar { display: none; }
 
+/* Utility — horizontal scroll container with hidden scrollbar.
+   Applied to status-pill rows and any scroll-without-scrollbar pattern. */
+.no-scrollbar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 .db-filter-pill {
   padding: 0.375rem 0.875rem;
   border-radius: 9999px;
@@ -792,6 +801,17 @@ html.nav-open .bottom-tab-bar {
     -webkit-mask-image: none;
     mask-image: none;
   }
+}
+
+/* ── Mobile floating action button — applications page "New" shortcut ─────── */
+/* Sits just above the floating glass tab bar pill (4.75rem) + its bottom
+   offset (0.5rem) + a small clearance gap (0.5rem) = 5.75rem total.         */
+.app-mobile-fab {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem);
+}
+@media (min-width: 640px) {
+  /* sm+ — the FAB is hidden (sm:hidden on the element); rule is a no-op */
+  .app-mobile-fab { display: none; }
 }
 
 /* ── Mobile sticky action bar ──────────────────────────────────────────────── */

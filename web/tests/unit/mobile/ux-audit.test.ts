@@ -19,19 +19,21 @@ function src(rel: string) { return readFileSync(path.join(root, rel), "utf-8"); 
 describe("ApplicationCard — mobile actions & aria", () => {
   const code = src("components/applications/application-card.tsx");
 
-  it("actions wrapper is visible on mobile (sm:opacity-0, not opacity-0)", () => {
-    // Must NOT have the bare `opacity-0` that hides actions on all screens
-    expect(code).not.toContain('"flex items-center opacity-0');
-    // Must use sm: prefix so mobile always sees actions
-    expect(code).toContain("sm:opacity-0");
-    expect(code).toContain("sm:group-hover:opacity-100");
+  it("actions are always visible on mobile (no opacity-0 hiding)", () => {
+    // Redesign: actions are always visible on every screen size.
+    // The old sm:opacity-0 / group-hover pattern is intentionally gone —
+    // touch devices have no hover state so hover-only actions are inaccessible.
+    expect(code).not.toContain("sm:opacity-0");
+    expect(code).not.toContain("sm:group-hover:opacity-100");
+    // Actions container must exist
+    expect(code).toContain("flex items-center gap-0.5");
   });
 
-  it("external link has aria-label (not just title)", () => {
+  it("external link has contextual aria-label including position and company", () => {
     expect(code).toContain('aria-label={`View job posting for');
   });
 
-  it("options menu button has aria-label", () => {
+  it("options menu button has contextual aria-label including position and company", () => {
     expect(code).toContain('aria-label={`Options for');
   });
 });
@@ -62,21 +64,23 @@ describe("ApplicationFilters — debounce & aria", () => {
     expect(code).toContain('aria-label="Search applications"');
   });
 
-  it("status filter is a dropdown (DropdownMenu) visible on all screen sizes", () => {
-    // After the mobile-UX sprint the horizontal pill row was replaced by a
-    // universal dropdown. Verify the dropdown trigger has an aria-label and
-    // the DropdownMenuContent exists.
+  it("status filter uses horizontal pills for one-tap filtering", () => {
+    // Applications page redesign: status is now a scrollable pill row instead
+    // of a dropdown — one tap vs two taps for the most common filter action.
+    expect(code).toContain("STATUS_PILLS");
+    expect(code).toContain('aria-label="Filter by status"');
+    // Sort + advanced-filter dropdowns still use DropdownMenu
     expect(code).toContain("DropdownMenu");
-    expect(code).toContain('aria-label="Filter applications"');
   });
 
-  it("active filter count badge is rendered when filters are on", () => {
-    expect(code).toContain("activeFilterCount");
-    expect(code).toContain("activeFilterCount > 0");
+  it("advanced filter count badge renders when sponsorship/tier filters are on", () => {
+    // advancedCount tracks sponsorship + tier only; status has its own pill row
+    expect(code).toContain("advancedCount");
+    expect(code).toContain("advancedCount > 0");
   });
 
-  it("clear-all button appears when 2+ filters are active", () => {
-    expect(code).toContain("activeFilterCount > 1");
+  it("clear-all button appears when 2+ advanced filters are active", () => {
+    expect(code).toContain("advancedCount > 1");
     expect(code).toContain("Clear all");
   });
 
