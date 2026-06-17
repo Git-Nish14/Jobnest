@@ -76,7 +76,7 @@ export function ApplicationsList({
       const sanitize = (s: string) => s.replace(/[,()."']/g, " ").slice(0, 200);
       if (filters.search) {
         const s = sanitize(filters.search);
-        query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
+        query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%,job_id.ilike.%${s}%`);
       }
       if (filters.status && filters.status !== "all") {
         query = query.eq("status", filters.status);

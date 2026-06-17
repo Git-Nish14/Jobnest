@@ -56,7 +56,7 @@ export async function getApplicationsPage(
     // Apply the same filters as getApplications
     if (params?.search) {
       const s = sanitizeFilterTerm(params.search);
-      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
+      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%,job_id.ilike.%${s}%`);
     }
     if (params?.status && params.status !== "all") {
       query = query.eq("status", params.status);
@@ -130,7 +130,7 @@ export async function getApplications(
     // Search filter
     if (params?.search) {
       const s = sanitizeFilterTerm(params.search);
-      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%`);
+      query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%,job_id.ilike.%${s}%`);
     }
 
     // Status filter

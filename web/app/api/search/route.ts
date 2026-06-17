@@ -25,13 +25,17 @@ export async function GET(request: NextRequest) {
     // Clamp query length — prevents absurdly long inputs from reaching the DB.
     const safeQ = q.slice(0, MAX_QUERY_LENGTH);
 
+    // Strip PostgREST special characters from the search term before embedding
+    // in the or() filter string — prevents filter-grammar injection.
+    const safeQFilter = safeQ.replace(/[,()."']/g, " ");
+
     // Full-text search using the GIN-indexed search_vector column.
     // websearch_to_tsquery handles quoted phrases and AND/OR operators naturally.
-    // We fall back to ilike on company/position as a secondary pass for short
-    // queries where websearch_to_tsquery produces an empty tsquery (e.g. "a").
+    // We fall back to ilike on company/position/job_id as a secondary pass for
+    // short queries where websearch_to_tsquery produces an empty tsquery (e.g. "a").
     const { data: ftResults, error: ftError } = await supabase
       .from("job_applications")
-      .select("id, company, position, status, applied_date")
+      .select("id, company, position, job_id, status, applied_date")
       .textSearch("search_vector", safeQ, { type: "websearch", config: "english" })
       .eq("user_id", user.id)
       .order("applied_date", { ascending: false })
@@ -41,8 +45,8 @@ export async function GET(request: NextRequest) {
       // Full-text search failed (e.g. migration not yet applied) — fall back to ilike
       const { data: fallback } = await supabase
         .from("job_applications")
-        .select("id, company, position, status, applied_date")
-        .or(`company.ilike.%${safeQ}%,position.ilike.%${safeQ}%`)
+        .select("id, company, position, job_id, status, applied_date")
+        .or(`company.ilike.%${safeQFilter}%,position.ilike.%${safeQFilter}%,job_id.ilike.%${safeQFilter}%`)
         .eq("user_id", user.id)
         .order("applied_date", { ascending: false })
         .limit(MAX_RESULTS);
@@ -50,13 +54,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: fallback ?? [] });
     }
 
-    // If full-text returned nothing, try ilike for prefix matches.
-    // This helps for partial words that don't yet match a full token.
+    // If full-text returned nothing, try ilike across all three fields.
+    // This catches partial words, non-English company names, and job IDs that
+    // aren't indexed in search_vector yet.
     if (!ftResults || ftResults.length === 0) {
       const { data: fallback } = await supabase
         .from("job_applications")
-        .select("id, company, position, status, applied_date")
-        .or(`company.ilike.%${safeQ}%,position.ilike.%${safeQ}%`)
+        .select("id, company, position, job_id, status, applied_date")
+        .or(`company.ilike.%${safeQFilter}%,position.ilike.%${safeQFilter}%,job_id.ilike.%${safeQFilter}%`)
         .eq("user_id", user.id)
         .order("applied_date", { ascending: false })
         .limit(MAX_RESULTS);
