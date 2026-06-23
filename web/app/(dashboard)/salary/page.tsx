@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { DollarSign, TrendingUp, Building, Award, Clock } from "lucide-react";
-import { getAllSalaryDetails, formatSalary } from "@/services";
+import { getAllSalaryDetails, formatSalary, getApplications } from "@/services";
 import { OfferDecisionHelper } from "@/components/dashboard/offer-decision-helper";
 import { SalaryPageClient } from "@/components/salary/SalaryPageClient";
+import { SalaryBenchmark } from "@/components/salary/SalaryBenchmark";
 import { computeFullTC, computeEffectiveHourlyRate, computeBenefitsDollarValue } from "@/lib/utils/salary-helpers";
 import { estimateTakeHome } from "@/lib/utils/tax-estimator";
 
@@ -30,7 +31,10 @@ function StatusBadge({ status }: { status: string }) {
 export const dynamic = "force-dynamic";
 
 export default async function SalaryComparisonPage() {
-  const { data: salaryData } = await getAllSalaryDetails();
+  const [{ data: salaryData }, { data: allApplicationsData }] = await Promise.all([
+    getAllSalaryDetails(),
+    getApplications(),
+  ]);
 
   const offers = (salaryData || []).filter(
     (s) => s.job_applications?.status === "Offer"
@@ -253,6 +257,9 @@ export default async function SalaryComparisonPage() {
             </p>
           </div>
         )}
+
+        {/* ── Salary Benchmarking ── */}
+        <SalaryBenchmark applications={allApplicationsData ?? []} />
 
         {/* ── Offer Decision Helper ── */}
         <OfferDecisionHelper

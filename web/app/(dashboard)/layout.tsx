@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Newsreader, Manrope } from "next/font/google";
-import { Navbar, BottomTabBar } from "@/components/layout";
+import { Navbar, BottomTabBar, ScrollRestorer } from "@/components/layout";
 import { NPSFeedback } from "@/components/layout/NPSFeedback";
 import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
@@ -54,6 +54,7 @@ export default async function DashboardLayout({
 
   return (
     <div className={`${newsreader.variable} ${manrope.variable} min-h-screen db-root`}>
+      <ScrollRestorer />
       <AuthSync />
       <CommandPalette />
       <Navbar user={{ email: user.email }} />

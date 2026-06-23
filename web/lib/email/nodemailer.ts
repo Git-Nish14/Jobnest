@@ -791,6 +791,337 @@ export async function sendWeeklyDigestEmail(
   }
 }
 
+// ── Application milestone email (100, 200, 300…) ─────────────────────────────
+function appMilestoneMessage(n: number): string {
+  if (n === 100) return `A century of persistence. Logging 100 applications sets you apart &mdash; the ones who land great roles aren&rsquo;t always the most talented; they&rsquo;re the most consistent.`;
+  if (n === 200) return `200 and counting. While most people give up after a few dozen, you&rsquo;ve kept showing up. That resilience separates people who get what they want from everyone else.`;
+  if (n === 300) return `300 applications. You&rsquo;re in rare company &mdash; most people never get here. Your commitment is extraordinary, and it will pay off.`;
+  if (n === 400) return `400 applications. You&rsquo;ve turned job searching into a discipline. That kind of systematic effort always pays off.`;
+  if (n === 500) return `Half a thousand. You are one of the most determined job seekers on Jobnest. The right opportunity is closer than you think.`;
+  if (n >= 500)  return `${n.toLocaleString("en-US")} applications. Your persistence is unmatched &mdash; keep going.`;
+  return `${n.toLocaleString("en-US")} applications. Each one is a step closer to the role you deserve. You&rsquo;re doing the work.`;
+}
+
+export async function sendApplicationMilestoneEmail(
+  email: string,
+  displayName: string,
+  milestone: number,
+  stats: { responseRate: number; activePipeline: number; totalOffers: number },
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const name = esc(displayName || "there");
+    const msg = appMilestoneMessage(milestone);
+    const n = milestone.toLocaleString("en-US");
+
+    const statCells = [
+      stats.responseRate  > 0 ? `<td class="stat-cell" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 8px;text-align:center;vertical-align:top;"><div style="font-size:24px;font-weight:800;color:#99462a;line-height:1;">${stats.responseRate}%</div><div class="stat-label" style="font-size:11px;color:#6b7280;margin-top:4px;">Response rate</div></td>` : "",
+      stats.activePipeline > 0 ? `<td class="stat-cell" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 8px;text-align:center;vertical-align:top;"><div style="font-size:24px;font-weight:800;color:#1d4ed8;line-height:1;">${stats.activePipeline}</div><div class="stat-label" style="font-size:11px;color:#6b7280;margin-top:4px;">Active pipeline</div></td>` : "",
+      stats.totalOffers   > 0 ? `<td class="stat-cell" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 8px;text-align:center;vertical-align:top;"><div style="font-size:24px;font-weight:800;color:#16a34a;line-height:1;">${stats.totalOffers}</div><div class="stat-label" style="font-size:11px;color:#6b7280;margin-top:4px;">Offer${stats.totalOffers !== 1 ? "s" : ""} received</div></td>` : "",
+    ].filter(Boolean);
+
+    const html = emailHtml({
+      previewText: `You've logged ${n} applications — that's incredible persistence!`,
+      headerBg: { solid: "#99462a", gradient: "linear-gradient(135deg,#99462a 0%,#c2540a 50%,#7a3521 100%)" },
+      headerContent: `
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.65);">Milestone Reached</p>
+        <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${n} Applications &#127881;</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name} &mdash; you&rsquo;ve hit a remarkable milestone.</p>
+      `,
+      bodyContent: `
+        <div style="text-align:center;padding:28px 0 20px;">
+          <div style="display:inline-block;background:linear-gradient(135deg,#99462a,#c2540a);border-radius:20px;padding:22px 40px;">
+            <div style="font-size:52px;font-weight:900;color:#ffffff;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${n}</div>
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.8);margin-top:6px;letter-spacing:1px;text-transform:uppercase;">Applications</div>
+          </div>
+        </div>
+
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#374151;">${msg}</p>
+
+        ${statCells.length > 0 ? `
+        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" border="0" style="margin:20px 0;">
+          <tr>${statCells.join("")}</tr>
+        </table>` : ""}
+
+        <p style="color:#55433d;font-size:14px;font-style:italic;text-align:center;margin:20px 0;">
+          &ldquo;The secret to getting ahead is getting started &mdash; and you&rsquo;ve been started for a while now.&rdquo;
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px auto;">
+          <tr>
+            <td style="border-radius:99px;background-color:#99462a;">
+              <a href="${APP_URL}/dashboard" class="btn-link btn-primary" style="display:inline-block;padding:13px 28px;border-radius:99px;font-weight:700;font-size:15px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">View Your Dashboard &rarr;</a>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerExtra: `
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 10px;line-height:1.5;">
+          You received this milestone celebration automatically. To opt out, visit your
+          <a href="${APP_URL}/profile" style="color:#99462a;text-decoration:none;">notification preferences</a>.
+        </p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `🎉 ${n} applications — you're making it happen!`,
+      text: `Hi ${displayName || "there"},\n\nYou've submitted ${n} job applications — that's an incredible milestone!\n\nView your dashboard: ${APP_URL}/dashboard\n\nThe Jobnest Team`,
+      html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send application milestone email:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
+  }
+}
+
+// ── Offer milestone email (10, 20, 30…) ──────────────────────────────────────
+function offerMilestoneContent(count: number, totalApps: number): { headline: string; body: string } {
+  const rate = totalApps > 0 ? Math.round((count / totalApps) * 100) : 0;
+  const rateStr = rate > 0 ? ` A ${rate}% offer rate from ${totalApps} applications is genuinely impressive.` : "";
+  if (count === 10) return {
+    headline: "10 offers. You&rsquo;re doing something right.",
+    body: `Getting 10 offers puts you well ahead of the average job seeker.${rateStr} Your resume is landing, your interviews are converting, and the market sees your value.`,
+  };
+  if (count === 20) return {
+    headline: "20 offers. Companies are competing for you.",
+    body: `With 20 offers received, you&rsquo;re not just job searching &mdash; you&rsquo;re being recruited.${rateStr} You have real leverage. Be selective and pick the role that genuinely excites you.`,
+  };
+  if (count === 30) return {
+    headline: "30 offers &mdash; an extraordinary pipeline.",
+    body: `Thirty companies have made you an offer. That is remarkable by any measure.${rateStr} You&rsquo;ve cracked the code. Trust the process and choose wisely.`,
+  };
+  return {
+    headline: `${count} offers &mdash; incredible.`,
+    body: `${count} companies have extended you an offer. That is an extraordinary achievement.${rateStr} You are one of Jobnest&rsquo;s most successful job seekers.`,
+  };
+}
+
+export async function sendOfferMilestoneEmail(
+  email: string,
+  displayName: string,
+  offerCount: number,
+  totalApps: number,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const name = esc(displayName || "there");
+    const { headline, body } = offerMilestoneContent(offerCount, totalApps);
+    const offerRate = totalApps > 0 ? Math.round((offerCount / totalApps) * 100) : 0;
+
+    const html = emailHtml({
+      previewText: `${offerCount} offers received — companies are choosing you!`,
+      headerBg: { solid: "#15803d", gradient: "linear-gradient(135deg,#15803d 0%,#059669 50%,#14532d 100%)" },
+      headerContent: `
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.65);">Offer Milestone &#127942;</p>
+        <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${headline}</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name} &mdash; this calls for a proper celebration.</p>
+      `,
+      bodyContent: `
+        <div style="text-align:center;padding:28px 0 20px;">
+          <div style="display:inline-block;background:linear-gradient(135deg,#15803d,#059669);border-radius:20px;padding:22px 40px;">
+            <div style="font-size:52px;font-weight:900;color:#ffffff;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${offerCount}</div>
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);margin-top:6px;letter-spacing:1px;text-transform:uppercase;">Offers Received</div>
+          </div>
+        </div>
+
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#374151;">${body}</p>
+
+        ${totalApps > 0 ? `
+        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" border="0" style="margin:20px 0;">
+          <tr>
+            <td class="stat-cell" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 8px;text-align:center;vertical-align:top;">
+              <div style="font-size:28px;font-weight:800;color:#15803d;line-height:1;">${offerCount}</div>
+              <div class="stat-label" style="font-size:11px;color:#6b7280;margin-top:4px;">Offers received</div>
+            </td>
+            ${offerRate > 0 ? `
+            <td width="4%" style="padding:0;">&nbsp;</td>
+            <td class="stat-cell" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 8px;text-align:center;vertical-align:top;">
+              <div style="font-size:28px;font-weight:800;color:#99462a;line-height:1;">${offerRate}%</div>
+              <div class="stat-label" style="font-size:11px;color:#6b7280;margin-top:4px;">Offer rate</div>
+            </td>
+            ` : ""}
+          </tr>
+        </table>
+        ` : ""}
+
+        <p style="color:#15803d;font-size:14px;font-weight:600;font-style:italic;text-align:center;margin:20px 0;">
+          You&rsquo;re not just searching for a job &mdash; you&rsquo;re being chosen.
+        </p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px auto;">
+          <tr>
+            <td style="border-radius:99px;background-color:#15803d;">
+              <a href="${APP_URL}/salary" class="btn-link btn-green" style="display:inline-block;padding:13px 28px;border-radius:99px;font-weight:700;font-size:15px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Compare Your Offers &rarr;</a>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerExtra: `
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 10px;line-height:1.5;">
+          You received this milestone celebration based on your offer count. To opt out, visit your
+          <a href="${APP_URL}/profile" style="color:#99462a;text-decoration:none;">notification preferences</a>.
+        </p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `🏆 ${offerCount} offers received — companies are choosing you!`,
+      text: `Hi ${displayName || "there"},\n\nYou've received ${offerCount} job offers — that's an incredible achievement!\n\nCompare your offers: ${APP_URL}/salary\n\nThe Jobnest Team`,
+      html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send offer milestone email:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
+  }
+}
+
+// ── Weekly motivation email ───────────────────────────────────────────────────
+export interface WeeklyMotivationData {
+  email: string;
+  displayName: string;
+  totalApps: number;
+  appsThisWeek: number;
+  responseRate: number;
+  activePipeline: number;
+  totalOffers: number;
+}
+
+const MOTIVATION_QUOTES = [
+  "The people who get things done show up consistently &mdash; not when conditions are perfect.",
+  "Rejection is not failure. It&rsquo;s data. What can you improve?",
+  "Your next great opportunity doesn&rsquo;t know how many times you&rsquo;ve been turned down.",
+  "The job search is a numbers game &mdash; but the numbers only work if you keep playing.",
+  "Every &lsquo;no&rsquo; is a redirect, not a dead end.",
+  "Persistence beats talent when talent doesn&rsquo;t persist.",
+  "The search ends with the right fit. You&rsquo;re narrowing it down every day.",
+];
+
+function weeklyMotivationInsight(d: WeeklyMotivationData): string {
+  if (d.totalOffers > 0 && d.appsThisWeek > 0)
+    return `You have ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} in hand and added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week &mdash; building real leverage.`;
+  if (d.totalOffers > 0)
+    return `With ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} received, you have real options. You&rsquo;re not just searching &mdash; you&rsquo;re being chosen.`;
+  if (d.activePipeline >= 5)
+    return `${d.activePipeline} active conversations &mdash; phone screens, interviews, live opportunities. That&rsquo;s a strong pipeline. Results are coming.`;
+  if (d.responseRate >= 25)
+    return `A ${d.responseRate}% response rate puts you in the top tier of Jobnest users. Your applications are converting.`;
+  if (d.appsThisWeek >= 5)
+    return `${d.appsThisWeek} applications this week. That&rsquo;s real momentum &mdash; the kind that creates breakthroughs.`;
+  if (d.appsThisWeek >= 1)
+    return `You added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week. Consistency is everything in a job search &mdash; you&rsquo;re building it.`;
+  if (d.totalApps >= 50)
+    return `${d.totalApps} total applications on Jobnest. Persistence like this always pays off eventually.`;
+  return `Every application you send is a vote for the future you want. You&rsquo;re putting in the work &mdash; that&rsquo;s what counts.`;
+}
+
+export async function sendWeeklyMotivationEmail(
+  data: WeeklyMotivationData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = createTransporter();
+    const smtpUser = process.env.SMTP_USER;
+    const { email, displayName, totalApps, appsThisWeek, responseRate, activePipeline, totalOffers } = data;
+    const name = esc(displayName || "there");
+    const insight = weeklyMotivationInsight(data);
+
+    // Week-number-indexed rotating quote (deterministic per week)
+    const weekNum = Math.floor(Date.now() / (7 * 86_400_000));
+    const quote = MOTIVATION_QUOTES[weekNum % MOTIVATION_QUOTES.length];
+
+    const statsGrid = `
+      <table role="presentation" width="100%" cellpadding="6" cellspacing="0" border="0" style="margin-bottom:20px;">
+        <tr>
+          <td class="stat-cell" width="25%" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 6px;text-align:center;vertical-align:top;">
+            <div style="font-size:26px;font-weight:800;color:#99462a;line-height:1;">${totalApps}</div>
+            <div class="stat-label" style="font-size:10px;color:#6b7280;margin-top:4px;line-height:1.3;">Total applications</div>
+          </td>
+          <td class="stat-cell" width="25%" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 6px;text-align:center;vertical-align:top;">
+            <div style="font-size:26px;font-weight:800;color:#0ea5e9;line-height:1;">${appsThisWeek}</div>
+            <div class="stat-label" style="font-size:10px;color:#6b7280;margin-top:4px;line-height:1.3;">This week</div>
+          </td>
+          <td class="stat-cell" width="25%" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 6px;text-align:center;vertical-align:top;">
+            <div style="font-size:26px;font-weight:800;color:#7c3aed;line-height:1;">${responseRate}%</div>
+            <div class="stat-label" style="font-size:10px;color:#6b7280;margin-top:4px;line-height:1.3;">Response rate</div>
+          </td>
+          <td class="stat-cell" width="25%" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 6px;text-align:center;vertical-align:top;">
+            <div style="font-size:26px;font-weight:800;color:#059669;line-height:1;">${activePipeline}</div>
+            <div class="stat-label" style="font-size:10px;color:#6b7280;margin-top:4px;line-height:1.3;">Active pipeline</div>
+          </td>
+        </tr>
+      </table>`;
+
+    const offersCallout = totalOffers > 0 ? `
+      <div class="callout callout-green" style="background-color:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:14px 18px;margin:16px 0;font-size:14px;font-weight:600;color:#14532d;">
+        &#127942; You&rsquo;ve received ${totalOffers} offer${totalOffers !== 1 ? "s" : ""} &mdash; you&rsquo;re in demand.
+      </div>` : "";
+
+    const milestoneNudge = totalApps > 0 && totalApps < 100 ? `
+      <div style="margin:16px 0;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">Progress to 100-application milestone</div>
+        <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;">
+          <div style="background:linear-gradient(90deg,#99462a,#c2540a);height:8px;width:${Math.min(totalApps, 100)}%;border-radius:99px;"></div>
+        </div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">${totalApps}/100 &mdash; ${100 - totalApps} to go</div>
+      </div>` : "";
+
+    const html = emailHtml({
+      previewText: `Hi ${displayName || "there"} — here's your weekly Jobnest motivation`,
+      headerBg: { solid: "#99462a", gradient: "linear-gradient(135deg,#99462a 0%,#7a3521 100%)" },
+      headerContent: `
+        <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Keep Going, ${name}</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;line-height:1.5;">${insight}</p>
+      `,
+      bodyContent: `
+        ${statsGrid}
+        ${offersCallout}
+        ${milestoneNudge}
+
+        <div style="border-left:3px solid #dbc1b9;padding:12px 16px;margin:20px 0;background:#faf9f7;border-radius:0 8px 8px 0;">
+          <p style="margin:0;font-size:14px;font-style:italic;color:#55433d;line-height:1.6;">&ldquo;${quote}&rdquo;</p>
+        </div>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0;">
+          <tr>
+            <td style="border-radius:99px;background-color:#99462a;">
+              <a href="${APP_URL}/dashboard" class="btn-link btn-primary" style="display:inline-block;padding:13px 28px;border-radius:99px;font-weight:700;font-size:15px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Open Dashboard &rarr;</a>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerExtra: `
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 10px;line-height:1.5;">
+          You&rsquo;re receiving this weekly motivation because you&rsquo;re an active Jobnest user.
+          To opt out, go to <a href="${APP_URL}/profile" style="color:#99462a;text-decoration:none;">Notification preferences</a>
+          and turn off &ldquo;Weekly motivation&rdquo;.
+        </p>
+      `,
+    });
+
+    await transporter.sendMail({
+      from: `"Jobnest" <${smtpUser}>`,
+      to: email,
+      subject: `Keep going, ${displayName || "there"} — your job search is working`,
+      text: `Hi ${displayName || "there"},\n\n${insight.replace(/&[a-z]+;|&#\d+;/g, "")}\n\nTotal applications: ${totalApps} | This week: ${appsThisWeek} | Response rate: ${responseRate}% | Pipeline: ${activePipeline}\n\nView your dashboard: ${APP_URL}/dashboard\n\nThe Jobnest Team`,
+      html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send weekly motivation email:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
+  }
+}
+
 // ── Re-engagement email ───────────────────────────────────────────────────────
 
 export async function sendReEngagementEmail({

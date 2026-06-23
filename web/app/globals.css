@@ -5,6 +5,31 @@
    the base utility class (0,1,0) so dark: overrides always win.              */
 @custom-variant dark (.dark &);
 
+/* PWA / first-paint background — set before CSS variables resolve so the
+   standalone app never flashes black on launch. Matches manifest background_color
+   and the Tailwind --background tokens. The anti-flash inline script in
+   app/layout.tsx mirrors these values via JS so the correct colour is applied
+   even before this stylesheet is parsed. */
+html {
+  background-color: #faf9f7;
+}
+html.dark {
+  background-color: #000000;
+}
+
+/* Smooth fade-in on every app launch (PWA or browser) */
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+body {
+  animation: app-fade-in 0.35s ease-out both;
+}
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+}
+
 html {
   /* Always reserve the vertical scrollbar channel so content width never
      changes when the scrollbar appears or disappears during navigation

@@ -79,8 +79,11 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ViewToggle />
-          <ImportButton />
-          <ExportButton />
+          {/* Import/Export are power-user features — hidden on mobile to prevent header overflow */}
+          <div className="hidden sm:flex items-center gap-2">
+            <ImportButton />
+            <ExportButton />
+          </div>
           {/* Desktop-only "New Application" — mobile gets the FAB below */}
           <Link href="/applications/new" className="hidden sm:inline-flex db-btn-page-primary">
             <Plus className="h-4 w-4" />

@@ -57,7 +57,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
   - **Monthly Breakdown**: grouped bars (Applied / Rejected / Offers); Applied is amber, Rejected is red, Offers are emerald so all three series are semantically distinct
   - **Weekday Activity**: Mon-Sun submission bars with peak-day callout; uses device-local time (not UTC) to prevent off-by-one for US time zones
   - **Top Companies**: ranked horizontal bar chart of most-applied companies
-  - **Stage Funnel**: Applied to Phone Screen to Interview to Offer to Accepted cumulative counts; warm-to-cool colour gradient (amber to orange to terracotta to emerald) makes each stage visually distinct
+  - **Stage Funnel**: Applied to Phone Screen to Interview to Offer to Accepted cumulative counts; warm-to-cool colour gradient; **per-transition conversion rates** shown between each stage (e.g. "↓ 22%") colour-coded green/amber/red vs industry benchmark averages for entry-level SWE (Levels.fyi 2026 data)
   - **Avg Salary by Source**: midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
   - **Source Effectiveness**: response rate % per source, sorted descending; only sources with 2 or more applications shown
 - **Search Intelligence** — 6 context-aware metric cards (hidden until the user has ≥1 application):
@@ -67,6 +67,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
   - **Live opportunities** — Phone Screen + Interview app count; your hot active pipeline right now
   - **Weekly momentum** — this week's applications vs the trailing 4-week average (% change, capped at +500% so a burst week doesn't render "+9800%"); null when trailing average is zero
   - **Best source** — the application source (LinkedIn, Indeed, Referral…) with the highest response rate; requires ≥2 apps from at least one source
+- **Weekly Cadence** — section below Search Intelligence (shown when ≥1 application exists): this-week count vs an editable weekly goal (stored in `localStorage`, default 5); animated progress bar; 12-week velocity bar chart; "Weekly report" button downloads a PDF summary (rate-limited 10/day)
+- **Weekly Report PDF** — multi-section PDF: stats header, goal progress bar, 12-week SVG bar chart, funnel with conversion rates, source effectiveness table; generated server-side via `@react-pdf/renderer` at `GET /api/export/weekly-report?goal=N`
 
 ### Applications
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
@@ -86,7 +88,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Full-text search**: command palette (`Cmd+K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
 - **Company tier tagging**: tag each application as FAANG / Tier 1 / Tier 2 / Tier 3 / Startup; filter pill in the applications list with removable chip; Zod-validated in the application form; migration 33
 - **CSV bulk import**: "Import CSV" button opens a 4-step wizard (upload to column-map with auto-matching to 5-row preview to confirm); papaparse parses in-browser; server validates every row with Zod (company + position required; status/date default when absent); dangerous URL schemes rejected; partial success shows per-row errors; 2 MB file cap + 500-row server cap; rate-limited 5/min
-- Export to CSV or JSON; kanban board view toggle
+- Export to CSV (basic or with notes), JSON, or **Full Report (PDF)** — 4-page PDF: cover page, Search Intelligence metrics, funnel + source + velocity charts, full application log (up to 100 rows); generated server-side at `GET /api/export/pdf-report` (rate-limited 5/day); defence-in-depth `user_id` filter applied on top of RLS
 
 ### ATS Scanner (`/ats`)
 - Upload any resume (PDF/DOCX/TXT/MD) + paste a job description
@@ -133,6 +135,9 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Manual and **auto-generated cadence** (Day 7, 14, 21 for Applied/Phone Screen apps)
 - Types: Follow Up, Interview, Deadline; mark complete; overdue detection
 - **Re-engagement emails**: automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
+- **Milestone celebration emails**: automatic celebratory email at every 100th application (100, 200, 300…) and every 10th offer received (10, 20, 30…); warm terracotta/emerald gradient templates with personalised copy that escalates as the numbers grow; deduped via `user_metadata.app_milestone_last` and `offer_milestone_last` so re-sends never happen; both milestones written in a single `updateUserById` call to prevent metadata overwrite race; in-app notification created alongside each email
+- **Weekly motivation emails**: sent every Wednesday at ~8am in each user's local timezone; personalised hook sentence (8-priority logic: offers > active pipeline > response rate > apps this week > total) with a 4-stat grid and a rotating 7-quote bank; progress bar nudge for users below 100 apps; skips opted-out users, those inactive > 30 days, and those with 0 applications; ISO week dedup prevents double-send across cron windows
+- **Timezone-aware delivery**: `AuthSync` silently captures the user's IANA timezone and UTC offset once per day via `Intl.DateTimeFormat().resolvedOptions()` (non-blocking, stored in `user_metadata`); both milestone and motivation crons run every 3h (0,3,6,9,12,15,18,21 UTC) and filter to each user's 8–10am local window, covering integer and fractional offsets including UTC+5:30 (India), UTC+9:30 (Adelaide), UTC+3:30 (Iran)
 
 ### Email Templates
 - Reusable templates by category; variable placeholders (`{{company}}`, `{{position}}`)
@@ -142,6 +147,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Base salary, bonus, signing bonus, equity, benefits per application
 - **Salary Comparison table**: shows **all** applications with salary data (not just Offers); status badge per row so Applied/Interview/Offer/Rejected context is visible at a glance; full TC, take-home estimate, and effective hourly rate columns
 - Multi-currency; state income tax take-home estimate; effective hourly rate adjusted for PTO and working hours
+- **Salary Benchmarking**: new section showing user's average salary vs P25/P50/P75 market ranges for entry-level SWE (0–3 YOE); tier picker (All / FAANG / Tier 1 / Tier 2 / Startup) filters both the user's average and the benchmark band; data sourced from Levels.fyi / LinkedIn Salary 2026 aggregates; dot position on the range bar shows whether the user is above/below market median
 - **Offer Decision Helper**: select up to 3 offers, rate 5 criteria (Total Comp, Career Growth, Location, Culture, Benefits), adjust global importance weights; live weighted score + winner callout
 
 ### Loading States
@@ -217,7 +223,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1268 tests, 83 files) + Playwright E2E (9 spec files) |
+| Testing | Vitest (1369 tests, 90 files) + Playwright E2E (11 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -271,7 +277,9 @@ web/
 │   │   │   ├── follow-up-reminders/      # Daily 09:00 UTC - Day 7/14/21 auto-reminders
 │   │   │   ├── re-engagement/            # Daily 10:00 UTC - 14-day inactivity emails
 │   │   │   ├── github-sync/              # Daily 04:00 UTC - refresh all GitHub connections
-│   │   │   └── purge-rejected-documents/ # Daily 03:00 UTC - 30-day document cleanup
+│   │   │   ├── purge-rejected-documents/ # Daily 03:00 UTC - 30-day document cleanup
+│   │   │   ├── milestone-celebrations/   # Every 3h - app-count (×100) + offer (×10) milestone emails
+│   │   │   └── weekly-motivation/        # Every 3h - Wednesday delivery at 8am local time
 │   │   ├── documents/            # list, upload, [id], [id]/annotations, [id]/annotations/[annId],
 │   │   │                         # ats-scan, import-url, import-drive, share, shared, refresh-url, diff, parse-resume
 │   │   ├── health/               # Liveness + readiness probe
@@ -299,7 +307,7 @@ web/
 │   │                             # NestAi, Generic), Loading, EmptyState
 │   ├── dashboard/
 │   ├── documents/                # DocumentManager, AnnotationDialog, DocPreviewDialog, DiffDialog
-│   ├── layout/                   # Navbar, BottomTabBar, NotificationBell, ThemeToggle
+│   ├── layout/                   # Navbar, BottomTabBar, NotificationBell, ThemeToggle, ScrollRestorer
 │   ├── prep/                     # PrepHub, CodingProblemsTracker, SystemDesignChecklist,
 │   │                             # BehavioralBank, AssessmentsTracker, MockInterviewScheduler,
 │   │                             # InterviewQuestionLog

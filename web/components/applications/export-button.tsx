@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Download, Loader2, FileText, FileJson } from "lucide-react";
+import { Download, Loader2, FileText, FileJson, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import {
@@ -15,6 +15,7 @@ import {
 
 export function ExportButton() {
   const [loading, setLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const exportingRef = useRef(false);
 
   const handleExport = async (format: "csv" | "json", includeNotes = false) => {
@@ -52,11 +53,39 @@ export function ExportButton() {
     }
   };
 
+  const handleFullReport = async () => {
+    if (pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const response = await fetch("/api/export/pdf-report");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Report generation failed");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `job-search-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Full report downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate report");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const anyLoading = loading || pdfLoading;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" disabled={loading} className="db-btn-page-secondary">
-          {loading ? (
+        <button type="button" disabled={anyLoading} className="db-btn-page-secondary">
+          {anyLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Download className="h-4 w-4" />
@@ -79,6 +108,14 @@ export function ExportButton() {
         <DropdownMenuItem onClick={() => handleExport("json")}>
           <FileJson className="h-4 w-4 mr-2" />
           JSON
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleFullReport} disabled={pdfLoading}>
+          {pdfLoading
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <BarChart3 className="h-4 w-4 mr-2" />
+          }
+          Full Report (PDF)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

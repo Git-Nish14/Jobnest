@@ -49,6 +49,28 @@ export function AuthSync() {
     // Mark this tab's session as active (survives page nav, cleared on tab/browser close)
     sessionStorage.setItem("jobnest_session", "active");
 
+    // ── Timezone sync (once per day) ─────────────────────────────────────────
+    // Captures the user's IANA timezone + UTC offset so cron emails can be
+    // delivered at ~8am local time rather than a fixed UTC time.
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem("jobnest_tz_synced") !== today) {
+        const utcOffsetHours = -new Date().getTimezoneOffset() / 60;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // Only mark as synced after the request succeeds so a transient
+        // failure causes a retry on the next dashboard load (not 24h later).
+        fetch("/api/profile/timezone", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timezone, utcOffsetHours }),
+        })
+          .then((r) => { if (r.ok) localStorage.setItem("jobnest_tz_synced", today); })
+          .catch(() => {});
+      }
+    } catch {
+      // non-critical — localStorage or Intl not available
+    }
+
     // ── Cross-tab logout sync ────────────────────────────────────────────────
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {

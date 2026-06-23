@@ -7,6 +7,7 @@ import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart"
 import { AtelierRecentApps } from "@/components/dashboard/atelier-recent-apps";
 import { AtelierTasksPanel } from "@/components/dashboard/atelier-tasks-panel";
 import { AnalyticsInsights } from "@/components/dashboard/analytics-insights";
+import { WeeklyCadence } from "@/components/dashboard/weekly-cadence";
 import { OPTCountdownBanner } from "@/components/dashboard/OPTCountdownBanner";
 import { H1BTrackerCard } from "@/components/dashboard/H1BTrackerCard";
 import { SourceEffectivenessChart } from "@/components/dashboard/source-effectiveness-chart";
@@ -258,6 +259,14 @@ export default async function DashboardPage() {
         weeklyMomentum={stats.weeklyMomentum}
         topSource={stats.topSource}
       />
+
+      {/* ── Weekly Cadence ── */}
+      {stats.totalApplications > 0 && (
+        <WeeklyCadence
+          weeklyTrends={stats.weeklyTrends}
+          thisWeek={stats.thisWeek}
+        />
+      )}
 
       <Link
         href="/applications/new"

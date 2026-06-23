@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { parseSalary } from "@/lib/utils/salary-parse";
 import type {
   ApiResponse,
   DashboardAnalytics,
@@ -227,18 +228,6 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       .sort((a, b) => b.responseRate - a.responseRate);
 
     // ── Average salary by source ─────────────────────────────────────────────
-    // Parse "X - Y" or "X" salary_range strings into a midpoint number.
-    // Step 1: strip thousands-separator commas so "$90,000" → "$90000" before
-    // the general non-numeric replacement, otherwise "90,000" splits to ["90","000"]
-    // and "000" (= 0) is filtered out, producing 90 instead of 90000.
-    const parseSalary = (range: string | null): number | null => {
-      if (!range) return null;
-      const normalized = range.replace(/,/g, ""); // strip thousands separators first
-      const nums = normalized.replace(/[^0-9.\-]/g, " ").trim().split(/\s+/).map(Number).filter((n) => !isNaN(n) && n > 0);
-      if (nums.length === 0) return null;
-      if (nums.length === 1) return nums[0];
-      return (nums[0] + nums[nums.length - 1]) / 2;
-    };
     const salaryBySource: Record<string, { sum: number; count: number }> = {};
     (applications ?? []).forEach((a) => {
       const mid = parseSalary(a.salary_range);

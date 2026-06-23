@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/purge-rejected-documents",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/milestone-celebrations",
+      "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-motivation",
+      "schedule": "0 */3 * * *"
     }
   ]
 }

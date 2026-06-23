@@ -143,7 +143,7 @@ export default async function RootLayout({
           nonce={nonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('jobnest_theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
+            __html: `(function(){try{var d=document.documentElement;var t=localStorage.getItem('jobnest_theme');if(t==='dark'){d.classList.add('dark');d.style.backgroundColor='#000000';}else{d.style.backgroundColor='#faf9f7';}}catch(e){}})();`,
           }}
         />
         <a
