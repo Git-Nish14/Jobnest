@@ -3,10 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendApplicationMilestoneEmail, sendOfferMilestoneEmail } from "@/lib/email/nodemailer";
 import { createNotification } from "@/lib/notifications/create";
 
-// Runs every 3h at 0,3,6,9,12,15,18,21 UTC.
-// Processes users whose local time is in the 8–10am window so they get the
-// email at a reasonable hour regardless of timezone — including fractional
-// offsets (UTC+5:30, UTC+9:30, UTC+3:30, etc.).
+// Runs once daily at 09:00 UTC (Hobby-plan compatible — Vercel Hobby limits
+// crons to once per day). Checks every user for a pending application or
+// offer milestone and sends a celebration email if one is due.
+// utc_offset_hours is captured client-side and stored in user_metadata for
+// potential future use (e.g. Pro-plan sub-hourly scheduling), but is not
+// used for filtering here since once-daily delivery makes per-timezone
+// windowing impractical.
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -16,7 +19,6 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const now = new Date();
   const results = { sent: 0, skipped: 0, errors: [] as string[] };
 
   let page = 1;
@@ -38,13 +40,6 @@ export async function GET(request: NextRequest) {
         if (user.user_metadata?.notification_prefs?.milestone_emails === false) {
           results.skipped++; continue;
         }
-
-        // ── Timezone window filter ──────────────────────────────────────────
-        // Only send in the 8am–10am local window. Default to UTC if timezone
-        // has not been captured yet (first few days after deploy).
-        const utcOffsetHours: number = user.user_metadata?.utc_offset_hours ?? 0;
-        const localHour = ((now.getUTCHours() + utcOffsetHours) % 24 + 24) % 24;
-        if (localHour < 8 || localHour >= 10) { results.skipped++; continue; }
 
         const userId = user.id;
         const displayName: string =

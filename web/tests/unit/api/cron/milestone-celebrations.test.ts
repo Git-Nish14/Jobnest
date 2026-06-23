@@ -14,7 +14,7 @@
  *  - No send and skipped++ when no milestone is pending
  *  - Creates in-app notifications for both milestone types
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
@@ -38,8 +38,8 @@ const mockNotif       = vi.mocked(createNotification);
 
 const CRON_SECRET = "test-cron-secret";
 
-// Fixed time: Wednesday 2026-01-07 09:00 UTC so localHour(offset=0)=9 ∈ [8,10)
-const FIXED_NOW = new Date("2026-01-07T09:00:00Z");
+// Cron runs once daily (09:00 UTC) — no local-hour window filter in the handler.
+// Fake timers are not required; all skip/send logic is milestone-count-based.
 
 function makeReq(authHeader?: string) {
   const headers: Record<string, string> = {};
@@ -100,10 +100,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.useFakeTimers();
-  vi.setSystemTime(FIXED_NOW);
 });
-afterEach(() => vi.useRealTimers());
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -134,14 +131,6 @@ describe("GET /api/cron/milestone-celebrations — skip conditions", () => {
 
   it("skips opted-out users (milestone_emails === false)", async () => {
     const users = [makeUser({ notification_prefs: { milestone_emails: false } })];
-    mockAdmin.mockReturnValue(makeAdminClient(users, { totalApps: 100, offerCount: 0 }) as never);
-    await GET(validReq());
-    expect(mockAppEmail).not.toHaveBeenCalled();
-  });
-
-  it("skips users whose local hour is outside 8–10am window", async () => {
-    // offset=5 → localHour = 9+5 = 14, not in [8,10)
-    const users = [makeUser({ utc_offset_hours: 5 })];
     mockAdmin.mockReturnValue(makeAdminClient(users, { totalApps: 100, offerCount: 0 }) as never);
     await GET(validReq());
     expect(mockAppEmail).not.toHaveBeenCalled();

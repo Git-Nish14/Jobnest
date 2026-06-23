@@ -170,6 +170,11 @@ test.describe("Applications page — mobile header", () => {
   });
 });
 
+// ── 4b. Note on timezone-aware delivery ──────────────────────────────────────
+// utc_offset_hours is stored in user_metadata (via POST /api/profile/timezone)
+// for future Pro-plan use (sub-hourly cron scheduling). On Hobby plan, both
+// crons run once per day/week at a fixed UTC time — no local-hour filtering.
+
 // ── 5. Scroll restoration via bottom tab bar ──────────────────────────────────
 
 test.describe("ScrollRestorer — bottom tab bar navigation", () => {

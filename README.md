@@ -137,7 +137,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Re-engagement emails**: automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
 - **Milestone celebration emails**: automatic celebratory email at every 100th application (100, 200, 300…) and every 10th offer received (10, 20, 30…); warm terracotta/emerald gradient templates with personalised copy that escalates as the numbers grow; deduped via `user_metadata.app_milestone_last` and `offer_milestone_last` so re-sends never happen; both milestones written in a single `updateUserById` call to prevent metadata overwrite race; in-app notification created alongside each email
 - **Weekly motivation emails**: sent every Wednesday at ~8am in each user's local timezone; personalised hook sentence (8-priority logic: offers > active pipeline > response rate > apps this week > total) with a 4-stat grid and a rotating 7-quote bank; progress bar nudge for users below 100 apps; skips opted-out users, those inactive > 30 days, and those with 0 applications; ISO week dedup prevents double-send across cron windows
-- **Timezone-aware delivery**: `AuthSync` silently captures the user's IANA timezone and UTC offset once per day via `Intl.DateTimeFormat().resolvedOptions()` (non-blocking, stored in `user_metadata`); both milestone and motivation crons run every 3h (0,3,6,9,12,15,18,21 UTC) and filter to each user's 8–10am local window, covering integer and fractional offsets including UTC+5:30 (India), UTC+9:30 (Adelaide), UTC+3:30 (Iran)
+- **Timezone capture**: `AuthSync` silently captures the user's IANA timezone and UTC offset once per day via `Intl.DateTimeFormat().resolvedOptions()` and stores it in `user_metadata` via `POST /api/profile/timezone` (non-blocking, retries on failure); stored for future Pro-plan sub-hourly scheduling; crons are once-daily/weekly (Hobby-plan compatible — Vercel Hobby limits crons to once per day)
 
 ### Email Templates
 - Reusable templates by category; variable placeholders (`{{company}}`, `{{position}}`)
@@ -223,7 +223,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1369 tests, 90 files) + Playwright E2E (11 spec files) |
+| Testing | Vitest (1366 tests, 90 files) + Playwright E2E (11 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -278,8 +278,8 @@ web/
 │   │   │   ├── re-engagement/            # Daily 10:00 UTC - 14-day inactivity emails
 │   │   │   ├── github-sync/              # Daily 04:00 UTC - refresh all GitHub connections
 │   │   │   ├── purge-rejected-documents/ # Daily 03:00 UTC - 30-day document cleanup
-│   │   │   ├── milestone-celebrations/   # Every 3h - app-count (×100) + offer (×10) milestone emails
-│   │   │   └── weekly-motivation/        # Every 3h - Wednesday delivery at 8am local time
+│   │   │   ├── milestone-celebrations/   # Daily 09:00 UTC - app-count (×100) + offer (×10) milestone emails
+│   │   │   └── weekly-motivation/        # Wednesday 09:00 UTC - weekly motivational email
 │   │   ├── documents/            # list, upload, [id], [id]/annotations, [id]/annotations/[annId],
 │   │   │                         # ats-scan, import-url, import-drive, share, shared, refresh-url, diff, parse-resume
 │   │   ├── health/               # Liveness + readiness probe

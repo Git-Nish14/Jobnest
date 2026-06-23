@@ -1,18 +1,26 @@
 /**
  * Unit tests — GET /api/cron/weekly-motivation
  *
+ * Schedule: "0 9 * * 3" (Wednesday 09:00 UTC, once-per-week, Hobby-plan compatible).
+ * The cron expression itself ensures Wednesday delivery — the handler does NOT
+ * filter by day-of-week or local hour. It only checks:
+ *  - CRON_SECRET auth
+ *  - user has an email
+ *  - user has not opted out (notification_prefs.motivation_emails !== false)
+ *  - user is active (last_sign_in_at within 30 days)
+ *  - ISO week dedup (motivation_sent_week !== current week key)
+ *  - user has at least 1 application
+ *
  * Covers:
  *  - 401 when Authorization header is missing
  *  - 401 when secret is wrong
  *  - Skips user with no email
  *  - Skips opted-out user (notification_prefs.motivation_emails === false)
  *  - Skips inactive users (last_sign_in_at > 30 days ago)
- *  - Skips user outside 8–10am local window
- *  - Skips user on wrong day (not Wednesday in local time)
- *  - Skips user who already received email this week (motivation_sent_week matches)
+ *  - Skips user who already received email this ISO week (motivation_sent_week matches)
  *  - Skips user with 0 total applications
  *  - Sends email to eligible user and updates motivation_sent_week
- *  - Returns correct sent/skipped counts
+ *  - Returns correct sent/skipped counts for mixed user set
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -31,17 +39,14 @@ const mockEmail = vi.mocked(sendWeeklyMotivationEmail);
 
 const CRON_SECRET = "test-cron-secret";
 
-// Jan 7 2026 09:00 UTC = Wednesday, localHour=9 for UTC+0 (in [8,10))
-// ISO week: Jan 7 2026 is in week 2 of 2026 (first Thursday of year = Jan 1; Mon Jan 5 starts W2)
-// Use Date.UTC() numbers everywhere for vi.setSystemTime() to avoid new Date() fake-timer ambiguity.
-const WEDNESDAY_9AM_MS = Date.UTC(2026, 0, 7, 9, 0, 0);  // Wed Jan 7 2026 09:00 UTC
-const MONDAY_9AM_MS    = Date.UTC(2026, 0, 5, 9, 0, 0);  // Mon Jan 5 2026 09:00 UTC
-const INDIA_03_30_MS   = Date.UTC(2026, 0, 7, 3, 30, 0); // Wed Jan 7 2026 03:30 UTC (+5.5 → 9am IST)
+// Fix the system clock to Wednesday Jan 7 2026 09:00 UTC (matches the cron schedule).
+// getIsoWeek(Jan 7 2026) = 2, so weekKey = "2026-W2".
+const WEDNESDAY_MS = Date.UTC(2026, 0, 7, 9, 0, 0);
 
-// Reference Date object only for computing relative dates (not passed to setSystemTime)
-const WEDNESDAY_REF = new Date(WEDNESDAY_9AM_MS);
-const INACTIVE_SIGNIN = new Date(WEDNESDAY_REF.getTime() - 31 * 86_400_000).toISOString();
-const ACTIVE_SIGNIN   = new Date(WEDNESDAY_REF.getTime() - 5  * 86_400_000).toISOString();
+// Reference point for computing relative signin dates
+const WEDNESDAY_DATE = new Date(WEDNESDAY_MS);
+const INACTIVE_SIGNIN = new Date(WEDNESDAY_DATE.getTime() - 31 * 86_400_000).toISOString();
+const ACTIVE_SIGNIN   = new Date(WEDNESDAY_DATE.getTime() - 5  * 86_400_000).toISOString();
 
 function makeReq(authHeader?: string) {
   const headers: Record<string, string> = {};
@@ -97,7 +102,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  vi.setSystemTime(WEDNESDAY_9AM_MS); // numeric ms timestamp — no fake-timer ambiguity
+  vi.setSystemTime(WEDNESDAY_MS);
 });
 afterEach(() => vi.useRealTimers());
 
@@ -121,7 +126,7 @@ describe("GET /api/cron/weekly-motivation — auth", () => {
 
 describe("GET /api/cron/weekly-motivation — skip conditions", () => {
   it("skips users with no email", async () => {
-    const users = [{ id: "uid-1", email: undefined, last_sign_in_at: ACTIVE_SIGNIN, user_metadata: { utc_offset_hours: 0 } }];
+    const users = [{ id: "uid-1", email: undefined, last_sign_in_at: ACTIVE_SIGNIN, user_metadata: {} }];
     mockAdmin.mockReturnValue(makeAdminClient(users) as never);
     const res = await GET(validReq());
     const body = await res.json();
@@ -137,32 +142,14 @@ describe("GET /api/cron/weekly-motivation — skip conditions", () => {
   });
 
   it("skips users inactive for > 30 days", async () => {
-    const users = [makeUser({ utc_offset_hours: 0 })];
-    users[0].last_sign_in_at = INACTIVE_SIGNIN;
-    mockAdmin.mockReturnValue(makeAdminClient(users) as never);
-    await GET(validReq());
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-
-  it("skips users outside 8–10am local window", async () => {
-    // offset=5 → localHour=14, not in [8,10)
-    const users = [makeUser({ utc_offset_hours: 5 })];
-    mockAdmin.mockReturnValue(makeAdminClient(users) as never);
-    await GET(validReq());
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-
-  it("skips when local day is not Wednesday (Monday UTC+0 at 9am)", async () => {
-    // Numeric timestamp avoids any new Date() fake-timer ambiguity
-    vi.setSystemTime(MONDAY_9AM_MS); // Mon Jan 5 2026 09:00 UTC, getUTCDay()=1
-    const users = [makeUser()];
-    mockAdmin.mockReturnValue(makeAdminClient(users) as never);
+    const u = makeUser();
+    u.last_sign_in_at = INACTIVE_SIGNIN;
+    mockAdmin.mockReturnValue(makeAdminClient([u]) as never);
     await GET(validReq());
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
   it("skips user who already received motivation email this ISO week", async () => {
-    // Week 2026-W2 already sent
     const users = [makeUser({ motivation_sent_week: "2026-W2" })];
     mockAdmin.mockReturnValue(makeAdminClient(users) as never);
     await GET(validReq());
@@ -171,8 +158,9 @@ describe("GET /api/cron/weekly-motivation — skip conditions", () => {
 
   it("skips user with 0 total applications", async () => {
     const users = [makeUser()];
-    // totalApps count = 0
-    mockAdmin.mockReturnValue(makeAdminClient(users, { total: 0, week: 0, responded: 0, pipeline: 0, offers: 0 }) as never);
+    mockAdmin.mockReturnValue(
+      makeAdminClient(users, { total: 0, week: 0, responded: 0, pipeline: 0, offers: 0 }) as never
+    );
     await GET(validReq());
     expect(mockEmail).not.toHaveBeenCalled();
   });
@@ -181,7 +169,7 @@ describe("GET /api/cron/weekly-motivation — skip conditions", () => {
 // ── Happy path ────────────────────────────────────────────────────────────────
 
 describe("GET /api/cron/weekly-motivation — happy path", () => {
-  it("sends email to eligible user on Wednesday in 8–10am window", async () => {
+  it("sends email to eligible user and returns sent:1", async () => {
     const users = [makeUser()];
     mockAdmin.mockReturnValue(makeAdminClient(users) as never);
 
@@ -201,7 +189,7 @@ describe("GET /api/cron/weekly-motivation — happy path", () => {
     );
   });
 
-  it("updates motivation_sent_week after successful send", async () => {
+  it("updates motivation_sent_week to current ISO week key after send", async () => {
     const users = [makeUser()];
     const client = makeAdminClient(users);
     mockAdmin.mockReturnValue(client as never);
@@ -212,55 +200,44 @@ describe("GET /api/cron/weekly-motivation — happy path", () => {
       "uid-1",
       expect.objectContaining({
         user_metadata: expect.objectContaining({
-          motivation_sent_week: expect.stringMatching(/^\d{4}-W\d+$/),
+          motivation_sent_week: "2026-W2",
         }),
       })
     );
   });
 
-  it("does not re-send in the same ISO week — dedup is durable", async () => {
-    // First send
-    const users = [makeUser()];
-    const client1 = makeAdminClient(users);
-    mockAdmin.mockReturnValue(client1 as never);
-    await GET(validReq());
-    expect(mockEmail).toHaveBeenCalledTimes(1);
-
-    // Second run same week — user now has motivation_sent_week set to "2026-W2"
-    vi.clearAllMocks();
-    const users2 = [makeUser({ motivation_sent_week: "2026-W2" })];
-    mockAdmin.mockReturnValue(makeAdminClient(users2) as never);
+  it("does not re-send when motivation_sent_week already matches this week", async () => {
+    // Simulate a second cron fire in the same week
+    const users = [makeUser({ motivation_sent_week: "2026-W2" })];
+    mockAdmin.mockReturnValue(makeAdminClient(users) as never);
     await GET(validReq());
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
-  it("accepts fractional UTC offset (UTC+5:30 India at 09:00 local → 03:30 UTC)", async () => {
-    // Run at 03:30 UTC → local hour for UTC+5.5 = 8.5 (8:30am), in [8,10)
-    vi.setSystemTime(INDIA_03_30_MS); // numeric ms — Jan 7 2026 03:30 UTC (Wednesday)
-    const users = [makeUser({ utc_offset_hours: 5.5 })];
+  it("does send the following week when motivation_sent_week is from last week", async () => {
+    // "2026-W1" is a previous week — should not block sending in week 2
+    const users = [makeUser({ motivation_sent_week: "2026-W1" })];
     mockAdmin.mockReturnValue(makeAdminClient(users) as never);
     await GET(validReq());
     expect(mockEmail).toHaveBeenCalledTimes(1);
   });
 
   it("returns correct sent and skipped counts for mixed user set", async () => {
-    const eligible  = makeUser();
-    const optedOut  = makeUser({ notification_prefs: { motivation_emails: false } });
-    optedOut.id = "uid-2"; optedOut.email = "opt-out@test.com";
-    mockAdmin.mockReturnValue(
-      // Return two pages, second = eligible + opted-out, then empty to end loop
-      {
-        auth: {
-          admin: {
-            listUsers: vi.fn()
-              .mockResolvedValueOnce({ data: { users: [eligible, optedOut] }, error: null })
-              .mockResolvedValue({ data: { users: [] }, error: null }),
-            updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }),
-          },
+    const eligible = makeUser();
+    const optedOut = { ...makeUser({ notification_prefs: { motivation_emails: false } }), id: "uid-2", email: "opt@test.com" };
+
+    mockAdmin.mockReturnValue({
+      auth: {
+        admin: {
+          listUsers: vi.fn()
+            .mockResolvedValueOnce({ data: { users: [eligible, optedOut] }, error: null })
+            .mockResolvedValue({ data: { users: [] }, error: null }),
+          updateUserById: vi.fn().mockResolvedValue({ data: {}, error: null }),
         },
-        from: vi.fn().mockImplementation(() => countChain(50)),
-      } as never
-    );
+      },
+      from: vi.fn().mockImplementation(() => countChain(50)),
+    } as never);
+
     const res = await GET(validReq());
     const body = await res.json();
     expect(body.sent).toBe(1);
