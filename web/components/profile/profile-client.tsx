@@ -46,6 +46,7 @@ interface ProfileUser {
     weeklyDigest: boolean;
     reEngagementEmails: boolean;
   };
+  weeklyGoal: number;
 }
 
 interface PendingDeletion {
@@ -239,6 +240,40 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       setNestaiError("Failed to save. Please try again.");
     } finally {
       setNestaiSaving(false);
+    }
+  };
+
+  // ── Weekly goal ───────────────────────────────────────────────────────────
+  const [goalDraft,   setGoalDraft]   = useState(String(user.weeklyGoal));
+  const [goalSaving,  setGoalSaving]  = useState(false);
+  const [goalError,   setGoalError]   = useState<string | null>(null);
+  const [goalSuccess, setGoalSuccess] = useState(false);
+
+  const handleGoalSave = async () => {
+    const n = parseInt(goalDraft, 10);
+    if (isNaN(n) || n < 1 || n > 100) {
+      setGoalError("Enter a number between 1 and 100.");
+      return;
+    }
+    setGoalError(null);
+    setGoalSuccess(false);
+    setGoalSaving(true);
+    try {
+      const res = await fetchWithRetry("/api/profile/update-weekly-goal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weeklyGoal: n }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setGoalError(data.error || "Failed to save"); return; }
+      // Mirror to localStorage so the dashboard widget picks it up immediately
+      localStorage.setItem("jobnest_weekly_goal", String(n));
+      setGoalSuccess(true);
+      setTimeout(() => setGoalSuccess(false), 3000);
+    } catch {
+      setGoalError("Failed to save. Please try again.");
+    } finally {
+      setGoalSaving(false);
     }
   };
 
@@ -696,7 +731,8 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 {
                   group: "Preferences",
                   items: [
-                    { label: "Notifications", href: "#notifications", icon: Bell },
+                    { label: "Job Search Goals", href: "#goals",         icon: CalendarDays },
+                    { label: "Notifications",    href: "#notifications", icon: Bell },
                   ],
                 },
                 {
@@ -911,6 +947,49 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Preferences</p>
               <div className="flex-1 h-px bg-border/60" />
             </div>
+
+          {/* Job Search Goals */}
+          <Card id="goals" className="shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
+                <div className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                </div>
+                Job Search Goals
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                Set your weekly application target — shown on the dashboard
+              </p>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {goalError   && <Callout type="error">{goalError}</Callout>}
+              {goalSuccess  && <Callout type="success">Weekly goal saved.</Callout>}
+              <div className="flex items-end gap-3">
+                <div className="space-y-1.5 flex-1 max-w-[160px]">
+                  <Label htmlFor="weekly-goal">Applications per week</Label>
+                  <Input
+                    id="weekly-goal"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={goalDraft}
+                    onChange={(e) => { setGoalDraft(e.target.value); setGoalError(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleGoalSave(); }}
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground pb-2">applications / week</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You can also edit this inline on the dashboard&nbsp;Weekly&nbsp;Cadence widget.
+                Changes sync across devices.
+              </p>
+              <Button onClick={handleGoalSave} disabled={goalSaving} size="sm">
+                {goalSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Goal
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Notifications */}
           <Card id="notifications" className="shadow-sm">

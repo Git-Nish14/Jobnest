@@ -3,11 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Download, Loader2, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
+import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import type { WeeklyTrend } from "@/types";
 
 interface Props {
   weeklyTrends: WeeklyTrend[];
   thisWeek: number;
+  /** Server-persisted weekly goal from user_metadata. Falls back to localStorage then 5. */
+  initialGoal?: number;
 }
 
 const GOAL_KEY = "jobnest_weekly_goal";
@@ -17,28 +20,60 @@ function clampGoal(v: number) {
   return Math.max(1, Math.min(100, Math.round(v)));
 }
 
-export function WeeklyCadence({ weeklyTrends, thisWeek }: Props) {
-  const [goal, setGoal] = useState(DEFAULT_GOAL);
+export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
+  const [goal, setGoal] = useState(initialGoal ?? DEFAULT_GOAL);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Guard prevents the double-fire that happens on mobile when onBlur fires
+  // immediately before the confirm button's onClick, causing two API calls.
+  const savingRef = useRef(false);
 
-  // Load goal from localStorage once on mount
+  // Hydrate from localStorage on mount, but only if the server didn't provide a value.
+  // Server value (from user_metadata) always wins; localStorage is a fallback for
+  // users who set a goal before this feature shipped.
   useEffect(() => {
+    if (initialGoal != null) {
+      // Write the authoritative server value to localStorage so it's available offline.
+      localStorage.setItem(GOAL_KEY, String(initialGoal));
+      return;
+    }
     const stored = localStorage.getItem(GOAL_KEY);
     if (stored) {
       const n = parseInt(stored, 10);
       if (!isNaN(n)) setGoal(clampGoal(n));
     }
-  }, []);
+  }, [initialGoal]);
 
-  const saveGoal = useCallback(() => {
+  const saveGoal = useCallback(async () => {
+    // Prevent double-fire: mobile triggers onBlur then onClick in quick succession.
+    if (savingRef.current) return;
+
     const n = parseInt(draft, 10);
     if (!isNaN(n) && n > 0) {
       const clamped = clampGoal(n);
       setGoal(clamped);
       localStorage.setItem(GOAL_KEY, String(clamped));
+      setSaving(true);
+      savingRef.current = true;
+      try {
+        const res = await fetchWithRetry("/api/profile/update-weekly-goal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weeklyGoal: clamped }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string };
+          toast.error(data.error ?? "Couldn't save goal — try again");
+        }
+      } catch {
+        toast.error("Couldn't save goal — check your connection");
+      } finally {
+        setSaving(false);
+        savingRef.current = false;
+      }
     }
     setEditing(false);
   }, [draft]);
@@ -146,8 +181,11 @@ export function WeeklyCadence({ weeklyTrends, thisWeek }: Props) {
                     type="button"
                     onClick={() => setEditing(true)}
                     className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors group"
-                    title="Edit weekly goal"
+                    title="Edit weekly goal — also configurable in Profile settings"
                   >
+                    {saving
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : null}
                     {goal} goal
                     <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                   </button>

@@ -2,7 +2,7 @@
   "name": "Jobnest - Track Your Job Applications",
   "short_name": "Jobnest",
   "description": "The simple, powerful way to organize your job search. Track every application, manage documents, and land your dream job faster. A product by Nish Patel.",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "id": "jobnest-nishpatel",
   "display": "standalone",
   "background_color": "#faf9f7",

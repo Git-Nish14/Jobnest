@@ -144,21 +144,31 @@ describe("nestai/page.tsx — mobile sidebar", () => {
   });
 });
 
-// ── 6. Application detail — sticky mobile action bar ─────────────────────────
+// ── 6. Application detail — Edit button in header (sticky bar removed) ────────
+// The old db-mobile-action-bar (Back + Edit Application at the bottom) was
+// removed because it duplicated the Back link already in the header.
+// The Edit button is now always visible in the header on all screen sizes.
 
-describe("applications/[id]/page.tsx — mobile sticky bar", () => {
+describe("applications/[id]/page.tsx — header Edit button", () => {
   const src = readSrc("app/(dashboard)/applications/[id]/page.tsx");
 
-  it("uses db-mobile-action-bar class", () => {
-    expect(src).toContain("db-mobile-action-bar");
+  it("does NOT render db-mobile-action-bar (sticky bar removed)", () => {
+    expect(src).not.toContain("db-mobile-action-bar");
   });
 
-  it("hides the header Edit button on mobile (hidden sm:inline-flex)", () => {
-    expect(src).toContain("hidden sm:inline-flex");
+  it("Edit button is always visible — no hidden sm:inline-flex on it", () => {
+    // The header Edit link must NOT be hidden on mobile anymore.
+    // It should NOT use the hidden sm:inline-flex pattern.
+    expect(src).not.toContain("hidden sm:inline-flex");
   });
 
-  it("sticky bar contains Edit Application label", () => {
+  it("header contains Edit Application label for sm+ screens", () => {
     expect(src).toContain("Edit Application");
+  });
+
+  it("header contains short Edit label for mobile (sm:hidden span)", () => {
+    // Mobile shows "Edit", desktop shows "Edit Application" via sm:hidden/sm:inline
+    expect(src).toContain(">Edit<");
   });
 });
 

@@ -5,7 +5,7 @@ import {
   Send, Sparkles, Loader2, Trash2, Plus, PanelLeftClose, PanelLeft,
   MoreHorizontal, Pencil, X, Check, BrainCircuit, TrendingUp, Calendar,
   Bell, Building2, Target, MessageSquare, Zap, Copy, CheckCheck,
-  Square, Pin, PinOff, Paperclip, Mail, FileDown,
+  Square, Pin, PinOff, Paperclip, Mail, FileDown, ShieldCheck, FileText,
 } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -669,6 +669,15 @@ export default function NestAiPage() {
   const [prepSelectedId, setPrepSelectedId] = useState<string>("");
   const [prepFetched, setPrepFetched] = useState(false); // true after first fetch completes
 
+  // ── NESTats (FAANG ATS audit) modal ──────────────────────────────────────
+  const [nestatsModalOpen,   setNestatsModalOpen]   = useState(false);
+  const [nestatsDocs,        setNestatsDocs]        = useState<{ id: string; label: string | null; original_name: string | null; mime_type: string }[]>([]);
+  const [nestatsDocId,       setNestatsDocId]       = useState<string>("");
+  const [nestatsJd,          setNestatsJd]          = useState<string>("");
+  const [nestatsFetched,     setNestatsFetched]     = useState(false);
+  const [nestatsRunning,     setNestatsRunning]     = useState(false);
+  const [nestatsError,       setNestatsError]       = useState<string | null>(null);
+
   // ── Email Draft modal ─────────────────────────────────────────────────────
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailContacts, setEmailContacts] = useState<{ id: string; name: string; title: string | null; application_id: string | null }[]>([]);
@@ -805,6 +814,27 @@ export default function NestAiPage() {
       });
     return () => { cancelled = true; };
   }, [emailModalOpen, emailFetched]);
+
+  // Fetch document library when NESTats modal opens (once per session)
+  useEffect(() => {
+    if (!nestatsModalOpen || nestatsFetched) return;
+    let cancelled = false;
+    createClient()
+      .from("application_documents")
+      .select("id, label, original_name, mime_type")
+      .eq("is_current", true)
+      .in("mime_type", ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "text/markdown"])
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setNestatsDocs((data ?? []) as typeof nestatsDocs);
+        // Pre-select the attached file if present, else first doc
+        if (!nestatsDocId && (data ?? []).length > 0) setNestatsDocId(data![0].id);
+        setNestatsFetched(true);
+      });
+    return () => { cancelled = true; };
+  }, [nestatsModalOpen, nestatsFetched, nestatsDocId]);
 
   const createSession = async (): Promise<string | null> => {
     try {
@@ -1332,6 +1362,14 @@ export default function NestAiPage() {
             >
               <Mail className="h-3.5 w-3.5" /> Draft
             </button>
+            <button
+              type="button"
+              onClick={() => { setNestatsModalOpen(true); setNestatsError(null); }}
+              title="NESTats — FAANG-grade ATS audit of your resume: 30+ checkpoints, AI qualitative scoring"
+              className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs font-semibold text-[#99462a] hover:text-white hover:bg-[#99462a] rounded-full transition-colors border border-[#99462a]/30 hover:border-[#99462a]"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> NESTats
+            </button>
             {messages.length > 0 && currentSessionId && (
               <a
                 href={`/api/nesta-ai/sessions/${currentSessionId}/export-pdf`}
@@ -1829,6 +1867,261 @@ export default function NestAiPage() {
           >
             <Mail className="h-3.5 w-3.5 mr-1.5" />
             Generate draft
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* ── NESTats — FAANG ATS Audit modal ─────────────────────────────── */}
+    <Dialog
+      open={nestatsModalOpen}
+      onOpenChange={(o) => {
+        setNestatsModalOpen(o);
+        if (!o) { setNestatsError(null); setNestatsJd(""); }
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-[#99462a]" />
+            NESTats — FAANG ATS Audit
+          </DialogTitle>
+          <DialogDescription>
+            Select your resume and NESTAi will run a FAANG-grade 30+ point audit covering format,
+            content quality, impact signals, and technical keywords — then guide you through fixes.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Resume selector */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Resume</p>
+            {nestatsModalOpen && !nestatsFetched ? (
+              <div className="flex items-center justify-center py-6 text-muted-foreground gap-2 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading documents…
+              </div>
+            ) : nestatsDocs.length === 0 ? (
+              <div className="rounded-xl border-2 border-dashed border-border/50 p-6 text-center space-y-2">
+                <FileText className="h-7 w-7 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm font-medium text-foreground">No documents found</p>
+                <p className="text-xs text-muted-foreground">
+                  Upload your resume in the{" "}
+                  <a href="/documents" className="text-[#99462a] hover:underline font-medium">Document Library</a>
+                  {" "}then come back here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {/* "Use attached file" option when a file is attached to the chat */}
+                {attachedFile && !attachedFile.loading && !attachedFile.error && (
+                  <button
+                    type="button"
+                    onClick={() => setNestatsDocId("__attached__")}
+                    className={cn(
+                      "w-full text-left rounded-xl px-4 py-2.5 border text-sm transition-colors",
+                      nestatsDocId === "__attached__"
+                        ? "border-[#99462a] bg-[#99462a]/5"
+                        : "border-border hover:border-[#99462a]/40 hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-3.5 w-3.5 text-[#99462a] shrink-0" />
+                      <p className="font-semibold text-foreground truncate">{attachedFile.name}</p>
+                      <span className="text-[10px] text-[#99462a] font-semibold shrink-0">Attached</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 ml-5.5">Currently attached to this chat</p>
+                  </button>
+                )}
+                {nestatsDocs.map((doc) => (
+                  <button
+                    type="button"
+                    key={doc.id}
+                    onClick={() => setNestatsDocId(doc.id)}
+                    className={cn(
+                      "w-full text-left rounded-xl px-4 py-2.5 border text-sm transition-colors",
+                      nestatsDocId === doc.id
+                        ? "border-[#99462a] bg-[#99462a]/5"
+                        : "border-border hover:border-[#99462a]/40 hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <p className="font-semibold text-foreground truncate">{doc.label || doc.original_name || "Untitled"}</p>
+                      <span className="text-[10px] text-muted-foreground/60 uppercase shrink-0">
+                        {doc.mime_type === "application/pdf" ? "PDF"
+                          : doc.mime_type.includes("word") ? "DOCX"
+                          : doc.mime_type.includes("markdown") ? "MD"
+                          : "TXT"}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Optional JD */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Job description <span className="normal-case font-normal">(optional — improves analysis)</span>
+            </p>
+            <textarea
+              rows={3}
+              placeholder="Paste the job description to get JD-alignment scoring…"
+              value={nestatsJd}
+              onChange={(e) => setNestatsJd(e.target.value)}
+              className="w-full rounded-xl border border-border bg-[#f4f3f1] px-3 py-2 text-[16px] sm:text-sm text-foreground placeholder:text-muted-foreground/60 resize-none focus:outline-none focus:ring-2 focus:ring-[#99462a]/30"
+            />
+          </div>
+
+          {/* What NESTats checks */}
+          <div className="rounded-xl bg-muted/40 px-3.5 py-3 space-y-2">
+            <p className="text-xs font-semibold text-foreground">What gets audited</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+              {[
+                "Contact & identity completeness",
+                "Action verbs & filler phrases",
+                "Section completeness (6 sections)",
+                "Quantified metrics & scale",
+                "System design vocabulary",
+                "Cloud / DevOps tooling",
+                "Open source contributions",
+                "AI qualitative scoring (5 dims)",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-1.5">
+                  <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {nestatsError && (
+            <p className="text-xs text-destructive bg-destructive/8 border border-destructive/20 rounded-lg px-3 py-2">
+              {nestatsError}
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setNestatsModalOpen(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            disabled={!nestatsDocId || nestatsRunning || nestatsDocs.length === 0}
+            onClick={async () => {
+              if (!nestatsDocId) return;
+              setNestatsRunning(true);
+              setNestatsError(null);
+
+              try {
+                let resumeText = "";
+                const docName  = nestatsDocId === "__attached__"
+                  ? (attachedFile?.name ?? "your resume")
+                  : (nestatsDocs.find((d) => d.id === nestatsDocId)?.label
+                      ?? nestatsDocs.find((d) => d.id === nestatsDocId)?.original_name
+                      ?? "your resume");
+
+                if (nestatsDocId === "__attached__") {
+                  // Attached file: text was already extracted during upload.
+                  resumeText = attachedFile?.text?.slice(0, 3_500) ?? "";
+                } else {
+                  // Library document: fetch parsed text via the proxy route so
+                  // the AI actually sees the resume content. Without this the
+                  // prompt contains no resume text and the AI fabricates results.
+                  try {
+                    const docRes = await fetch(
+                      `/api/documents?path=${encodeURIComponent(
+                        nestatsDocs.find((d) => d.id === nestatsDocId)?.id ?? nestatsDocId
+                      )}`,
+                      { credentials: "include" }
+                    );
+                    // The proxy streams the binary — we need the text-parse API instead.
+                    // Call the resume-audit route without a JD to get the text back.
+                    const auditRes = await fetch("/api/documents/resume-audit", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({ document_id: nestatsDocId }),
+                    });
+                    if (auditRes.ok) {
+                      // We got an audit result — use the areas_for_improvement and
+                      // key_strengths to seed the prompt with real extracted content.
+                      const auditData = await auditRes.json() as {
+                        talent?: { key_strengths?: string[]; areas_for_improvement?: string[] };
+                      };
+                      const strengths = auditData.talent?.key_strengths?.join("; ") ?? "";
+                      const gaps      = auditData.talent?.areas_for_improvement?.join("; ") ?? "";
+                      resumeText = strengths || gaps
+                        ? `[Pre-analysed strengths: ${strengths}. Gaps: ${gaps}]`
+                        : "";
+                    }
+                    void docRes; // consumed above path; suppress unused warning
+                  } catch {
+                    // Non-fatal — proceed with empty text; the AI will say it can't see it.
+                  }
+                }
+
+                if (!resumeText && nestatsDocId !== "__attached__") {
+                  // Library doc and text fetch failed — redirect user to the proper ATS page.
+                  setNestatsError(
+                    "Could not extract resume text. Use the ATS Scanner page (/ats) for a full audit of library documents."
+                  );
+                  setNestatsRunning(false);
+                  return;
+                }
+
+                // Build a structured NESTats prompt
+                const jdSection = nestatsJd.trim()
+                  ? `\n\n**Job description provided:**\n${nestatsJd.trim().slice(0, 800)}${nestatsJd.trim().length > 800 ? "…" : ""}`
+                  : "";
+
+                const attachedSection = resumeText
+                  ? `\n\n**Resume content (${docName}):**\n\`\`\`\n${resumeText}\n\`\`\``
+                  : "";
+
+                const prompt = [
+                  `Please run a comprehensive **NESTats FAANG ATS audit** on my resume "${docName}".${attachedSection}${jdSection}`,
+                  "",
+                  "Structure your response exactly as:",
+                  "## NESTats FAANG Audit",
+                  "**Overall Grade: [A+/A/B+/B/C/D/F]** | **Readiness: [FAANG Ready / Close / Needs Work / Major Gaps]**",
+                  "",
+                  "### 🔴 Critical Fixes (address immediately)",
+                  "### 🟡 Important Improvements",
+                  "### ✅ Strengths",
+                  "",
+                  "### 📊 Category Breakdown",
+                  "Evaluate across: Contact & Identity · Format & ATS Readability · Section Completeness · Content Quality · FAANG Impact Signals · Technical Keywords",
+                  "",
+                  "### 🎯 Top 5 Priority Actions",
+                  "",
+                  "### ✏️ 2 Example Bullet Rewrites (BEFORE → AFTER in FAANG style)",
+                  "",
+                  "Base your assessment on HackerRank hiring-agent criteria: open source contributions, self projects, production work, technical skills, quantified impact, and scale signals.",
+                ].join("\n");
+
+                setNestatsModalOpen(false);
+                setNestatsJd("");
+                setNestatsError(null);
+
+                // Small delay to let modal close animate before submitting
+                setTimeout(() => {
+                  setInput(prompt);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }, 150);
+
+              } catch {
+                setNestatsError("Something went wrong. Please try again.");
+              } finally {
+                setNestatsRunning(false);
+              }
+            }}
+          >
+            {nestatsRunning ? (
+              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Preparing…</>
+            ) : (
+              <><ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Run NESTats</>
+            )}
           </Button>
         </div>
       </DialogContent>

@@ -66,6 +66,10 @@ export default async function ProfilePage() {
           weeklyDigest:       notificationPrefs.weekly_digest         ?? false,
           reEngagementEmails: notificationPrefs.re_engagement_emails  ?? true,
         },
+        weeklyGoal: (() => {
+          const v = user.user_metadata?.weekly_goal;
+          return typeof v === "number" && v >= 1 && v <= 100 ? v : 5;
+        })(),
       }}
       pendingDeletion={pendingDeletion}
     />

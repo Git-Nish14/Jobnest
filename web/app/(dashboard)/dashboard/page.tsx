@@ -56,6 +56,13 @@ export default async function DashboardPage() {
     weekdayActivity: [],
   };
 
+  // Weekly goal from user_metadata (set in Profile → Job Search Goals)
+  const weeklyGoalRaw = user?.user_metadata?.weekly_goal;
+  const weeklyGoal: number | undefined =
+    typeof weeklyGoalRaw === "number" && weeklyGoalRaw >= 1 && weeklyGoalRaw <= 100
+      ? weeklyGoalRaw
+      : undefined;
+
   // OPT / H1B work auth
   const workAuth: string | null = user?.user_metadata?.work_authorization ?? null;
   const optStartDate: string | null = user?.user_metadata?.opt_start_date ?? null;
@@ -265,6 +272,7 @@ export default async function DashboardPage() {
         <WeeklyCadence
           weeklyTrends={stats.weeklyTrends}
           thisWeek={stats.thisWeek}
+          initialGoal={weeklyGoal}
         />
       )}
 

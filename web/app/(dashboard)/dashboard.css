@@ -615,6 +615,11 @@ html.nav-open .bottom-tab-bar {
   transition: stroke-dasharray 0.6s ease;
 }
 
+/* FAANG audit progress bars — dynamic width via CSS custom property */
+.ats-progress-fill {
+  width: var(--ats-w, 0%);
+}
+
 /* Application status badge */
 .db-status-badge {
   padding: 0.3rem 0.875rem;
