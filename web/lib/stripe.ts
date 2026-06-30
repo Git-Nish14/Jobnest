@@ -7,7 +7,7 @@ export function getStripe(): Stripe {
   if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
   if (!stripeInstance) {
     stripeInstance = new Stripe(key, {
-      apiVersion: "2026-05-27.dahlia",
+      apiVersion: "2026-06-24.dahlia",
     });
   }
   return stripeInstance;
@@ -15,12 +15,12 @@ export function getStripe(): Stripe {
 
 export function isStripeConfigured(): boolean {
   return Boolean(
-    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_PRICE_ID
+    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_PRICE_ID,
   );
 }
 
 export function isStripeAnnualConfigured(): boolean {
   return Boolean(
-    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_ANNUAL_PRICE_ID
+    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
   );
 }
