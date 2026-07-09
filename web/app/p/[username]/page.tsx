@@ -495,7 +495,7 @@ export default async function PublicPortfolioPage({
           {portfolio.email && (
             <a
               href={`mailto:${portfolio.email}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black text-sm font-semibold hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               <Mail className="h-4 w-4" /> Contact {name.split(" ")[0]}
             </a>
@@ -558,7 +558,7 @@ function ProjectCard({
             href={project.demo_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-[#99462a] dark:text-[#ccff00] hover:underline"
+            className="min-h-11 flex items-center gap-1 text-xs text-[#99462a] dark:text-[#ccff00] hover:underline"
           >
             <ExternalLink className="h-3 w-3" /> Demo
           </a>
@@ -568,7 +568,7 @@ function ProjectCard({
             href={project.repo_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="min-h-11 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <GithubIcon className="h-3 w-3" /> Code
           </a>

@@ -743,7 +743,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                     value={parseUrl}
                     onChange={(e) => setParseUrl(e.target.value)}
                     placeholder="https://example.com/jobs/senior-engineer"
-                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40"
+                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-[16px] sm:text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40"
                   />
                   <p className="text-[11px] text-muted-foreground">Works for most public job pages. LinkedIn and Indeed may block auto-fetch — use Paste text instead.</p>
                 </div>
@@ -756,7 +756,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                     onChange={(e) => setParseText(e.target.value)}
                     placeholder="Paste the full job posting here…"
                     rows={8}
-                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40 resize-none"
+                    className="w-full rounded-lg border border-[#dbc1b9]/50 bg-[#f4f3f1] px-3 py-2.5 text-[16px] sm:text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-[#99462a]/40 resize-none"
                   />
                 </div>
               )}

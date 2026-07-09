@@ -95,7 +95,7 @@ export default async function DashboardPage() {
 
       {/* ── Welcome header ── */}
       <header>
-        <h1 className="db-headline text-5xl md:text-6xl text-foreground mb-3">
+        <h1 className="db-headline text-3xl sm:text-5xl md:text-6xl text-foreground mb-3">
           Welcome back, {firstName}.
         </h1>
         <p className="text-lg text-muted-foreground">
@@ -278,7 +278,7 @@ export default async function DashboardPage() {
 
       <Link
         href="/applications/new"
-        className="hidden md:flex fixed md:bottom-10 md:right-10 w-14 h-14 rounded-full items-center justify-center z-40 db-fab"
+        className="flex fixed w-14 h-14 rounded-full items-center justify-center z-40 db-fab bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] right-4 md:bottom-10 md:right-10"
         title="New Application"
       >
         <Plus className="w-6 h-6" />

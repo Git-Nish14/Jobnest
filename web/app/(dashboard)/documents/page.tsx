@@ -212,7 +212,7 @@ export default function DocumentLibraryPage() {
             onChange={(e) => setLabelInput(e.target.value)}
             placeholder="Label (e.g. Master Resume)"
             maxLength={80}
-            className="w-full rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
           <button
             type="button"
@@ -229,7 +229,7 @@ export default function DocumentLibraryPage() {
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               placeholder="Or import from URL: https://…"
-              className="flex-1 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="flex-1 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <Button onClick={handleImport} disabled={importing} size="sm" className="gap-1.5 shrink-0">
               {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
@@ -266,7 +266,7 @@ export default function DocumentLibraryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, label, or application…"
-            className="w-full rounded-lg border border-border/50 bg-muted/30 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full rounded-lg border border-border/50 bg-muted/30 pl-9 pr-3 py-2 text-[16px] sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 shrink-0">
@@ -277,7 +277,7 @@ export default function DocumentLibraryPage() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors border",
+                "shrink-0 rounded-full px-3 py-2.5 text-xs font-semibold transition-colors border",
                 filter === f.key ? "bg-foreground text-background border-foreground" : "bg-muted/30 text-muted-foreground border-border/50"
               )}
             >
@@ -355,14 +355,14 @@ export default function DocumentLibraryPage() {
                     type="button"
                     onClick={() => setPreviewDoc(doc)}
                     title="Preview"
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-2.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
 
                   {/* Download */}
                   {doc.signed_url && (
-                    <a href={doc.signed_url} download title="Download" className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                    <a href={doc.signed_url} download title="Download" className="p-2.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
                       <Download className="h-4 w-4" />
                     </a>
                   )}
@@ -372,7 +372,7 @@ export default function DocumentLibraryPage() {
                     type="button"
                     onClick={() => setShareDocId(doc.id)}
                     title="Share"
-                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-2.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Share2 className="h-4 w-4" />
                   </button>
@@ -382,7 +382,7 @@ export default function DocumentLibraryPage() {
                     <Link
                       href={`/ats?doc_id=${doc.id}`}
                       title="Run ATS scan with this document"
-                      className="p-1.5 rounded-md hover:bg-[#99462a]/10 text-[#99462a] dark:text-[#ccff00] dark:hover:bg-[#ccff00]/10 transition-colors"
+                      className="p-2.5 rounded-md hover:bg-[#99462a]/10 text-[#99462a] dark:text-[#ccff00] dark:hover:bg-[#ccff00]/10 transition-colors"
                     >
                       <ScanSearch className="h-4 w-4" />
                     </Link>
@@ -394,7 +394,7 @@ export default function DocumentLibraryPage() {
                       type="button"
                       onClick={() => handleDelete(doc)}
                       title="Delete"
-                      className="ml-auto p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950 text-red-500 transition-colors"
+                      className="ml-auto p-2.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950 text-red-500 transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -468,7 +468,7 @@ function ShareDialogInline({ docId, onClose }: { docId: string; onClose: () => v
             {(["1d", "7d", "30d"] as const).map((e) => (
               <button type="button" key={e} onClick={() => setExpiry(e)}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-semibold border transition-colors",
+                  "rounded-full px-3 py-2 text-xs font-semibold border transition-colors",
                   expiry === e ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border"
                 )}>
                 {e === "1d" ? "1 day" : e === "7d" ? "7 days" : "30 days"}

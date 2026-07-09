@@ -155,11 +155,11 @@ export function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search pages, applications…"
-            className="flex-1 bg-transparent text-sm text-[#1a1c1b] placeholder-[#88726c] outline-none dark:text-[#e8ddd9] dark:placeholder-[#7a6460]"
+            className="flex-1 bg-transparent text-[16px] sm:text-sm text-[#1a1c1b] placeholder-[#88726c] outline-none dark:text-[#e8ddd9] dark:placeholder-[#7a6460]"
             aria-label="Command palette search"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} className="text-[#88726c] hover:text-[#1a1c1b] transition-colors" aria-label="Clear search">
+            <button type="button" onClick={() => setQuery("")} className="min-h-11 min-w-11 flex items-center justify-center text-[#88726c] hover:text-[#1a1c1b] transition-colors" aria-label="Clear search">
               <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -167,7 +167,7 @@ export function CommandPalette() {
         </div>
 
         {/* Results */}
-        <div className="max-h-[360px] overflow-y-auto py-2" role="listbox" aria-label="Command palette results">
+        <div className="max-h-[min(360px,60dvh)] overflow-y-auto py-2" role="listbox" aria-label="Command palette results">
 
           {/* Loading indicator */}
           {searchLoading && (
@@ -190,7 +190,7 @@ export function CommandPalette() {
                     aria-selected={isActive ? "true" : "false"}
                     onClick={() => navigate(`/applications/${r.id}`)}
                     onMouseEnter={() => setActiveIndex(i)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       isActive
                         ? "bg-[#99462a]/8 text-[#1a1c1b] dark:bg-[#99462a]/15 dark:text-[#e8ddd9]"
                         : "text-[#55433d] hover:bg-[#f4f3f1] dark:text-[#c4a99f] dark:hover:bg-white/5"
@@ -231,7 +231,7 @@ export function CommandPalette() {
                   aria-selected={isActive ? "true" : "false"}
                   onClick={item.action}
                   onMouseEnter={() => setActiveIndex(globalIndex)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                     isActive
                       ? "bg-[#99462a]/8 text-[#1a1c1b] dark:bg-[#99462a]/15 dark:text-[#e8ddd9]"
                       : "text-[#55433d] hover:bg-[#f4f3f1] dark:text-[#c4a99f] dark:hover:bg-white/5"

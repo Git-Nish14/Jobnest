@@ -805,7 +805,7 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
       {/* Mode tabs */}
       <div className="flex flex-wrap gap-2">
         <ModeTab m="scan"  label="ATS Keyword Scan" icon={ScanSearch}   />
-        <ModeTab m="audit" label="FAANG Audit"       icon={ShieldCheck}  />
+        <ModeTab m="audit" label="NESTpro Audit"      icon={ShieldCheck}  />
       </div>
 
       {/* Scan-specific info */}
@@ -813,7 +813,7 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
         <div className="rounded-xl bg-muted/40 border border-border/40 px-4 py-3.5 space-y-2">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-[#99462a] shrink-0" />
-            <p className="text-xs font-semibold text-foreground">FAANG Audit — what it checks</p>
+            <p className="text-xs font-semibold text-foreground">NESTpro Audit — what it checks</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs text-muted-foreground">
             {[
@@ -913,15 +913,15 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
 
           <Button className="w-full" disabled={!canAudit} onClick={handleAudit}>
             {auditing ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Running FAANG audit…</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Running NESTpro audit…</>
             ) : (
-              <><ShieldCheck className="mr-2 h-4 w-4" />Run FAANG Audit</>
+              <><ShieldCheck className="mr-2 h-4 w-4" />Run NESTpro Audit</>
             )}
           </Button>
 
           {!canAudit && !auditing && (
             <p className="text-xs text-center text-muted-foreground">
-              Select a resume to run the FAANG audit.
+              Select a resume to run the NESTpro audit.
             </p>
           )}
         </div>

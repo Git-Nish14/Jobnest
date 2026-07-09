@@ -219,6 +219,28 @@ body {
   box-shadow: 0 8px 40px rgba(26, 28, 27, 0.18);
 }
 
+/* ── Atelier Bottom Bar — used by CookieBanner + NPSFeedback ────────────────
+   Mirrors .atelier-nav but positioned at the bottom.
+   Border and shadow are flipped to the top edge. */
+.atelier-bottom-bar {
+  background-color: rgba(250, 249, 247, 0.92);
+  border-top: 1px solid rgba(219, 193, 185, 0.22);
+  box-shadow: 0 -2px 16px rgba(26, 28, 27, 0.07);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
+  backdrop-filter: blur(12px) saturate(1.8);
+}
+
+/* Card variant — all-around border + rounded corners for floating cards */
+.atelier-bottom-card {
+  background-color: rgba(250, 249, 247, 0.94);
+  border: 1px solid rgba(219, 193, 185, 0.28);
+  box-shadow:
+    0 -4px 24px rgba(26, 28, 27, 0.08),
+    0  4px 16px rgba(26, 28, 27, 0.06);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
+  backdrop-filter: blur(12px) saturate(1.8);
+}
+
 /* ── Dark mode — base backgrounds (belt + suspenders) ─────────────────────── */
 /* These ensure html/body turn black even if CSS variable cascade has ordering
    issues between globals.css and page-specific CSS files. */
@@ -278,3 +300,18 @@ html.dark,
   background-color: #0a0a0a;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9);
 }
+
+.dark .atelier-bottom-bar {
+  background-color: rgba(0, 0, 0, 0.92);
+  border-top-color: rgba(204, 255, 0, 0.08);
+  box-shadow: 0 -2px 24px rgba(0, 0, 0, 0.8);
+}
+
+.dark .atelier-bottom-card {
+  background-color: rgba(10, 10, 10, 0.95);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.70),
+    0  4px 16px rgba(0, 0, 0, 0.50);
+}
+

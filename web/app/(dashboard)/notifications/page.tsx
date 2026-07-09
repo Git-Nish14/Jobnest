@@ -295,7 +295,7 @@ export default function NotificationsPage() {
             type="button"
             onClick={() => setFilter(tab.id)}
             className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors -mb-px border-b-2",
+              "px-4 py-3 text-sm font-medium transition-colors -mb-px border-b-2",
               filter === tab.id
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -370,14 +370,14 @@ export default function NotificationsPage() {
               </p>
             </button>
 
-            {/* Actions — visible on hover */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            {/* Actions — always visible on mobile (touch has no hover) */}
+            <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
               {/* Toggle read/unread */}
               <button
                 type="button"
                 title={n.is_read ? "Mark unread" : "Mark read"}
                 onClick={() => toggleRead(n.id, n.is_read)}
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <CheckCheck className={cn("h-3.5 w-3.5", !n.is_read && "text-primary")} />
               </button>
@@ -388,7 +388,7 @@ export default function NotificationsPage() {
                 title="Delete notification"
                 onClick={() => deleteOne(n.id, !n.is_read)}
                 disabled={deletingId === n.id}
-                className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors disabled:opacity-40"
+                className="h-11 w-11 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors disabled:opacity-40"
               >
                 {deletingId === n.id
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

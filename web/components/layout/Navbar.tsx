@@ -211,7 +211,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 ring-2 ring-transparent hover:ring-border transition-all focus:outline-none"
+                        className="inline-flex shrink-0 min-h-11 min-w-11 items-center justify-center rounded-full ring-2 ring-transparent hover:ring-border transition-all focus:outline-none"
                         disabled={isPending}
                       >
                         <Avatar className="h-8 w-8">
@@ -268,7 +268,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
                 <button
                   type="button"
-                  className="lg:hidden p-1.5 -mr-1 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
+                  className="lg:hidden min-h-11 min-w-11 flex items-center justify-center -mr-2 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                   disabled={isPending}
@@ -292,7 +292,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                   <button
                     type="button"
-                    className="p-2 -mr-2 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
+                    className="min-h-11 min-w-11 flex items-center justify-center -mr-2 rounded-md hover:bg-[#dbc1b9]/20 dark:hover:bg-[#ccff00]/8 transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-label="Close menu"
                   >
@@ -317,7 +317,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                           <Link
                             href={link.href}
                             className={cn(
-                              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                              "flex items-center gap-3 px-3 py-3 min-h-11 rounded-lg text-sm font-medium transition-colors",
                               isActive
                                 ? "bg-[#99462a]/10 dark:bg-[#ccff00]/10 atelier-nav-link-active"
                                 : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"

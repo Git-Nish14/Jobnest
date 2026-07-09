@@ -114,7 +114,7 @@ export default async function SalaryComparisonPage() {
                 <Icon className="h-4 w-4 text-[#99462a]" />
                 <span className="text-xs text-[#55433d] font-semibold uppercase tracking-widest">{label}</span>
               </div>
-              <p className="db-headline text-3xl font-medium text-[#1a1c1b]">{value}</p>
+              <p className="db-headline text-2xl sm:text-3xl font-medium text-[#1a1c1b]">{value}</p>
               {sub && <p className="text-xs text-[#55433d]/70 mt-1">{sub}</p>}
             </div>
           ))}
@@ -138,21 +138,21 @@ export default async function SalaryComparisonPage() {
                   <thead>
                     <tr>
                       {[
-                        { label: "Company",      align: "left"  },
-                        { label: "Position",     align: "left"  },
-                        { label: "Status",       align: "left"  },
-                        { label: "Base",         align: "right" },
-                        { label: "Bonus",        align: "right" },
-                        { label: "Equity/yr",    align: "right" },
-                        { label: "401k Match",   align: "right" },
-                        { label: "Benefits",     align: "right" },
-                        { label: "Total TC",     align: "right" },
-                        { label: "Take-Home",    align: "right" },
-                        { label: "Eff. $/hr",    align: "right" },
-                      ].map(({ label, align }) => (
+                        { label: "Company",      align: "left",  sticky: true  },
+                        { label: "Position",     align: "left",  sticky: false },
+                        { label: "Status",       align: "left",  sticky: false },
+                        { label: "Base",         align: "right", sticky: false },
+                        { label: "Bonus",        align: "right", sticky: false },
+                        { label: "Equity/yr",    align: "right", sticky: false },
+                        { label: "401k Match",   align: "right", sticky: false },
+                        { label: "Benefits",     align: "right", sticky: false },
+                        { label: "Total TC",     align: "right", sticky: false },
+                        { label: "Take-Home",    align: "right", sticky: false },
+                        { label: "Eff. $/hr",    align: "right", sticky: false },
+                      ].map(({ label, align, sticky }) => (
                         <th
                           key={label}
-                          className={`py-3 px-3 text-xs font-bold uppercase tracking-widest text-[#55433d]/60 border-b border-[#dbc1b9]/20 ${align === "right" ? "text-right" : "text-left"}`}
+                          className={`py-3 px-3 text-xs font-bold uppercase tracking-widest text-[#55433d]/60 border-b border-[#dbc1b9]/20 ${align === "right" ? "text-right" : "text-left"} ${sticky ? "sticky left-0 z-10 bg-background" : ""}`}
                         >
                           {label}
                         </th>
@@ -173,8 +173,8 @@ export default async function SalaryComparisonPage() {
                       );
                       const appStatus  = item.job_applications?.status ?? "";
                       return (
-                        <tr key={item.id} className="hover:bg-[#f4f3f1] transition-colors">
-                          <td className="py-3 px-3 border-b border-[#dbc1b9]/10">
+                        <tr key={item.id} className="group hover:bg-[#f4f3f1] transition-colors">
+                          <td className="py-3 px-3 border-b border-[#dbc1b9]/10 sticky left-0 z-10 bg-[#faf9f7] dark:bg-[#0a0a0a] group-hover:bg-[#f4f3f1] dark:group-hover:bg-[#1a1a1a] transition-colors">
                             <Link href={`/applications/${item.application_id}`} className="font-semibold text-[#99462a] hover:underline">
                               {item.job_applications?.company}
                             </Link>

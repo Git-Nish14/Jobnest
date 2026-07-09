@@ -95,6 +95,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **5 AI providers**: Groq (Llama 3.3 70B), OpenAI (GPT-4o mini), Anthropic (Claude Haiku 4.5), Google (Gemini 1.5 Flash), Perplexity (Sonar Small); UI shows only configured providers
 - Server-side keyword overlap pre-computation anchors AI score to real data (no "always 82" bias)
 - Returns: match score 0-100, missing keywords, matched keywords, improvement suggestions
+- **NESTpro Audit tab**: 30+ checkpoint rubric (format, ATS readability, section completeness, content quality, impact signals, technical keywords); AI qualitative scoring blended 40/60 with rule-based checks; expandable category bars with AI evidence; key strengths + improvement areas; handoff to NESTAi with full category context
 - **Continue in NESTAi**: pre-fills NESTAi input with contextual follow-up message
 
 ### Document Library (`/documents`)
@@ -164,6 +165,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Edit messages in-place**: edited message stays at same position; AI response replaces the one after it; file attachment preserved through edit
 - **Interview Prep**: "Prep" button opens a modal; pick an active application to generate 5 tailored STAR behavioral questions from the stored JD; provide draft answers for specific AI feedback
 - **Email Draft Assistant**: "Draft" button opens a modal; pick an email category (Follow Up, Thank You, Cold Outreach, Networking, Referral Request, Offer Negotiation, Withdrawal) and an optional contact; Groq drafts a professional email into the chat input for review and editing
+- **NESTpro Audit in NESTAi**: "NESTats" button opens a resume picker + optional JD; builds a structured 30+ checkpoint audit prompt and streams a full graded analysis (grade A+…F, top-tier readiness, critical fixes, BEFORE→AFTER rewrites)
+- **Mobile ⋯ action sheet**: all topbar actions (Prep, Draft, NESTpro Audit, Export, New Chat) accessible on mobile via a `⋯` button that opens a custom bottom sheet with descriptions; Escape key and backdrop tap to dismiss
 - **Model fallback**: primary `llama-3.3-70b-versatile`; auto-falls back to `llama-3.1-8b-instant` on Groq 429/5xx; amber "reduced capacity" banner shown to user
 - Pin chats, edit messages, rename/delete sessions with confirm dialog
 - Rate limits: 5 req/min free · 30 req/min Pro; live counter with countdown and progress bar
@@ -223,7 +226,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1399 tests, 92 files) + Playwright E2E (12 spec files) |
+| Testing | Vitest (1473 tests, 93 files) + Playwright E2E (12 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 

@@ -71,7 +71,7 @@ export function ContactList({ contacts }: ContactListProps) {
                 <button
                   type="button"
                   aria-label="Contact options"
-                  className="h-8 w-8 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors shrink-0"
+                  className="h-11 w-11 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors shrink-0"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>

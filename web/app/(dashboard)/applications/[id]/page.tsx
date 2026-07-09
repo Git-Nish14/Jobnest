@@ -245,7 +245,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       <div className="grid gap-6 lg:grid-cols-3 pb-6">
 
         {/* ── Main column ── */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="order-2 lg:order-0 lg:col-span-2 space-y-6">
 
           {/* Application details */}
           <section className="db-content-card">
@@ -344,7 +344,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         </div>
 
         {/* ── Sidebar ── */}
-        <div className="space-y-6">
+        <div className="order-1 lg:order-0 space-y-6">
 
           {/* Documents — pre-fetched server-side to avoid loading flash */}
           <DocumentManager

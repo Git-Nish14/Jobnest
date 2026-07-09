@@ -316,3 +316,119 @@ test.describe("Application Velocity chart — mobile layout", () => {
     await expect(weekBtn).toBeVisible();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Mobile UX Sprint — new feature E2E checks
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 6a. Cookie banner — unauthenticated, no credentials needed ──────────────────
+
+test.describe("Cookie banner — full-width bottom strip", () => {
+  test("shows as a full-width bottom strip with atelier-bottom-bar CSS class", async ({ page }) => {
+    // Clear localStorage so the banner actually appears
+    await page.addInitScript(() => {
+      try { localStorage.removeItem("jobnest_cookie_consent"); } catch { /* ok */ }
+    });
+    await page.goto("/");
+
+    const banner = page.locator('[aria-label="Cookie consent"]');
+    await expect(banner).toBeVisible({ timeout: 8_000 });
+
+    // Must be full-width (inset-x-0) and anchored to the bottom
+    await expect(banner).toHaveClass(/inset-x-0/);
+    await expect(banner).toHaveClass(/bottom-0/);
+
+    // Must use the atelier-bottom-bar CSS (navbar-style background)
+    await expect(banner).toHaveClass(/atelier-bottom-bar/);
+
+    // Accepting should dismiss the banner
+    await page.getByRole("button", { name: /accept all/i }).click();
+    await expect(banner).toHaveCount(0);
+  });
+
+  test("shows Manage, Essential only, and Accept all actions", async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.removeItem("jobnest_cookie_consent"); } catch { /* ok */ }
+    });
+    await page.goto("/");
+
+    const banner = page.locator('[aria-label="Cookie consent"]');
+    await expect(banner).toBeVisible({ timeout: 8_000 });
+
+    await expect(banner.getByRole("button", { name: /manage/i })).toBeVisible();
+    await expect(banner.getByRole("button", { name: /essential only/i })).toBeVisible();
+    await expect(banner.getByRole("button", { name: /accept all/i })).toBeVisible();
+  });
+});
+
+// 6b. Bottom tab bar hidden on NESTAi — authenticated ────────────────────────
+
+test.describe("Bottom tab bar — hidden on NESTAi page", () => {
+  test.skip(
+    !E2E_EMAIL || !E2E_PASSWORD,
+    "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set"
+  );
+
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await logIn(page);
+  });
+
+  test("html.page-nestai class is applied when navigating to /nestai", async ({ page }) => {
+    await page.goto("/nestai");
+
+    // The useEffect in BottomTabBar adds 'page-nestai' to <html> after navigation
+    const html = page.locator("html");
+    await expect(html).toHaveClass(/page-nestai/, { timeout: 5_000 });
+  });
+
+  test("bottom tab bar is not visible on the NESTAi page", async ({ page }) => {
+    await page.goto("/nestai");
+
+    // html.page-nestai .bottom-tab-bar { display: none } hides it via CSS
+    const tabBar = page.locator("nav[aria-label='Primary navigation']");
+    await expect(tabBar).toBeHidden({ timeout: 5_000 });
+  });
+
+  test("tab bar becomes visible again after navigating away from NESTAi", async ({ page }) => {
+    await page.goto("/nestai");
+
+    const tabBar = page.locator("nav[aria-label='Primary navigation']");
+    await expect(tabBar).toBeHidden({ timeout: 5_000 });
+
+    // Navigate to dashboard — page-nestai class should be removed
+    await page.goto("/dashboard");
+    await expect(tabBar).toBeVisible({ timeout: 8_000 });
+
+    const html = page.locator("html");
+    await expect(html).not.toHaveClass(/page-nestai/);
+  });
+});
+
+// 6c. Dashboard FAB visible on mobile — authenticated ─────────────────────────
+
+test.describe("Dashboard FAB — visible on mobile viewport", () => {
+  test.skip(
+    !E2E_EMAIL || !E2E_PASSWORD,
+    "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set"
+  );
+
+  test("New Application FAB is visible at 390px on the dashboard", async ({ page }) => {
+    await page.setViewportSize(MOBILE_VIEWPORT);
+    await logIn(page);
+    await page.goto("/dashboard");
+
+    // FAB is an <a> linking to /applications/new with title="New Application"
+    const fab = page.locator('a[href="/applications/new"][title="New Application"]');
+    await expect(fab).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("New Application FAB is also visible at 1280px (desktop)", async ({ page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await logIn(page);
+    await page.goto("/dashboard");
+
+    const fab = page.locator('a[href="/applications/new"][title="New Application"]');
+    await expect(fab).toBeVisible({ timeout: 10_000 });
+  });
+});

@@ -663,13 +663,16 @@ export default function NestAiPage() {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [isDegraded, setIsDegraded] = useState(false);
 
+  // ── Mobile actions bottom sheet ───────────────────────────────────────────
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+
   // ── Interview Prep modal ──────────────────────────────────────────────────
   const [prepModalOpen, setPrepModalOpen] = useState(false);
   const [prepApps, setPrepApps] = useState<{ id: string; company: string; position: string; job_description: string | null }[]>([]);
   const [prepSelectedId, setPrepSelectedId] = useState<string>("");
   const [prepFetched, setPrepFetched] = useState(false); // true after first fetch completes
 
-  // ── NESTats (FAANG ATS audit) modal ──────────────────────────────────────
+  // ── NESTats — NESTpro Audit modal ────────────────────────────────────────
   const [nestatsModalOpen,   setNestatsModalOpen]   = useState(false);
   const [nestatsDocs,        setNestatsDocs]        = useState<{ id: string; label: string | null; original_name: string | null; mime_type: string }[]>([]);
   const [nestatsDocId,       setNestatsDocId]       = useState<string>("");
@@ -1346,6 +1349,8 @@ export default function NestAiPage() {
 
           <div className="flex items-center gap-2">
             <RateLimitCounter remaining={remaining} max={MAX_REQUESTS} resetCountdown={resetCountdown} isRateLimited={isRateLimited} />
+
+            {/* ── Desktop action buttons (hidden on mobile) ── */}
             <button
               type="button"
               onClick={() => setPrepModalOpen(true)}
@@ -1365,7 +1370,7 @@ export default function NestAiPage() {
             <button
               type="button"
               onClick={() => { setNestatsModalOpen(true); setNestatsError(null); }}
-              title="NESTats — FAANG-grade ATS audit of your resume: 30+ checkpoints, AI qualitative scoring"
+              title="NESTats — NESTpro ATS audit of your resume: 30+ checkpoints, AI qualitative scoring"
               className="hidden sm:flex items-center gap-1.5 h-8 px-3 text-xs font-semibold text-[#99462a] hover:text-white hover:bg-[#99462a] rounded-full transition-colors border border-[#99462a]/30 hover:border-[#99462a]"
             >
               <ShieldCheck className="h-3.5 w-3.5" /> NESTats
@@ -1389,7 +1394,110 @@ export default function NestAiPage() {
                 <Plus className="h-3.5 w-3.5" /> New chat
               </button>
             )}
+
+            {/* ── Mobile ⋯ button — opens a bottom sheet with all actions ── */}
+            <button
+              type="button"
+              onClick={() => setMobileActionsOpen(true)}
+              aria-label="More actions"
+              className="sm:hidden min-h-11 min-w-11 flex items-center justify-center rounded-full hover:bg-[#f4f3f1] dark:hover:bg-white/8 transition-colors"
+            >
+              <MoreHorizontal className="h-5 w-5 text-[#55433d] dark:text-white/55" />
+            </button>
           </div>
+
+          {/* ── Mobile actions bottom sheet (custom — avoids Dialog transform conflicts) */}
+          {mobileActionsOpen && (
+            <div
+              className="sm:hidden"
+              onKeyDown={(e) => { if (e.key === "Escape") setMobileActionsOpen(false); }}
+            >
+              {/* Scrim */}
+              <div
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                onClick={() => setMobileActionsOpen(false)}
+                aria-hidden="true"
+              />
+              {/* Sheet — autoFocus so Escape key is captured immediately */}
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="NESTAi Actions"
+                tabIndex={-1}
+                className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-[#faf9f7] dark:bg-[#0f0f0f] border-t border-[#dbc1b9]/30 dark:border-white/8 shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe outline-none"
+              >
+                {/* Handle bar */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-[#dbc1b9] dark:bg-white/20" />
+                </div>
+                <div className="px-4 pt-2 pb-1">
+                  <p className="text-xs font-semibold text-[#88726c] dark:text-white/40 uppercase tracking-widest">NESTAi Actions</p>
+                </div>
+                <div className="py-2">
+                  <button
+                    type="button"
+                    onClick={() => { setPrepModalOpen(true); setMobileActionsOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#f4f3f1] dark:hover:bg-white/5 transition-colors text-left"
+                  >
+                    <Target className="h-5 w-5 text-[#99462a] dark:text-[#ccff00] shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-[#1a1c1b] dark:text-white">Interview Prep</p>
+                      <p className="text-xs text-[#88726c] dark:text-white/40">Generate tailored STAR questions</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmailModalOpen(true); setMobileActionsOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#f4f3f1] dark:hover:bg-white/5 transition-colors text-left"
+                  >
+                    <Mail className="h-5 w-5 text-[#99462a] dark:text-[#ccff00] shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-[#1a1c1b] dark:text-white">Draft Email</p>
+                      <p className="text-xs text-[#88726c] dark:text-white/40">Draft a professional email with AI</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNestatsModalOpen(true); setNestatsError(null); setMobileActionsOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#f4f3f1] dark:hover:bg-white/5 transition-colors text-left"
+                  >
+                    <ShieldCheck className="h-5 w-5 text-[#99462a] dark:text-[#ccff00] shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-[#99462a] dark:text-[#ccff00]">NESTpro Audit</p>
+                      <p className="text-xs text-[#88726c] dark:text-white/40">NESTpro ATS audit, 30+ checkpoints</p>
+                    </div>
+                  </button>
+                  {messages.length > 0 && currentSessionId && (
+                    <a
+                      href={`/api/nesta-ai/sessions/${currentSessionId}/export-pdf`}
+                      download
+                      onClick={() => setMobileActionsOpen(false)}
+                      className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#f4f3f1] dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <FileDown className="h-5 w-5 text-[#55433d] dark:text-white/55 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-[#1a1c1b] dark:text-white">Export as PDF</p>
+                        <p className="text-xs text-[#88726c] dark:text-white/40">Download this chat as a PDF</p>
+                      </div>
+                    </a>
+                  )}
+                  {messages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => { startNewChat(); setMobileActionsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#f4f3f1] dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Plus className="h-5 w-5 text-[#55433d] dark:text-white/55 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-[#1a1c1b] dark:text-white">New Chat</p>
+                        <p className="text-xs text-[#88726c] dark:text-white/40">Start a fresh conversation</p>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-52 md:pb-0">
@@ -1602,7 +1710,7 @@ export default function NestAiPage() {
                     <button
                       type="button"
                       onClick={() => setAttachedFile(null)}
-                      className="shrink-0 opacity-60 hover:opacity-100"
+                      className="shrink-0 opacity-60 hover:opacity-100 min-h-11 min-w-11 flex items-center justify-center"
                       aria-label="Remove attached file"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -1872,7 +1980,7 @@ export default function NestAiPage() {
       </DialogContent>
     </Dialog>
 
-    {/* ── NESTats — FAANG ATS Audit modal ─────────────────────────────── */}
+    {/* ── NESTats — NESTpro Audit modal ───────────────────────────────── */}
     <Dialog
       open={nestatsModalOpen}
       onOpenChange={(o) => {
@@ -1884,10 +1992,10 @@ export default function NestAiPage() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-[#99462a]" />
-            NESTats — FAANG ATS Audit
+            NESTats — NESTpro Audit
           </DialogTitle>
           <DialogDescription>
-            Select your resume and NESTAi will run a FAANG-grade 30+ point audit covering format,
+            Select your resume and NESTAi will run a NESTpro 30+ point audit covering format,
             content quality, impact signals, and technical keywords — then guide you through fixes.
           </DialogDescription>
         </DialogHeader>
@@ -2080,22 +2188,22 @@ export default function NestAiPage() {
                   : "";
 
                 const prompt = [
-                  `Please run a comprehensive **NESTats FAANG ATS audit** on my resume "${docName}".${attachedSection}${jdSection}`,
+                  `Please run a comprehensive **NESTpro ATS audit** on my resume "${docName}".${attachedSection}${jdSection}`,
                   "",
                   "Structure your response exactly as:",
-                  "## NESTats FAANG Audit",
-                  "**Overall Grade: [A+/A/B+/B/C/D/F]** | **Readiness: [FAANG Ready / Close / Needs Work / Major Gaps]**",
+                  "## NESTpro Audit",
+                  "**Overall Grade: [A+/A/B+/B/C/D/F]** | **Readiness: [Top-Tier Ready / Close / Needs Work / Major Gaps]**",
                   "",
                   "### 🔴 Critical Fixes (address immediately)",
                   "### 🟡 Important Improvements",
                   "### ✅ Strengths",
                   "",
                   "### 📊 Category Breakdown",
-                  "Evaluate across: Contact & Identity · Format & ATS Readability · Section Completeness · Content Quality · FAANG Impact Signals · Technical Keywords",
+                  "Evaluate across: Contact & Identity · Format & ATS Readability · Section Completeness · Content Quality · Impact Signals · Technical Keywords",
                   "",
                   "### 🎯 Top 5 Priority Actions",
                   "",
-                  "### ✏️ 2 Example Bullet Rewrites (BEFORE → AFTER in FAANG style)",
+                  "### ✏️ 2 Example Bullet Rewrites (BEFORE → AFTER with stronger impact)",
                   "",
                   "Base your assessment on HackerRank hiring-agent criteria: open source contributions, self projects, production work, technical skills, quantified impact, and scale signals.",
                 ].join("\n");
@@ -2236,7 +2344,7 @@ function SessionRow({
               aria-label="Session options"
               className={cn(
                 "p-1 rounded hover:bg-muted transition-opacity text-muted-foreground",
-                menuOpenId === session.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                menuOpenId === session.id ? "opacity-100" : "sm:opacity-0 sm:group-hover:opacity-100"
               )}
               onClick={(e) => { e.stopPropagation(); onMenuToggle(session.id); }}
             >

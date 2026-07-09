@@ -326,6 +326,28 @@ html.nav-open .bottom-tab-bar {
   pointer-events: none;
 }
 
+/* Scroll-based auto-hide — hides when user scrolls down, restores on scroll-up.
+   Driven by the 'tab-bar-hidden' class toggled in BottomTabBar.tsx scroll listener.
+   nav-open takes precedence (higher specificity via compound selector). */
+html.tab-bar-hidden .bottom-tab-bar {
+  opacity: 0;
+  transform: translateY(calc(100% + 1rem));
+  pointer-events: none;
+}
+
+/* NESTAi page — hide the tab bar via CSS (avoids hydration mismatch that
+   conditional rendering caused in Next.js 16 with Turbopack).
+   The 'page-nestai' class is toggled by the useEffect in BottomTabBar.tsx. */
+html.page-nestai .bottom-tab-bar {
+  display: none;
+}
+
+/* NESTAi input: with the tab bar gone, the input drops flush to the safe-area
+   bottom instead of clearing the 6rem tab bar offset. */
+html.page-nestai .nestai-input-area {
+  bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+}
+
 .bottom-tab-active {
   color: var(--atelier-primary);
 }
@@ -789,8 +811,9 @@ html.nav-open .bottom-tab-bar {
   .db-fab:hover  { transform: none; }
   .db-fab:active { transform: none; }
   .db-filter-pill:active { transform: none; }
-  /* Instant hide/show when nav opens — no slide animation */
-  html.nav-open .bottom-tab-bar { transform: none; }
+  /* Instant hide/show when nav opens or scroll hides — no slide animation */
+  html.nav-open .bottom-tab-bar,
+  html.tab-bar-hidden .bottom-tab-bar { transform: none; }
   /* Stop sparkle rotation for users who prefer reduced motion */
   .nestai-tab-sparkle { animation: none; }
 }

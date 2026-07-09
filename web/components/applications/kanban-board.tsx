@@ -95,7 +95,12 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
   const isDragging = draggingId !== null;
 
   return (
-    /* Mobile: horizontal-scroll flex  |  Desktop (lg+): full-width 5-column grid */
+    <>
+    {/* Scroll hint — mobile only; desktop uses full-width grid with no overflow */}
+    <p className="lg:hidden flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+      <span aria-hidden>‹›</span> Swipe to see all columns
+    </p>
+    {/* Mobile: horizontal-scroll flex  |  Desktop (lg+): full-width 5-column grid */}
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-x-visible">
       {COLUMNS.map(({ status, label, accent, bg, darkBg }) => {
         const cards = byStatus(status);
@@ -148,6 +153,7 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
         );
       })}
     </div>
+    </>
   );
 }
 
@@ -201,7 +207,7 @@ function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: Ka
       </div>
 
       {/* Action link */}
-      <div className="mt-2.5 pt-2.5 border-t border-border/20 dark:border-white/6 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mt-2.5 pt-2.5 border-t border-border/20 dark:border-white/6 flex justify-end sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <Link
           href={`/applications/${app.id}`}
           className="flex items-center gap-1 text-xs text-primary dark:text-[#ccff00] hover:underline"

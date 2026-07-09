@@ -125,7 +125,7 @@ export function LandingHeader() {
           {/* Mobile hamburger */}
           <button
             type="button"
-            className="md:hidden p-1.5 -mr-1 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/8"
+            className="md:hidden min-h-11 min-w-11 flex items-center justify-center -mr-2 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/8"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
           >

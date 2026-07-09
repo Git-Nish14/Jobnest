@@ -67,7 +67,7 @@ function PreviewPanel({ template }: { template: EmailTemplate }) {
               value={vars[key] ?? ""}
               onChange={(e) => setVars((prev) => ({ ...prev, [key]: e.target.value }))}
               placeholder={`{{${key}}}`}
-              className="w-full h-7 px-2 text-xs rounded-lg bg-white border border-[#dbc1b9]/50 focus:outline-none focus:ring-1 focus:ring-[#99462a]/40"
+              className="w-full h-11 sm:h-7 px-2 text-[16px] sm:text-xs rounded-lg bg-white border border-[#dbc1b9]/50 focus:outline-none focus:ring-1 focus:ring-[#99462a]/40"
             />
           </div>
         ))}
@@ -155,7 +155,7 @@ export function TemplateList({ templates }: TemplateListProps) {
               <button
                 type="button"
                 onClick={() => setPreviewId(previewId === template.id ? null : template.id)}
-                className="db-btn-page-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                className="db-btn-page-secondary text-xs px-3 py-3 sm:py-1.5 flex items-center gap-1.5"
                 aria-label={previewId === template.id ? "Hide preview" : "Preview with variables"}
               >
                 {previewId === template.id
@@ -167,7 +167,7 @@ export function TemplateList({ templates }: TemplateListProps) {
               <button
                 type="button"
                 onClick={() => handleCopy(template)}
-                className="db-btn-page-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                className="db-btn-page-secondary text-xs px-3 py-3 sm:py-1.5 flex items-center gap-1.5"
               >
                 {copiedId === template.id ? (
                   <><Check className="h-3.5 w-3.5" /> Copied</>
@@ -181,7 +181,7 @@ export function TemplateList({ templates }: TemplateListProps) {
                   <button
                     type="button"
                     aria-label="Template options"
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
+                    className="h-11 w-11 flex items-center justify-center rounded-lg text-[#55433d]/50 hover:text-[#99462a] hover:bg-[#99462a]/8 transition-colors"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
