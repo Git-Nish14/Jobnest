@@ -48,6 +48,7 @@ export default async function ProfilePage() {
         id: user.id,
         email: user.email ?? "",
         displayName: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "",
+        avatarUrl: user.user_metadata?.avatar_url ?? null,
         createdAt: user.created_at,
         passwordChangedAt: user.user_metadata?.password_changed_at ?? null,
         aboutMe: user.user_metadata?.about_me ?? "",

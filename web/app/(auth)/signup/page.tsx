@@ -21,6 +21,13 @@ import {
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 
 type SignupStep = "form" | "otp" | "success";
+type OAuthProvider = "google" | "github" | "linkedin_oidc";
+
+const OAUTH_LABELS: Record<OAuthProvider, string> = {
+  google: "Google",
+  github: "GitHub",
+  linkedin_oidc: "LinkedIn",
+};
 
 // ── Password strength ──────────────────────────────────────────────────────────
 type StrengthLevel = 0 | 1 | 2 | 3;
@@ -87,6 +94,18 @@ function GitHubIcon() {
   );
 }
 
+function LinkedInIcon() {
+  return (
+    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <rect width="24" height="24" rx="4" fill="#0A66C2" />
+      <path
+        fill="white"
+        d="M8.5 10H6V18.5H8.5V10ZM7.25 8.75C8.01 8.75 8.6 8.16 8.6 7.4C8.6 6.64 8.01 6.05 7.25 6.05C6.49 6.05 5.9 6.64 5.9 7.4C5.9 8.16 6.49 8.75 7.25 8.75ZM18.5 18.5H16V14.25C16 13.17 15.98 11.8 14.5 11.8C13 11.8 12.75 12.97 12.75 14.17V18.5H10.25V10H12.6V11.2H12.63C12.96 10.6 13.75 9.95 14.95 9.95C17.45 9.95 18.5 11.55 18.5 13.75V18.5Z"
+      />
+    </svg>
+  );
+}
+
 // ── Shell & BrandHeader — defined OUTSIDE the page component so React never
 //    recreates their identity on re-renders (avoids unmount/remount on keystroke)
 function Shell({ children }: { children: React.ReactNode }) {
@@ -126,7 +145,7 @@ export default function SignupPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | "linkedin_oidc" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -156,7 +175,7 @@ export default function SignupPage() {
     if (step === "otp") otpRefs.current[0]?.focus();
   }, [step]);
 
-  const handleOAuth = async (provider: "google" | "github") => {
+  const handleOAuth = async (provider: "google" | "github" | "linkedin_oidc") => {
     if (!watchedAgeConfirmed || !watchedTermsAccepted) {
       setError("Please confirm your age (18+) and accept the Terms of Service before continuing.");
       return;
@@ -361,7 +380,7 @@ export default function SignupPage() {
 
         {/* OAuth — stacked full-width */}
         <div className="flex flex-col gap-3 mb-8">
-          {(["google", "github"] as const).map((provider) => (
+          {(["google", "github", "linkedin_oidc"] as const).map((provider) => (
             <button
               key={provider}
               type="button"
@@ -371,8 +390,10 @@ export default function SignupPage() {
             >
               {oauthLoading === provider
                 ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                : provider === "google" ? <GoogleIcon /> : <GitHubIcon />}
-              Continue with {provider === "google" ? "Google" : "GitHub"}
+                : provider === "google" ? <GoogleIcon />
+                : provider === "github" ? <GitHubIcon />
+                : <LinkedInIcon />}
+              Continue with {OAUTH_LABELS[provider]}
             </button>
           ))}
         </div>

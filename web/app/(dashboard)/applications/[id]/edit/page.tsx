@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentUser, getApplicationById } from "@/services";
 import { ApplicationForm } from "@/components/forms";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,17 @@ export default async function EditApplicationPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  const { data: application, error } = await getApplicationById(id);
+  const supabase = await createClient();
+  const [{ data: application, error }, { data: currentDocs }] = await Promise.all([
+    getApplicationById(id),
+    supabase
+      .from("application_documents")
+      .select("id, label, storage_path, original_name")
+      .eq("application_id", id)
+      .eq("user_id", user.id)
+      .eq("is_current", true),
+  ]);
+
   if (error || !application) {
     notFound();
   }
@@ -33,7 +44,11 @@ export default async function EditApplicationPage({ params }: PageProps) {
         Back to Application
       </Link>
 
-      <ApplicationForm application={application} userId={user.id} />
+      <ApplicationForm
+        application={application}
+        userId={user.id}
+        initialDocuments={currentDocs ?? []}
+      />
     </div>
   );
 }

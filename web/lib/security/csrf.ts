@@ -79,27 +79,28 @@ export function verifyOrigin(request: Request): boolean {
 
   // ── Primary check: static allowlist from NEXT_PUBLIC_APP_URL ─────────────
   // Using a static env var prevents an attacker from spoofing x-forwarded-host
-  // to match an attacker-controlled Origin header. When the env var is set
-  // (always true in production) this is the only check that runs.
+  // to match an attacker-controlled Origin header.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
   if (appUrl) {
     try {
-      return origin === new URL(appUrl).origin;
+      // Use `if` (not `return`) so the dev fallback below still runs when
+      // the env var is set to the production URL but the app is running locally.
+      if (origin === new URL(appUrl).origin) return true;
     } catch {
       return false;
     }
   }
 
   // ── Fallback (dev only): derive expected origin from the request host ─────
-  // Only reached when no static URL is configured (local dev without .env.local).
-  // x-forwarded-host is NOT trusted in production, so this path is intentionally
-  // limited to NODE_ENV !== "production".
+  // Reached when no static URL is configured OR when the configured URL doesn't
+  // match (e.g. NEXT_PUBLIC_APP_URL points to production but app runs on localhost).
+  // x-forwarded-host is NOT trusted in production, so this is strictly dev-only.
   if (process.env.NODE_ENV === "production") return false;
 
   const host = request.headers.get("host");
   if (host) {
-    const proto = "http"; // dev is always plain HTTP
-    if (origin === `${proto}://${host}`) return true;
+    if (origin === `http://${host}`) return true;
+    if (origin === `https://${host}`) return true; // HTTPS dev servers (e.g. next dev --experimental-https)
   }
 
   return false;

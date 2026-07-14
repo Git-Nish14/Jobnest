@@ -28,7 +28,7 @@ const linkedinSchema = z.object({
     .optional(),
 });
 
-/** GET /api/portfolio/linkedin — return stored LinkedIn data from user_metadata */
+/** GET /api/portfolio/linkedin — return stored LinkedIn data + auto-detected signals */
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -36,9 +36,25 @@ export async function GET() {
     if (error || !user) throw ApiError.unauthorized();
 
     const meta = user.user_metadata ?? {};
+
+    // Read auto-detectable signals from the LinkedIn OIDC identity's claims.
+    // LinkedIn OIDC returns `picture` in identity_data when the user has a profile photo.
+    // This is the only field reliably available without privileged LinkedIn API access.
+    const linkedInIdentity = (user.identities ?? []).find(
+      (i: { provider: string }) => i.provider === "linkedin_oidc"
+    );
+    const identityData = (linkedInIdentity as { identity_data?: Record<string, unknown> } | undefined)
+      ?.identity_data ?? {};
+    const linkedInPicture = typeof identityData.picture === "string" ? identityData.picture : null;
+
     return NextResponse.json({
       linkedin_url: meta.linkedin_url ?? null,
       checklist: meta.linkedin_checklist ?? null,
+      // auto_detected: signals the UI can use to pre-tick checklist items and show badges.
+      // has_photo is true when LinkedIn returned a picture URL in their OIDC response.
+      auto_detected: {
+        has_photo: !!linkedInPicture,
+      },
     });
   } catch (e) {
     return errorResponse(e);

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Loader2, Check, ExternalLink, Info, AlertCircle,
-  CheckCircle2, XCircle, ShieldQuestion, ClipboardList,
+  CheckCircle2, XCircle, ShieldQuestion, ClipboardList, Sparkles,
 } from "lucide-react";
 import { LinkedinIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
@@ -76,9 +76,14 @@ function UrlStatusBadge({ status }: { status: UrlStatus }) {
   return null;
 }
 
+interface AutoDetected {
+  has_photo: boolean;
+}
+
 export function LinkedInSection() {
   const [url, setUrl]           = useState("");
   const [checklist, setChecklist] = useState<Checklist>(EMPTY_CHECKLIST);
+  const [autoDetected, setAutoDetected] = useState<AutoDetected>({ has_photo: false });
   const [loading, setLoading]   = useState(true);
   const [urlSaving, setUrlSaving] = useState(false);
   const [urlStatus, setUrlStatus] = useState<UrlStatus>("idle");
@@ -90,18 +95,33 @@ export function LinkedInSection() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedUrlRef = useRef<string>("");  // track last saved URL (to pass alongside checklist auto-save)
 
-  // ── Load saved data ────────────────────────────────────────────────────────
+  // ── Load saved data + auto-detected signals ────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     fetch("/api/portfolio/linkedin")
-      .then((r) => r.ok ? r.json() as Promise<{ linkedin_url: string | null; checklist: Checklist | null }> : null)
+      .then((r) => r.ok ? r.json() as Promise<{
+        linkedin_url: string | null;
+        checklist: Checklist | null;
+        auto_detected?: AutoDetected;
+      }> : null)
       .then((d) => {
         if (cancelled) return;
         if (d) {
           const savedUrl = d.linkedin_url ?? "";
           setUrl(savedUrl);
           savedUrlRef.current = savedUrl;
-          setChecklist(d.checklist ?? EMPTY_CHECKLIST);
+
+          const detected = d.auto_detected ?? { has_photo: false };
+          setAutoDetected(detected);
+
+          // Seed checklist: use saved state if it exists, otherwise apply auto-detections.
+          // This means the first time a LinkedIn user opens this section, has_photo is
+          // pre-ticked if their LinkedIn account has a profile photo.
+          const base = d.checklist ?? EMPTY_CHECKLIST;
+          const seeded: Checklist = d.checklist
+            ? base
+            : { ...base, has_photo: detected.has_photo };
+          setChecklist(seeded);
         }
         setLoading(false);
       })
@@ -272,11 +292,19 @@ export function LinkedInSection() {
           <div className="flex items-start gap-3 rounded-xl border border-[#99462a]/20 dark:border-[#ccff00]/20 bg-[#99462a]/5 dark:bg-[#ccff00]/5 px-4 py-3">
             <ClipboardList className="h-4 w-4 text-[#99462a] dark:text-[#ccff00] shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <p className="text-sm font-medium text-foreground">Self-assessed checklist</p>
+              <p className="text-sm font-medium text-foreground">
+                Self-assessed checklist
+                {autoDetected.has_photo && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-full px-2 py-0.5">
+                    <Sparkles className="h-2.5 w-2.5" /> 1 auto-detected
+                  </span>
+                )}
+              </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                LinkedIn doesn&apos;t share profile data publicly. Tick each item
-                <strong className="text-foreground"> you&apos;ve already completed</strong> on your LinkedIn profile.
-                Changes save automatically.
+                {autoDetected.has_photo
+                  ? <>Your <strong className="text-foreground">profile photo</strong> was detected from your LinkedIn sign-in. Tick the remaining items you&apos;ve completed on LinkedIn. Changes save automatically.</>
+                  : <>LinkedIn doesn&apos;t share profile data publicly. Tick each item <strong className="text-foreground">you&apos;ve already completed</strong> on your LinkedIn profile. Changes save automatically.</>
+                }
               </p>
             </div>
           </div>
@@ -321,40 +349,51 @@ export function LinkedInSection() {
 
             {/* Checklist */}
             <div className="divide-y divide-border/50">
-              {CHECKLIST_ITEMS.map(({ key, label, tip }) => (
-                <label
-                  key={key}
-                  className="flex items-start gap-3 cursor-pointer group py-2.5 px-1 hover:bg-muted/30 rounded-lg transition-colors"
-                >
-                  <div className={cn(
-                    "mt-0.5 h-5 w-5 shrink-0 rounded-md flex items-center justify-center border-2 transition-all",
-                    checklist[key]
-                      ? "bg-[#99462a] dark:bg-[#ccff00] border-[#99462a] dark:border-[#ccff00] scale-105"
-                      : "border-border bg-background group-hover:border-[#99462a]/50 dark:group-hover:border-[#ccff00]/50"
-                  )}>
-                    {checklist[key] && (
-                      <Check className="h-3 w-3 text-white dark:text-black" strokeWidth={3} />
-                    )}
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={checklist[key]}
-                    onChange={() => toggle(key)}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className={cn(
-                      "text-sm font-medium transition-colors",
-                      checklist[key] ? "text-foreground line-through decoration-muted-foreground/40" : "text-muted-foreground"
+              {CHECKLIST_ITEMS.map(({ key, label, tip }) => {
+                const isAutoDetected = key === "has_photo" && autoDetected.has_photo;
+                return (
+                  <label
+                    key={key}
+                    className="flex items-start gap-3 cursor-pointer group py-2.5 px-1 hover:bg-muted/30 rounded-lg transition-colors"
+                  >
+                    <div className={cn(
+                      "mt-0.5 h-5 w-5 shrink-0 rounded-md flex items-center justify-center border-2 transition-all",
+                      checklist[key]
+                        ? "bg-[#99462a] dark:bg-[#ccff00] border-[#99462a] dark:border-[#ccff00] scale-105"
+                        : "border-border bg-background group-hover:border-[#99462a]/50 dark:group-hover:border-[#ccff00]/50"
                     )}>
-                      {label}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Info className="h-3 w-3 shrink-0" /> {tip}
-                    </p>
-                  </div>
-                </label>
-              ))}
+                      {checklist[key] && (
+                        <Check className="h-3 w-3 text-white dark:text-black" strokeWidth={3} />
+                      )}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checklist[key]}
+                      onChange={() => toggle(key)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={cn(
+                        "text-sm font-medium transition-colors flex items-center gap-2 flex-wrap",
+                        checklist[key] ? "text-foreground line-through decoration-muted-foreground/40" : "text-muted-foreground"
+                      )}>
+                        {label}
+                        {isAutoDetected && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide not-italic no-underline text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-full px-1.5 py-0.5">
+                            <Sparkles className="h-2.5 w-2.5" /> auto
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {isAutoDetected
+                          ? <><Sparkles className="h-3 w-3 shrink-0 text-emerald-500" /> Detected from your LinkedIn sign-in</>
+                          : <><Info className="h-3 w-3 shrink-0" /> {tip}</>
+                        }
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
         </>

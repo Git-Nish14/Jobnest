@@ -12,8 +12,8 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Authentication & Security
 - Email/Password with **6-digit OTP verification** (Nodemailer, not Supabase Auth emails)
-- **Google & GitHub OAuth**: `/auth/callback` exchanges code and sets session
-- **Age verification + Terms acceptance**: required at signup before email or OAuth proceeds
+- **Google, GitHub & LinkedIn OAuth**: `/auth/callback` exchanges code and sets session; `linkedin_oidc` (OIDC provider, not legacy OAuth 2.0); callback route is provider-agnostic (`exchangeCodeForSession`)
+- **Age verification + Terms acceptance**: required at signup before email or OAuth proceeds; applies equally to all three OAuth providers
 - **Stay signed in 30 days**: `sb_rm=1` persistent; unchecked = session-only via `sessionStorage`; `__Host-` cookie prefix in production
 - **Cross-tab logout sync**: `AuthSync` listens to `onAuthStateChange`
 - **Auto-redirect**: authenticated users bounce from auth pages to `/dashboard`
@@ -33,12 +33,13 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Billing portal**: Stripe customer portal for Pro subscribers
 - **Developer Identity**: Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
 - **Portfolio settings**: claim a username slug (30-day change cooldown enforced server-side; DELETE to remove), toggle public/private, opt-in contact email (defaults off); share URL shown immediately after claiming
-- **Profile page structure**: four labelled groups - **Profile** (Display Name, About You, NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password, Danger Zone); sidebar shows exact OAuth providers (Google, GitHub) and correct password status
+- **Profile avatar upload**: click the avatar to upload a JPEG/PNG/WebP photo (≤ 2 MB); client-side pre-validation + server-side magic-byte verification (prevents content-type spoofing); stored in Supabase Storage at `{userId}/avatar/profile.{ext}` with a 10-year signed URL saved to `user_metadata.avatar_url`; purged on account deletion
+- **Profile page structure**: four labelled groups - **Profile** (Display Name, About You, NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password, Danger Zone); sidebar shows exact OAuth providers (Google, GitHub, LinkedIn) without text truncation
 
 ### Developer Portfolio & Public Profile (`/p/{username}`)
 - **GitHub OAuth**: connect GitHub using the same Supabase-configured OAuth app as login (no separate credentials needed); profile card with avatar, bio, location, follower/repo counts; pin up to 6 repos; manual sync (5/hr); daily cron at 04:00 UTC; access tokens **encrypted at rest** (AES-256-GCM)
 - **Project showcase**: create and curate projects (title, description, tags, demo/repo URLs, **cover image URL**, featured flag); optional link to a cached GitHub repo for live star counts; drag-reorder via up/down controls; image preview on cards
-- **LinkedIn strength**: URL auto-normalises on input (bare username, missing https, /in/ prefix); server-side reachability check on save; self-assessed 8-item checklist auto-saves per-toggle (no manual save needed)
+- **LinkedIn strength**: URL auto-normalises on input; server-side reachability check on save; self-assessed 8-item checklist auto-saves per-toggle; **`has_photo` auto-detected** from LinkedIn OIDC `identity_data.picture` when user signs in via LinkedIn — pre-ticks the item and shows a `Sparkles` "auto" badge
 - **Public portfolio page**: shareable `/p/{username}` page; SSR with full OpenGraph metadata; sections: hero (avatar, bio, links, GitHub stats), featured projects, pinned repos, skills by category, education, certifications; contact email shown only when explicitly opted in; no job application data ever exposed
 
 ### Account Deletion (Grace Period)

@@ -375,6 +375,56 @@ describe("LinkedIn — save & retrieve", () => {
     expect(body.checklist).toBeNull();
   });
 
+  it("GET always returns auto_detected object in response", async () => {
+    const user = { ...USER, user_metadata: {} };
+    mockCreate.mockResolvedValue(serverClient(user as typeof USER) as never);
+    const res = await getLinkedIn();
+    const body = await res.json();
+    expect(body.auto_detected).toBeDefined();
+    expect(typeof body.auto_detected.has_photo).toBe("boolean");
+  });
+
+  it("GET auto_detected.has_photo is false when user has no identities", async () => {
+    const user = { ...USER, user_metadata: {}, identities: [] };
+    mockCreate.mockResolvedValue(serverClient(user as typeof USER) as never);
+    const body = await (await getLinkedIn()).json();
+    expect(body.auto_detected.has_photo).toBe(false);
+  });
+
+  it("GET auto_detected.has_photo is false when linkedin_oidc identity has no picture", async () => {
+    const user = {
+      ...USER, user_metadata: {},
+      identities: [{ provider: "linkedin_oidc", identity_data: { sub: "abc123" } }],
+    };
+    mockCreate.mockResolvedValue(serverClient(user as typeof USER) as never);
+    const body = await (await getLinkedIn()).json();
+    expect(body.auto_detected.has_photo).toBe(false);
+  });
+
+  it("GET auto_detected.has_photo is true when linkedin_oidc identity has a picture URL", async () => {
+    const user = {
+      ...USER, user_metadata: {},
+      identities: [
+        { provider: "linkedin_oidc", identity_data: { picture: "https://media.licdn.com/photo.jpg" } },
+      ],
+    };
+    mockCreate.mockResolvedValue(serverClient(user as typeof USER) as never);
+    const body = await (await getLinkedIn()).json();
+    expect(body.auto_detected.has_photo).toBe(true);
+  });
+
+  it("GET auto_detected.has_photo is false when only github identity exists (no linkedin)", async () => {
+    const user = {
+      ...USER, user_metadata: {},
+      identities: [
+        { provider: "github", identity_data: { avatar_url: "https://avatars.githubusercontent.com/1" } },
+      ],
+    };
+    mockCreate.mockResolvedValue(serverClient(user as typeof USER) as never);
+    const body = await (await getLinkedIn()).json();
+    expect(body.auto_detected.has_photo).toBe(false);
+  });
+
   it("POST saves LinkedIn URL and checklist, returns 200", async () => {
     mockCreate.mockResolvedValue(serverClient(USER) as never);
     mockAdmin.mockReturnValue(adminClient() as never);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Loader2, User, Trash2, Check, ArrowLeft,
   Mail, Eye, EyeOff, ShieldAlert, RotateCcw, BrainCircuit, Bell,
-  Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck,
+  Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck, Camera,
 } from "lucide-react";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import { formatDate as fmtDate } from "@/lib/utils/date";
@@ -21,6 +21,7 @@ import {
   CardTitle,
   Avatar,
   AvatarFallback,
+  AvatarImage,
   Select,
   SelectContent,
   SelectItem,
@@ -32,6 +33,7 @@ interface ProfileUser {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
   createdAt: string;
   passwordChangedAt: string | null;
   aboutMe: string;
@@ -151,6 +153,44 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
   const [nameSaving, setNameSaving] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSuccess, setNameSuccess] = useState(false);
+
+  // ── Avatar ────────────────────────────────────────────────────────────────
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setAvatarError("Only JPEG, PNG, or WebP images are allowed");
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError("Image must be under 2 MB");
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      return;
+    }
+
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("avatar", file);
+      const res = await fetch("/api/profile/upload-avatar", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { setAvatarError(data.error || "Upload failed"); return; }
+      setAvatarUrl(data.avatarUrl);
+    } catch {
+      setAvatarError("Upload failed. Please try again.");
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
   // ── Password changed tracking ─────────────────────────────────────────────
   const [passwordChangedAt, setPasswordChangedAt] = useState<string | null>(user.passwordChangedAt);
@@ -647,17 +687,49 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
             <Card className="overflow-hidden shadow-sm">
               <div className="h-20 bg-linear-to-br from-primary/30 via-primary/12 to-transparent" />
               <CardContent className="px-5 pb-5 -mt-10">
-                <Avatar className="h-18 w-18 border-4 border-background shadow-md">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
-                    {initial}
-                  </AvatarFallback>
-                </Avatar>
+                {/* Avatar with upload overlay */}
+                <div className="relative group w-fit">
+                  <Avatar className="h-18 w-18 border-4 border-background shadow-md">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || user.email} />}
+                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
+                      {avatarUploading
+                        ? <Loader2 className="h-6 w-6 animate-spin text-primary-foreground" />
+                        : initial}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Camera button overlay */}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={avatarUploading}
+                    aria-label="Change profile photo"
+                    className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150 disabled:cursor-not-allowed"
+                  >
+                    {avatarUploading
+                      ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                      : <Camera className="h-5 w-5 text-white" />}
+                  </button>
+
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    aria-label="Upload profile photo"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+
+                {avatarError && (
+                  <p className="text-xs text-destructive mt-1.5">{avatarError}</p>
+                )}
 
                 <div className="mt-3 min-w-0">
-                  <p className="font-bold text-base leading-tight truncate">
+                  <p className="font-bold text-base leading-tight wrap-break-word">
                     {displayName || user.email.split("@")[0]}
                   </p>
-                  <p className="text-sm text-muted-foreground truncate mt-0.5">{user.email}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5 break-all">{user.email}</p>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -676,7 +748,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 <div className="mt-4 pt-4 border-t space-y-3">
                   {(() => {
                     const providerLabels = user.oauthProviders.map((p) =>
-                      p === "google" ? "Google" : p === "github" ? "GitHub" : p.charAt(0).toUpperCase() + p.slice(1)
+                      p === "google" ? "Google" : p === "github" ? "GitHub" : p === "linkedin_oidc" ? "LinkedIn" : p.charAt(0).toUpperCase() + p.slice(1)
                     );
                     const authMethod = hasPw && providerLabels.length > 0
                       ? `Email + ${providerLabels.join(" + ")}`
@@ -703,7 +775,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                       </div>
                       <div className="min-w-0 pt-0.5">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-none">{label}</p>
-                        <p className="text-sm font-medium truncate mt-1">{value}</p>
+                        <p className="text-sm font-medium mt-1 wrap-break-word">{value}</p>
                       </div>
                     </div>
                   ))}
@@ -965,7 +1037,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
               {goalError   && <Callout type="error">{goalError}</Callout>}
               {goalSuccess  && <Callout type="success">Weekly goal saved.</Callout>}
               <div className="flex items-end gap-3">
-                <div className="space-y-1.5 flex-1 max-w-[160px]">
+                <div className="space-y-1.5 flex-1 max-w-40">
                   <Label htmlFor="weekly-goal">Applications per week</Label>
                   <Input
                     id="weekly-goal"

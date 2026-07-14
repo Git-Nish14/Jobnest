@@ -1,5 +1,5 @@
 import { Activity, Clock, Ghost, Target, TrendingUp, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { InsightCard, type InsightCardProps } from "./insight-card";
 
 interface Props {
   averageTimeToResponse: number | null;
@@ -9,38 +9,6 @@ interface Props {
   activePipeline: number;
   weeklyMomentum: number | null;
   topSource: { source: string; responseRate: number } | null;
-}
-
-interface InsightCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  tone: "positive" | "neutral" | "warning" | "dim";
-}
-
-function InsightCard({ icon, label, value, sub, tone }: InsightCardProps) {
-  const toneClasses = {
-    positive: "text-emerald-600 dark:text-emerald-400",
-    neutral:  "text-[#99462a] dark:text-[#ccff00]",
-    warning:  "text-amber-600 dark:text-amber-400",
-    dim:      "text-muted-foreground",
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-[#f4f3f1]/60 dark:bg-[#0f0f0f] px-5 py-4">
-      <div className={cn("flex items-center gap-2 text-xs font-semibold uppercase tracking-widest", toneClasses[tone])}>
-        {icon}
-        {label}
-      </div>
-      <div>
-        <p className={cn("text-3xl font-bold leading-none tabular-nums truncate", toneClasses[tone])}>
-          {value}
-        </p>
-        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{sub}</p>
-      </div>
-    </div>
-  );
 }
 
 /** Renders context-aware insight cards for the six richer analytics metrics.

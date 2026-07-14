@@ -13,18 +13,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/security/csrf", () => ({ verifyOrigin: vi.fn().mockReturnValue(true) }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
+vi.mock("@/lib/security/csrf",       () => ({ verifyOrigin: vi.fn().mockReturnValue(true) }));
+vi.mock("@/lib/supabase/server",     () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/supabase/admin",      () => ({ createAdminClient: vi.fn() }));
+vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 
 import { POST } from "@/app/api/profile/timezone/route";
-import { verifyOrigin } from "@/lib/security/csrf";
-import { createClient } from "@/lib/supabase/server";
+import { verifyOrigin }   from "@/lib/security/csrf";
+import { createClient }   from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/security/rate-limit";
 
 const mockVerifyOrigin = vi.mocked(verifyOrigin);
 const mockCreateClient = vi.mocked(createClient);
 const mockAdminClient  = vi.mocked(createAdminClient);
+const mockRL           = vi.mocked(checkRateLimit);
 
 const AUTHED_USER = { id: "uid-1", email: "user@test.com", user_metadata: { display_name: "Test" } };
 
@@ -65,6 +68,7 @@ function makeReq(body: unknown, origin = "http://localhost:3000") {
 beforeEach(() => {
   vi.clearAllMocks();
   mockVerifyOrigin.mockReturnValue(true);
+  mockRL.mockReturnValue({ allowed: true, remaining: 19, resetTime: Date.now() + 60_000 });
   mockCreateClient.mockResolvedValue(makeSupabase() as never);
   mockAdminClient.mockReturnValue(makeAdmin() as never);
 });
@@ -76,6 +80,16 @@ describe("POST /api/profile/timezone — CSRF", () => {
     mockVerifyOrigin.mockReturnValue(false);
     const res = await POST(makeReq({ timezone: "America/New_York", utcOffsetHours: -5 }));
     expect(res.status).toBe(403);
+  });
+});
+
+// ── Rate limit ────────────────────────────────────────────────────────────────
+
+describe("POST /api/profile/timezone — rate limit", () => {
+  it("returns 429 when rate limit is exceeded", async () => {
+    mockRL.mockReturnValue({ allowed: false, remaining: 0, resetTime: Date.now() + 60_000 });
+    const res = await POST(makeReq({ timezone: "America/New_York", utcOffsetHours: -5 }));
+    expect(res.status).toBe(429);
   });
 });
 
@@ -119,6 +133,11 @@ describe("POST /api/profile/timezone — validation", () => {
 
   it("returns 400 when body is missing utcOffsetHours entirely", async () => {
     const res = await POST(makeReq({ timezone: "Europe/London" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when timezone is an empty string", async () => {
+    const res = await POST(makeReq({ timezone: "", utcOffsetHours: 0 }));
     expect(res.status).toBe(400);
   });
 });

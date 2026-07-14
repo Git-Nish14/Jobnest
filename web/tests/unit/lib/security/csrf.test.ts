@@ -60,13 +60,24 @@ describe("verifyOrigin", () => {
     expect(verifyOrigin(req)).toBe(true);
   });
 
-  it("blocks localhost when NEXT_PUBLIC_APP_URL is set to a production URL", () => {
-    // Static URL is now the sole authority in production.
-    // Developers must set NEXT_PUBLIC_APP_URL=http://localhost:3000 in .env.local
-    // for local dev — they cannot rely on x-forwarded-host or host fallback when
-    // a production URL is configured.
+  it("allows localhost when NEXT_PUBLIC_APP_URL is set to a production URL but NODE_ENV is not production (dev fallback)", () => {
+    // The verifyOrigin fix: when NEXT_PUBLIC_APP_URL points to the production URL but
+    // the app is running locally (NODE_ENV=test/development), the dev host-based
+    // fallback now runs after the primary check fails, allowing local requests.
+    // This resolves the 403s that occurred when NEXT_PUBLIC_APP_URL was set to
+    // the production URL in a local .env.local file.
     process.env.NEXT_PUBLIC_APP_URL = "https://jobnest.nishpatel.dev";
+    // NODE_ENV is "test" in Vitest, so the dev fallback runs
     const req = makeRequest("http://localhost:3000", undefined, { host: "localhost:3000" });
+    expect(verifyOrigin(req)).toBe(true);
+  });
+
+  it("blocks any origin that doesn't match APP_URL or host (defence against CSRF with mismatched origin)", () => {
+    // Even in dev, an attacker-controlled origin that matches neither the static
+    // APP_URL nor the Host header is always blocked — the dev fallback only allows
+    // requests where the origin matches http(s)://${host}.
+    process.env.NEXT_PUBLIC_APP_URL = "https://jobnest.nishpatel.dev";
+    const req = makeRequest("https://evil.com", undefined, { host: "localhost:3000" });
     expect(verifyOrigin(req)).toBe(false);
   });
 

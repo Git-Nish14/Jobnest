@@ -27,18 +27,32 @@ import {
   SelectValue,
 } from "@/components/ui";
 
+interface ExistingDoc {
+  id: string;
+  label: string;
+  storage_path: string;
+  original_name: string | null;
+}
+
 interface ApplicationFormProps {
   application?: JobApplication;
   userId: string;
+  initialDocuments?: ExistingDoc[];
 }
 
-export function ApplicationForm({ application, userId }: ApplicationFormProps) {
+export function ApplicationForm({ application, userId, initialDocuments }: ApplicationFormProps) {
   const router = useRouter();
   const isEditing = !!application;
   const submittingRef = useRef(false);
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+
+  // Pre-populate file slots from application_documents (new-style apps have resume_path=null)
+  const existingResume = initialDocuments?.find((d) => d.label === "Resume") ?? null;
+  const existingCoverLetter = initialDocuments?.find((d) => d.label === "Cover Letter") ?? null;
+  // Guard to preserve legacy resume_path display for apps created before the doc-store migration
+  const isNewApp = application ? new Date(application.created_at) >= new Date("2026-06-12") : true;
 
   const {
     register,
@@ -92,6 +106,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
       let query = supabase
         .from("job_applications")
         .select("id, status")
+        .eq("user_id", userId) // defence-in-depth on top of RLS
         .ilike("company", company)
         .ilike("position", position)
         .limit(3);
@@ -111,7 +126,7 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [watchedCompany, watchedPosition, application?.id]);
+  }, [watchedCompany, watchedPosition, application?.id, userId]);
 
   // ── JD Parser ────────────────────────────────────────────────────────────
   const [parseModalOpen, setParseModalOpen] = useState(false);
@@ -595,7 +610,12 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm truncate">{resumeFile.name}</span>
                       </>
-                    ) : application?.resume_path ? (
+                    ) : existingResume ? (
+                      <>
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
+                        <span className="text-sm truncate">{existingResume.original_name ?? "resume"} · click to replace</span>
+                      </>
+                    ) : (!isNewApp && application?.resume_path) ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm truncate">{application.resume_path.split("/").pop() ?? "resume"} · click to replace</span>
@@ -635,11 +655,14 @@ export function ApplicationForm({ application, userId }: ApplicationFormProps) {
                     {coverLetterFile ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
-                        <span className="text-sm truncate">
-                          {coverLetterFile.name}
-                        </span>
+                        <span className="text-sm truncate">{coverLetterFile.name}</span>
                       </>
-                    ) : application?.cover_letter_path ? (
+                    ) : existingCoverLetter ? (
+                      <>
+                        <FileText className="h-4 w-4 text-[#55433d]/60" />
+                        <span className="text-sm truncate">{existingCoverLetter.original_name ?? "cover_letter"} · click to replace</span>
+                      </>
+                    ) : (!isNewApp && application?.cover_letter_path) ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
                         <span className="text-sm truncate">{application.cover_letter_path.split("/").pop() ?? "cover_letter"} · click to replace</span>

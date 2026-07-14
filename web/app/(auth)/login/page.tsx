@@ -12,6 +12,13 @@ import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginStep = "credentials" | "otp";
+type OAuthProvider = "google" | "github" | "linkedin_oidc";
+
+const OAUTH_LABELS: Record<OAuthProvider, string> = {
+  google: "Google",
+  github: "GitHub",
+  linkedin_oidc: "LinkedIn",
+};
 
 function GoogleIcon() {
   return (
@@ -28,6 +35,18 @@ function GitHubIcon() {
   return (
     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+      <rect width="24" height="24" rx="4" fill="#0A66C2" />
+      <path
+        fill="white"
+        d="M8.5 10H6V18.5H8.5V10ZM7.25 8.75C8.01 8.75 8.6 8.16 8.6 7.4C8.6 6.64 8.01 6.05 7.25 6.05C6.49 6.05 5.9 6.64 5.9 7.4C5.9 8.16 6.49 8.75 7.25 8.75ZM18.5 18.5H16V14.25C16 13.17 15.98 11.8 14.5 11.8C13 11.8 12.75 12.97 12.75 14.17V18.5H10.25V10H12.6V11.2H12.63C12.96 10.6 13.75 9.95 14.95 9.95C17.45 9.95 18.5 11.55 18.5 13.75V18.5Z"
+      />
     </svg>
   );
 }
@@ -79,7 +98,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | "linkedin_oidc" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -104,7 +123,7 @@ export default function LoginPage() {
     if (step === "otp") otpRefs.current[0]?.focus();
   }, [step]);
 
-  const handleOAuth = async (provider: "google" | "github") => {
+  const handleOAuth = async (provider: "google" | "github" | "linkedin_oidc") => {
     setError(null);
     setOauthLoading(provider);
     const supabase = createClient();
@@ -273,8 +292,8 @@ export default function LoginPage() {
         {error && <p className="atelier-error" role="alert">{error}</p>}
 
         {/* OAuth */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {(["google", "github"] as const).map((provider) => (
+        <div className="flex flex-col gap-3 mb-8">
+          {(["google", "github", "linkedin_oidc"] as const).map((provider) => (
             <button
               key={provider}
               type="button"
@@ -284,8 +303,10 @@ export default function LoginPage() {
             >
               {oauthLoading === provider
                 ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                : provider === "google" ? <GoogleIcon /> : <GitHubIcon />}
-              {provider === "google" ? "Google" : "GitHub"}
+                : provider === "google" ? <GoogleIcon />
+                : provider === "github" ? <GitHubIcon />
+                : <LinkedInIcon />}
+              {OAUTH_LABELS[provider]}
             </button>
           ))}
         </div>

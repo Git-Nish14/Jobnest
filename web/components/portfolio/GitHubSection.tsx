@@ -124,6 +124,8 @@ export function GitHubSection() {
       const messages: Record<string, string> = {
         no_provider_token: "GitHub didn't return an access token. Please try connecting again.",
         auth_error: "Authentication failed. Please try connecting again.",
+        invalid_login_request: "The GitHub login session expired. Please try connecting again.",
+        access_denied: "GitHub access was denied. Please try connecting again.",
         db_error: "Failed to save your GitHub data. Please try again.",
         server_error: "Something went wrong. Please try again.",
       };
