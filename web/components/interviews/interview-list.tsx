@@ -165,33 +165,35 @@ function InterviewCard({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-xs text-[#55433d]/70">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3 shrink-0" />
-              {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
-              {interview.duration_minutes && ` · ${interview.duration_minutes} min`}
+          <div className="flex flex-wrap items-start gap-x-3 gap-y-1 text-xs text-[#55433d]/70">
+            <span className="flex items-start gap-1 min-w-0">
+              <Clock className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="min-w-0 wrap-break-word">
+                {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}
+                {interview.duration_minutes && ` · ${interview.duration_minutes} min`}
+              </span>
             </span>
             {interview.meeting_url && (
               <a
                 href={interview.meeting_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[#99462a] hover:underline underline-offset-2 font-medium"
+                className="flex items-center gap-1 text-[#99462a] hover:underline underline-offset-2 font-medium shrink-0"
               >
                 <Video className="h-3 w-3 shrink-0" />
                 Join
               </a>
             )}
             {interview.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3 w-3 shrink-0" />
-                {interview.location}
+              <span className="flex items-start gap-1 min-w-0">
+                <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
+                <span className="min-w-0 wrap-break-word">{interview.location}</span>
               </span>
             )}
             {interview.interviewer_names && interview.interviewer_names.length > 0 && (
-              <span className="flex items-center gap-1">
-                <User className="h-3 w-3 shrink-0" />
-                {interview.interviewer_names.join(", ")}
+              <span className="flex items-start gap-1 min-w-0">
+                <User className="h-3 w-3 shrink-0 mt-0.5" />
+                <span className="min-w-0 wrap-break-word">{interview.interviewer_names.join(", ")}</span>
               </span>
             )}
           </div>
@@ -199,7 +201,7 @@ function InterviewCard({
           {interview.preparation_notes && (
             <div className="mt-2.5 pt-2.5 border-t border-[#dbc1b9]/18">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#55433d]/50 mb-1">Prep Notes</p>
-              <p className="text-xs text-[#55433d]/70 whitespace-pre-wrap leading-relaxed">
+              <p className="text-xs text-[#55433d]/70 whitespace-pre-wrap leading-relaxed wrap-break-word">
                 {interview.preparation_notes}
               </p>
             </div>
@@ -208,7 +210,7 @@ function InterviewCard({
           {interview.post_interview_notes && (
             <div className="mt-2.5 pt-2.5 border-t border-[#dbc1b9]/18">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#55433d]/50 mb-1">Post-Interview Notes</p>
-              <p className="text-xs text-[#55433d]/70 whitespace-pre-wrap leading-relaxed">
+              <p className="text-xs text-[#55433d]/70 whitespace-pre-wrap leading-relaxed wrap-break-word">
                 {interview.post_interview_notes}
               </p>
             </div>

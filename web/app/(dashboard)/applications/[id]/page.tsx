@@ -195,7 +195,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div>
-                <h1 className="db-headline text-2xl sm:text-4xl font-semibold text-[#1a1c1b] leading-tight">
+                <h1 className="db-headline text-2xl sm:text-4xl font-semibold text-[#1a1c1b] leading-tight wrap-break-word">
                   {application.position}
                 </h1>
                 <p className="text-lg sm:text-xl text-[#55433d] mt-1 font-medium">
@@ -245,7 +245,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       <div className="grid gap-6 lg:grid-cols-3 pb-6">
 
         {/* ── Main column ── */}
-        <div className="order-2 lg:order-0 lg:col-span-2 space-y-6">
+        <div className="order-1 lg:order-0 lg:col-span-2 space-y-6">
 
           {/* Application details */}
           <section className="db-content-card">
@@ -283,7 +283,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                   <dt className="text-xs font-bold uppercase tracking-widest text-[#55433d]/60 mb-1.5 flex items-center gap-1.5">
                     <Hash className="h-3.5 w-3.5" /> Job ID
                   </dt>
-                  <dd className="text-[#1a1c1b] font-mono text-sm">{application.job_id}</dd>
+                  <dd className="text-[#1a1c1b] font-mono text-sm break-all">{application.job_id}</dd>
                 </div>
               )}
 
@@ -330,7 +330,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           {application.notes && (
             <section className="db-content-card">
               <h2 className="db-headline text-xl font-semibold text-[#1a1c1b] mb-4">Notes</h2>
-              <p className="text-[#55433d] leading-relaxed whitespace-pre-wrap italic">
+              <p className="text-[#55433d] leading-relaxed whitespace-pre-wrap italic wrap-break-word">
                 &ldquo;{application.notes}&rdquo;
               </p>
             </section>
@@ -344,7 +344,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         </div>
 
         {/* ── Sidebar ── */}
-        <div className="order-1 lg:order-0 space-y-6">
+        <div className="order-2 lg:order-0 space-y-6">
 
           {/* Documents — pre-fetched server-side to avoid loading flash */}
           <DocumentManager

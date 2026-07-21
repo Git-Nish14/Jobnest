@@ -33,7 +33,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Billing portal**: Stripe customer portal for Pro subscribers
 - **Developer Identity**: Skills (name, category, proficiency, years experience), Certifications (issued/expiry dates, credential URL), Education (institution, degree, GPA opt-in, is_current); full CRUD with Zod validation, CSRF origin check, rate limiting, UUID-guarded deletes, and RLS-enforced ownership
 - **Portfolio settings**: claim a username slug (30-day change cooldown enforced server-side; DELETE to remove), toggle public/private, opt-in contact email (defaults off); share URL shown immediately after claiming
-- **Profile avatar upload**: click the avatar to upload a JPEG/PNG/WebP photo (≤ 2 MB); client-side pre-validation + server-side magic-byte verification (prevents content-type spoofing); stored in Supabase Storage at `{userId}/avatar/profile.{ext}` with a 10-year signed URL saved to `user_metadata.avatar_url`; purged on account deletion
+- **Profile avatar upload**: click the avatar to upload a JPEG/PNG/WebP photo (≤ 2 MB); client-side pre-validation + server-side magic-byte verification (prevents content-type spoofing); stored in Supabase Storage at `{userId}/avatar/profile.{ext}` with a 10-year signed URL saved to `user_metadata.avatar_url`; purged on account deletion; **avatar shown in the Navbar** (nav trigger button, dropdown header, and mobile slide-panel footer) — falls back to the email-initial letter when no avatar is set; `user_metadata` is typed as `any` so a runtime `typeof === "string"` guard is applied before the URL reaches `<img src>` on both SSR and client paths
 - **Profile page structure**: four labelled groups - **Profile** (Display Name, About You, NESTAi Context) / **Career** (Work Authorization) / **Preferences** (Notifications) / **Security** (Password, Danger Zone); sidebar shows exact OAuth providers (Google, GitHub, LinkedIn) without text truncation
 
 ### Developer Portfolio & Public Profile (`/p/{username}`)
@@ -227,7 +227,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1473 tests, 93 files) + Playwright E2E (12 spec files) |
+| Testing | Vitest (1506 tests, 94 files) + Playwright E2E (12 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -481,9 +481,9 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1399 tests, 92 files)
+npm test              # Vitest (1506 tests, 94 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 9 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run test:e2e      # Playwright E2E — 12 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 ```
 
 ---
@@ -523,6 +523,7 @@ npm run test:e2e      # Playwright E2E — 9 spec files; authenticated suites re
 | Input validation | UUID format check on all profile DELETE routes; `notes` field capped at 50,000 chars |
 | GitHub token at rest | AES-256-GCM encryption in `lib/security/tokens.ts` keyed from `CSRF_SECRET` |
 | Email disclosure | `user.email` never exposed on public portfolio by default; `show_email` must be explicitly opted in |
+| `has_password` flag | Written to `app_metadata` (admin/service-role–only writable) — users cannot self-set via `supabase.auth.updateUser`; profile page reads from `app_metadata.has_password`, not `user_metadata`; password + flag + timestamp written in a single atomic `updateUserById` call to prevent partial-update window |
 
 ---
 

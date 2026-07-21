@@ -57,7 +57,14 @@ export default async function DashboardLayout({
       <ScrollRestorer />
       <AuthSync />
       <CommandPalette />
-      <Navbar user={{ email: user.email }} />
+      <Navbar user={{
+        email: user.email,
+        // user_metadata is typed as {[key:string]:any}; guard at runtime so a
+        // non-string value never reaches <img src>.
+        avatarUrl: typeof user.user_metadata?.avatar_url === "string"
+          ? user.user_metadata.avatar_url
+          : null,
+      }} />
       {pendingDeletion && (
         <DeletionBanner scheduledDeletionAt={pendingDeletion.scheduled_deletion_at} />
       )}

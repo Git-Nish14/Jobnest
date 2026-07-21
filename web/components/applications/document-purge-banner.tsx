@@ -80,7 +80,7 @@ export function DocumentPurgeBanner({ applicationId, daysLeft, purgeAt }: Props)
         type="button"
         onClick={() => setDismissed(true)}
         aria-label="Dismiss"
-        className="text-red-400 hover:text-red-600 transition-colors shrink-0"
+        className="h-9 w-9 flex items-center justify-center rounded-md text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors shrink-0"
       >
         <X className="h-4 w-4" />
       </button>

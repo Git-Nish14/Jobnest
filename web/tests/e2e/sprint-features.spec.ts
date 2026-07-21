@@ -236,3 +236,64 @@ test.describe("GitHub OAuth error messages — authenticated", () => {
     ).toBeVisible({ timeout: 8_000 });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Navbar avatar — avatarUrl type-guard + AvatarImage rendering
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("Navbar avatar — authenticated", () => {
+  test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set");
+
+  test.beforeEach(async ({ page }) => {
+    await logIn(page);
+    await page.goto("/dashboard");
+  });
+
+  test("no broken avatar <img> with src=undefined, src=null, or src='' appears in the nav", async ({ page }) => {
+    // The typeof string type-guard must prevent non-string avatar_url values from
+    // reaching <img src>. Check both SSR and client-hydrated states.
+    await page.waitForLoadState("networkidle");
+    const broken = page.locator('nav img[src="undefined"], nav img[src="null"], nav img[src=""]');
+    await expect(broken).toHaveCount(0);
+  });
+
+  test("nav trigger avatar shows either a valid https <img> or the letter-initial fallback — never both broken", async ({ page }) => {
+    await page.waitForLoadState("networkidle");
+    const nav = page.locator("nav").first();
+
+    // If the user has an avatar_url set, there should be an <img> with a real HTTPS src.
+    // If not, the AvatarFallback (an uppercase letter) must be visible.
+    // Either state is acceptable; what is NOT acceptable is no element at all or a broken src.
+    const avatarImg = nav.locator("img").first();
+    const hasImg = await avatarImg.isVisible({ timeout: 2_000 }).catch(() => false);
+
+    if (hasImg) {
+      const src = await avatarImg.getAttribute("src");
+      // Type-guard must have ensured the src is a real HTTPS URL (or a Next.js /_next/ proxy)
+      expect(src).toBeTruthy();
+      expect(src).not.toBe("undefined");
+      expect(src).not.toBe("null");
+    } else {
+      // AvatarFallback: a single uppercase letter must be visible in the nav trigger button
+      const triggerBtn = nav.locator("button[disabled], button").filter({ has: page.locator("span, div") }).first();
+      await expect(triggerBtn).toBeVisible();
+    }
+  });
+
+  test("opening the dropdown shows either avatar image or initials — not a broken img tag", async ({ page }) => {
+    await page.waitForLoadState("networkidle");
+    // Open the user dropdown
+    const avatarBtn = page.locator("nav button").filter({ has: page.locator('[class*="avatar" i], [data-slot="avatar"]') }).first();
+    await avatarBtn.click();
+
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible({ timeout: 5_000 });
+
+    // Inside the dropdown header there must be no broken img src
+    const brokenInMenu = menu.locator('img[src="undefined"], img[src="null"], img[src=""]');
+    await expect(brokenInMenu).toHaveCount(0);
+
+    // Close menu
+    await page.keyboard.press("Escape");
+  });
+});

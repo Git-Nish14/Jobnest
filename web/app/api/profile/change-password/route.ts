@@ -88,26 +88,23 @@ export async function POST(request: NextRequest) {
       .update({ used: true })
       .eq("id", otpRecord.id);
 
-    // Update the user's password using admin client
+    // Single admin call: set the password AND stamp the audit flag atomically.
+    // Using app_metadata (not user_metadata) because app_metadata is only
+    // writable via the admin client — users cannot fake has_password via
+    // supabase.auth.updateUser(). password_changed_at goes in user_metadata
+    // (user-visible, non-sensitive) while has_password goes in app_metadata
+    // (authoritative, admin-only). Combining both into one updateUserById call
+    // prevents a partial-update window where the password changed but the flag
+    // was never stamped.
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
       password: newPassword,
+      user_metadata: { password_changed_at: new Date().toISOString() },
+      app_metadata: { has_password: true },
     });
 
     if (updateError) {
       console.error("Failed to update password:", updateError);
       throw ApiError.internal("Failed to update password");
-    }
-
-    // Record the timestamp in user metadata via admin client — the user's
-    // session was invalidated by the password change above, so the regular
-    // supabase.auth.updateUser() call would fail silently.
-    const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      user_metadata: { password_changed_at: new Date().toISOString() },
-    });
-
-    if (metaError) {
-      // Non-fatal — password was changed, just log the metadata failure
-      console.error("Failed to record password_changed_at:", metaError);
     }
 
     return successResponse({

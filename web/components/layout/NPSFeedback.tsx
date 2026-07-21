@@ -108,7 +108,7 @@ export function NPSFeedback() {
       aria-modal="false"
       aria-label="Quick feedback"
       className={cn(
-        "fixed z-50 atelier-bottom-card rounded-2xl overflow-hidden",
+        "fixed z-50 atelier-bottom-card rounded-2xl",
         "animate-in slide-in-from-bottom-4 duration-300",
         /* Mobile: full-width above the tab bar */
         "inset-x-4 bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)]",
@@ -141,8 +141,8 @@ export function NPSFeedback() {
       {!done && (
         <div className="px-4 pb-4 space-y-3">
 
-          {/* Score row — horizontally scrollable so all 11 fit on any screen */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          {/* Score row — wraps to 2 rows on narrow screens */}
+          <div className="flex flex-wrap gap-1.5 justify-center pb-1">
             {Array.from({ length: 11 }, (_, i) => (
               <button
                 key={i}

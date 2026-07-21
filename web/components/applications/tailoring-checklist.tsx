@@ -97,7 +97,7 @@ export function TailoringChecklist({ applicationId, hasJobDescription }: Props) 
             type="button"
             onClick={generate}
             title="Regenerate checklist"
-            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>

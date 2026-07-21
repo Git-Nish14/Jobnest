@@ -188,6 +188,50 @@ describe("GET /api/cron/milestone-celebrations — app milestone", () => {
     expect(mockAppEmail).toHaveBeenCalledWith("user@test.com", expect.any(String), 200, expect.any(Object));
   });
 
+  it("sends the highest earned milestone (200) when user jumps from 0 to 250 apps in one cron cycle", async () => {
+    // earnedMilestone = Math.floor(250/100)*100 = 200; nextAppMilestone = 100
+    // 250 >= 100 ✓ AND 200 > 0 ✓ → email for 200, not 100
+    const users = [makeUser({ app_milestone_last: 0 })];
+    const client = makeAdminClient(users, { totalApps: 250, offerCount: 0, responded: 30, pipeline: 8 });
+    mockAdmin.mockReturnValue(client as never);
+    await GET(validReq());
+    expect(mockAppEmail).toHaveBeenCalledWith("user@test.com", expect.any(String), 200, expect.any(Object));
+    // app_milestone_last written as 200 (the actual earned milestone, not next-in-sequence 100)
+    expect(client._updateUserById).toHaveBeenCalledWith(
+      "uid-1",
+      expect.objectContaining({
+        user_metadata: expect.objectContaining({ app_milestone_last: 200 }),
+      })
+    );
+  });
+
+  it("sends 300 milestone when user jumps from last=200 to 350 apps (skips no intermediate)", async () => {
+    // nextAppMilestone=300; earnedMilestone=300; 350>=300 ✓ AND 300>200 ✓
+    const users = [makeUser({ app_milestone_last: 200 })];
+    const client = makeAdminClient(users, { totalApps: 350, offerCount: 0, responded: 60, pipeline: 12 });
+    mockAdmin.mockReturnValue(client as never);
+    await GET(validReq());
+    expect(mockAppEmail).toHaveBeenCalledWith("user@test.com", expect.any(String), 300, expect.any(Object));
+    expect(client._updateUserById).toHaveBeenCalledWith(
+      "uid-1",
+      expect.objectContaining({
+        user_metadata: expect.objectContaining({ app_milestone_last: 300 }),
+      })
+    );
+  });
+
+  it("does not re-fire when earnedMilestone equals lastAppMilestone (apps deleted and re-added below milestone)", async () => {
+    // User had 300 apps (last=300), deleted 20, now has 285.
+    // earnedMilestone=200; 285 >= 300 (next) is FALSE → correctly skipped by first condition.
+    // This documents that both the firstcondition and the earnedMilestone guard cooperate.
+    const users = [makeUser({ app_milestone_last: 300 })];
+    mockAdmin.mockReturnValue(makeAdminClient(users, { totalApps: 285, offerCount: 0 }) as never);
+    const res = await GET(validReq());
+    const body = await res.json();
+    expect(body.sent).toBe(0);
+    expect(mockAppEmail).not.toHaveBeenCalled();
+  });
+
   it("updates app_milestone_last to the new milestone value", async () => {
     const users = [makeUser({ app_milestone_last: 0 })];
     const client = makeAdminClient(users, { totalApps: 100, offerCount: 0, responded: 10, pipeline: 3 });

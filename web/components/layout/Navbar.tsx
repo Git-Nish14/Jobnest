@@ -28,6 +28,7 @@ import { signOutAction } from "@/actions/auth";
 import {
   Button,
   Avatar,
+  AvatarImage,
   AvatarFallback,
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +41,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NotificationBell } from "./NotificationBell";
 
 interface NavbarProps {
-  user?: { email?: string } | null;
+  user?: { email?: string; avatarUrl?: string | null } | null;
 }
 
 const dashboardLinks = [
@@ -93,6 +94,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(initialUser);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUser?.avatarUrl ?? null);
   const [isPending, startTransition] = useTransition();
 
   const isDashboardPage =
@@ -120,16 +122,22 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setUser({ email: data.user.email });
+        const raw = data.user.user_metadata?.avatar_url;
+        setAvatarUrl(typeof raw === "string" ? raw : null);
       } else {
         setUser(null);
+        setAvatarUrl(null);
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({ email: session.user.email });
+        const raw = session.user.user_metadata?.avatar_url;
+        setAvatarUrl(typeof raw === "string" ? raw : null);
       } else {
         setUser(null);
+        setAvatarUrl(null);
       }
     });
 
@@ -215,6 +223,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                         disabled={isPending}
                       >
                         <Avatar className="h-8 w-8">
+                          {avatarUrl && <AvatarImage src={avatarUrl} alt={userInitial} className="object-cover" />}
                           <AvatarFallback className="atelier-avatar text-sm font-semibold">
                             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : userInitial}
                           </AvatarFallback>
@@ -225,6 +234,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                       <div className="px-3 py-2.5 border-b atelier-dropdown-header">
                         <div className="flex items-center gap-2.5">
                           <Avatar className="h-9 w-9 shrink-0">
+                            {avatarUrl && <AvatarImage src={avatarUrl} alt={userInitial} className="object-cover" />}
                             <AvatarFallback className="atelier-avatar font-semibold text-sm">
                               {userInitial}
                             </AvatarFallback>
@@ -336,6 +346,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 <div className="border-t p-4">
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar className="h-10 w-10 shrink-0">
+                      {avatarUrl && <AvatarImage src={avatarUrl} alt={userInitial} className="object-cover" />}
                       <AvatarFallback className="atelier-avatar font-semibold">
                         {userInitial}
                       </AvatarFallback>

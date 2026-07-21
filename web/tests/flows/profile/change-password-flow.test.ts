@@ -133,6 +133,41 @@ describe("Change password — Step 3: change password", () => {
     const body = await res.json();
     expect(body.error).toMatch(/invalid or expired/i);
   });
+
+  it("calls updateUserById exactly once — password + metadata are atomic, no partial-update window", async () => {
+    const admin = makeAdmin(validOtp);
+    mockAdminClient.mockReturnValue(admin as never);
+    await changePw(makeRequest("/api/profile/change-password", { otp: OTP_CODE, newPassword: "NewPass2!" }) as never);
+    // Exactly one admin round-trip: crashing between two calls would leave has_password unset.
+    expect(admin.auth.admin.updateUserById).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes has_password to app_metadata — not user_metadata — so users cannot self-set it", async () => {
+    const admin = makeAdmin(validOtp);
+    mockAdminClient.mockReturnValue(admin as never);
+    await changePw(makeRequest("/api/profile/change-password", { otp: OTP_CODE, newPassword: "NewPass2!" }) as never);
+    const [, args] = admin.auth.admin.updateUserById.mock.calls[0] as [string, Record<string, unknown>];
+    // has_password must be in app_metadata (admin-only writable)
+    expect((args.app_metadata as Record<string, unknown>)?.has_password).toBe(true);
+    // has_password must NOT appear in user_metadata (user-writable — would be fakeable)
+    expect((args.user_metadata as Record<string, unknown>)?.has_password).toBeUndefined();
+  });
+
+  it("writes password_changed_at to user_metadata (user-visible, non-sensitive)", async () => {
+    const admin = makeAdmin(validOtp);
+    mockAdminClient.mockReturnValue(admin as never);
+    await changePw(makeRequest("/api/profile/change-password", { otp: OTP_CODE, newPassword: "NewPass2!" }) as never);
+    const [, args] = admin.auth.admin.updateUserById.mock.calls[0] as [string, Record<string, unknown>];
+    expect((args.user_metadata as Record<string, unknown>)?.password_changed_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("passes the new password in the same single updateUserById call (atomicity)", async () => {
+    const admin = makeAdmin(validOtp);
+    mockAdminClient.mockReturnValue(admin as never);
+    await changePw(makeRequest("/api/profile/change-password", { otp: OTP_CODE, newPassword: "NewPass2!" }) as never);
+    const [, args] = admin.auth.admin.updateUserById.mock.calls[0] as [string, Record<string, unknown>];
+    expect(args.password).toBe("NewPass2!");
+  });
 });
 
 describe("Change password — full 3-step happy path", () => {

@@ -181,7 +181,7 @@ export function StatusTimeline({ activities, appliedDate, currentStatus }: Props
       {/* ── Mobile: vertical stack ── */}
       <div className="sm:hidden relative space-y-0">
         {/* Vertical guide line */}
-        <div className="absolute left-2.25 top-3 bottom-3 w-px bg-border" />
+        <div className="absolute left-1.5 top-3 bottom-3 w-px bg-border" />
 
         {stages.map((stage, i) => {
           const { dot, ring, badge } = getMeta(stage.status);

@@ -66,10 +66,14 @@ export async function GET(request: NextRequest) {
 
         // ── Application count milestone (every 100) ─────────────────────────
         const lastAppMilestone: number = user.user_metadata?.app_milestone_last ?? 0;
+        // The next unsent milestone is (lastAppMilestone + 100), but cap it
+        // so we always send the highest earned milestone if someone jumped
+        // multiple hundreds in one cron cycle.
+        const earnedMilestone = Math.floor(totalApps / 100) * 100;
         const nextAppMilestone = lastAppMilestone + 100;
 
-        if (totalApps >= nextAppMilestone) {
-          const milestone = Math.floor(totalApps / 100) * 100;
+        if (totalApps >= nextAppMilestone && earnedMilestone > lastAppMilestone) {
+          const milestone = earnedMilestone;
 
           // Fetch extra stats for the email body
           const [
@@ -114,38 +118,36 @@ export async function GET(request: NextRequest) {
         }
 
         // ── Offer count milestone (every 10) ───────────────────────────────
-        if (offerCount >= 10) {
-          const lastOfferMilestone: number = user.user_metadata?.offer_milestone_last ?? 0;
-          const nextOfferMilestone = lastOfferMilestone + 10;
+        const lastOfferMilestone: number = user.user_metadata?.offer_milestone_last ?? 0;
+        const nextOfferMilestone = lastOfferMilestone + 10;
 
-          if (offerCount >= nextOfferMilestone) {
-            const offerMilestone = Math.floor(offerCount / 10) * 10;
+        if (offerCount >= nextOfferMilestone) {
+          const offerMilestone = Math.floor(offerCount / 10) * 10;
 
-            const { success, error: emailErr } = await sendOfferMilestoneEmail(
-              user.email,
-              displayName,
-              offerMilestone,
-              totalApps,
-            );
+          const { success, error: emailErr } = await sendOfferMilestoneEmail(
+            user.email,
+            displayName,
+            offerMilestone,
+            totalApps,
+          );
 
-            if (!success) {
-              results.errors.push(`${user.email} offer-milestone: ${emailErr}`);
-            } else {
-              await createNotification({
-                userId,
-                type: "system",
-                title: `🏆 ${offerMilestone} offers received!`,
-                body: `${offerMilestone} companies have made you an offer. That's extraordinary — you're being chosen!`,
-                link: "/salary",
-                sourceType: "offer_milestone",
-                sourceId: String(offerMilestone),
-              });
+          if (!success) {
+            results.errors.push(`${user.email} offer-milestone: ${emailErr}`);
+          } else {
+            await createNotification({
+              userId,
+              type: "system",
+              title: `🏆 ${offerMilestone} offers received!`,
+              body: `${offerMilestone} companies have made you an offer. That's extraordinary — you're being chosen!`,
+              link: "/salary",
+              sourceType: "offer_milestone",
+              sourceId: String(offerMilestone),
+            });
 
-              // Stage update — written as one batch at the end of this user's loop
-              metadataUpdates.offer_milestone_last = offerMilestone;
-              emailsSent++;
-              console.log(`[cron/milestone] offer milestone ${offerMilestone} → ${user.email}`);
-            }
+            // Stage update — written as one batch at the end of this user's loop
+            metadataUpdates.offer_milestone_last = offerMilestone;
+            emailsSent++;
+            console.log(`[cron/milestone] offer milestone ${offerMilestone} → ${user.email}`);
           }
         }
 

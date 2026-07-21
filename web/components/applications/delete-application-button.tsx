@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -41,31 +41,33 @@ export function DeleteApplicationButton({ applicationId }: Props) {
 
   if (deleting) {
     return (
-      <button disabled className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground opacity-60">
+      <button disabled className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground opacity-60">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Deleting…
+        <span className="hidden sm:inline">Deleting…</span>
       </button>
     );
   }
 
   if (confirming) {
     return (
-      <div className="hidden sm:flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Are you sure?</span>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <span className="hidden sm:inline text-xs text-muted-foreground">Are you sure?</span>
         <button
           type="button"
           onClick={handleConfirm}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-destructive text-white hover:bg-destructive/90 transition-colors"
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-semibold bg-destructive text-white hover:bg-destructive/90 transition-colors"
         >
           <Trash2 className="h-4 w-4" />
-          Yes, delete
+          <span className="hidden sm:inline">Yes, delete</span>
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
-          className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          aria-label="Cancel delete"
+          className="inline-flex items-center justify-center h-8 w-8 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
-          Cancel
+          <X className="h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">Cancel</span>
         </button>
       </div>
     );
@@ -75,10 +77,11 @@ export function DeleteApplicationButton({ applicationId }: Props) {
     <button
       type="button"
       onClick={handleFirstClick}
-      className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors"
+      aria-label="Delete application"
+      className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors"
     >
       <Trash2 className="h-4 w-4" />
-      Delete
+      <span className="hidden sm:inline">Delete</span>
     </button>
   );
 }

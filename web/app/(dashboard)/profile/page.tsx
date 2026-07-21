@@ -31,9 +31,14 @@ export default async function ProfilePage() {
   }
 
   const notificationPrefs = user.user_metadata?.notification_prefs ?? {};
-  // user has a password only if they have an email/password identity
+  // user has a password if they have an email/password identity OR if
+  // has_password was stamped in app_metadata by the change-password admin route.
+  // app_metadata is only writable via the service-role client, so this flag
+  // cannot be self-set by the user (unlike user_metadata).
   const identities: { provider: string }[] = user.identities ?? [];
-  const hasPassword = identities.some((id) => id.provider === "email");
+  const hasPassword =
+    identities.some((id) => id.provider === "email") ||
+    user.app_metadata?.has_password === true;
   // Collect distinct OAuth providers (google, github, etc.)
   const oauthProviders = [...new Set(
     identities
