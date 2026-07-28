@@ -43,7 +43,7 @@
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^6.1.200",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react-dom": "^19.2.8",
     "react-hook-form": "^7.82.0",
     "sonner": "^2.0.7",
     "stripe": "^22.3.2",
