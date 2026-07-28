@@ -61,7 +61,7 @@ source               — Where the job was found (pick one): ${sources}
 ats_provider         — Application portal if identifiable (pick one): ${providers}
 requires_sponsorship — true if the posting says it does NOT sponsor visas; false otherwise
 company_tier         — Company prestige (pick one): ${tiers} (or "" if unsure)
-notes                — 2–3 sentences: why I am a strong fit based on my resume vs. the JD
+notes                — Any extra answers you wrote for this application (e.g. "Why do you want to work here?", screening questions, cover letter text). Also include 1–2 sentences on why you are a strong fit.
 job_description      — Full job description text from the posting
 
 MY RESUME

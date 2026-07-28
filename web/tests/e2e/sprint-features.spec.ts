@@ -297,3 +297,56 @@ test.describe("Navbar avatar — authenticated", () => {
     await page.keyboard.press("Escape");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Logout scope dialog — authenticated
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("Logout scope dialog — authenticated", () => {
+  test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set");
+
+  /** Open the avatar dropdown and click "Sign out" to open the scope dialog. */
+  async function openLogoutDialog(page: Page) {
+    await page.goto("/dashboard");
+    await page.waitForLoadState("networkidle");
+    // Click the avatar / trigger button in the nav
+    const trigger = page.locator("nav").first()
+      .locator("button")
+      .filter({ has: page.locator('[class*="avatar" i], [data-slot="avatar"]') })
+      .first();
+    await trigger.click();
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible({ timeout: 5_000 });
+    await menu.getByRole("menuitem", { name: /sign out/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5_000 });
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await logIn(page);
+  });
+
+  test("clicking Sign out in the avatar dropdown opens a scope dialog (not an immediate redirect)", async ({ page }) => {
+    await openLogoutDialog(page);
+    // Page must still be on dashboard — dialog opened instead of signing out immediately
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("logout dialog shows 'Sign out of all devices' and 'This device only' options", async ({ page }) => {
+    await openLogoutDialog(page);
+    await expect(page.getByRole("button", { name: /sign out of all devices/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /this device only/i })).toBeVisible();
+  });
+
+  test("Cancel closes the dialog without signing out — user stays on dashboard", async ({ page }) => {
+    await openLogoutDialog(page);
+    await page.getByRole("button", { name: /cancel/i }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 3_000 });
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("'This device only' completes sign-out and redirects to /login", async ({ page }) => {
+    await openLogoutDialog(page);
+    await page.getByRole("button", { name: /this device only/i }).click();
+    await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
+  });
+});

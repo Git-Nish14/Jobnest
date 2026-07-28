@@ -153,7 +153,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="type">Interview Type</Label>
               <Select
@@ -192,7 +192,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="scheduled_at">Date & Time *</Label>
               <Input

@@ -15,6 +15,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Google, GitHub & LinkedIn OAuth**: `/auth/callback` exchanges code and sets session; `linkedin_oidc` (OIDC provider, not legacy OAuth 2.0); callback route is provider-agnostic (`exchangeCodeForSession`)
 - **Age verification + Terms acceptance**: required at signup before email or OAuth proceeds; applies equally to all three OAuth providers
 - **Stay signed in 30 days**: `sb_rm=1` persistent; unchecked = session-only via `sessionStorage`; `__Host-` cookie prefix in production
+- **Logout scope dialog**: clicking "Sign out" opens a two-option modal — "This device only" (`scope: "local"`) clears only the current session while other devices stay signed in; "Sign out of all devices" (`scope: "global"`) revokes the refresh token server-side ending every session; server action runtime-validates the scope string so crafted requests cannot pass the undocumented `"others"` scope to lock the user off all devices while keeping an attacker's session active
 - **Cross-tab logout sync**: `AuthSync` listens to `onAuthStateChange`
 - **Auto-redirect**: authenticated users bounce from auth pages to `/dashboard`
 - Protected routes via Next.js 16 `proxy.ts` + Supabase SSR session refresh
@@ -27,7 +28,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Display name, About Me (bio), NESTAi Context (AI-specific instructions)
 - **Work Authorization**: US visa status dropdown (8 options); shown as sidebar badge; injected into NESTAi system prompt
 - **Notifications**: toggle for overdue reminders, weekly digest, re-engagement emails
-- **Change / Set password**: 3-step OTP-verified; OAuth users can add a password
+- **Change / Set password**: 3-step OTP-verified; OAuth users can add a password; profile page now fetches live `app_metadata` via `admin.getUserById` on every load so `has_password` always reflects the real database state — not the stale JWT-cached value — fixing the "No password set" false-positive for users who had set a password in the same session
 - **Delete account**: OTP-confirmed soft delete, 30-day grace period
 - **GDPR data export**: all personal data as dated JSON (rate-limited 3/day)
 - **Billing portal**: Stripe customer portal for Pro subscribers
@@ -75,7 +76,9 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Full CRUD with status: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, **Ghosted**
 - **Job description field**: paste full JD to power ATS scan + NESTAi tailoring
 - **Import from job posting**: paste a URL or raw JD text; Groq extracts company, role, location, salary range, and description and auto-fills the form; Greenhouse and Lever public APIs called first for reliable structured data; JSON-LD (`@type: JobPosting`) extracted before raw HTML; LinkedIn/Indeed/Glassdoor detected early with a specific paste-text message; URL fetch is SSRF-protected (DNS pre-resolution + post-redirect IP check)
-- **AI JSON autofill**: copy a structured prompt from the new application form, paste it into any external AI (ChatGPT, Claude, Gemini) with your resume and the job posting, paste the returned JSON back, and all 13 fields auto-fill instantly; client-side only (no API key or extra service required); parser strips null bytes, validates real calendar dates, normalises URLs to canonical `href` form, and rejects dangerous schemes (`javascript:`, `data:`, etc.); invalid enum values produce non-blocking inline warnings with the modal staying open for review
+- **AI JSON autofill**: copy a structured prompt from the new application form, paste it into any external AI (ChatGPT, Claude, Gemini) with your resume and the job posting, paste the returned JSON back, and all 13 fields auto-fill instantly; the `notes` field prompt now explicitly instructs the AI to include any extra answers written during the application (screening questions, "Why do you want to work here?", cover letter text) in addition to a fit summary; client-side only (no API key or extra service required); parser strips null bytes, validates real calendar dates, normalises URLs to canonical `href` form, and rejects dangerous schemes (`javascript:`, `data:`, etc.); invalid enum values produce non-blocking inline warnings with the modal staying open for review
+- **ATS provider list expanded**: 11 new providers added — Paylocity, Paycor, UKG Pro, Workable, JazzHR, Breezy HR, Bullhorn, Cornerstone OnDemand, HireVue, Freshteam, Zoho Recruit (26 providers total); all validated in the application Zod schema and included in the AI JSON autofill prompt enum
+- **Application detail — notes + job description visible**: notes and the full job description are now rendered on the application detail page, not just used for backend AI features; notes remain italic-quoted, job description uses `whitespace-pre-wrap` for line-break fidelity
 - **Source tracking**: 11 sources (LinkedIn, Indeed, Referral, Company Website...); each source badge uses the platform's official brand colour (`SOURCE_COLORS` in `config/constants.ts`) with dark-mode variants
 - **Application completeness score**: 10-field ring on list cards (visual only); full interactive checklist on detail page (auto-refreshes on tab focus); "Resume uploaded" and "Cover letter" fields check both the legacy `resume_path` field and `application_documents` rows so new applications (which no longer write to the legacy path) score correctly
 - **ATS score badge**: persisted to DB after each scan; shown in bottom meta row
@@ -115,6 +118,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Shareable links (1d/7d/30d expiry) with view count analytics
 - Magic-byte server-side content validation on all uploads
 - **ATS Scan button** on each compatible document card directs to `/ats?doc_id=`
+- **Document card actions collapsed into ⋯ menu on narrow screens**: secondary actions (preview, PDF annotate, cover-letter variable preview) are grouped under a `MoreHorizontal` dropdown trigger; primary actions (download, share, delete) remain always-visible inline; frees the filename label from being reduced to a few characters in the 1/3-width sidebar at 1024px
 
 ### Application Documents (per-application)
 - Each application has its own document section on the detail page
@@ -227,7 +231,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1506 tests, 94 files) + Playwright E2E (12 spec files) |
+| Testing | Vitest (1529 tests, 95 files) + Playwright E2E (12 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 

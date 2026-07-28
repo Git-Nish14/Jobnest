@@ -31,6 +31,22 @@ export default async function ProfilePage() {
   }
 
   const notificationPrefs = user.user_metadata?.notification_prefs ?? {};
+
+  // Fetch live app_metadata via admin client because the JWT access token caches
+  // app_metadata at token-issue time — updateUserById stamps has_password into
+  // app_metadata but the existing token won't reflect it until the next refresh.
+  // getUserById always reads from the database, not the JWT.
+  const supabaseAdmin = createAdminClient();
+  let liveAppMetadata: Record<string, unknown> = user.app_metadata ?? {};
+  try {
+    const { data: { user: freshUser } } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    if (freshUser) liveAppMetadata = freshUser.app_metadata ?? {};
+  } catch (err) {
+    // Non-critical — fall back to JWT app_metadata, but log so operators know
+    // the admin API is failing (this silently miscalculates has_password state).
+    console.error("[profile] admin.getUserById failed, falling back to JWT app_metadata:", err instanceof Error ? err.message : err);
+  }
+
   // user has a password if they have an email/password identity OR if
   // has_password was stamped in app_metadata by the change-password admin route.
   // app_metadata is only writable via the service-role client, so this flag
@@ -38,7 +54,7 @@ export default async function ProfilePage() {
   const identities: { provider: string }[] = user.identities ?? [];
   const hasPassword =
     identities.some((id) => id.provider === "email") ||
-    user.app_metadata?.has_password === true;
+    liveAppMetadata?.has_password === true;
   // Collect distinct OAuth providers (google, github, etc.)
   const oauthProviders = [...new Set(
     identities

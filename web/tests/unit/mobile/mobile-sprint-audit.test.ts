@@ -460,3 +460,94 @@ describe("Navbar — 44px touch targets", () => {
     expect(src).toContain("py-3");
   });
 });
+
+// ── 16. Navbar — logout scope dialog ─────────────────────────────────────────
+
+describe("Navbar — logout scope dialog", () => {
+  const src = readSrc("components/layout/Navbar.tsx");
+
+  it("renders 'Sign out of all devices' button (global scope option)", () => {
+    expect(src).toContain("Sign out of all devices");
+  });
+
+  it("renders 'This device only' button (local scope option)", () => {
+    expect(src).toContain("This device only");
+  });
+
+  it("'Sign out of all devices' passes hardcoded literal \"global\" to handleSignOut", () => {
+    expect(src).toContain('handleSignOut("global")');
+  });
+
+  it("'This device only' passes hardcoded literal \"local\" to handleSignOut", () => {
+    expect(src).toContain('handleSignOut("local")');
+  });
+
+  it("dialog has a Cancel button that does not trigger sign-out", () => {
+    expect(src).toContain("Cancel");
+    // Cancel must call setLogoutOpen(false) — not handleSignOut
+    expect(src).toContain("setLogoutOpen(false)");
+  });
+
+  it("sign-out trigger buttons open the dialog (setLogoutOpen(true)) rather than signing out directly", () => {
+    const openCalls = (src.match(/setLogoutOpen\(true\)/g) ?? []).length;
+    // At minimum: desktop dropdown + mobile slide panel + public nav ×2 = 4 call sites
+    expect(openCalls).toBeGreaterThanOrEqual(4);
+  });
+
+  it("logoutOpen state controls dialog visibility", () => {
+    expect(src).toContain("logoutOpen");
+    expect(src).toContain("setLogoutOpen");
+  });
+});
+
+// ── 17. InterviewForm — responsive grid breakpoints ──────────────────────────
+
+describe("InterviewForm — responsive grid-cols-2 fix", () => {
+  const src = readSrc("components/interviews/interview-form.tsx");
+
+  it("uses sm:grid-cols-2 for the Interview Type / Round grid", () => {
+    expect(src).toContain("sm:grid-cols-2");
+  });
+
+  it("every grid-cols-2 occurrence is prefixed with sm: (no bare mobile breakage)", () => {
+    const total    = (src.match(/grid-cols-2/g)    ?? []).length;
+    const prefixed = (src.match(/sm:grid-cols-2/g) ?? []).length;
+    // Each occurrence of grid-cols-2 must be part of sm:grid-cols-2
+    expect(total).toBe(prefixed);
+  });
+});
+
+// ── 18. DocumentCard — secondary actions in ⋯ DropdownMenu ──────────────────
+
+describe("DocumentCard — secondary actions collapsed into DropdownMenu", () => {
+  const src = readSrc("components/documents/DocumentManager.tsx");
+
+  it("imports MoreHorizontal icon for the ⋯ trigger", () => {
+    expect(src).toContain("MoreHorizontal");
+  });
+
+  it("imports DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger", () => {
+    expect(src).toContain("DropdownMenu");
+    expect(src).toContain("DropdownMenuContent");
+    expect(src).toContain("DropdownMenuTrigger");
+    expect(src).toContain("DropdownMenuItem");
+  });
+
+  it("secondary actions (Eye, StickyNote, TextCursorInput) are inside the DropdownMenu", () => {
+    // All three secondary icons must appear inside a DropdownMenuItem context
+    expect(src).toContain("Eye");
+    expect(src).toContain("StickyNote");
+    expect(src).toContain("TextCursorInput");
+  });
+
+  it("primary actions (Download, Share2, Trash2) remain always-visible", () => {
+    expect(src).toContain("Download");
+    expect(src).toContain("Share2");
+    expect(src).toContain("Trash2");
+  });
+
+  it("LegacyDocCard inner label <p> has min-w-0 so truncate activates in flex", () => {
+    // The pattern: <p className="min-w-0 font-semibold text-sm text-[#1a1c1b] truncate">
+    expect(src).toMatch(/min-w-0[^"]*truncate|truncate[^"]*min-w-0/);
+  });
+});

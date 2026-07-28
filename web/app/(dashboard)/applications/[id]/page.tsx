@@ -245,7 +245,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       <div className="grid gap-6 lg:grid-cols-3 pb-6">
 
         {/* ── Main column ── */}
-        <div className="order-1 lg:order-0 lg:col-span-2 space-y-6">
+        <div className="order-1 lg:order-0 lg:col-span-2 space-y-6 min-w-0">
 
           {/* Application details */}
           <section className="db-content-card">
@@ -336,6 +336,16 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             </section>
           )}
 
+          {/* Job Description */}
+          {application.job_description && (
+            <section className="db-content-card">
+              <h2 className="db-headline text-xl font-semibold text-[#1a1c1b] mb-4">Job Description</h2>
+              <div className="text-[#55433d] leading-relaxed whitespace-pre-wrap text-sm wrap-break-word">
+                {application.job_description}
+              </div>
+            </section>
+          )}
+
           {/* Interviews */}
           <InterviewList
             applicationId={id}
@@ -344,7 +354,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         </div>
 
         {/* ── Sidebar ── */}
-        <div className="order-2 lg:order-0 space-y-6">
+        <div className="order-2 lg:order-0 space-y-6 min-w-0">
 
           {/* Documents — pre-fetched server-side to avoid loading flash */}
           <DocumentManager

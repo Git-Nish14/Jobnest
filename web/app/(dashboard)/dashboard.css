@@ -779,9 +779,15 @@ html.page-nestai .nestai-input-area {
 .db-content-card {
   background-color: var(--atelier-surface);
   border-radius: 0.75rem;
-  padding: 1.5rem;
+  padding: 1rem;
   border: 1px solid rgba(219, 193, 185, 0.12);
   box-shadow: 0 2px 12px rgba(26, 28, 27, 0.03);
+  overflow-x: hidden;
+}
+@media (min-width: 640px) {
+  .db-content-card {
+    padding: 1.5rem;
+  }
 }
 
 /* ── Floating action button ────────────────────────────────────────────────── */

@@ -35,6 +35,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -96,6 +102,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   const [user, setUser] = useState(initialUser);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUser?.avatarUrl ?? null);
   const [isPending, startTransition] = useTransition();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const isDashboardPage =
     pathname.startsWith("/dashboard") ||
@@ -163,10 +170,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   const isAuthenticated = !!user;
 
-  const handleSignOut = () => {
+  const handleSignOut = (scope: "local" | "global") => {
+    setLogoutOpen(false);
     sessionStorage.removeItem("jobnest_session");
     startTransition(async () => {
-      await signOutAction();
+      await signOutAction(scope);
     });
   };
 
@@ -262,7 +270,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                       <DropdownMenuSeparator />
                       <div className="p-1">
                         <DropdownMenuItem
-                          onClick={handleSignOut}
+                          onClick={() => setLogoutOpen(true)}
                           disabled={isPending}
                           className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
                         >
@@ -359,7 +367,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   <Button
                     variant="outline"
                     className="w-full justify-center gap-2"
-                    onClick={handleSignOut}
+                    onClick={() => setLogoutOpen(true)}
                     disabled={isPending}
                   >
                     {isPending
@@ -372,6 +380,45 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             </div>
           </>
         )}
+
+        {/* ── Logout scope dialog ── */}
+        <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Sign out</DialogTitle>
+              <DialogDescription>
+                Sign out of this device only, or end all active sessions across every device.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={() => handleSignOut("global")}
+                disabled={isPending}
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogOut className="h-4 w-4 mr-2" />}
+                Sign out of all devices
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSignOut("local")}
+                disabled={isPending}
+              >
+                This device only
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setLogoutOpen(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -397,7 +444,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSignOut}
+                onClick={() => setLogoutOpen(true)}
                 disabled={isPending}
                 className="gap-2"
               >
@@ -444,7 +491,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               <Button
                 variant="outline"
                 className="w-full gap-2"
-                onClick={handleSignOut}
+                onClick={() => setLogoutOpen(true)}
                 disabled={isPending}
               >
                 {isPending
@@ -465,6 +512,45 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           )}
         </div>
       )}
+
+      {/* ── Logout scope dialog (public navbar) ── */}
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sign out</DialogTitle>
+            <DialogDescription>
+              Sign out of this device only, or end all active sessions across every device.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => handleSignOut("global")}
+              disabled={isPending}
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogOut className="h-4 w-4 mr-2" />}
+              Sign out of all devices
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => handleSignOut("local")}
+              disabled={isPending}
+            >
+              This device only
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setLogoutOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 }

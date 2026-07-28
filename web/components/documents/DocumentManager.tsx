@@ -7,8 +7,14 @@ import {
   FileText, Upload, X, Download, Eye, Trash2, RotateCcw,
   Clock, Share2, Link2, CheckCircle2, Loader2,
   ChevronDown, ChevronUp, Plus, StickyNote, TextCursorInput,
-  CloudDownload, HardDriveDownload,
+  CloudDownload, HardDriveDownload, MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui";
 import { DiffDialog } from "./DiffDialog";
 import { DocPreviewDialog, mimeColour, MimeIcon } from "./DocPreviewDialog";
 import { AnnotationDialog } from "./AnnotationDialog";
@@ -572,48 +578,46 @@ function DocumentCard({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {signedUrl && (
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(true)}
-                className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
-                title="Preview"
-              >
-                <Eye className="h-4 w-4" />
-              </button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {/* ⋯ dropdown: secondary actions (preview, annotate, cover-letter vars) */}
+            {(signedUrl || isCoverLike || isPdf) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
+                    title="More actions"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-40">
+                  {signedUrl && (
+                    <DropdownMenuItem onClick={() => setPreviewOpen(true)}>
+                      <Eye className="h-4 w-4 mr-2" /> Preview
+                    </DropdownMenuItem>
+                  )}
+                  {isCoverLike && (
+                    <DropdownMenuItem onClick={() => setClPreviewOpen(true)}>
+                      <TextCursorInput className="h-4 w-4 mr-2" /> Preview with variables
+                    </DropdownMenuItem>
+                  )}
+                  {isPdf && (
+                    <DropdownMenuItem onClick={() => setAnnotateOpen(true)}>
+                      <StickyNote className="h-4 w-4 mr-2" /> Annotate
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
-            {/* Cover letter variable preview */}
-            {isCoverLike && (
-              <button
-                type="button"
-                onClick={() => setClPreviewOpen(true)}
-                className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
-                title="Preview with variables filled"
-              >
-                <TextCursorInput className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Annotate — PDF only */}
-            {isPdf && (
-              <button
-                type="button"
-                onClick={() => setAnnotateOpen(true)}
-                className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] hover:text-[#99462a] transition-colors"
-                title="Annotate — add sticky notes"
-              >
-                <StickyNote className="h-4 w-4" />
-              </button>
-            )}
-
+            {/* Primary actions: always visible */}
             {signedUrl && (
               <a
                 href={signedUrl}
                 download
                 title="Download"
-                className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
+                className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
               >
                 <Download className="h-4 w-4" />
                 <span className="sr-only">Download</span>
@@ -622,7 +626,7 @@ function DocumentCard({
             <button
               type="button"
               onClick={() => setShareOpen(true)}
-              className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
+              className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors"
               title="Share"
             >
               <Share2 className="h-4 w-4" />
@@ -630,7 +634,7 @@ function DocumentCard({
             <button
               type="button"
               onClick={() => { if (confirm("Delete this document? This cannot be undone.")) onDelete(doc.id); }}
-              className="rounded-md p-1.5 hover:bg-red-50 text-red-500 transition-colors"
+              className="rounded-md p-1 sm:p-1.5 hover:bg-red-50 text-red-500 transition-colors"
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -760,15 +764,15 @@ function LegacyDocCard({ doc }: { doc: LegacyDoc }) {
             <MimeIcon mimeType={doc.mimeType} className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-sm text-[#1a1c1b] truncate">{doc.label}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="min-w-0 font-semibold text-sm text-[#1a1c1b] truncate">{doc.label}</p>
               <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Legacy</span>
             </div>
             <p className="text-xs text-[#55433d]/70">{ext.toUpperCase()} · Upload new version to replace</p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             {canPreview && (
-              <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors" title="Preview">
+              <button type="button" onClick={() => setPreviewOpen(true)} className="hidden sm:inline-flex rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors items-center justify-center" title="Preview">
                 <Eye className="h-4 w-4" />
               </button>
             )}
@@ -776,7 +780,7 @@ function LegacyDocCard({ doc }: { doc: LegacyDoc }) {
               href={doc.signedUrl}
               download
               title={`Download ${doc.label}`}
-              className="rounded-md p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
+              className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
             >
               <Download className="h-4 w-4" />
               <span className="sr-only">Download {doc.label}</span>
