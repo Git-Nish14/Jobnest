@@ -316,6 +316,11 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                   ATS {application.ats_score}%
                 </Link>
               )}
+              {application.has_referral && (
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300 shrink-0">
+                  Referred
+                </span>
+              )}
               {/* Spacer pushes ring to right */}
               <span className="flex-1" />
               <CompletenessRing application={application} size={30} simple />

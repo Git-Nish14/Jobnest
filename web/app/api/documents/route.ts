@@ -38,7 +38,8 @@ function parsePath(path: string): {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const path = searchParams.get("path");
+    const path       = searchParams.get("path");
+    const forceDownload = searchParams.get("dl") === "1";
 
     if (!path) throw ApiError.badRequest("Path is required");
 
@@ -99,9 +100,10 @@ export async function GET(request: NextRequest) {
     };
     const contentType = MIME[ext] ?? "application/octet-stream";
 
-    // For PDF and images we want inline display in the preview iframe/img;
-    // for everything else we force a download attachment.
-    const inline = ext === "pdf" || ext === "png" || ext === "jpg" || ext === "jpeg";
+    // For PDF and images: inline for preview; attachment when ?dl=1 (direct download).
+    // For everything else: always attachment.
+    const canInline = ext === "pdf" || ext === "png" || ext === "jpg" || ext === "jpeg";
+    const inline = canInline && !forceDownload;
     const disposition = inline
       ? `inline; filename="${parsed.filename.replace(/"/g, "")}"`
       : `attachment; filename="${parsed.filename.replace(/"/g, "")}"`;

@@ -60,11 +60,15 @@ export interface Contact {
   application_id: string | null;
   name: string;
   title: string | null;
+  company: string | null;
+  school: string | null;
   email: string | null;
   phone: string | null;
   linkedin_url: string | null;
   notes: string | null;
   is_primary: boolean;
+  outreach_status: string | null;
+  last_contacted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -73,11 +77,14 @@ export interface ContactInsert {
   application_id?: string | null;
   name: string;
   title?: string | null;
+  company?: string | null;
+  school?: string | null;
   email?: string | null;
   phone?: string | null;
   linkedin_url?: string | null;
   notes?: string | null;
   is_primary?: boolean;
+  outreach_status?: string | null;
 }
 
 export type ContactUpdate = Partial<ContactInsert>;

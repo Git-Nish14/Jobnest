@@ -28,6 +28,11 @@ import { mimeToLabel } from "@/lib/utils/storage";
 import { substituteVariables, extractVariableKeys } from "@/lib/utils/template-helpers";
 import { formatDate, formatMonthYear } from "@/lib/utils/date";
 
+// Proxy download URL — same-origin, forces Content-Disposition: attachment
+function downloadUrl(storagePath: string) {
+  return `/api/documents?path=${encodeURIComponent(storagePath)}&dl=1`;
+}
+
 // ── Legacy doc type (pre-migration docs stored on job_applications) ──────────
 export interface LegacyDoc {
   label: string;
@@ -612,17 +617,15 @@ function DocumentCard({
             )}
 
             {/* Primary actions: always visible */}
-            {signedUrl && (
-              <a
-                href={signedUrl}
-                download
-                title="Download"
-                className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
-              >
-                <Download className="h-4 w-4" />
-                <span className="sr-only">Download</span>
-              </a>
-            )}
+            <a
+              href={downloadUrl(doc.storage_path)}
+              download={doc.original_name ?? doc.label ?? "document"}
+              title="Download"
+              className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
+            >
+              <Download className="h-4 w-4" />
+              <span className="sr-only">Download</span>
+            </a>
             <button
               type="button"
               onClick={() => setShareOpen(true)}
@@ -777,8 +780,8 @@ function LegacyDocCard({ doc }: { doc: LegacyDoc }) {
               </button>
             )}
             <a
-              href={doc.signedUrl}
-              download
+              href={downloadUrl(doc.path)}
+              download={doc.label}
               title={`Download ${doc.label}`}
               className="rounded-md p-1 sm:p-1.5 hover:bg-[#f4f3f1] text-[#55433d] transition-colors inline-flex items-center justify-center"
             >

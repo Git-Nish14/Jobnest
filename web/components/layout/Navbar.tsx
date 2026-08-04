@@ -22,6 +22,7 @@ import {
   Sparkles,
   UserCircle,
   Trophy,
+  Network,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/actions/auth";
@@ -56,6 +57,7 @@ const dashboardLinks = [
   { href: "/interviews", label: "Interviews", icon: Calendar },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/contacts", label: "Contacts", icon: Users },
+  { href: "/networking", label: "Networking", icon: Network },
   { href: "/templates", label: "Templates", icon: Mail },
   { href: "/salary", label: "Salary", icon: DollarSign },
   { href: "/ats", label: "ATS Scan", icon: ScanSearch },
@@ -118,6 +120,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     pathname.startsWith("/documents") ||
     pathname.startsWith("/ats") ||
     pathname.startsWith("/prep") ||
+    pathname.startsWith("/networking") ||
     pathname.startsWith("/onboarding");
 
   useEffect(() => {

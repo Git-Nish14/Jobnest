@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { secureUrlField } from "./application";
+import { OUTREACH_STATUSES } from "@/types/networking";
 
 // Interview types and statuses
 export const INTERVIEW_TYPES = [
@@ -106,6 +107,16 @@ export const contactFormSchema = z.object({
     .max(100, "Title is too long")
     .optional()
     .or(z.literal("")),
+  company: z
+    .string()
+    .max(255, "Company name is too long")
+    .optional()
+    .or(z.literal("")),
+  school: z
+    .string()
+    .max(255, "School name is too long")
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .email("Please enter a valid email")
@@ -124,6 +135,7 @@ export const contactFormSchema = z.object({
     .optional()
     .or(z.literal("")),
   is_primary: z.boolean(),
+  outreach_status: z.enum(OUTREACH_STATUSES).optional(),
 });
 
 // Email template form schema

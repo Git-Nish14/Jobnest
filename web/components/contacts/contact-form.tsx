@@ -20,8 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui";
 import type { Contact } from "@/types";
+import { OUTREACH_STATUSES, type OutreachStatus } from "@/types/networking";
 
 interface ContactFormProps {
   applicationId?: string;
@@ -46,15 +52,21 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
     defaultValues: {
       name: contact?.name || "",
       title: contact?.title || "",
+      company: contact?.company || "",
+      school: contact?.school || "",
       email: contact?.email || "",
       phone: contact?.phone || "",
       linkedin_url: contact?.linkedin_url || "",
       notes: contact?.notes || "",
       is_primary: contact?.is_primary || false,
+      outreach_status: (OUTREACH_STATUSES as readonly string[]).includes(contact?.outreach_status ?? "")
+        ? (contact!.outreach_status as OutreachStatus)
+        : "Not Contacted",
     },
   });
 
   const isPrimary = watch("is_primary");
+  const outreachStatus = watch("outreach_status");
 
   const onSubmit = async (data: ContactFormData) => {
     if (submittingRef.current) return;
@@ -76,11 +88,14 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
         application_id: applicationId || null,
         name: data.name,
         title: data.title || null,
+        company: data.company || null,
+        school: data.school || null,
         email: data.email || null,
         phone: data.phone || null,
         linkedin_url: data.linkedin_url || null,
         notes: data.notes || null,
         is_primary: data.is_primary,
+        outreach_status: data.outreach_status ?? "Not Contacted",
       };
 
       if (contact) {
@@ -101,11 +116,14 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       reset({
         name: "",
         title: "",
+        company: "",
+        school: "",
         email: "",
         phone: "",
         linkedin_url: "",
         notes: "",
         is_primary: false,
+        outreach_status: "Not Contacted",
       });
       router.refresh();
       onSuccess?.();
@@ -122,11 +140,14 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
       reset({
         name: "",
         title: "",
+        company: "",
+        school: "",
         email: "",
         phone: "",
         linkedin_url: "",
         notes: "",
         is_primary: false,
+        outreach_status: "Not Contacted",
       });
     }
   };
@@ -174,6 +195,34 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
               />
               {errors.title && (
                 <p className="text-sm text-destructive">{errors.title.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">Company</Label>
+              <Input
+                id="company"
+                placeholder="Acme Corp"
+                {...register("company")}
+                className={errors.company ? "border-destructive text-[16px] sm:text-sm" : "text-[16px] sm:text-sm"}
+              />
+              {errors.company && (
+                <p className="text-sm text-destructive">{errors.company.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="school">School <span className="text-muted-foreground font-normal text-xs">(alumni)</span></Label>
+              <Input
+                id="school"
+                placeholder="MIT, Georgia Tech…"
+                {...register("school")}
+                className={errors.school ? "border-destructive text-[16px] sm:text-sm" : "text-[16px] sm:text-sm"}
+              />
+              {errors.school && (
+                <p className="text-sm text-destructive">{errors.school.message}</p>
               )}
             </div>
           </div>
@@ -234,6 +283,23 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
             {errors.notes && (
               <p className="text-sm text-destructive">{errors.notes.message}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="outreach_status">Outreach Status</Label>
+            <Select
+              value={outreachStatus ?? "Not Contacted"}
+              onValueChange={(v) => setValue("outreach_status", v as OutreachStatus)}
+            >
+              <SelectTrigger id="outreach_status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OUTREACH_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2">

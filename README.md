@@ -134,8 +134,35 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - Status: Scheduled, Completed, Cancelled, Rescheduled
 
 ### Contacts
-- Recruiters and hiring managers with company, email, phone, LinkedIn, notes
+- Recruiters and hiring managers with **company, school, email, phone, LinkedIn, notes**
 - Mark primary contacts; associate with applications
+- **Outreach status tracking**: per-contact pipeline stage (Not Contacted → Connection Request Sent → Connected → Message Sent → Replied → Coffee Chat Scheduled → Referral Requested); editable inline from the Contacts form
+
+### Networking (`/networking`)
+
+Three-tab page for relationship-driven job searching:
+
+**Outreach tab**
+- Kanban-style pipeline board with one column per outreach stage; drag-free inline status dropdown on each card
+- **Alumni mapper**: contacts whose `school` field matches any institution in your Education profile are highlighted with a 🎓 Alumni badge and surfaced at the top of suggested contacts
+- **Connection goal widget**: set a weekly outreach target (saved to `user_metadata`); client-side ISO week calculation uses the browser's local timezone so the count is always accurate; suggested contacts list shows uncontacted people ordered by application linkage
+
+**Referrals tab**
+- Track referrals from contacts to job applications (status: Requested / Submitted / Pending / Converted)
+- Status analytics strip (4 count cards); "Referred" violet badge appears on application cards when `has_referral = true`
+- `has_referral` maintained by a Postgres trigger (`trg_referral_has_referral`) on `referrals` INSERT / UPDATE OF application_id / DELETE — no JOIN needed on the applications list
+- **Security hardened**: POST and PATCH routes verify `application_id` ownership before writing; the trigger also enforces `user_id` ownership so a `SECURITY DEFINER` privilege escalation path is fully closed at both layers
+
+**Coffee Chats tab**
+- Schedule informational interviews with contacts (medium: Zoom / Phone / In-person / Google Meet / Teams)
+- Log post-chat notes, referral outcome, follow-up status
+- Auto-creates a reminder 1 hour before each future chat via the admin client
+- Upcoming vs Past split re-evaluated client-side on every render (no stale snapshot)
+
+**DB schema (migration 043)**
+- New tables: `referrals`, `coffee_chats`
+- Altered: `contacts` gains `company`, `school`, `outreach_status`, `last_contacted_at`; `job_applications` gains `has_referral`
+- Indexes: `idx_referrals_*`, `idx_coffee_chats_contact_id`, `idx_contacts_outreach_status`
 
 ### Reminders
 - Manual and **auto-generated cadence** (Day 7, 14, 21 for Applied/Phone Screen apps)
@@ -231,7 +258,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1529 tests, 95 files) + Playwright E2E (12 spec files) |
+| Testing | Vitest (1582 tests, 99 files) + Playwright E2E (14 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 
@@ -485,9 +512,9 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1506 tests, 94 files)
+npm test              # Vitest (1582 tests, 99 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 12 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run test:e2e      # Playwright E2E — 14 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 ```
 
 ---

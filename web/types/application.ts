@@ -21,6 +21,7 @@ export interface JobApplication {
   ats_score: number | null;
   requires_sponsorship: boolean;
   company_tier: CompanyTier | null;
+  has_referral: boolean;
   resume_path: string | null;
   cover_letter_path: string | null;
   created_at: string;
