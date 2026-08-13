@@ -184,3 +184,48 @@ describe("applicationSchema — job_url security", () => {
     expect(applicationSchema.safeParse({ ...BASE, job_url: "not-a-url" }).success).toBe(false);
   });
 });
+
+// ── secureUrlField — tab-character bypass regression (security fix) ───────────
+
+describe("applicationSchema — job_url tab-bypass (secureUrlField security)", () => {
+  it("rejects javascript\t: scheme — tab interleaved to bypass startsWith denylist", () => {
+    // The WHATWG URL parser strips tabs before resolving the scheme, so
+    // "javascript\t:" is equivalent to "javascript:" in browsers.
+    // The fix uses new URL(v).protocol allowlist instead of raw startsWith().
+    expect(
+      applicationSchema.safeParse({ ...BASE, job_url: "javascript\t:alert(1)" }).success
+    ).toBe(false);
+  });
+
+  it("rejects vbscript: scheme", () => {
+    expect(
+      applicationSchema.safeParse({ ...BASE, job_url: "vbscript:msgbox(1)" }).success
+    ).toBe(false);
+  });
+
+  it("rejects ftp:// scheme — only http and https are allowed", () => {
+    expect(
+      applicationSchema.safeParse({ ...BASE, job_url: "ftp://files.example.com/resume.pdf" }).success
+    ).toBe(false);
+  });
+
+  it("accepts http:// (not just https)", () => {
+    expect(
+      applicationSchema.safeParse({ ...BASE, job_url: "http://example.com/jobs/1" }).success
+    ).toBe(true);
+  });
+
+  it("rejects javascript: with leading whitespace (belt-and-suspenders)", () => {
+    expect(
+      applicationSchema.safeParse({ ...BASE, job_url: "  javascript:alert(1)" }).success
+    ).toBe(false);
+  });
+});
+
+// ── glassdoor_rating — schema is unaffected (field managed as separate state) ─
+
+describe("applicationSchema — glassdoor_rating is not a schema field", () => {
+  it("schema parse succeeds without glassdoor_rating (field is optional out-of-band state)", () => {
+    expect(applicationSchema.safeParse({ ...BASE }).success).toBe(true);
+  });
+});

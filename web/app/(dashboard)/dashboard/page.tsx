@@ -11,6 +11,7 @@ import { WeeklyCadence } from "@/components/dashboard/weekly-cadence";
 import { OPTCountdownBanner } from "@/components/dashboard/OPTCountdownBanner";
 import { H1BTrackerCard } from "@/components/dashboard/H1BTrackerCard";
 import { SourceEffectivenessChart } from "@/components/dashboard/source-effectiveness-chart";
+import { TierResponseChart } from "@/components/dashboard/tier-response-chart";
 import { StageFunnelChart } from "@/components/dashboard/stage-funnel-chart";
 import { AvgSalaryChart } from "@/components/dashboard/avg-salary-chart";
 import { MonthlyTrendsChart } from "@/components/dashboard/monthly-trends-chart";
@@ -54,6 +55,7 @@ export default async function DashboardPage() {
     sourceEffectiveness: [],
     stageFunnel: [],
     weekdayActivity: [],
+    tierResponseRate: [],
   };
 
   // Weekly goal from user_metadata (set in Profile → Job Search Goals)
@@ -247,12 +249,15 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ── Extended analytics row 2: funnel + salary + source effectiveness ── */}
+      {/* ── Extended analytics row 2: funnel + salary + source effectiveness + tier response ── */}
       {stats.totalApplications >= 3 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-6 ${stats.tierResponseRate.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           <StageFunnelChart data={stats.stageFunnel} />
           <AvgSalaryChart data={stats.avgSalaryBySource} />
           <SourceEffectivenessChart data={stats.sourceEffectiveness} />
+          {stats.tierResponseRate.length > 0 && (
+            <TierResponseChart data={stats.tierResponseRate} />
+          )}
         </div>
       )}
 

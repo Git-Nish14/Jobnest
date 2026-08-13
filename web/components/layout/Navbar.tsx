@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  FileText,
   LogOut,
   Loader2,
   Calendar,
@@ -19,6 +17,7 @@ import {
   X,
   HelpCircle,
   ChevronRight,
+  ChevronDown,
   Sparkles,
   UserCircle,
   Trophy,
@@ -51,48 +50,38 @@ interface NavbarProps {
   user?: { email?: string; avatarUrl?: string | null } | null;
 }
 
-const dashboardLinks = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/applications", label: "Applications", icon: FileText },
-  { href: "/interviews", label: "Interviews", icon: Calendar },
-  { href: "/reminders", label: "Reminders", icon: Bell },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/networking", label: "Networking", icon: Network },
-  { href: "/templates", label: "Templates", icon: Mail },
-  { href: "/salary", label: "Salary", icon: DollarSign },
-  { href: "/ats", label: "ATS Scan", icon: ScanSearch },
-  { href: "/prep", label: "Interview Prep", icon: Trophy },
-  { href: "/nestai", label: "NESTAi", icon: Sparkles },
+// Dropdown groups — rendered between "Applications" and "NESTAi"
+const NAV_GROUPS = [
+  {
+    key: "job-search",
+    label: "Job Search",
+    links: [
+      { href: "/interviews",  label: "Interviews",     icon: Calendar,   desc: "Track your interview pipeline"  },
+      { href: "/reminders",   label: "Reminders",      icon: Bell,       desc: "Follow-up nudges & alerts"      },
+      { href: "/contacts",    label: "Contacts",       icon: Users,      desc: "Recruiters & hiring contacts"    },
+      { href: "/networking",  label: "Networking",     icon: Network,    desc: "Outreach & coffee chats"         },
+    ],
+  },
+  {
+    key: "tools",
+    label: "Tools",
+    links: [
+      { href: "/templates",   label: "Templates",      icon: Mail,       desc: "Email & message templates"       },
+      { href: "/salary",      label: "Salary",         icon: DollarSign, desc: "TC benchmarks & offer compare"   },
+      { href: "/ats",         label: "ATS Scan",       icon: ScanSearch, desc: "Resume keyword audit"             },
+      { href: "/prep",        label: "Interview Prep", icon: Trophy,     desc: "STAR stories & practice"         },
+    ],
+  },
 ];
 
-// Links shown in the mobile slide panel — excludes items already in the
-// bottom tab bar (Overview, Applications, Interviews, NESTAi) to avoid
-// showing the same destination twice on small screens.
+// Links covered by the bottom tab bar — excluded from mobile slide panel
 const BOTTOM_TAB_HREFS = new Set(["/dashboard", "/applications", "/interviews", "/nestai"]);
-const mobileSlideLinks = dashboardLinks.filter((l) => !BOTTOM_TAB_HREFS.has(l.href));
 
-/** Renders the correct logo for light/dark mode */
 function Logo({ size = 34 }: { size?: number }) {
   return (
     <>
-      {/* Light mode logo */}
-      <Image
-        src="/new_logo_1.png"
-        alt="Jobnest"
-        width={size}
-        height={size}
-        className="h-8 w-8 logo-light"
-        priority
-      />
-      {/* Dark mode logo */}
-      <Image
-        src="/dark_logo.png"
-        alt="Jobnest"
-        width={size}
-        height={size}
-        className="h-8 w-8 logo-dark"
-        priority
-      />
+      <Image src="/new_logo_1.png" alt="Jobnest" width={size} height={size} className="h-8 w-8 logo-light" priority />
+      <Image src="/dark_logo.png"  alt="Jobnest" width={size} height={size} className="h-8 w-8 logo-dark"  priority />
     </>
   );
 }
@@ -105,6 +94,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUser?.avatarUrl ?? null);
   const [isPending, startTransition] = useTransition();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isDashboardPage =
     pathname.startsWith("/dashboard") ||
@@ -154,10 +145,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close mobile menu on route change
+  // Close mobile menu and any open dropdown on route change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
+    setOpenGroup(null);
   }, [pathname]);
 
   // Sync nav-open class to <html> so CSS can slide the bottom tab bar away
@@ -170,6 +162,28 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     }
     return () => { html.classList.remove("nav-open"); };
   }, [mobileMenuOpen]);
+
+  // Close dropdown on Escape
+  useEffect(() => {
+    if (!openGroup) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenGroup(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [openGroup]);
+
+  // Clean up hover timer on unmount
+  useEffect(() => {
+    return () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
+  }, []);
+
+  const openNav = (key: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenGroup(key);
+  };
+
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setOpenGroup(null), 120);
+  };
 
   const isAuthenticated = !!user;
 
@@ -190,38 +204,141 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
-              <div className="flex items-center gap-6">
+
+              {/* ── Logo + desktop nav ── */}
+              <div className="flex items-center gap-4">
                 <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
                   <Logo />
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                 </Link>
 
-                <nav className="hidden lg:flex items-center">
+                <nav className="hidden lg:flex items-center" aria-label="Main navigation">
                   <ul className="flex items-center gap-0.5">
-                    {dashboardLinks.map((link) => {
-                      const isActive =
-                        pathname === link.href ||
-                        (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
-                      return (
-                        <li key={link.href}>
+
+                    {/* Applications — primary direct link */}
+                    <li>
+                      {(() => {
+                        const isActive = pathname === "/applications" || pathname.startsWith("/applications/");
+                        return (
                           <Link
-                            href={link.href}
+                            href="/applications"
                             className={cn(
                               "px-3 py-1.5 text-sm rounded-lg transition-all duration-150",
                               isActive
                                 ? "font-semibold atelier-nav-link-active"
-                                : "hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8 atelier-nav-link-inactive"
+                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
                             )}
                           >
-                            {link.label}
+                            Applications
                           </Link>
+                        );
+                      })()}
+                    </li>
+
+                    {/* Job Search & Tools — hover dropdown groups */}
+                    {NAV_GROUPS.map(group => {
+                      const hasActive = group.links.some(
+                        l => pathname === l.href || pathname.startsWith(l.href + "/")
+                      );
+                      const isOpen = openGroup === group.key;
+
+                      return (
+                        <li
+                          key={group.key}
+                          className="relative"
+                          onMouseEnter={() => openNav(group.key)}
+                          onMouseLeave={scheduleClose}
+                          onBlur={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                              setOpenGroup(null);
+                            }
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => isOpen ? setOpenGroup(null) : openNav(group.key)}
+                            aria-haspopup="true"
+                            aria-expanded={isOpen}
+                            className={cn(
+                              "flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg transition-all duration-150 select-none",
+                              hasActive
+                                ? "font-semibold atelier-nav-link-active"
+                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
+                            )}
+                          >
+                            {group.label}
+                            <ChevronDown className={cn(
+                              "h-3.5 w-3.5 transition-transform duration-150",
+                              isOpen && "rotate-180"
+                            )} />
+                          </button>
+
+                          {isOpen && (
+                            <div
+                              className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50"
+                              onMouseEnter={() => openNav(group.key)}
+                              onMouseLeave={scheduleClose}
+                            >
+                              <div className="min-w-56 rounded-xl border border-border/60 bg-background/95 backdrop-blur-sm shadow-lg shadow-black/5 dark:shadow-black/20 p-1.5">
+                                {group.links.map(link => {
+                                  const Icon = link.icon;
+                                  const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                                  return (
+                                    <Link
+                                      key={link.href}
+                                      href={link.href}
+                                      className={cn(
+                                        "flex items-start gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                                        isActive
+                                          ? "bg-[#99462a]/10 dark:bg-[#ccff00]/10 atelier-nav-link-active"
+                                          : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
+                                      )}
+                                    >
+                                      <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                      <div>
+                                        <p className={cn("font-medium leading-tight", isActive && "font-semibold")}>
+                                          {link.label}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                                          {link.desc}
+                                        </p>
+                                      </div>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </li>
                       );
                     })}
+
+                    {/* NESTAi — primary direct link with accent icon */}
+                    <li>
+                      {(() => {
+                        const isActive = pathname === "/nestai" || pathname.startsWith("/nestai/");
+                        return (
+                          <Link
+                            href="/nestai"
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-all duration-150",
+                              isActive
+                                ? "font-semibold atelier-nav-link-active"
+                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
+                            )}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            NESTAi
+                          </Link>
+                        );
+                      })()}
+                    </li>
+
                   </ul>
                 </nav>
               </div>
 
+              {/* ── Right cluster ── */}
               <div className="flex items-center gap-2">
                 <ThemeToggle />
                 <NotificationBell />
@@ -301,6 +418,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           </div>
         </nav>
 
+        {/* ── Mobile slide panel ── */}
         {mobileMenuOpen && (
           <>
             <div
@@ -321,37 +439,44 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto py-4">
-                  {/* Bottom tab bar already covers Overview, Applications,
-                      Interviews and NESTAi — only show the remaining pages here */}
-                  <p className="px-6 pb-2 text-[10px] font-semibold uppercase tracking-widest atelier-nav-link-inactive opacity-50">
-                    More pages
-                  </p>
-                  <ul className="space-y-1 px-3">
-                    {mobileSlideLinks.map((link) => {
-                      const Icon = link.icon;
-                      const isActive =
-                        pathname === link.href ||
-                        (link.href !== "/dashboard" && pathname.startsWith(link.href + "/"));
-                      return (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-3 min-h-11 rounded-lg text-sm font-medium transition-colors",
-                              isActive
-                                ? "bg-[#99462a]/10 dark:bg-[#ccff00]/10 atelier-nav-link-active"
-                                : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
-                            )}
-                          >
-                            <Icon className="h-5 w-5" />
-                            {link.label}
-                            {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <nav className="flex-1 overflow-y-auto py-4" aria-label="Mobile navigation">
+                  {/* Bottom tab bar covers Applications, Interviews, NESTAi — show only the rest */}
+                  {NAV_GROUPS.map(group => {
+                    const visibleLinks = group.links.filter(l => !BOTTOM_TAB_HREFS.has(l.href));
+                    if (visibleLinks.length === 0) return null;
+                    return (
+                      <div key={group.key} className="mb-4">
+                        <p className="px-6 pb-2 text-[10px] font-semibold uppercase tracking-widest atelier-nav-link-inactive opacity-50">
+                          {group.label}
+                        </p>
+                        <ul className="space-y-1 px-3">
+                          {visibleLinks.map(link => {
+                            const Icon = link.icon;
+                            const isActive =
+                              pathname === link.href ||
+                              pathname.startsWith(link.href + "/");
+                            return (
+                              <li key={link.href}>
+                                <Link
+                                  href={link.href}
+                                  className={cn(
+                                    "flex items-center gap-3 px-3 py-3 min-h-11 rounded-lg text-sm font-medium transition-colors",
+                                    isActive
+                                      ? "bg-[#99462a]/10 dark:bg-[#ccff00]/10 atelier-nav-link-active"
+                                      : "atelier-nav-link-inactive hover:bg-[#d97757]/10 dark:hover:bg-[#ccff00]/8"
+                                  )}
+                                >
+                                  <Icon className="h-5 w-5" />
+                                  {link.label}
+                                  {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    );
+                  })}
                 </nav>
 
                 <div className="border-t p-4">
@@ -403,20 +528,10 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogOut className="h-4 w-4 mr-2" />}
                 Sign out of all devices
               </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleSignOut("local")}
-                disabled={isPending}
-              >
+              <Button variant="outline" className="w-full" onClick={() => handleSignOut("local")} disabled={isPending}>
                 This device only
               </Button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setLogoutOpen(false)}
-                disabled={isPending}
-              >
+              <Button variant="ghost" className="w-full" onClick={() => setLogoutOpen(false)} disabled={isPending}>
                 Cancel
               </Button>
             </DialogFooter>
@@ -426,7 +541,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
     );
   }
 
-  // ── Public navbar (landing, legal, contact pages) ────────────────────────────
+  // ── Public navbar (landing, legal, contact pages) ─────────────────────────────
   return (
     <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
@@ -440,9 +555,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {isAuthenticated ? (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" disabled={isPending}>
-                  Dashboard
-                </Button>
+                <Button variant="ghost" size="sm" disabled={isPending}>Dashboard</Button>
               </Link>
               <Button
                 variant="outline"
@@ -451,9 +564,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 disabled={isPending}
                 className="gap-2"
               >
-                {isPending
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <LogOut className="h-4 w-4" />}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 {isPending ? "Signing out…" : "Sign out"}
               </Button>
             </>
@@ -487,9 +598,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {isAuthenticated ? (
             <>
               <Link href="/dashboard" className="block">
-                <Button variant="ghost" className="w-full justify-start" disabled={isPending}>
-                  Dashboard
-                </Button>
+                <Button variant="ghost" className="w-full justify-start" disabled={isPending}>Dashboard</Button>
               </Link>
               <Button
                 variant="outline"
@@ -497,9 +606,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 onClick={() => setLogoutOpen(true)}
                 disabled={isPending}
               >
-                {isPending
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <LogOut className="h-4 w-4" />}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 {isPending ? "Signing out…" : "Sign out"}
               </Button>
             </>
@@ -535,20 +642,10 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogOut className="h-4 w-4 mr-2" />}
               Sign out of all devices
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleSignOut("local")}
-              disabled={isPending}
-            >
+            <Button variant="outline" className="w-full" onClick={() => handleSignOut("local")} disabled={isPending}>
               This device only
             </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setLogoutOpen(false)}
-              disabled={isPending}
-            >
+            <Button variant="ghost" className="w-full" onClick={() => setLogoutOpen(false)} disabled={isPending}>
               Cancel
             </Button>
           </DialogFooter>

@@ -23,6 +23,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy headers
 - Redis-backed rate limiting (Upstash); dual-layer on send-otp (IP + per-email)
 - SHA-256 hashed OTPs with timing-safe comparison
+- **URL scheme allowlist** (`secureUrlField`): all URL fields (job URL, meeting URL, LinkedIn URL, etc.) now validate by parsing with the WHATWG URL parser and checking `protocol === "https:" || "http:"` — an allowlist approach that is immune to whitespace-interleaved bypasses (e.g. `javascript\t:` is stripped to `javascript:` by the URL parser but was not caught by the previous `startsWith` denylist); tabs are also stripped in the pre-transform step for defence-in-depth
 
 ### Profile Page
 - Display name, About Me (bio), NESTAi Context (AI-specific instructions)
@@ -51,6 +52,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 5. Right-to-erasure verification - queries 9 tables for orphaned rows post-deletion
 
 ### Dashboard
+- **Condensed navigation**: desktop nav bar shows 4 items — `Applications` (direct link), `Job Search` hover-dropdown (Interviews, Reminders, Contacts, Networking), `Tools` hover-dropdown (Templates, Salary, ATS Scan, Interview Prep), `NESTAi` (direct link with Sparkles icon); dropdowns open on mouse hover with a 120 ms close delay, also toggle on click, and close on Escape or Tab-away; mobile slide panel shows the same groups with section headers, with items already in the bottom tab bar excluded to prevent duplication; logo link to `/dashboard` replaces the former "Overview" nav item
 - Stats: total applications, this week/month, active pipeline, offers, upcoming interviews
 - **Application Velocity**: D / W / M granularity toggle; last 30 days (daily), last 24 weeks (weekly), or full account history from first application (monthly); per-mode window selectors; x-axis labels thin out automatically when many bars are shown
 - Status distribution pie chart; Recent applications list; Tasks panel
@@ -62,6 +64,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
   - **Stage Funnel**: Applied to Phone Screen to Interview to Offer to Accepted cumulative counts; warm-to-cool colour gradient; **per-transition conversion rates** shown between each stage (e.g. "↓ 22%") colour-coded green/amber/red vs industry benchmark averages for entry-level SWE (Levels.fyi 2026 data)
   - **Avg Salary by Source**: midpoint of salary ranges per application source; handles `$90,000` comma-thousands format correctly
   - **Source Effectiveness**: response rate % per source, sorted descending; only sources with 2 or more applications shown
+  - **Response Rate by Tier**: horizontal bar chart showing % of applications that received a reply per company tier (FAANG → Tier 1 → Tier 2 → Tier 3 → Startup); each tier needs ≥2 applications to appear; colour-coded from terracotta (FAANG) to blue (Startup); headline `responseRate` stat, per-tier, and per-source breakdowns now all use the same canonical `RESPONDED_SET` (includes Accepted) so every metric on the page agrees
 - **Search Intelligence** — 6 context-aware metric cards (hidden until the user has ≥1 application):
   - **Avg. response time** — mean days from `applied_date` to first status change past Applied; 90-day cap filters outliers; requires ≥2 responded apps
   - **Interview → Offer** — `(Offer + Accepted) / (Interview + Offer + Accepted) × 100`; requires ≥3 at-interview apps to avoid misleading 100% on a single offer
@@ -91,6 +94,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 - **Cursor-paginated list view**: keyset pagination on `(applied_date DESC, id DESC)`; "Load more" appends pages client-side without losing existing items; kanban view still loads all rows for drag-and-drop
 - **Full-text search**: command palette (`Cmd+K`) searches applications via GIN-indexed `search_vector` column with `websearch_to_tsquery`; falls back to `ilike` on company/position; results appear inline with keyboard navigation
 - **Company tier tagging**: tag each application as FAANG / Tier 1 / Tier 2 / Tier 3 / Startup; filter pill in the applications list with removable chip; Zod-validated in the application form; migration 33
+- **Glassdoor rating field**: optional 1.0–5.0 rating field on the application form for personal Glassdoor assessments; when a company name is typed, a "Search →" link appears next to the label opening a Glassdoor search for that company; saved rating renders as a green ★ badge on the application card that links back to Glassdoor; stored as `NUMERIC(3,1)` with a DB-level `CHECK (1.0–5.0)` constraint; migration 44
 - **CSV bulk import**: "Import CSV" button opens a 4-step wizard (upload to column-map with auto-matching to 5-row preview to confirm); papaparse parses in-browser; server validates every row with Zod (company + position required; status/date default when absent); dangerous URL schemes rejected; partial success shows per-row errors; 2 MB file cap + 500-row server cap; rate-limited 5/min
 - Export to CSV (basic or with notes), JSON, or **Full Report (PDF)** — 4-page PDF: cover page, Search Intelligence metrics, funnel + source + velocity charts, full application log (up to 100 rows); generated server-side at `GET /api/export/pdf-report` (rate-limited 5/day); defence-in-depth `user_id` filter applied on top of RLS
 

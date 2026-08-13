@@ -294,6 +294,8 @@ export interface DashboardAnalytics {
   stageFunnel: StageFunnel[];
   /** Applications submitted per weekday (Mon–Sun). */
   weekdayActivity: WeekdayActivity[];
+  /** Response rate (%) per company tier (FAANG, Tier 1, …). Min 2 apps per tier. */
+  tierResponseRate: TierResponseRate[];
 }
 
 export interface SourceSalary {
@@ -317,6 +319,13 @@ export interface StageFunnel {
 export interface WeekdayActivity {
   day: string;   // "Mon" | "Tue" | … | "Sun"
   count: number;
+}
+
+export interface TierResponseRate {
+  tier: string;
+  total: number;
+  responded: number;
+  responseRate: number;
 }
 
 export interface StatusCount {

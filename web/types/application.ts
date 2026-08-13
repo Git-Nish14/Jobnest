@@ -21,6 +21,7 @@ export interface JobApplication {
   ats_score: number | null;
   requires_sponsorship: boolean;
   company_tier: CompanyTier | null;
+  glassdoor_rating: number | null;
   has_referral: boolean;
   resume_path: string | null;
   cover_letter_path: string | null;
@@ -38,6 +39,12 @@ export interface JobApplicationInsert {
   salary_range?: string | null;
   location?: string | null;
   notes?: string | null;
+  job_description?: string | null;
+  source?: string | null;
+  ats_provider?: string | null;
+  requires_sponsorship?: boolean;
+  company_tier?: CompanyTier | null;
+  glassdoor_rating?: number | null;
   resume_path?: string | null;
   cover_letter_path?: string | null;
 }

@@ -321,6 +321,18 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                   Referred
                 </span>
               )}
+              {application.glassdoor_rating != null && (
+                <a
+                  href={`https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(application.company)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Glassdoor rating — click to view on Glassdoor"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 hover:opacity-80 transition-opacity shrink-0"
+                >
+                  ★ {application.glassdoor_rating.toFixed(1)}
+                </a>
+              )}
               {/* Spacer pushes ring to right */}
               <span className="flex-1" />
               <CompletenessRing application={application} size={30} simple />

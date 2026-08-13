@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft } from "lucide-react";
+import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink } from "lucide-react";
 import { ApplicationJsonImport } from "./application-json-import";
 import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
@@ -47,6 +47,9 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [glassdoorRating, setGlassdoorRating] = useState<number | null>(
+    application?.glassdoor_rating ?? null
+  );
 
   // Pre-populate file slots from application_documents (new-style apps have resume_path=null)
   const existingResume = initialDocuments?.find((d) => d.label === "Resume") ?? null;
@@ -211,6 +214,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
         source: ((data.source as string) === "__none__" ? null : data.source) || null,
         ats_provider: ((data.ats_provider as string) === "__none__" ? null : data.ats_provider) || null,
         company_tier: ((data.company_tier as string) === "__none__" ? null : data.company_tier) || null,
+        glassdoor_rating: glassdoorRating,
       };
 
       if (isEditing) {
@@ -487,25 +491,60 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </div>
           </div>
 
-          {/* Company tier */}
-          <div className="space-y-2">
-            <Label htmlFor="company_tier">Company Tier <span className="text-muted-foreground text-xs">(optional)</span></Label>
-            <Select
-              value={currentTier || ""}
-              onValueChange={(value) =>
-                setValue("company_tier", (value === "__none__" ? "" : value) as ApplicationFormData["company_tier"])
-              }
-            >
-              <SelectTrigger id="company_tier">
-                <SelectValue placeholder="Select tier…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {COMPANY_TIERS.map((tier) => (
-                  <SelectItem key={tier} value={tier}>{tier}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Company tier + Glassdoor rating */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_tier">Company Tier <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select
+                value={currentTier || ""}
+                onValueChange={(value) =>
+                  setValue("company_tier", (value === "__none__" ? "" : value) as ApplicationFormData["company_tier"])
+                }
+              >
+                <SelectTrigger id="company_tier">
+                  <SelectValue placeholder="Select tier…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {COMPANY_TIERS.map((tier) => (
+                    <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="glassdoor_rating">
+                  Glassdoor Rating <span className="text-muted-foreground text-xs">(optional)</span>
+                </Label>
+                {watchedCompany && (
+                  <a
+                    href={`https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(watchedCompany)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    Search <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                )}
+              </div>
+              <Input
+                id="glassdoor_rating"
+                type="number"
+                min="1.0"
+                max="5.0"
+                step="0.1"
+                placeholder="e.g., 3.8"
+                value={glassdoorRating ?? ""}
+                onChange={(e) => {
+                  if (e.target.value === "") { setGlassdoorRating(null); return; }
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) setGlassdoorRating(Math.min(5, Math.max(1, Math.round(v * 10) / 10)));
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground">1.0 – 5.0 · your own assessment or from Glassdoor</p>
+            </div>
           </div>
 
           {/* Sponsorship */}

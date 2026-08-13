@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronRight, Loader2, Briefcase, User, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const STEPS = [
 ] as const;
 
 export function OnboardingWizard({ user }: Props) {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [displayName, setDisplayName] = useState(user.displayName);
   const [aboutMe, setAboutMe] = useState("");
@@ -41,7 +43,7 @@ export function OnboardingWizard({ user }: Props) {
         throw new Error((json as { error?: string }).error ?? "Request failed");
       }
 
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       toast.error(msg + " — please try again.");

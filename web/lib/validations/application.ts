@@ -10,21 +10,26 @@ import { COMPANY_TIERS } from "@/types/application";
  */
 export const secureUrlField = z
   .string()
-  .transform((v) => v.replace(/[\0\r\n]/g, "").trim())
+  // Strip control characters AND tab (U+0009) before validation.
+  // Tabs are silently dropped by the WHATWG URL parser, so "javascript\t:"
+  // would otherwise bypass a startsWith-based scheme denylist while still
+  // producing a javascript: URL when the browser renders the href.
+  .transform((v) => v.replace(/[\0\r\n\t]/g, "").trim())
   .pipe(
     z
       .string()
       .max(2083, "URL exceeds maximum allowed length")
+      // Allowlist only http/https — immune to any whitespace-interleaved bypass
+      // because we inspect the protocol the URL parser actually resolves, not
+      // the raw string. Covers javascript:, data:, vbscript:, file:, blob: etc.
       .refine((v) => {
         if (!v) return true;
-        const lower = v.toLowerCase();
-        return !["javascript:", "data:", "vbscript:", "file:", "blob:"].some((s) =>
-          lower.startsWith(s)
-        );
-      }, "URL scheme not allowed")
-      .refine((v) => {
-        if (!v) return true;
-        try { new URL(v); return true; } catch { return false; }
+        try {
+          const { protocol } = new URL(v);
+          return protocol === "https:" || protocol === "http:";
+        } catch {
+          return false;
+        }
       }, "Please enter a valid URL (must start with https://)")
   )
   .optional()

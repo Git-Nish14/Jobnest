@@ -12,6 +12,7 @@ import type {
   SourceEffectiveness,
   StageFunnel,
   WeekdayActivity,
+  TierResponseRate,
   Interview,
   Reminder,
 } from "@/types";
@@ -24,7 +25,7 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
     // (which can be many KB each) for every row, cutting transfer size significantly.
     const { data: applications, error: appError } = await supabase
       .from("job_applications")
-      .select("id,status,applied_date,updated_at,company,source,salary_range")
+      .select("id,status,applied_date,updated_at,company,source,salary_range,company_tier")
       .order("applied_date", { ascending: false });
 
     if (appError) {
@@ -60,11 +61,13 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       ([status, count]) => ({ status, count })
     );
 
-    // Response rate (got any response: Phone Screen, Interview, Offer, Rejected)
-    const responses = (statusCounts["Phone Screen"] || 0) +
-      (statusCounts["Interview"] || 0) +
-      (statusCounts["Offer"] || 0) +
-      (statusCounts["Rejected"] || 0);
+    // Single canonical set used for response-rate everywhere in this function.
+    const RESPONDED_SET = new Set(["Phone Screen", "Interview", "Offer", "Accepted", "Rejected"]);
+
+    // Response rate — any status that represents a reply from the employer.
+    // "Accepted" was previously missing, causing a contradiction between the
+    // headline stat card and the per-source / per-tier breakdown charts.
+    const responses = (applications ?? []).filter((a) => RESPONDED_SET.has(a.status)).length;
     const responseRate = totalApplications > 0
       ? Math.round((responses / totalApplications) * 100)
       : 0;
@@ -77,8 +80,7 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
     // applied long ago that the user never closed out, or where late edits to
     // notes/salary drift updated_at far from the real response date). Require
     // ≥2 data points so a single lucky/unlucky result doesn't distort the number.
-    const RESPONDED = new Set(["Phone Screen", "Interview", "Offer", "Accepted", "Rejected"]);
-    const respondedApps = (applications ?? []).filter((a) => RESPONDED.has(a.status));
+    const respondedApps = (applications ?? []).filter((a) => RESPONDED_SET.has(a.status));
     let averageTimeToResponse: number | null = null;
     if (respondedApps.length >= 2) {
       const delays = respondedApps
@@ -209,7 +211,6 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
       .slice(0, 5);
 
     // ── Source effectiveness ─────────────────────────────────────────────────
-    const RESPONDED_SET = new Set(["Phone Screen", "Interview", "Offer", "Accepted", "Rejected"]);
     const sourceMap: Record<string, { total: number; responded: number }> = {};
     (applications ?? []).forEach((a) => {
       const src = a.source || "Other";
@@ -294,6 +295,26 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         ? { source: sourceEffectiveness[0].source, responseRate: sourceEffectiveness[0].responseRate }
         : null;
 
+    // ── Response rate by company tier ────────────────────────────────────────
+    // Only counts tiers with ≥2 applications so percentages are meaningful.
+    const tierMap: Record<string, { total: number; responded: number }> = {};
+    (applications ?? []).forEach((a) => {
+      if (!a.company_tier) return;
+      if (!tierMap[a.company_tier]) tierMap[a.company_tier] = { total: 0, responded: 0 };
+      tierMap[a.company_tier].total++;
+      if (RESPONDED_SET.has(a.status)) tierMap[a.company_tier].responded++;
+    });
+    const TIER_ORDER = ["FAANG", "Tier 1", "Tier 2", "Tier 3", "Startup"];
+    const tierResponseRate: TierResponseRate[] = Object.entries(tierMap)
+      .map(([tier, { total, responded }]) => ({
+        tier,
+        total,
+        responded,
+        responseRate: total > 0 ? Math.round((responded / total) * 100) : 0,
+      }))
+      .filter((t) => t.total >= 2)
+      .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier));
+
     // Upcoming interviews — include the parent application so the dashboard can
     // show the company name in the "Next interview" stat card footer.
     let upcomingInterviews: Interview[] = [];
@@ -346,6 +367,7 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
         sourceEffectiveness,
         stageFunnel,
         weekdayActivity,
+        tierResponseRate,
       },
       error: null,
     };

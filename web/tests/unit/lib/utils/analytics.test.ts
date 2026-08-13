@@ -619,3 +619,117 @@ function localDateToWeekdayIndex(dateStr: string): number {
   const raw = new Date(y, m - 1, d).getDay(); // local time, 0=Sun
   return raw === 0 ? 6 : raw - 1;             // Mon=0..Sun=6
 }
+
+// ── tierResponseRate ──────────────────────────────────────────────────────────
+
+describe("getDashboardAnalytics — tierResponseRate", () => {
+  it("returns empty array when no apps have company_tier set", async () => {
+    const apps = [makeApp({ status: "Applied" }), makeApp({ status: "Rejected" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.tierResponseRate).toEqual([]);
+  });
+
+  it("excludes tiers with fewer than 2 apps", async () => {
+    const apps = [makeApp({ status: "Rejected", company_tier: "FAANG" })];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.tierResponseRate).toEqual([]);
+  });
+
+  it("computes responseRate as responded/total for each tier", async () => {
+    const apps = [
+      makeApp({ status: "Phone Screen", company_tier: "FAANG" }),
+      makeApp({ status: "Applied",      company_tier: "FAANG" }),
+      makeApp({ status: "Rejected",     company_tier: "FAANG" }),
+      makeApp({ status: "Applied",      company_tier: "Startup" }),
+      makeApp({ status: "Applied",      company_tier: "Startup" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+
+    const faang = data?.tierResponseRate.find((t) => t.tier === "FAANG");
+    expect(faang?.total).toBe(3);
+    expect(faang?.responded).toBe(2); // Phone Screen + Rejected
+    expect(faang?.responseRate).toBe(67); // Math.round(2/3*100)
+
+    const startup = data?.tierResponseRate.find((t) => t.tier === "Startup");
+    expect(startup?.total).toBe(2);
+    expect(startup?.responded).toBe(0);
+    expect(startup?.responseRate).toBe(0);
+  });
+
+  it("counts Accepted as a responded status", async () => {
+    const apps = [
+      makeApp({ status: "Accepted", company_tier: "Tier 1" }),
+      makeApp({ status: "Applied",  company_tier: "Tier 1" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const tier1 = data?.tierResponseRate.find((t) => t.tier === "Tier 1");
+    expect(tier1?.responded).toBe(1);
+    expect(tier1?.responseRate).toBe(50);
+  });
+
+  it("sorts results by TIER_ORDER — FAANG before Startup", async () => {
+    const apps = [
+      makeApp({ status: "Applied",  company_tier: "Startup" }),
+      makeApp({ status: "Rejected", company_tier: "Startup" }),
+      makeApp({ status: "Applied",  company_tier: "FAANG"   }),
+      makeApp({ status: "Rejected", company_tier: "FAANG"   }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    const tiers = data?.tierResponseRate.map((t) => t.tier) ?? [];
+    expect(tiers.indexOf("FAANG")).toBeLessThan(tiers.indexOf("Startup"));
+  });
+
+  it("returns empty when every tier has exactly 1 app (all below threshold)", async () => {
+    const apps = [
+      makeApp({ status: "Applied",  company_tier: "FAANG"   }),
+      makeApp({ status: "Rejected", company_tier: "Tier 1"  }),
+      makeApp({ status: "Applied",  company_tier: "Startup" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.tierResponseRate).toEqual([]);
+  });
+});
+
+// ── responseRate — Accepted fix ───────────────────────────────────────────────
+
+describe("getDashboardAnalytics — responseRate includes Accepted (regression)", () => {
+  it("counts Accepted as a response in the headline stat", async () => {
+    // Bug: Accepted was missing → user with offers saw headline 0% while
+    // per-tier and per-source breakdowns correctly showed 50%.
+    const apps = [
+      makeApp({ status: "Accepted" }),
+      makeApp({ status: "Applied"  }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.responseRate).toBe(50);
+  });
+
+  it("headline responseRate agrees with sourceEffectiveness and tierResponseRate for Accepted", async () => {
+    const apps = [
+      makeApp({ status: "Accepted", source: "LinkedIn", company_tier: "FAANG" }),
+      makeApp({ status: "Accepted", source: "LinkedIn", company_tier: "FAANG" }),
+      makeApp({ status: "Applied",  source: "LinkedIn", company_tier: "FAANG" }),
+      makeApp({ status: "Applied",  source: "LinkedIn", company_tier: "FAANG" }),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.responseRate).toBe(50);
+    const linkedin = data?.sourceEffectiveness.find((s) => s.source === "LinkedIn");
+    expect(linkedin?.responseRate).toBe(50);
+    const faang = data?.tierResponseRate.find((t) => t.tier === "FAANG");
+    expect(faang?.responseRate).toBe(50);
+  });
+
+  it("responseRate is 0 with no applications", async () => {
+    mockCreate.mockResolvedValue(makeSupabaseClient([]) as never);
+    const { data } = await getDashboardAnalytics();
+    expect(data?.responseRate).toBe(0);
+  });
+});

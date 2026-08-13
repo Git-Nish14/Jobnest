@@ -551,3 +551,79 @@ describe("DocumentCard — secondary actions collapsed into DropdownMenu", () =>
     expect(src).toMatch(/min-w-0[^"]*truncate|truncate[^"]*min-w-0/);
   });
 });
+
+// ── 19. Navbar — condensed 4-item desktop nav with hover dropdowns ────────────
+
+describe("Navbar — condensed desktop nav (hover dropdown sprint)", () => {
+  const src = readSrc("components/layout/Navbar.tsx");
+
+  it("declares NAV_GROUPS constant containing Job Search and Tools groups", () => {
+    expect(src).toContain("NAV_GROUPS");
+    expect(src).toContain('"Job Search"');
+    expect(src).toContain('"Tools"');
+  });
+
+  it("does NOT render Overview as a standalone nav label (logo handles /dashboard)", () => {
+    // "Overview" was removed; logo link to /dashboard is the replacement.
+    expect(src).not.toMatch(/"Overview"/);
+  });
+
+  it("Applications is a direct link at /applications", () => {
+    expect(src).toContain('href="/applications"');
+    expect(src).toContain("Applications");
+  });
+
+  it("NESTAi is a direct link at /nestai with Sparkles icon", () => {
+    expect(src).toContain('href="/nestai"');
+    expect(src).toContain("NESTAi");
+    expect(src).toContain("Sparkles");
+  });
+
+  it("hover state managed via openGroup and openNav / scheduleClose", () => {
+    expect(src).toContain("openGroup");
+    expect(src).toContain("openNav");
+    expect(src).toContain("scheduleClose");
+  });
+
+  it("dropdown triggers have onMouseEnter and onMouseLeave handlers", () => {
+    expect(src).toContain("onMouseEnter");
+    expect(src).toContain("onMouseLeave");
+  });
+
+  it("keyboard Tab-out closes dropdown via onBlur + relatedTarget containment check", () => {
+    expect(src).toContain("onBlur");
+    expect(src).toContain("relatedTarget");
+    expect(src).toContain("contains");
+  });
+
+  it("Escape key closes the dropdown (useEffect keydown listener)", () => {
+    expect(src).toContain('"Escape"');
+    expect(src).toContain("setOpenGroup(null)");
+  });
+
+  it("closeTimer ref is cleaned up on unmount to prevent memory leaks", () => {
+    expect(src).toContain("closeTimer");
+    expect(src).toContain("clearTimeout");
+  });
+
+  it("ChevronDown icon rotates 180° when group is open", () => {
+    expect(src).toContain("ChevronDown");
+    expect(src).toContain("rotate-180");
+  });
+
+  it("mobile slide panel renders group labels via {group.label} from NAV_GROUPS", () => {
+    // The mobile panel iterates NAV_GROUPS and renders {group.label} for each header.
+    // The string literals live in NAV_GROUPS; the panel template uses the variable.
+    expect(src).toContain("{group.label}");
+    expect(src).toContain('"Job Search"');
+    expect(src).toContain('"Tools"');
+  });
+
+  it("BOTTOM_TAB_HREFS excludes /dashboard, /applications, /interviews, /nestai from mobile panel", () => {
+    expect(src).toContain("BOTTOM_TAB_HREFS");
+    expect(src).toContain('"/dashboard"');
+    expect(src).toContain('"/applications"');
+    expect(src).toContain('"/interviews"');
+    expect(src).toContain('"/nestai"');
+  });
+});
