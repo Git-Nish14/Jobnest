@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Newsreader, Manrope } from "next/font/google";
 import { Navbar, BottomTabBar, ScrollRestorer } from "@/components/layout";
 import { NPSFeedback } from "@/components/layout/NPSFeedback";
 import { DeletionBanner } from "@/components/profile";
@@ -10,20 +9,6 @@ import { redirect } from "next/navigation";
 import "./dashboard.css";
 
 export const dynamic = "force-dynamic";
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-newsreader",
-  display: "swap",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-});
 
 export default async function DashboardLayout({
   children,
@@ -53,7 +38,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className={`${newsreader.variable} ${manrope.variable} min-h-screen db-root`}>
+    <div className="min-h-screen db-root">
       <ScrollRestorer />
       <AuthSync />
       <CommandPalette />

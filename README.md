@@ -262,9 +262,10 @@ Three-tab page for relationship-driven job searching:
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1582 tests, 99 files) + Playwright E2E (14 spec files) |
+| Testing | Vitest (1654 tests, 100 files) + Playwright E2E (16 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
+| Bundle analysis | `@next/bundle-analyzer` (`npm run analyze`) |
 
 ---
 
@@ -516,9 +517,10 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1582 tests, 99 files)
+npm test              # Vitest (1654 tests, 100 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 14 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run test:e2e      # Playwright E2E — 16 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run analyze       # Webpack bundle analysis — opens interactive treemap (ANALYZE=true next build)
 ```
 
 ---
@@ -529,9 +531,25 @@ npm run test:e2e      # Playwright E2E — 14 spec files; authenticated suites r
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers, **performance sprint** (next.config.ts bundle analyzer + AVIF/WebP + Supabase hostname scoping, font consolidation across 5 layouts, SW v2 cache names + offline pre-caching + null-guard, offline page force-static, manifest icon references) |
 | Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
-| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden), **Resume Audit** (unauthenticated 401 guards, ATS tab layout, weekly goal profile persistence with real Supabase, single-header Edit on mobile, SW navigation caching disabled, API validation real-DB) |
+| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden), **Resume Audit** (unauthenticated 401 guards, ATS tab layout, weekly goal profile persistence with real Supabase, single-header Edit on mobile, SW v2 cache names, API validation real-DB), **Performance sprint** (/offline page 200+HTML+content, /sw.js v2 caches+null-guard+no auth pre-caching, /manifest.json icon-192/512 references, --font-newsreader/--font-manrope CSS vars on body, offline browser simulation via context.setOffline) |
+
+---
+
+## Performance
+
+| Feature | Detail |
+|---|---|
+| Image formats | AVIF + WebP served automatically via Next.js Image Optimisation (`formats: ["image/avif", "image/webp"]`); PNG fallback for older browsers; 30-day CDN cache (`minimumCacheTTL: 2592000`) |
+| Image proxy scoping | `remotePatterns` scoped to the specific Supabase project hostname (derived from `NEXT_PUBLIC_SUPABASE_URL`) — prevents `/_next/image` acting as an open proxy for arbitrary Supabase projects |
+| Bundle tree-shaking | `optimizePackageImports` configured for `lucide-react` (1400+ icons), all Radix UI packages, and `sonner` — only the components actually imported ship to the client |
+| Bundle analysis | `npm run analyze` opens a Webpack bundle treemap (`ANALYZE=true next build` via `@next/bundle-analyzer`) |
+| Font loading | Newsreader + Manrope declared once in root `app/layout.tsx` and cascade via CSS variables — previously loaded independently in 5 sub-layouts causing duplicate preload hints |
+| No Google Fonts CDN | `next/font/google` self-hosts all fonts at build time — no runtime CDN requests; the `preconnect` to `fonts.googleapis.com` was removed |
+| Supabase preconnect | `<link rel="preconnect">` + `<link rel="dns-prefetch">` for the Supabase storage origin (for avatar images), derived from env var |
+| Offline PWA | Service worker pre-caches `/offline` at install; navigation requests are network-first with the offline page as fallback (not the browser dino); null-guard ensures a cache miss never crashes the SW |
+| PWA icons | `manifest.json` now references `icon-192.png` (192×192) and `icon-512.png` (512×512 maskable) — previously all four icon slots pointed to `new_logo_1.png` |
 
 ---
 

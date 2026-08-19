@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader, Manrope } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/layout/CookieBanner";
@@ -14,6 +14,24 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Declared once at the root so every route group (dashboard, auth, public,
+// onboarding, not-found) shares a single preload hint and CSS module instead
+// of each layout independently requesting the same font files.
+// Superset of all weight + style combos used across the app (auth uses 800).
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobnest.nishpatel.dev";
@@ -119,11 +137,23 @@ export default async function RootLayout({
   // 'unsafe-inline' is ignored (which happens whenever a nonce is present).
   const nonce = (await headers()).get("x-nonce") ?? "";
 
+  // Derive the Supabase origin from the env var — never hardcode the project ID
+  // in source so the same codebase works across dev / staging / prod projects.
+  const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+    : null;
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* next/font/google self-hosts all fonts at build time — no Google CDN
+            requests at runtime. Preconnect to Supabase storage for avatar images. */}
+        {supabaseOrigin && (
+          <>
+            <link rel="preconnect" href={supabaseOrigin} />
+            <link rel="dns-prefetch" href={supabaseOrigin} />
+          </>
+        )}
         <meta name="application-name" content="Jobnest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -148,7 +178,7 @@ export default async function RootLayout({
           media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} ${manrope.variable} min-h-screen bg-background font-sans antialiased`}
       >
         {/* Anti-flash: reads localStorage before first paint and sets class on <html>.
             nonce is a per-request value injected by proxy.ts — it intentionally

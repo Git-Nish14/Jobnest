@@ -278,12 +278,15 @@ test.describe("Service worker", () => {
     const ct = res.headers()["content-type"] ?? "";
     expect(ct).toMatch(/javascript|text/);
     const body = await res.text();
-    // Must NOT pre-cache navigation pages
+    // Must NOT pre-cache authenticated navigation pages
     expect(body).not.toContain("/dashboard");
     expect(body).not.toContain("cache.addAll");
-    // Must NOT cache navigation responses
+    // Navigate requests must be intercepted (network-first with offline fallback)
     expect(body).toContain("navigate");
-    expect(body).toContain("return"); // the early-return for navigation
+    expect(body).toContain("return"); // early-return after respondWith
+    // Performance sprint additions: offline fallback pre-cached, v2 cache names
+    expect(body).toContain("jobnest-assets-v2");
+    expect(body).toContain("/offline");
   });
 });
 

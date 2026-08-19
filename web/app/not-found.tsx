@@ -1,4 +1,4 @@
-import { Newsreader, Manrope } from "next/font/google";
+// Fonts (--font-newsreader, --font-manrope) cascade from root layout.tsx.
 import Link from "next/link";
 import type { Metadata } from "next";
 import { LandingHeader } from "@/components/layout/LandingHeader";
@@ -11,20 +11,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-newsreader",
-  display: "swap",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-});
-
 const QUICK_LINKS = [
   { href: "/dashboard",    label: "Dashboard" },
   { href: "/applications", label: "Applications" },
@@ -34,7 +20,7 @@ const QUICK_LINKS = [
 
 export default function NotFound() {
   return (
-    <div className={`${newsreader.variable} ${manrope.variable} landing-root flex min-h-screen flex-col`}>
+    <div className="landing-root flex min-h-screen flex-col">
       <LandingHeader />
 
       <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 relative overflow-hidden">

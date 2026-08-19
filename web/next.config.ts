@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+// Scope Next.js image optimisation to the specific Supabase project — using
+// a wildcard (*.supabase.co) would let anyone use our image endpoint as a proxy
+// for any Supabase project's storage, a minor SSRF surface we want to avoid.
+const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : null;
 
 const nextConfig: NextConfig = {
   // Enforce HTTPS in production
@@ -77,29 +89,54 @@ const nextConfig: NextConfig = {
     return [];
   },
 
-  // GitHub avatar images for portfolio pages
+  // Image optimisation: serve AVIF/WebP to browsers that support them,
+  // fall back to the original format. Cache optimised images for 30 days.
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2592000, // 30 days
     remotePatterns: [
       {
         protocol: "https",
         hostname: "avatars.githubusercontent.com",
       },
+      // Scoped to the specific project hostname so /_next/image cannot be used
+      // as an open proxy for arbitrary Supabase storage buckets.
+      ...(supabaseHostname
+        ? [{ protocol: "https" as const, hostname: supabaseHostname }]
+        : []),
     ],
   },
 
   // Keep native Node.js modules out of the webpack client bundle
   serverExternalPackages: ["pdf-parse", "mammoth", "@react-pdf/renderer"],
 
-  // Security-related experimental features
+  // PPR (Partial Prerendering): cacheComponents: true is incompatible with
+  // force-dynamic (used on all auth-gated dashboard routes for session safety).
+  // PPR would require migrating auth to a Suspense streaming boundary — deferred.
+
   experimental: {
-    // Enable strict mode for React
+    // Tree-shake large packages so only the icons/components actually imported
+    // end up in the client bundle. Lucide-react alone ships 1400+ icons;
+    // without this, all of them would be included even if only 30 are used.
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-label",
+      "@radix-ui/react-select",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-toast",
+      "sonner",
+    ],
   },
 
   // Disable x-powered-by header
   poweredByHeader: false,
 };
 
-export default withSentryConfig(nextConfig, {
+export default withBundleAnalyzer(withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   // Only upload source maps when DSN is configured (skips local / preview envs)
@@ -109,4 +146,4 @@ export default withSentryConfig(nextConfig, {
   tunnelRoute: "/monitoring",
   disableLogger: true,
   automaticVercelMonitors: true,
-});
+}));
