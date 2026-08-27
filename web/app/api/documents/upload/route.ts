@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
         size_bytes:     file.size,
         is_current:     true,
         is_master:      isMaster,
-        original_name:  file.name,
+        // Strip control chars from the multipart filename before storing.
+        // The value is later embedded in a Content-Disposition header; an
+        // unsanitized filename containing CR/LF enables HTTP Response Splitting.
+        original_name:  file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() || "document",
       })
       .select()
       .single();

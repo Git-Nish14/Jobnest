@@ -23,7 +23,7 @@ const publicRoutes = new Set([
 // could accidentally match unrelated routes (e.g. "/api/contact" would also
 // match a hypothetical "/api/contact-admin").
 const publicApiRoutes = new Set(["/api/contact"]);
-const publicApiPrefixes = ["/api/auth/", "/api/documents/shared/"];
+const publicApiPrefixes = ["/api/auth/", "/api/documents/shared/", "/api/cron/"];
 
 // ── CSP nonce ──────────────────────────────────────────────────────────────
 // Generate a cryptographically random nonce per request using the Web Crypto

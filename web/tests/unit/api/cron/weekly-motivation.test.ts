@@ -27,14 +27,16 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/email/nodemailer", () => ({
+  checkSmtpConfig:           vi.fn().mockReturnValue({ ok: true }),
   sendWeeklyMotivationEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 import { GET } from "@/app/api/cron/weekly-motivation/route";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
+import { checkSmtpConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
 
 const mockAdmin = vi.mocked(createAdminClient);
+const mockSmtp  = vi.mocked(checkSmtpConfig);
 const mockEmail = vi.mocked(sendWeeklyMotivationEmail);
 
 const CRON_SECRET = "test-cron-secret";
@@ -105,6 +107,28 @@ beforeEach(() => {
   vi.setSystemTime(WEDNESDAY_MS);
 });
 afterEach(() => vi.useRealTimers());
+
+// ── SMTP config guard ─────────────────────────────────────────────────────────
+
+describe("GET /api/cron/weekly-motivation — SMTP config guard", () => {
+  it("returns 500 when SMTP env vars are missing (fails before user loop)", async () => {
+    mockSmtp.mockReturnValueOnce({ ok: false, error: "Missing SMTP configuration environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS)" });
+    mockAdmin.mockReturnValue({
+      auth: {
+        admin: {
+          listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+          updateUserById: vi.fn(),
+        },
+      },
+      from: vi.fn(),
+    } as never);
+    const res = await GET(validReq());
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toMatch(/missing smtp/i);
+    expect(mockEmail).not.toHaveBeenCalled();
+  });
+});
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 

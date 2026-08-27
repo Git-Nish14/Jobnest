@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendApplicationMilestoneEmail, sendOfferMilestoneEmail } from "@/lib/email/nodemailer";
+import { checkSmtpConfig, sendApplicationMilestoneEmail, sendOfferMilestoneEmail } from "@/lib/email/nodemailer";
 import { createNotification } from "@/lib/notifications/create";
 
 // Runs once daily at 09:00 UTC (Hobby-plan compatible — Vercel Hobby limits
@@ -16,6 +16,14 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fail fast if SMTP is not configured — avoids silent per-user failures
+  // for every user in the loop when the root cause is a missing env var.
+  const smtpCheck = checkSmtpConfig();
+  if (!smtpCheck.ok) {
+    console.error("[cron/milestone-celebrations] SMTP config missing:", smtpCheck.error);
+    return NextResponse.json({ error: smtpCheck.error }, { status: 500 });
   }
 
   const admin = createAdminClient();
@@ -98,6 +106,7 @@ export async function GET(request: NextRequest) {
           );
 
           if (!success) {
+            console.error(`[cron/milestone-celebrations] app-milestone email failed for ${user.email}:`, emailErr);
             results.errors.push(`${user.email} app-milestone: ${emailErr}`);
           } else {
             await createNotification({
@@ -132,6 +141,7 @@ export async function GET(request: NextRequest) {
           );
 
           if (!success) {
+            console.error(`[cron/milestone-celebrations] offer-milestone email failed for ${user.email}:`, emailErr);
             results.errors.push(`${user.email} offer-milestone: ${emailErr}`);
           } else {
             await createNotification({
@@ -163,6 +173,7 @@ export async function GET(request: NextRequest) {
           results.skipped++;
         }
       } catch (err) {
+        console.error(`[cron/milestone-celebrations] unexpected error for user ${user.id}:`, err);
         results.errors.push(`user ${user.id}: ${err instanceof Error ? err.message : "unknown"}`);
       }
     }
@@ -170,6 +181,10 @@ export async function GET(request: NextRequest) {
     if (users.length < perPage) break;
   }
 
-  console.log("[cron/milestone-celebrations] done", results);
-  return NextResponse.json({ ok: true, ...results });
+  if (results.errors.length > 0) {
+    console.error("[cron/milestone-celebrations] completed with errors:", results);
+  } else {
+    console.log("[cron/milestone-celebrations] done", results);
+  }
+  return NextResponse.json({ ok: results.errors.length === 0, ...results });
 }

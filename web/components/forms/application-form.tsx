@@ -9,7 +9,7 @@ import { ApplicationJsonImport } from "./application-json-import";
 import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { uploadFile } from "@/lib/utils/storage";
+import { uploadVersionedFile } from "@/lib/utils/storage";
 import { applicationSchema, type ApplicationFormData } from "@/lib/validations/application";
 import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
@@ -45,8 +45,10 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
   const isEditing = !!application;
   const submittingRef = useRef(false);
 
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [resumeUpload, setResumeUpload] = useState<{ file: File; path: string } | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [coverLetterUpload, setCoverLetterUpload] = useState<{ file: File; path: string } | null>(null);
+  const [coverLetterUploading, setCoverLetterUploading] = useState(false);
   const [glassdoorRating, setGlassdoorRating] = useState<number | null>(
     application?.glassdoor_rating ?? null
   );
@@ -244,51 +246,46 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
         toast.success("Application created successfully");
       }
 
-      // Upload files — only stored in application_documents (no legacy path fields)
-      if (resumeFile && applicationId) {
-        const resumePath = await uploadFile(supabase, userId, applicationId, resumeFile, "resume");
-        if (resumePath) {
-          await supabase.from("application_documents")
-            .update({ is_current: false })
-            .eq("application_id", applicationId)
-            .eq("user_id", userId)
-            .eq("label", "Resume")
-            .eq("is_current", true);
-          await supabase.from("application_documents").insert({
-            application_id: applicationId,
-            user_id:        userId,
-            label:          "Resume",
-            storage_path:   resumePath,
-            mime_type:      "application/pdf",
-            size_bytes:     resumeFile.size,
-            is_current:     true,
-            is_master:      false,
-            original_name:  resumeFile.name,
-          });
-        }
+      // Attach pre-uploaded files — storage upload happened on file pick,
+      // so here we only write the application_documents DB rows.
+      if (resumeUpload && applicationId) {
+        await supabase.from("application_documents")
+          .update({ is_current: false })
+          .eq("application_id", applicationId)
+          .eq("user_id", userId)
+          .eq("label", "Resume")
+          .eq("is_current", true);
+        await supabase.from("application_documents").insert({
+          application_id: applicationId,
+          user_id:        userId,
+          label:          "Resume",
+          storage_path:   resumeUpload.path,
+          mime_type:      "application/pdf",
+          size_bytes:     resumeUpload.file.size,
+          is_current:     true,
+          is_master:      false,
+          original_name:  resumeUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() || "resume.pdf",
+        });
       }
 
-      if (coverLetterFile && applicationId) {
-        const coverLetterPath = await uploadFile(supabase, userId, applicationId, coverLetterFile, "cover_letter");
-        if (coverLetterPath) {
-          await supabase.from("application_documents")
-            .update({ is_current: false })
-            .eq("application_id", applicationId)
-            .eq("user_id", userId)
-            .eq("label", "Cover Letter")
-            .eq("is_current", true);
-          await supabase.from("application_documents").insert({
-            application_id: applicationId,
-            user_id:        userId,
-            label:          "Cover Letter",
-            storage_path:   coverLetterPath,
-            mime_type:      "application/pdf",
-            size_bytes:     coverLetterFile.size,
-            is_current:     true,
-            is_master:      false,
-            original_name:  coverLetterFile.name,
-          });
-        }
+      if (coverLetterUpload && applicationId) {
+        await supabase.from("application_documents")
+          .update({ is_current: false })
+          .eq("application_id", applicationId)
+          .eq("user_id", userId)
+          .eq("label", "Cover Letter")
+          .eq("is_current", true);
+        await supabase.from("application_documents").insert({
+          application_id: applicationId,
+          user_id:        userId,
+          label:          "Cover Letter",
+          storage_path:   coverLetterUpload.path,
+          mime_type:      "application/pdf",
+          size_bytes:     coverLetterUpload.file.size,
+          is_current:     true,
+          is_master:      false,
+          original_name:  coverLetterUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() || "cover_letter.pdf",
+        });
       }
 
       router.push("/applications");
@@ -300,26 +297,90 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
     }
   };
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "resume" | "coverLetter"
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-      if (file.type !== "application/pdf") {
-        toast.error("Only PDF files are allowed");
-        return;
-      }
-      if (type === "resume") {
-        setResumeFile(file);
-      } else {
-        setCoverLetterFile(file);
-      }
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
     }
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are allowed");
+      return;
+    }
+
+    // Client-side magic-byte check: PDF files start with %PDF (0x25 0x50 0x44 0x46).
+    // This is not a server-side guarantee but blocks accidental and casual spoofing
+    // before the bytes even leave the browser. The server-side upload API route
+    // enforces this with full magic-byte validation — this is defence in depth.
+    const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const isPDF = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
+    if (!isPDF) {
+      toast.error("File does not appear to be a valid PDF — upload rejected");
+      return;
+    }
+
+    const isResume = type === "resume";
+
+    // Bug fix: if the user picks a replacement file without clicking X, clean up
+    // the previously staged upload so it doesn't orphan in storage.
+    const existing = isResume ? resumeUpload : coverLetterUpload;
+    if (existing) {
+      const supabaseCleanup = createClient();
+      supabaseCleanup.storage.from("documents").remove([existing.path]).catch(() => {});
+    }
+
+    if (isResume) setResumeUploading(true);
+    else setCoverLetterUploading(true);
+
+    try {
+      const supabase = createClient();
+      let storagePath: string;
+
+      if (isEditing && application?.id) {
+        // Edit mode: upload directly to the application's versioned folder.
+        storagePath = await uploadVersionedFile(
+          supabase, userId, application.id,
+          isResume ? "Resume" : "Cover Letter", file,
+        );
+      } else {
+        // New-app mode: no applicationId yet — upload to a library staging folder.
+        // The download proxy allows library-scoped paths via user-folder check only,
+        // so the file is accessible immediately and the DB row will carry the real
+        // application_id once the application is created on submit.
+        storagePath = await uploadVersionedFile(
+          supabase, userId, "library",
+          isResume ? "draft-resume" : "draft-cover", file,
+        );
+      }
+
+      if (isResume) setResumeUpload({ file, path: storagePath });
+      else setCoverLetterUpload({ file, path: storagePath });
+
+      toast.success(`${isResume ? "Resume" : "Cover letter"} uploaded`);
+    } catch (err) {
+      toast.error(`Upload failed — ${getNetworkErrorMessage(err)}`);
+    } finally {
+      if (isResume) setResumeUploading(false);
+      else setCoverLetterUploading(false);
+    }
+  };
+
+  const removeFile = (type: "resume" | "coverLetter") => {
+    const isResume = type === "resume";
+    const upload = isResume ? resumeUpload : coverLetterUpload;
+    if (upload) {
+      // Best-effort storage cleanup to avoid orphaned files
+      const supabase = createClient();
+      supabase.storage.from("documents").remove([upload.path]).catch(() => {});
+    }
+    if (isResume) setResumeUpload(null);
+    else setCoverLetterUpload(null);
   };
 
   return (
@@ -363,7 +424,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
         )}
       </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-6"
+          style={isSubmitting ? { opacity: 0.65, pointerEvents: "none" } : undefined}
+        >
           {/* Company & Position */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -644,10 +709,15 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
                   <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
-                    {resumeFile ? (
+                    {resumeUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
+                        <span className="text-sm text-[#55433d]/70">Uploading…</span>
+                      </>
+                    ) : resumeUpload ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
-                        <span className="text-sm truncate">{resumeFile.name}</span>
+                        <span className="text-sm truncate">{resumeUpload.file.name}</span>
                       </>
                     ) : existingResume ? (
                       <>
@@ -670,15 +740,16 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     type="file"
                     accept=".pdf"
                     className="hidden"
+                    disabled={resumeUploading}
                     onChange={(e) => handleFileChange(e, "resume")}
                   />
                 </label>
-                {resumeFile && (
+                {resumeUpload && !resumeUploading && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => setResumeFile(null)}
+                    onClick={() => removeFile("resume")}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -691,10 +762,15 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
                   <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
-                    {coverLetterFile ? (
+                    {coverLetterUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
+                        <span className="text-sm text-[#55433d]/70">Uploading…</span>
+                      </>
+                    ) : coverLetterUpload ? (
                       <>
                         <FileText className="h-4 w-4 text-[#55433d]/60" />
-                        <span className="text-sm truncate">{coverLetterFile.name}</span>
+                        <span className="text-sm truncate">{coverLetterUpload.file.name}</span>
                       </>
                     ) : existingCoverLetter ? (
                       <>
@@ -717,15 +793,16 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     type="file"
                     accept=".pdf"
                     className="hidden"
+                    disabled={coverLetterUploading}
                     onChange={(e) => handleFileChange(e, "coverLetter")}
                   />
                 </label>
-                {coverLetterFile && (
+                {coverLetterUpload && !coverLetterUploading && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => setCoverLetterFile(null)}
+                    onClick={() => removeFile("coverLetter")}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -743,11 +820,13 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isEditing ? "Save Changes" : "Create Application"}
+            <Button type="submit" disabled={isSubmitting || resumeUploading || coverLetterUploading}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting
+                ? (isEditing ? "Saving…" : "Creating…")
+                : (resumeUploading || coverLetterUploading)
+                  ? "Uploading file…"
+                  : isEditing ? "Save Changes" : "Create Application"}
             </Button>
           </div>
         </form>

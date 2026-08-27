@@ -82,6 +82,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Look up the original filename from application_documents. This gives the
+    // user's chosen name (e.g. "John_Doe_Resume_2026.pdf") rather than the
+    // storage path's last segment (e.g. "1750000000_John_Doe_Resume_2026.pdf"
+    // for versioned uploads, or "resume.pdf" for legacy uploads).
+    const { data: docRow } = await supabase
+      .from("application_documents")
+      .select("original_name")
+      .eq("storage_path", path)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     // Download the file
     const { data, error } = await supabase.storage.from("documents").download(path);
     if (error || !data) throw ApiError.notFound("File not found");
@@ -100,13 +111,25 @@ export async function GET(request: NextRequest) {
     };
     const contentType = MIME[ext] ?? "application/octet-stream";
 
+    // Use original_name from the DB when available; fall back to the storage
+    // path's last segment for legacy uploads that pre-date the original_name column.
+    const rawName = docRow?.original_name || parsed.filename;
+    // SECURITY: Sanitize before embedding in an HTTP header value.
+    // Strip ALL control characters first (CR, LF, NUL, etc.) — these enable
+    // HTTP Response Splitting. Then strip header-grammar-breaking characters.
+    // If nothing remains, fall back to "document" so the header is always valid.
+    const downloadName = rawName
+      .replace(/[\x00-\x1f\x7f]/g, "")   // strip every control character
+      .replace(/["\\/;,]/g, "_")          // strip header-breaking punctuation
+      .trim() || "document";
+
     // For PDF and images: inline for preview; attachment when ?dl=1 (direct download).
     // For everything else: always attachment.
     const canInline = ext === "pdf" || ext === "png" || ext === "jpg" || ext === "jpeg";
     const inline = canInline && !forceDownload;
     const disposition = inline
-      ? `inline; filename="${parsed.filename.replace(/"/g, "")}"`
-      : `attachment; filename="${parsed.filename.replace(/"/g, "")}"`;
+      ? `inline; filename="${downloadName}"`
+      : `attachment; filename="${downloadName}"`;
 
     const arrayBuffer = await data.arrayBuffer();
 

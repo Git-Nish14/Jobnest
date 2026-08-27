@@ -279,7 +279,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                               onMouseEnter={() => openNav(group.key)}
                               onMouseLeave={scheduleClose}
                             >
-                              <div className="min-w-56 rounded-xl border border-border/60 bg-background/95 backdrop-blur-sm shadow-lg shadow-black/5 dark:shadow-black/20 p-1.5">
+                              <div className="min-w-56 rounded-xl border border-border bg-[#faf9f7] dark:bg-[#1a1c1b] shadow-xl shadow-black/10 dark:shadow-black/40 p-1.5">
                                 {group.links.map(link => {
                                   const Icon = link.icon;
                                   const isActive = pathname === link.href || pathname.startsWith(link.href + "/");

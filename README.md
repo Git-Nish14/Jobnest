@@ -517,9 +517,9 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1654 tests, 100 files)
+npm test              # Vitest (1676 tests, 101 files)
 npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 16 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm run test:e2e      # Playwright E2E — 17 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 npm run analyze       # Webpack bundle analysis — opens interactive treemap (ANALYZE=true next build)
 ```
 
@@ -531,9 +531,9 @@ npm run analyze       # Webpack bundle analysis — opens interactive treemap (A
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers, **performance sprint** (next.config.ts bundle analyzer + AVIF/WebP + Supabase hostname scoping, font consolidation across 5 layouts, SW v2 cache names + offline pre-caching + null-guard, offline page force-static, manifest icon references) |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers, **performance sprint** (next.config.ts bundle analyzer + AVIF/WebP + Supabase hostname scoping, font consolidation across 5 layouts, SW v2 cache names + offline pre-caching + null-guard, offline page force-static, manifest icon references), **Aug 2026 sprint** (download proxy `original_name` lookup + CRLF/NUL sanitisation, upload route control-char sanitisation in `original_name`, cron SMTP 500 guard for milestone-celebrations + weekly-motivation) |
 | Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
-| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden), **Resume Audit** (unauthenticated 401 guards, ATS tab layout, weekly goal profile persistence with real Supabase, single-header Edit on mobile, SW v2 cache names, API validation real-DB), **Performance sprint** (/offline page 200+HTML+content, /sw.js v2 caches+null-guard+no auth pre-caching, /manifest.json icon-192/512 references, --font-newsreader/--font-manrope CSS vars on body, offline browser simulation via context.setOffline) |
+| E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden), **Resume Audit** (unauthenticated 401 guards, ATS tab layout, weekly goal profile persistence with real Supabase, single-header Edit on mobile, SW v2 cache names, API validation real-DB), **Performance sprint** (/offline page 200+HTML+content, /sw.js v2 caches+null-guard+no auth pre-caching, /manifest.json icon-192/512 references, --font-newsreader/--font-manrope CSS vars on body, offline browser simulation via context.setOffline), **Aug 2026 sprint** (upload-on-pick storage request fires before submit, "Uploading…" spinner while upload is in flight, non-PDF magic-byte toast + zero network calls, form lock during submit, navbar dropdown fully opaque, unauthenticated download proxy 401) |
 
 ---
 
@@ -570,6 +570,9 @@ npm run analyze       # Webpack bundle analysis — opens interactive treemap (A
 | CSRF origin | `verifyOrigin()` validates `Origin` against `NEXT_PUBLIC_APP_URL` (static allowlist); `x-forwarded-host` spoofing not accepted in production |
 | RLS | All tables enforce row-level security via `auth.uid()` |
 | Plan enforcement | Reads `subscriptions` via service-role - fail-closed, never grants Pro on error |
+| Document download filename | `Content-Disposition` uses `original_name` from `application_documents` DB row (user's chosen filename e.g. `John_Doe_Resume.pdf`) instead of the raw storage path segment (`resume.pdf` or `1750000000_name.pdf`); falls back to path segment for legacy uploads |
+| HTTP header injection | All values embedded in `Content-Disposition` headers are sanitised: control chars (CR/LF/NUL) stripped first, then header-grammar punctuation (`"`, `\`, `;`, `,`) replaced; empty-after-strip falls back to `"document"` — applied at both DB write time (upload route + ApplicationForm inserts) and read time (download proxy) for defence in depth |
+| SMTP config guard | Cron handlers (`milestone-celebrations`, `weekly-motivation`) call `checkSmtpConfig()` before the user loop; return HTTP 500 immediately if SMTP env vars are absent — prevents silent per-user failures where the root cause is a missing env var; all per-email failures now log at `console.error` level (visible in Vercel Function logs) |
 | Document serving | `Content-Disposition: attachment` forced - prevents stored XSS |
 | Startup validation | `instrumentation.ts` throws on missing required env vars |
 | Headers | HSTS, nonce-based CSP (no `unsafe-eval`; `strict-dynamic`), X-Frame-Options, X-Content-Type-Options, Referrer-Policy |

@@ -77,6 +77,16 @@ describe("proxy — unauthenticated access", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("allows unauthenticated access to /api/cron/milestone-celebrations", async () => {
+    const res = await proxy(req("/api/cron/milestone-celebrations"));
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("allows unauthenticated access to /api/cron/weekly-motivation", async () => {
+    const res = await proxy(req("/api/cron/weekly-motivation"));
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("redirects /dashboard to /login", async () => {
     const res = await proxy(req("/dashboard"));
     const location = res.headers.get("location");

@@ -123,3 +123,77 @@ describe("POST /api/documents/upload", () => {
     expect(body.document).toBeDefined();
   });
 });
+
+// ── original_name sanitization (HTTP Response Splitting prevention) ────────────
+// The upload route strips control chars from file.name before storing as
+// original_name — prevents a crafted multipart filename from injecting HTTP
+// headers when the value is later embedded in a Content-Disposition header.
+
+describe("POST /api/documents/upload — original_name sanitization", () => {
+  // Custom client factory that exposes what was passed to .insert()
+  function makeClientWithCapture() {
+    let captured: Record<string, unknown> | null = null;
+
+    const insertMock = vi.fn().mockImplementation((data: Record<string, unknown>) => {
+      captured = data;
+      const chain = {
+        ...makeChain({ data: { id: "doc-id" }, error: null }),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: "doc-id", label: "Resume" }, error: null }),
+      };
+      return chain;
+    });
+
+    const updateChain = makeChain({ data: null, error: null });
+    const client = {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "uid" } }, error: null }) },
+      from: vi.fn((t: string) => {
+        if (t === "job_applications") return makeChain({ data: { id: "app-id" }, error: null });
+        if (t === "application_documents") return { ...updateChain, insert: insertMock };
+        return updateChain;
+      }),
+      storage: { from: vi.fn().mockReturnValue({ remove: vi.fn().mockResolvedValue({ error: null }) }) },
+    };
+
+    return { client, insertMock, getArg: () => captured };
+  }
+
+  it("strips CR+LF from file.name before storing as original_name", async () => {
+    // CR/LF are the exploitable chars — removing them neutralises HTTP header injection
+    // even if surrounding text (e.g. "X-Injected: evil") remains on one line.
+    const { client, getArg } = makeClientWithCapture();
+    mockCreate.mockResolvedValue(client as never);
+    const file = makeFile("resume.pdf\r\nX-Injected: evil");
+    await POST(makeFormRequest({ file, label: "Resume", application_id: "app-id" }) as never);
+    const arg = getArg();
+    expect(arg).not.toBeNull();
+    const name = String(arg!.original_name);
+    expect(name).not.toContain("\r");
+    expect(name).not.toContain("\n");
+  });
+
+  it("strips NUL bytes from file.name before storing", async () => {
+    const { client, getArg } = makeClientWithCapture();
+    mockCreate.mockResolvedValue(client as never);
+    const file = makeFile("resume.pdf\x00malware");
+    await POST(makeFormRequest({ file, label: "Resume", application_id: "app-id" }) as never);
+    const name = String(getArg()!.original_name);
+    expect(name).not.toContain("\x00");
+  });
+
+  it("falls back to 'document' when filename is entirely control characters", async () => {
+    const { client, getArg } = makeClientWithCapture();
+    mockCreate.mockResolvedValue(client as never);
+    const file = makeFile("\r\n\x00\x1f");
+    await POST(makeFormRequest({ file, label: "Resume", application_id: "app-id" }) as never);
+    expect(getArg()!.original_name).toBe("document");
+  });
+
+  it("preserves a clean filename unchanged", async () => {
+    const { client, getArg } = makeClientWithCapture();
+    mockCreate.mockResolvedValue(client as never);
+    const file = makeFile("John_Doe_Resume_2026.pdf");
+    await POST(makeFormRequest({ file, label: "Resume", application_id: "app-id" }) as never);
+    expect(getArg()!.original_name).toBe("John_Doe_Resume_2026.pdf");
+  });
+});

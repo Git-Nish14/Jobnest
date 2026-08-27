@@ -17,7 +17,7 @@ function getEmailConfig(): EmailConfig {
   const smtpPass = process.env.SMTP_PASS;
 
   if (!smtpHost || !smtpUser || !smtpPass) {
-    throw new Error("Missing SMTP configuration environment variables");
+    throw new Error("Missing SMTP configuration environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS)");
   }
 
   return {
@@ -29,6 +29,21 @@ function getEmailConfig(): EmailConfig {
       pass: smtpPass,
     },
   };
+}
+
+/**
+ * Synchronously checks whether the SMTP env vars are present.
+ * Does NOT open a TCP connection — use this at cron startup to fail fast
+ * before the user loop begins, so the error appears in Vercel function logs
+ * immediately rather than buried in per-user error entries.
+ */
+export function checkSmtpConfig(): { ok: true } | { ok: false; error: string } {
+  try {
+    getEmailConfig();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unknown SMTP config error" };
+  }
 }
 
 function createTransporter() {

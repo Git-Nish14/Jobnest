@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
+import { checkSmtpConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
 
 // Runs once per week: Wednesday 09:00 UTC (cron: "0 9 * * 3").
 // Hobby-plan compatible — Vercel Hobby limits crons to once per day;
@@ -25,6 +25,13 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fail fast if SMTP is not configured — avoids silent per-user failures
+  const smtpCheck = checkSmtpConfig();
+  if (!smtpCheck.ok) {
+    console.error("[cron/weekly-motivation] SMTP config missing:", smtpCheck.error);
+    return NextResponse.json({ error: smtpCheck.error }, { status: 500 });
   }
 
   const admin = createAdminClient();
@@ -108,6 +115,7 @@ export async function GET(request: NextRequest) {
         });
 
         if (!success) {
+          console.error(`[cron/weekly-motivation] email failed for ${user.email}:`, emailErr);
           results.errors.push(`${user.email}: ${emailErr}`);
           continue;
         }
@@ -120,6 +128,7 @@ export async function GET(request: NextRequest) {
         results.sent++;
         console.log(`[cron/weekly-motivation] sent to ${user.email} (week ${weekKey})`);
       } catch (err) {
+        console.error(`[cron/weekly-motivation] unexpected error for user ${user.id}:`, err);
         results.errors.push(`user ${user.id}: ${err instanceof Error ? err.message : "unknown"}`);
       }
     }
@@ -127,6 +136,10 @@ export async function GET(request: NextRequest) {
     if (users.length < perPage) break;
   }
 
-  console.log("[cron/weekly-motivation] done", results);
-  return NextResponse.json({ ok: true, ...results });
+  if (results.errors.length > 0) {
+    console.error("[cron/weekly-motivation] completed with errors:", results);
+  } else {
+    console.log("[cron/weekly-motivation] done", results);
+  }
+  return NextResponse.json({ ok: results.errors.length === 0, ...results });
 }

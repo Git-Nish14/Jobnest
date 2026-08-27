@@ -19,6 +19,7 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/email/nodemailer", () => ({
+  checkSmtpConfig:               vi.fn().mockReturnValue({ ok: true }),
   sendApplicationMilestoneEmail: vi.fn().mockResolvedValue({ success: true }),
   sendOfferMilestoneEmail:       vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -28,10 +29,11 @@ vi.mock("@/lib/notifications/create", () => ({
 
 import { GET } from "@/app/api/cron/milestone-celebrations/route";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendApplicationMilestoneEmail, sendOfferMilestoneEmail } from "@/lib/email/nodemailer";
+import { checkSmtpConfig, sendApplicationMilestoneEmail, sendOfferMilestoneEmail } from "@/lib/email/nodemailer";
 import { createNotification } from "@/lib/notifications/create";
 
 const mockAdmin       = vi.mocked(createAdminClient);
+const mockSmtp        = vi.mocked(checkSmtpConfig);
 const mockAppEmail    = vi.mocked(sendApplicationMilestoneEmail);
 const mockOfferEmail  = vi.mocked(sendOfferMilestoneEmail);
 const mockNotif       = vi.mocked(createNotification);
@@ -100,6 +102,22 @@ function makeUser(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+// ── SMTP config guard ─────────────────────────────────────────────────────────
+
+describe("GET /api/cron/milestone-celebrations — SMTP config guard", () => {
+  it("returns 500 when SMTP env vars are missing (fails before user loop)", async () => {
+    mockSmtp.mockReturnValueOnce({ ok: false, error: "Missing SMTP configuration environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS)" });
+    mockAdmin.mockReturnValue(makeAdminClient([], { totalApps: 0, offerCount: 0 }) as never);
+    const res = await GET(validReq());
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toMatch(/missing smtp/i);
+    // No user iteration should have occurred
+    expect(mockAppEmail).not.toHaveBeenCalled();
+    expect(mockOfferEmail).not.toHaveBeenCalled();
+  });
 });
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
