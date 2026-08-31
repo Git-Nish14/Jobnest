@@ -5,6 +5,8 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractAllDocuments } from "@/lib/utils/document-parser";
 import { verifyOrigin } from "@/lib/security/csrf";
+import { TOKEN_CAPS, getDailyTokenUsage, recordTokenUsage } from "@/lib/features/ai-usage";
+import type { AiFeature } from "@/lib/features/ai-usage";
 
 // Rate limits per plan
 const RATE_LIMITS = {
@@ -131,6 +133,31 @@ export async function POST(request: NextRequest) {
             "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetTime / 1000)),
           },
         }
+      );
+    }
+
+    // ── Daily token cap (cost guardrail) ──────────────────────────────────────
+    const dailyCap = isPro ? TOKEN_CAPS.pro : TOKEN_CAPS.free;
+    const dailyUsed = await getDailyTokenUsage(user.id);
+    // null = DB error: fail-closed so outages can't be exploited to bypass the cap
+    if (dailyUsed === null) {
+      return NextResponse.json(
+        { error: "AI service is temporarily unavailable. Please try again shortly." },
+        { status: 503 }
+      );
+    }
+    if (dailyUsed >= dailyCap) {
+      const capK = (dailyCap / 1000).toLocaleString("en-US");
+      return NextResponse.json(
+        {
+          error: isPro
+            ? `You've reached your daily AI limit of ${capK}k tokens. Usage resets at midnight UTC.`
+            : `You've used your daily free AI quota (${capK}k tokens). Upgrade to Pro for 20× more capacity, or wait until midnight UTC.`,
+          code: "DAILY_CAP_REACHED",
+          used: dailyUsed,
+          cap: dailyCap,
+        },
+        { status: 429 }
       );
     }
 
@@ -428,12 +455,29 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       return NextResponse.json({ error: "AI service returned an empty response. Please try again." }, { status: 502 });
     }
 
+    // Determine which NESTAi feature was invoked (for per-feature analytics).
+    // Heuristic: scan the system prompt / question for known modal trigger phrases.
+    const featureHint = ((): AiFeature => {
+      const q = question.toLowerCase();
+      if (q.startsWith("[nestats]") || q.includes("nestats")) return "nestats";
+      if (q.startsWith("[prep]") || q.includes("mock interview") || q.includes("interview prep")) return "interview_prep";
+      if (q.startsWith("[draft]") || q.includes("email draft") || q.includes("write an email")) return "email_draft";
+      if (q.startsWith("[resume-audit]") || q.includes("resume audit")) return "resume_audit";
+      return "chat";
+    })();
+
+    const inputTokenCount = totalEstTokens(groqMessages);
+
     // Stream tokens from Groq SSE → client.
     // TransformStream avoids the Node.js internal kState.transformAlgorithm error
     // that occurs when ReadableStream's underlying source controller is used inside
     // Next.js's response plumbing (which wraps responses in its own TransformStream).
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
+    // Accumulate raw output character count; estimate tokens once in flush()
+    // to avoid Math.ceil inflation from per-delta ceiling (e.g. 800 two-char
+    // deltas ceil to 800 tokens instead of the correct ~400).
+    let outputChars = 0;
     const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         const text = decoder.decode(chunk, { stream: true });
@@ -447,12 +491,19 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
             // Guard against enqueue on a controller that has already been closed
             // (can happen if the client disconnected while a chunk was in-flight).
             if (token) {
+              outputChars += token.length;
               try {
                 controller.enqueue(encoder.encode(token));
               } catch { /* controller closed — client disconnected mid-stream */ }
             }
           } catch { /* skip malformed SSE chunks */ }
         }
+      },
+      flush() {
+        // Stream complete — log token usage fire-and-forget (non-blocking)
+        const outputTokenCount = Math.ceil(outputChars / 4);
+        recordTokenUsage(user.id, featureHint, inputTokenCount, outputTokenCount, usedModel)
+          .catch((err) => console.error("[ai-usage] flush log failed:", err));
       },
     });
     // pipeTo propagates back-pressure and surfaces client-disconnect cancellations.

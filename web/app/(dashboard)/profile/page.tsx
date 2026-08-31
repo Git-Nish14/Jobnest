@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ProfileClient } from "@/components/profile";
 import { DeveloperIdentity } from "@/components/profile/developer-identity";
+import { ReferralCard } from "@/components/profile/referral-card";
 import { WORK_AUTHORIZATION_OPTIONS, type WorkAuthorization } from "@/config";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,11 @@ export default async function ProfilePage() {
     {/* ── Developer Identity — skills, certifications, education ── */}
     <div className="mt-8">
       <DeveloperIdentity />
+    </div>
+
+    {/* ── Referral program ── */}
+    <div className="mt-8">
+      <ReferralCard />
     </div>
     </>
   );

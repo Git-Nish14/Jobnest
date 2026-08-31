@@ -13,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { PricingPlans } from "@/components/pricing/PricingPlans";
+import { PricingHeroSubheading } from "@/components/pricing/pricing-hero-ab";
 import type { User } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import "./pricing.css";
@@ -221,10 +222,8 @@ export default async function PricingPage({
           <h1 className="text-5xl md:text-6xl mb-6 leading-tight landing-serif">
             Simple, honest pricing
           </h1>
-          <p className="text-xl text-[#55433d] max-w-lg mx-auto leading-relaxed">
-            Start on the Free plan and upgrade to Pro when you&apos;re ready
-            for advanced tools — or claim a free month as a student.
-          </p>
+          {/* A/B test: variant subheading (client component, SSR-safe) */}
+          <PricingHeroSubheading />
         </section>
 
         {/* ── Interactive plan cards (client component) ── */}
