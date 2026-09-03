@@ -1,6 +1,6 @@
 import { Bell, Clock, CheckCircle2 } from "lucide-react";
 import { getReminders, getDueReminders } from "@/services";
-import { ReminderList, ReminderForm } from "@/components/reminders";
+import { ReminderList, ReminderForm, ReminderBulkActions } from "@/components/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,13 @@ export default async function RemindersPage() {
             Stay on top of your follow-ups and deadlines with thoughtful precision.
           </p>
         </div>
-        <ReminderForm />
+        <div className="flex items-center gap-3 flex-wrap">
+          <ReminderBulkActions
+            pendingIds={[...overdue, ...pending].map((r) => r.id)}
+            completedIds={completed.map((r) => r.id)}
+          />
+          <ReminderForm />
+        </div>
       </header>
 
       <div className="space-y-8">

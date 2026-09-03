@@ -188,7 +188,7 @@ function emailHtml({
               </div>
               ${footerExtra}
               <p class="footer-copy" style="margin:0;font-size:11px;color:#9ca3af;line-height:1.5;">
-                &copy; ${year} Jobnest &mdash; a <a href="https://nishpatel.dev" style="color:#99462a;text-decoration:none;">Nish Patel</a> product.<br>
+                &copy; ${year} Jobnest, a <a href="https://nishpatel.dev" style="color:#99462a;text-decoration:none;">Nish Patel</a> product.<br>
                 You received this because an action was taken on your account.
               </p>
             </td>
@@ -304,7 +304,7 @@ export async function sendDeletionScheduledEmail(
         </div>
 
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;">
-          You have <strong>30 days</strong> to change your mind. Simply sign in to your account and the deletion will be immediately cancelled &mdash; no extra steps needed.
+          You have <strong>30 days</strong> to change your mind. Simply sign in to your account and the deletion will be immediately cancelled. No extra steps needed.
         </p>
 
         <!-- Table-based button for Outlook compatibility -->
@@ -317,7 +317,7 @@ export async function sendDeletionScheduledEmail(
         </table>
 
         <p class="muted" style="margin:0 0 12px;font-size:13px;color:#6b7280;line-height:1.5;">
-          If you take no action, your account and all associated data &mdash; applications, interviews, contacts, salary records, documents, and more &mdash; will be <strong>permanently deleted</strong> on ${esc(deletionDate)}. This cannot be undone.
+          If you take no action, your account and all associated data (applications, interviews, contacts, salary records, documents, and more) will be <strong>permanently deleted</strong> on ${esc(deletionDate)}. This cannot be undone.
         </p>
         <p class="muted" style="margin:0 0 12px;font-size:13px;color:#6b7280;line-height:1.5;">We&apos;ll send reminder emails every 7 days until then.</p>
 
@@ -429,13 +429,13 @@ export async function sendDeletionFinalWarningEmail(
         <p style="margin:0 0 14px;font-size:16px;font-weight:600;line-height:1.5;color:#7f1d1d;">Your account will be permanently deleted on ${esc(deletionDate)}.</p>
 
         <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;">
-          This is your <strong>last chance</strong> to cancel. Sign in within the next 24&nbsp;hours to restore your account &mdash; your data is still intact right now.
+          This is your <strong>last chance</strong> to cancel. Sign in within the next 24&nbsp;hours to restore your account. Your data is still intact right now.
         </p>
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0;">
           <tr>
             <td style="border-radius:99px;background-color:#dc2626;">
-              <a href="${APP_URL}/login" class="btn-link btn-danger" style="display:inline-block;padding:14px 32px;border-radius:99px;font-weight:700;font-size:16px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Sign In Now &mdash; Save My Account</a>
+              <a href="${APP_URL}/login" class="btn-link btn-danger" style="display:inline-block;padding:14px 32px;border-radius:99px;font-weight:700;font-size:16px;text-decoration:none;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Sign In Now to Save My Account</a>
             </td>
           </tr>
         </table>
@@ -616,7 +616,7 @@ export async function sendOverdueReminderEmail(
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle;">
           <div style="font-weight:600;font-size:14px;color:#1a1c1b;">${esc(r.title)}</div>
-          ${r.company ? `<div style="font-size:12px;color:#6b7280;">${esc(r.company)}${r.position ? ` — ${esc(r.position)}` : ""}</div>` : ""}
+          ${r.company ? `<div style="font-size:12px;color:#6b7280;">${esc(r.company)}${r.position ? ` at ${esc(r.position)}` : ""}</div>` : ""}
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap;vertical-align:middle;">
           <span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background-color:#fee2e2;color:#dc2626;">
@@ -634,7 +634,7 @@ export async function sendOverdueReminderEmail(
           Overdue Reminder${count !== 1 ? "s" : ""}
         </h1>
         <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">
-          Hi ${name} &mdash; ${count} item${count !== 1 ? "s need" : " needs"} your attention.
+          Hi ${name}, ${count} item${count !== 1 ? "s need" : " needs"} your attention.
         </p>
       `,
       bodyContent: `
@@ -663,7 +663,7 @@ export async function sendOverdueReminderEmail(
       from: `"Jobnest" <${smtpUser}>`,
       to: email,
       subject: `Action needed: ${count} overdue reminder${count !== 1 ? "s" : ""} on Jobnest`,
-      text: `Hi ${displayName || "there"},\n\nYou have ${count} overdue reminder${count !== 1 ? "s" : ""}:\n\n${reminders.map(r => `• ${r.title}${r.company ? ` (${r.company})` : ""} — ${r.daysOverdue === 0 ? "due today" : `${r.daysOverdue}d overdue`}`).join("\n")}\n\nReview them at ${APP_URL}/reminders\n\nThe Jobnest Team`,
+      text: `Hi ${displayName || "there"},\n\nYou have ${count} overdue reminder${count !== 1 ? "s" : ""}:\n\n${reminders.map(r => `• ${r.title}${r.company ? ` (${r.company})` : ""}, ${r.daysOverdue === 0 ? "due today" : `${r.daysOverdue}d overdue`}`).join("\n")}\n\nReview them at ${APP_URL}/reminders\n\nThe Jobnest Team`,
       html,
     });
 
@@ -764,13 +764,13 @@ export async function sendWeeklyDigestEmail(
       headerBg: { solid: "#99462a", gradient: "linear-gradient(135deg,#99462a 0%,#7a3521 100%)" },
       headerContent: `
         <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Your Weekly Digest</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">Hi ${name} &mdash; here&apos;s how your job search is going</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">Hi ${name}, here&apos;s how your job search is going</p>
       `,
       bodyContent: `
         ${statsGrid}
         ${recentAppsHtml}
         ${interviewsHtml}
-        <p style="color:#55433d;font-size:14px;font-style:italic;text-align:center;margin:16px 0;">Keep going &mdash; every application is a step forward.</p>
+        <p style="color:#55433d;font-size:14px;font-style:italic;text-align:center;margin:16px 0;">Keep going. Every application is a step forward.</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px 0;">
           <tr>
             <td style="border-radius:99px;background-color:#99462a;">
@@ -808,12 +808,12 @@ export async function sendWeeklyDigestEmail(
 
 // ── Application milestone email (100, 200, 300…) ─────────────────────────────
 function appMilestoneMessage(n: number): string {
-  if (n === 100) return `A century of persistence. Logging 100 applications sets you apart &mdash; the ones who land great roles aren&rsquo;t always the most talented; they&rsquo;re the most consistent.`;
+  if (n === 100) return `A century of persistence. Logging 100 applications sets you apart. The ones who land great roles aren&rsquo;t always the most talented. They&rsquo;re the most consistent.`;
   if (n === 200) return `200 and counting. While most people give up after a few dozen, you&rsquo;ve kept showing up. That resilience separates people who get what they want from everyone else.`;
-  if (n === 300) return `300 applications. You&rsquo;re in rare company &mdash; most people never get here. Your commitment is extraordinary, and it will pay off.`;
+  if (n === 300) return `300 applications. You&rsquo;re in rare company. Most people never get here. Your commitment is extraordinary, and it will pay off.`;
   if (n === 400) return `400 applications. You&rsquo;ve turned job searching into a discipline. That kind of systematic effort always pays off.`;
   if (n === 500) return `Half a thousand. You are one of the most determined job seekers on Jobnest. The right opportunity is closer than you think.`;
-  if (n >= 500)  return `${n.toLocaleString("en-US")} applications. Your persistence is unmatched &mdash; keep going.`;
+  if (n >= 500)  return `${n.toLocaleString("en-US")} applications. Your persistence is unmatched. Keep going.`;
   return `${n.toLocaleString("en-US")} applications. Each one is a step closer to the role you deserve. You&rsquo;re doing the work.`;
 }
 
@@ -842,7 +842,7 @@ export async function sendApplicationMilestoneEmail(
       headerContent: `
         <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.65);">Milestone Reached</p>
         <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${n} Applications &#127881;</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name} &mdash; you&rsquo;ve hit a remarkable milestone.</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name}, you&rsquo;ve hit a remarkable milestone.</p>
       `,
       bodyContent: `
         <div style="text-align:center;padding:28px 0 20px;">
@@ -860,7 +860,7 @@ export async function sendApplicationMilestoneEmail(
         </table>` : ""}
 
         <p style="color:#55433d;font-size:14px;font-style:italic;text-align:center;margin:20px 0;">
-          &ldquo;The secret to getting ahead is getting started &mdash; and you&rsquo;ve been started for a while now.&rdquo;
+          &ldquo;The secret to getting ahead is getting started. You&rsquo;ve been at it for a while now.&rdquo;
         </p>
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px auto;">
@@ -904,14 +904,14 @@ function offerMilestoneContent(count: number, totalApps: number): { headline: st
   };
   if (count === 20) return {
     headline: "20 offers. Companies are competing for you.",
-    body: `With 20 offers received, you&rsquo;re not just job searching &mdash; you&rsquo;re being recruited.${rateStr} You have real leverage. Be selective and pick the role that genuinely excites you.`,
+    body: `With 20 offers received, you&rsquo;re not just job searching. You&rsquo;re being recruited.${rateStr} You have real leverage. Be selective and pick the role that genuinely excites you.`,
   };
   if (count === 30) return {
-    headline: "30 offers &mdash; an extraordinary pipeline.",
+    headline: "30 offers. An extraordinary pipeline.",
     body: `Thirty companies have made you an offer. That is remarkable by any measure.${rateStr} You&rsquo;ve cracked the code. Trust the process and choose wisely.`,
   };
   return {
-    headline: `${count} offers &mdash; incredible.`,
+    headline: `${count} offers. Incredible.`,
     body: `${count} companies have extended you an offer. That is an extraordinary achievement.${rateStr} You are one of Jobnest&rsquo;s most successful job seekers.`,
   };
 }
@@ -935,7 +935,7 @@ export async function sendOfferMilestoneEmail(
       headerContent: `
         <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.65);">Offer Milestone &#127942;</p>
         <h1 style="margin:0;font-size:24px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${headline}</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name} &mdash; this calls for a proper celebration.</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Hi ${name}, this calls for a proper celebration.</p>
       `,
       bodyContent: `
         <div style="text-align:center;padding:28px 0 20px;">
@@ -966,7 +966,7 @@ export async function sendOfferMilestoneEmail(
         ` : ""}
 
         <p style="color:#15803d;font-size:14px;font-weight:600;font-style:italic;text-align:center;margin:20px 0;">
-          You&rsquo;re not just searching for a job &mdash; you&rsquo;re being chosen.
+          You&rsquo;re not just searching for a job. You&rsquo;re being chosen.
         </p>
 
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:20px auto;">
@@ -1012,10 +1012,10 @@ export interface WeeklyMotivationData {
 }
 
 const MOTIVATION_QUOTES = [
-  "The people who get things done show up consistently &mdash; not when conditions are perfect.",
+  "The people who get things done show up consistently, even when conditions aren&rsquo;t perfect.",
   "Rejection is not failure. It&rsquo;s data. What can you improve?",
   "Your next great opportunity doesn&rsquo;t know how many times you&rsquo;ve been turned down.",
-  "The job search is a numbers game &mdash; but the numbers only work if you keep playing.",
+  "The job search is a numbers game. The numbers only work if you keep playing.",
   "Every &lsquo;no&rsquo; is a redirect, not a dead end.",
   "Persistence beats talent when talent doesn&rsquo;t persist.",
   "The search ends with the right fit. You&rsquo;re narrowing it down every day.",
@@ -1023,20 +1023,20 @@ const MOTIVATION_QUOTES = [
 
 function weeklyMotivationInsight(d: WeeklyMotivationData): string {
   if (d.totalOffers > 0 && d.appsThisWeek > 0)
-    return `You have ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} in hand and added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week &mdash; building real leverage.`;
+    return `You have ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} in hand and added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week, building real leverage.`;
   if (d.totalOffers > 0)
-    return `With ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} received, you have real options. You&rsquo;re not just searching &mdash; you&rsquo;re being chosen.`;
+    return `With ${d.totalOffers} offer${d.totalOffers !== 1 ? "s" : ""} received, you have real options. You&rsquo;re not just searching. You&rsquo;re being chosen.`;
   if (d.activePipeline >= 5)
-    return `${d.activePipeline} active conversations &mdash; phone screens, interviews, live opportunities. That&rsquo;s a strong pipeline. Results are coming.`;
+    return `${d.activePipeline} active conversations: phone screens, interviews, live opportunities. That&rsquo;s a strong pipeline. Results are coming.`;
   if (d.responseRate >= 25)
     return `A ${d.responseRate}% response rate puts you in the top tier of Jobnest users. Your applications are converting.`;
   if (d.appsThisWeek >= 5)
-    return `${d.appsThisWeek} applications this week. That&rsquo;s real momentum &mdash; the kind that creates breakthroughs.`;
+    return `${d.appsThisWeek} applications this week. That&rsquo;s real momentum, the kind that creates breakthroughs.`;
   if (d.appsThisWeek >= 1)
-    return `You added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week. Consistency is everything in a job search &mdash; you&rsquo;re building it.`;
+    return `You added ${d.appsThisWeek} application${d.appsThisWeek !== 1 ? "s" : ""} this week. Consistency is everything in a job search. You&rsquo;re building it.`;
   if (d.totalApps >= 50)
     return `${d.totalApps} total applications on Jobnest. Persistence like this always pays off eventually.`;
-  return `Every application you send is a vote for the future you want. You&rsquo;re putting in the work &mdash; that&rsquo;s what counts.`;
+  return `Every application you send is a vote for the future you want. You&rsquo;re putting in the work. That&rsquo;s what counts.`;
 }
 
 export async function sendWeeklyMotivationEmail(
@@ -1077,7 +1077,7 @@ export async function sendWeeklyMotivationEmail(
 
     const offersCallout = totalOffers > 0 ? `
       <div class="callout callout-green" style="background-color:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:14px 18px;margin:16px 0;font-size:14px;font-weight:600;color:#14532d;">
-        &#127942; You&rsquo;ve received ${totalOffers} offer${totalOffers !== 1 ? "s" : ""} &mdash; you&rsquo;re in demand.
+        &#127942; You&rsquo;ve received ${totalOffers} offer${totalOffers !== 1 ? "s" : ""} and you&rsquo;re in demand.
       </div>` : "";
 
     const milestoneNudge = totalApps > 0 && totalApps < 100 ? `
@@ -1086,7 +1086,7 @@ export async function sendWeeklyMotivationEmail(
         <div style="background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;">
           <div style="background:linear-gradient(90deg,#99462a,#c2540a);height:8px;width:${Math.min(totalApps, 100)}%;border-radius:99px;"></div>
         </div>
-        <div style="font-size:12px;color:#6b7280;margin-top:4px;">${totalApps}/100 &mdash; ${100 - totalApps} to go</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;">${totalApps}/100, ${100 - totalApps} to go</div>
       </div>` : "";
 
     const html = emailHtml({

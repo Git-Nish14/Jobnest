@@ -171,6 +171,7 @@ Three-tab page for relationship-driven job searching:
 ### Reminders
 - Manual and **auto-generated cadence** (Day 7, 14, 21 for Applied/Phone Screen apps)
 - Types: Follow Up, Interview, Deadline; mark complete; overdue detection
+- **Bulk actions**: "Mark all complete" (marks all pending/overdue reminders at once), "Clear completed" (deletes completed section), "Delete all" (with confirmation dialog); buttons appear in the page header and update via router.refresh for instant UI feedback
 - **Re-engagement emails**: automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
 - **Milestone celebration emails**: automatic celebratory email at every 100th application (100, 200, 300…) and every 10th offer received (10, 20, 30…); warm terracotta/emerald gradient templates with personalised copy that escalates as the numbers grow; deduped via `user_metadata.app_milestone_last` and `offer_milestone_last` so re-sends never happen; both milestones written in a single `updateUserById` call to prevent metadata overwrite race; in-app notification created alongside each email
 - **Weekly motivation emails**: sent every Wednesday at ~8am in each user's local timezone; personalised hook sentence (8-priority logic: offers > active pipeline > response rate > apps this week > total) with a 4-stat grid and a rotating 7-quote bank; progress bar nudge for users below 100 apps; skips opted-out users, those inactive > 30 days, and those with 0 applications; ISO week dedup prevents double-send across cron windows
@@ -194,6 +195,7 @@ Three-tab page for relationship-driven job searching:
 
 ### NESTAi - AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
+- **Semantic RAG context (Pro)**: pgvector-backed retrieval — at query time NESTAi embeds your question with `text-embedding-3-small`, does cosine-similarity search across your stored application/contact/reminder embeddings, and injects only the most relevant chunks as context instead of a full data dump; lazy-indexes with a 2-hour TTL cache; falls back to full-context approach when `OPENAI_API_KEY` is absent or for Free users; requires pgvector extension + migration 047; `nestai_semantic_search` RPC enforces ownership
 - **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking..." indicator while awaiting first token; `aria-live="polite"` on the streaming bubble so screen readers announce incoming content
 - **Chat-to-PDF export**: "Export" button in NESTAi topbar; styled PDF with user/AI bubbles, timestamps, and session title via `@react-pdf/renderer`; downloads as `nestai-{title}.pdf`; RLS-enforced
 - **Work authorization aware**: user's visa status injected into system prompt
@@ -220,7 +222,8 @@ Three-tab page for relationship-driven job searching:
 - **Daily prep streak**: any prep activity increments the streak; resets after a gap day; longest streak preserved
 
 ### Notifications
-- Bell polls every 60s; badge caps at 99+; popover with quick links
+- **Real-time bell**: Supabase Realtime channel (`postgres_changes`) on `reminders` + `interviews` tables scoped to `user_id=eq.{userId}` — badge updates instantly on any DB change; 5-minute fallback poll for resilience; no more 60-second polling lag
+- Badge caps at 99+; popover with quick links
 - `/notifications` page - All/Unread/Read tabs, bulk mark-read/clear, cursor pagination
 - Daily cron: in-app notifications for overdue reminders + upcoming interviews (24h window)
 - Idempotent via `(user_id, source_type, source_id)` partial unique index
@@ -249,7 +252,7 @@ Three-tab page for relationship-driven job searching:
 | Database | Supabase (PostgreSQL + RLS) |
 | Storage | Supabase Storage |
 | Auth | Custom OTP via Nodemailer + Supabase Auth (email + Google/GitHub OAuth) |
-| AI - NESTAi | Groq (`llama-3.3-70b-versatile`) |
+| AI - NESTAi | Groq (`llama-3.3-70b-versatile`) + OpenAI `text-embedding-3-small` (RAG, Pro only) |
 | AI - ATS Scanner | Groq, OpenAI, Anthropic, Google Gemini, Perplexity |
 | Email | Nodemailer (SMTP) |
 | Billing | Stripe (checkout, webhooks, portal, dunning) |
@@ -262,7 +265,7 @@ Three-tab page for relationship-driven job searching:
 | Cron | Vercel Cron Jobs |
 | PDF Annotation | PDF.js (`pdfjs-dist` 5.x, CDN worker) |
 | Cloud Import | Google Picker API + Dropbox Chooser SDK |
-| Testing | Vitest (1654 tests, 100 files) + Playwright E2E (16 spec files) |
+| Testing | Vitest (1750 tests, 106 files) + Playwright E2E (19 spec files) |
 | Error monitoring | Sentry (`@sentry/nextjs`) |
 | Web Vitals | Vercel Speed Insights (`@vercel/speed-insights`) |
 | Bundle analysis | `@next/bundle-analyzer` (`npm run analyze`) |

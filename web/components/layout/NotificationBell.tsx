@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Bell, Clock, Calendar, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface NotifCount {
   overdueReminders: number;
@@ -10,7 +11,8 @@ interface NotifCount {
   total: number;
 }
 
-const POLL_INTERVAL_MS = 60_000; // refresh every 60 s
+// Fallback poll interval — catches any missed Realtime events
+const FALLBACK_POLL_MS = 5 * 60_000;
 
 export function NotificationBell() {
   const [counts, setCounts] = useState<NotifCount | null>(null);
@@ -26,13 +28,46 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Fetch on mount, then poll.
-  // fetchCounts is async — setCounts runs only after await, not synchronously.
+  // Fetch on mount, then keep up-to-date via Supabase Realtime.
+  // A fallback poll every 5 minutes covers any missed events.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCounts();
-    const timer = setInterval(fetchCounts, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+
+    const supabase = createClient();
+    // channel is set asynchronously after getUser() resolves; use a flag to
+    // handle the case where cleanup fires before getUser() completes.
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Scope the subscription to the authenticated user's rows only.
+    // Without a filter, every reminder/interview write by any user would fire
+    // fetchCounts() for every online client — O(users) amplification per DB write.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled || !user) return;
+
+      channel = supabase
+        .channel(`notif-bell-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "reminders", filter: `user_id=eq.${user.id}` },
+          fetchCounts,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "interviews", filter: `user_id=eq.${user.id}` },
+          fetchCounts,
+        )
+        .subscribe();
+    });
+
+    const fallback = setInterval(fetchCounts, FALLBACK_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+      clearInterval(fallback);
+    };
   }, [fetchCounts]);
 
   // Close popover on outside click

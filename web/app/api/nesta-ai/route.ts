@@ -7,6 +7,7 @@ import { extractAllDocuments } from "@/lib/utils/document-parser";
 import { verifyOrigin } from "@/lib/security/csrf";
 import { TOKEN_CAPS, getDailyTokenUsage, recordTokenUsage } from "@/lib/features/ai-usage";
 import type { AiFeature } from "@/lib/features/ai-usage";
+import { buildRagContext } from "@/lib/features/nestai-rag";
 
 // Rate limits per plan
 const RATE_LIMITS = {
@@ -147,12 +148,15 @@ export async function POST(request: NextRequest) {
       );
     }
     if (dailyUsed >= dailyCap) {
-      const capK = (dailyCap / 1000).toLocaleString("en-US");
+      // Format cap as "2M" for Pro (2 000 000), "100k" for Free (100 000)
+      const capLabel = dailyCap >= 1_000_000
+        ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
+        : `${(dailyCap / 1_000).toLocaleString("en-US")}k`;
       return NextResponse.json(
         {
           error: isPro
-            ? `You've reached your daily AI limit of ${capK}k tokens. Usage resets at midnight UTC.`
-            : `You've used your daily free AI quota (${capK}k tokens). Upgrade to Pro for 20× more capacity, or wait until midnight UTC.`,
+            ? `You've reached your daily AI limit of ${capLabel} tokens. Usage resets at midnight UTC.`
+            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for 20x more capacity, or wait until midnight UTC.`,
           code: "DAILY_CAP_REACHED",
           used: dailyUsed,
           cap: dailyCap,
@@ -313,6 +317,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── RAG: Pro users get semantic context retrieval via pgvector ─────────────
+    // Free users continue to use the full-context approach below.
+    // Falls back gracefully if OPENAI_API_KEY is absent or the RPC fails.
+    let ragContext: string | null = null;
+    if (isPro && process.env.OPENAI_API_KEY) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const toAny = <T>(arr: T[] | null): Record<string, any>[] => (arr ?? []) as unknown as Record<string, any>[];
+      ragContext = await buildRagContext({
+        supabase,
+        userId:         user.id,
+        query:          question,
+        applications:   toAny(applications),
+        contacts:       toAny(contacts),
+        reminders:      toAny(reminders),
+        emailTemplates: toAny(emailTemplates),
+        topK: 20,
+      });
+    }
+
     // NESTAi context: use the dedicated nestai_context field if set,
     // otherwise fall back to the general about_me profile bio.
     const nestaiContext: string =
@@ -323,7 +346,7 @@ export async function POST(request: NextRequest) {
     const workAuthorization: string | null =
       user.user_metadata?.work_authorization ?? null;
 
-    const buildSystemPrompt = (context: string) => {
+    const buildSystemPrompt = (context: string, isRag = false) => {
       const aboutLines: string[] = [];
       if (nestaiContext) aboutLines.push(nestaiContext);
       if (workAuthorization) aboutLines.push(`Work authorization: ${workAuthorization}. Factor this in when discussing companies, roles, or whether an employer is likely to sponsor.`);
@@ -331,11 +354,15 @@ export async function POST(request: NextRequest) {
         ? `\n=== ABOUT THIS USER ===\n${aboutLines.join("\n")}\n=== END USER CONTEXT ===\n`
         : "";
 
+      const dataLabel = isRag
+        ? "SEMANTICALLY RELEVANT JOB SEARCH DATA (retrieved for this question)"
+        : "USER'S COMPLETE JOB SEARCH DATA";
+
       return `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 ${aboutSection}
-=== USER'S COMPLETE JOB SEARCH DATA ===
+=== ${dataLabel} ===
 ${context}
 === END OF DATA ===
 
@@ -363,44 +390,58 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
 
     let trimmedHistory = history.slice(-100);
 
-    const makeMessages = (ctx: string, hist: typeof trimmedHistory) => [
-      { role: "system" as const, content: buildSystemPrompt(ctx) },
+    const makeMessages = (ctx: string, hist: typeof trimmedHistory, isRag = false) => [
+      { role: "system" as const, content: buildSystemPrompt(ctx, isRag) },
       ...hist,
       { role: "user" as const, content: userContent },
     ];
 
-    let context = buildContext(...contextArgs);
-    let groqMessages = makeMessages(context, trimmedHistory);
+    let groqMessages: ReturnType<typeof makeMessages>;
 
-    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
-      // Step 1 — trim history to 20 messages
-      trimmedHistory = history.slice(-20);
-      groqMessages = makeMessages(context, trimmedHistory);
-    }
+    if (ragContext) {
+      // ── RAG path (Pro + OPENAI_API_KEY) ────────────────────────────────────
+      // Semantic context is already compact; just keep recent history.
+      groqMessages = makeMessages(ragContext, history.slice(-40), true);
 
-    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
-      // Step 2 — truncate each document body to 1 000 chars
-      context = buildContext(...contextArgs, { maxDocCharsEach: 1_000 });
+      // If somehow still over budget, trim history further
+      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+        groqMessages = makeMessages(ragContext, history.slice(-10), true);
+      }
+    } else {
+      // ── Full-context path (Free users, or RAG unavailable) ─────────────────
+      let context = buildContext(...contextArgs);
       groqMessages = makeMessages(context, trimmedHistory);
-    }
 
-    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
-      // Step 3 — omit doc bodies entirely, cap activity log at 20 entries
-      context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 20 });
-      groqMessages = makeMessages(context, trimmedHistory);
-    }
+      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+        // Step 1 — trim history to 20 messages
+        trimmedHistory = history.slice(-20);
+        groqMessages = makeMessages(context, trimmedHistory);
+      }
 
-    if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
-      // Step 4 — hard-truncate the context string itself
-      const baseTokens =
-        estimateTokens(buildSystemPrompt("")) +
-        trimmedHistory.reduce((s, m) => s + estimateTokens(m.content), 0) +
-        estimateTokens(userContent);
-      const remainingChars = Math.max(500, (INPUT_TOKEN_BUDGET - baseTokens) * 4);
-      context =
-        context.slice(0, remainingChars) +
-        "\n\n[Context truncated. Ask about specific applications or topics for full details.]";
-      groqMessages = makeMessages(context, trimmedHistory);
+      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+        // Step 2 — truncate each document body to 1 000 chars
+        context = buildContext(...contextArgs, { maxDocCharsEach: 1_000 });
+        groqMessages = makeMessages(context, trimmedHistory);
+      }
+
+      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+        // Step 3 — omit doc bodies entirely, cap activity log at 20 entries
+        context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 20 });
+        groqMessages = makeMessages(context, trimmedHistory);
+      }
+
+      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+        // Step 4 — hard-truncate the context string itself
+        const baseTokens =
+          estimateTokens(buildSystemPrompt("")) +
+          trimmedHistory.reduce((s, m) => s + estimateTokens(m.content), 0) +
+          estimateTokens(userContent);
+        const remainingChars = Math.max(500, (INPUT_TOKEN_BUDGET - baseTokens) * 4);
+        context =
+          context.slice(0, remainingChars) +
+          "\n\n[Context truncated. Ask about specific applications or topics for full details.]";
+        groqMessages = makeMessages(context, trimmedHistory);
+      }
     }
 
     // Primary model; falls back to the smaller instant model on 429/5xx.
@@ -426,9 +467,15 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       const msg: string = errBody?.error?.message ?? "";
       if (msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("context")) {
         console.warn("[nestai] Request too large, applying emergency trim and retrying");
-        context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 10 });
-        context = context.slice(0, 20_000) + "\n\n[Context trimmed due to size limits. Ask about specific applications for full detail.]";
-        groqMessages = makeMessages(context, []);
+        // For RAG path, just strip down the context further; for full-context path, hard trim
+        let emergencyCtx = ragContext
+          ? ragContext.slice(0, 20_000)
+          : (() => {
+              const c = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 10 });
+              return c.slice(0, 20_000);
+            })();
+        emergencyCtx += "\n\n[Context trimmed due to size limits. Ask about specific applications for full detail.]";
+        groqMessages = makeMessages(emergencyCtx, [], Boolean(ragContext));
         groqResponse = await callGroq(PRIMARY_MODEL);
         isDegraded = true;
       }
@@ -468,6 +515,18 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
 
     const inputTokenCount = totalEstTokens(groqMessages);
 
+    // ── Pre-stream token reservation ──────────────────────────────────────────
+    // Record input tokens NOW (before the stream starts) for two reasons:
+    //  1. TOCTOU: concurrent requests all see 0 used tokens at check-time and
+    //     all pass the cap guard; pre-recording narrows the race to a single
+    //     DB round-trip instead of the full request duration.
+    //  2. Client disconnect: flush() is only called on a clean stream close.
+    //     If the client disconnects mid-stream the writable is aborted and
+    //     flush() never fires — Groq was charged but usage was never recorded.
+    //     Recording input tokens here ensures at-minimum the input cost is
+    //     always counted even when the response is never delivered.
+    await recordTokenUsage(user.id, featureHint, inputTokenCount, 0, usedModel);
+
     // Stream tokens from Groq SSE → client.
     // TransformStream avoids the Node.js internal kState.transformAlgorithm error
     // that occurs when ReadableStream's underlying source controller is used inside
@@ -500,9 +559,9 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
         }
       },
       flush() {
-        // Stream complete — log token usage fire-and-forget (non-blocking)
+        // Input tokens were already recorded pre-stream; record only output here.
         const outputTokenCount = Math.ceil(outputChars / 4);
-        recordTokenUsage(user.id, featureHint, inputTokenCount, outputTokenCount, usedModel)
+        recordTokenUsage(user.id, featureHint, 0, outputTokenCount, usedModel)
           .catch((err) => console.error("[ai-usage] flush log failed:", err));
       },
     });

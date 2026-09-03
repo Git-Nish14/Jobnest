@@ -83,28 +83,31 @@ function makeSelfChain(opts: {
 }
 
 // ── Helper: build the admin client with per-table dispatch ────────────────────
+// New pattern (after upsert-then-fetch fix):
+//   1. admin.from("user_referral_codes").upsert(...)  → awaited via .then (thenResult)
+//   2. admin.from("user_referral_codes").select().eq().single() → singleResult
 
 function makeAdmin(opts: {
-  codeRow?: unknown;
-  insertedRow?: unknown;
-  insertErr?: unknown;
-  events?: unknown[];
-  rpcErr?: unknown;
+  codeRow?:   unknown;
+  upsertErr?: unknown;  // non-null to simulate a DB error on upsert
+  fetchErr?:  unknown;  // non-null to simulate a DB error on the post-upsert fetch
+  events?:    unknown[];
+  rpcErr?:    unknown;
 } = {}) {
   const {
-    codeRow     = CODE_ROW,
-    insertedRow = CODE_ROW,
-    insertErr   = null,
-    events      = [EVENT_ROW],
-    rpcErr      = null,
+    codeRow    = CODE_ROW,
+    upsertErr  = null,
+    fetchErr   = null,
+    events     = [EVENT_ROW],
+    rpcErr     = null,
   } = opts;
 
-  // One chain for all user_referral_codes access:
-  // maybeSingleResult = existing code row (or null if lazy-create test)
-  // singleResult      = inserted row (used by .insert().select().single())
+  // One chain for all user_referral_codes access.
+  // thenResult  → result of `await .upsert(...)` (the atomic create-or-no-op)
+  // singleResult → result of `.select().eq().single()` (the guaranteed fetch)
   const codeChain = makeSelfChain({
-    maybeSingleResult: { data: codeRow,     error: null      },
-    singleResult:      { data: insertedRow, error: insertErr },
+    thenResult:   { data: null,    error: upsertErr },
+    singleResult: { data: codeRow, error: fetchErr  },
   });
 
   const eventsChain = makeSelfChain({
@@ -181,19 +184,28 @@ describe("GET /api/referrals — happy path", () => {
     expect(body.referralUrl).toContain(body.code);
   });
 
-  it("lazily creates code when none exists and returns 200", async () => {
-    mockAdminCreate.mockReturnValue(
-      makeAdmin({ codeRow: null, insertedRow: CODE_ROW }) as never,
-    );
+  it("atomically upserts then fetches code for a first-time user (no race risk)", async () => {
+    // upsert creates the row; select returns it — same 200 response as the existing-code path
+    mockAdminCreate.mockReturnValue(makeAdmin({ codeRow: CODE_ROW }) as never);
     const res = await GET(getReq() as never);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.code).toBe("a1b2c3d4");
   });
 
-  it("returns 500 when lazy code creation fails", async () => {
+  it("returns 500 when upsert fails with a genuine DB error", async () => {
+    // ignoreDuplicates:true means concurrent inserts never cause this —
+    // only a real infrastructure error (FK violation, disk full, etc.) does.
     mockAdminCreate.mockReturnValue(
-      makeAdmin({ codeRow: null, insertedRow: null, insertErr: { message: "db error" } }) as never,
+      makeAdmin({ upsertErr: { message: "disk full" } }) as never,
+    );
+    const res = await GET(getReq() as never);
+    expect(res.status).toBe(500);
+  });
+
+  it("returns 500 when the post-upsert fetch fails", async () => {
+    mockAdminCreate.mockReturnValue(
+      makeAdmin({ codeRow: null, fetchErr: { message: "row not found" } }) as never,
     );
     const res = await GET(getReq() as never);
     expect(res.status).toBe(500);

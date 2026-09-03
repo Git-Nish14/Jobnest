@@ -25,25 +25,26 @@ export async function GET(_request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Try to fetch existing code
-    let { data: codeRow } = await admin
+    // Atomic upsert — safe against concurrent first-requests (e.g. two tabs opening
+    // simultaneously). ON CONFLICT DO NOTHING means a second concurrent insert simply
+    // becomes a no-op instead of a 500-inducing unique-constraint violation.
+    const { error: upsertErr } = await admin
+      .from("user_referral_codes")
+      .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
+
+    if (upsertErr) {
+      throw ApiError.internal("Could not create referral code.");
+    }
+
+    // The row is now guaranteed to exist — fetch it.
+    const { data: codeRow, error: fetchErr } = await admin
       .from("user_referral_codes")
       .select("code, click_count, signup_count, converted_count, created_at")
       .eq("user_id", user.id)
-      .maybeSingle();
+      .single();
 
-    // Lazily create if this user has never requested one
-    if (!codeRow) {
-      const { data: inserted, error: insertErr } = await admin
-        .from("user_referral_codes")
-        .insert({ user_id: user.id })
-        .select("code, click_count, signup_count, converted_count, created_at")
-        .single();
-
-      if (insertErr || !inserted) {
-        throw ApiError.internal("Could not create referral code.");
-      }
-      codeRow = inserted;
+    if (fetchErr || !codeRow) {
+      throw ApiError.internal("Could not load referral code.");
     }
 
     // Fetch referral events for this user's code (capped to prevent unbounded read)

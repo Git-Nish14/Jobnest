@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { DailyTrend, WeeklyTrend, MonthlyTrend } from "@/types";
 
 interface AtelierChartProps {
@@ -29,11 +29,30 @@ function getLabel(gran: Granularity, item: DailyTrend | WeeklyTrend | MonthlyTre
 export function AtelierChart({ dailyData, weeklyData, monthlyData }: AtelierChartProps) {
   const [gran, setGran]     = useState<Granularity>("W");
   const [window_, setWindow] = useState<number>(8);
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // Clear active tooltip when clicking/tapping outside the chart
+  useEffect(() => {
+    if (activeIdx === null) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (chartRef.current && !chartRef.current.contains(e.target as Node)) {
+        setActiveIdx(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [activeIdx]);
 
   // When switching granularity, reset window to first option for that mode
   const switchGran = (g: Granularity) => {
     setGran(g);
     setWindow(WINDOWS[g][0].count);
+    setActiveIdx(null);
   };
 
   const allData: (DailyTrend | WeeklyTrend | MonthlyTrend)[] =
@@ -89,13 +108,20 @@ export function AtelierChart({ dailyData, weeklyData, monthlyData }: AtelierChar
 
       {visible.length > 0 ? (
         <>
-          <div className="db-chart-area">
+          <div className="db-chart-area" ref={chartRef}>
             {visible.map((item, i) => {
               const barPx = Math.max(Math.round((item.count / maxCount) * CHART_HEIGHT * 0.92), item.count > 0 ? 6 : 2);
               const isHighlight = i === peakIdx && item.count > 0;
+              const isActive = activeIdx === i;
               return (
-                <div key={i} className="flex-1 relative group">
-                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
+                <div
+                  key={i}
+                  className="flex-1 relative group cursor-pointer"
+                  onClick={() => setActiveIdx(isActive ? null : i)}
+                >
+                  <div className={`absolute -top-7 left-1/2 -translate-x-1/2 transition-opacity bg-foreground text-background text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10 ${
+                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}>
                     {item.count} app{item.count !== 1 ? "s" : ""}
                   </div>
                   <svg width="100%" height={barPx} aria-hidden="true" className="overflow-visible">
