@@ -170,6 +170,7 @@
   background-color: var(--atelier-bg);
   color: var(--atelier-on-surface);
   font-family: var(--font-manrope, system-ui), sans-serif;
+  color-scheme: light;
 }
 
 /* ── Bar chart area ────────────────────────────────────────────────────────── */
@@ -910,6 +911,7 @@ html.page-nestai .nestai-input-area {
   --atelier-outline-var:     rgba(255, 255, 255, 0.10);
   --atelier-tertiary:        #4ade80;
   --atelier-error:           #ff5f5f;
+  color-scheme: dark;
   background-color: #000000 !important;
   color: #ffffff !important;
 }
@@ -1394,3 +1396,72 @@ html.page-nestai .nestai-input-area {
 .dark .nestai-preview-backdrop { background-color: rgba(0, 0, 0, 0.75); }
 .dark .nestai-preview-modal    { border-color: rgba(255,255,255,0.08); }
 .dark .nestai-preview-header   { border-color: rgba(255,255,255,0.06); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FOLDABLE & MULTI-SEGMENT SCREEN SUPPORT
+   Targets Samsung Galaxy Fold, Pixel Fold, Surface Duo, and similar devices.
+   These media queries use the CSS Viewport Segments spec (2023+).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * Dual-screen / book mode: two portrait segments side-by-side separated by
+ * a physical hinge. We hide the bottom tab bar — the user has enough width
+ * to navigate via the sidebar or Navbar — and remove bottom padding that
+ * was reserved for the floating pill.
+ */
+@media (horizontal-viewport-segments: 2) {
+  .bottom-tab-bar {
+    display: none !important;
+  }
+
+  /* Release the tab-bar clearance — scoped to dashboard main to avoid
+     affecting auth / landing pages that also use <main>. */
+  .db-root > main {
+    padding-bottom: 2rem !important;
+  }
+
+  /* Give the NESTAi input its normal position (no tab-bar offset needed) */
+  .nestai-input-area {
+    bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem)) !important;
+  }
+
+  /* Prevent content from spanning across the fold seam by constraining
+     panels to individual segment widths using env() variables if available */
+  .db-panel,
+  .db-content-card {
+    max-width: calc(env(viewport-segment-width 0 0, 50vw) - 2rem);
+  }
+}
+
+/*
+ * Vertical fold (tablet-style folding): two landscape segments stacked.
+ * Less common but supported (e.g. some Lenovo devices).
+ */
+@media (vertical-viewport-segments: 2) {
+  /* Use the bottom segment for sticky UI only — keep content in the top */
+  .bottom-tab-bar {
+    bottom: calc(env(viewport-segment-top 0 1, 0px) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  }
+}
+
+/*
+ * Wide landscape on a foldable fully open (≥768px, short viewport).
+ * Hide the floating pill since Navbar is visible and nav is redundant.
+ */
+@media screen and (min-width: 768px) and (orientation: landscape) and (max-height: 600px) {
+  .bottom-tab-bar {
+    display: none !important;
+  }
+  .db-root > main {
+    padding-bottom: 2rem !important;
+  }
+}
+
+/* ── Stat card touch reveal — make tap target generous on foldables ─────── */
+@media (hover: none) and (pointer: coarse) {
+  .db-stat-card {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

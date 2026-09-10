@@ -68,8 +68,12 @@ html body[data-scroll-locked] {
 }
 
 :root {
-  /* Light — warm parchment Atelier palette (unchanged) */
-  --background: 0 0% 100%;
+  color-scheme: light;
+
+  /* Light — warm parchment Atelier palette
+     NOTE: --background maps to #faf9f7 (warm cream), not pure white.
+     Tailwind v4 generates bg-background from this token. */
+  --background: 37 33% 97%;
   --foreground: 15 5% 11%;
   --card: 0 0% 100%;
   --card-foreground: 15 5% 11%;
@@ -92,6 +96,8 @@ html body[data-scroll-locked] {
 }
 
 .dark {
+  color-scheme: dark;
+
   /* ── Black + #ccff00 (lime) dark theme ── */
   --background: 0 0% 0%;           /* pure black */
   --foreground: 0 0% 96%;          /* near white */
@@ -182,6 +188,48 @@ body {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* ── Mobile slide panel animation ──────────────────────────────────────────── */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fade-in-overlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.nav-panel-animate {
+  animation: slide-in-right 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+  will-change: transform, opacity;
+}
+
+.nav-overlay-animate {
+  animation: fade-in-overlay 0.22s ease-out both;
+}
+
+/* Dropdown flyout enter animation.
+   NOTE: The container already has Tailwind's -translate-x-1/2 which in v4
+   compiles to the separate `translate` CSS property (not `transform`).
+   Per CSS Transforms L2, `translate` and `transform` are applied additively
+   in series — so including translateX(-50%) here would double-offset the
+   element 100% to the left. We only animate Y + scale; X centering comes
+   from the `translate` property already on the element. */
+@keyframes flyout-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.nav-flyout-animate {
+  animation: flyout-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-panel-animate,
+  .nav-overlay-animate,
+  .nav-flyout-animate { animation: none; }
 }
 
 /* ── Atelier Navbar — light defaults ───────────────────────────────────────── */
@@ -313,5 +361,37 @@ html.dark,
   box-shadow:
     0 -4px 24px rgba(0, 0, 0, 0.70),
     0  4px 16px rgba(0, 0, 0, 0.50);
+}
+
+/* ── Foldable / dual-screen device support ─────────────────────────────────
+   Targets devices with a physical fold seam that splits the viewport into
+   two segments side-by-side (e.g. Samsung Galaxy Fold, Pixel Fold).
+   The env() vars are only populated when the UA reports segment data.
+   NOTE: We do NOT set overflow-x:hidden on body here — that breaks
+   position:sticky elements (the Navbar, tab bar) because body becomes
+   the scroll container when html has overflow-y:scroll.                   */
+@media (horizontal-viewport-segments: 2) {
+  /* Fold seam gap — used by components that opt in with .fold-seam-aware */
+  .fold-seam-aware {
+    column-gap: env(viewport-segment-left 1 0, 0px);
+  }
+}
+
+/* ── Tap highlight — remove browser default blue flash on touch ─────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── text-rendering — apply only at body level to avoid mobile perf hit ── */
+/* Applying optimizeLegibility globally via * causes expensive kerning/ligature
+   calculations on every element at every paint on Android WebViews. */
+body {
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Skip-link improvements: more prominent on focus ───────────────────── */
+a[href="#main-content"]:focus {
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 2px;
 }
 

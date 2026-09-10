@@ -140,6 +140,23 @@ A full-stack job search management platform. Track applications, manage document
 
 ---
 
+### Design System & PWA (features-2)
+- Responsive design covering all screen types: phones, tablets, foldables (Galaxy Fold, Pixel Fold, Surface Duo), landscape, and desktop PWA window-controls-overlay
+- Foldable device support via `@media (horizontal-viewport-segments: 2)` and `@media (vertical-viewport-segments: 2)` — bottom tab bar hides when dual-screen navigation is sufficient
+- PWA `themeColor` is now a light/dark array; `ThemeToggle` syncs `<meta name="theme-color">` at runtime so iOS status bar matches the active UI theme (class-based, not system preference)
+- `color-scheme: light` / `dark` on `:root` and `.dark` — browser-native scrollbars, inputs, and selects render in the correct palette
+- `manifest.json` orientation changed from `portrait-primary` to `any`; `display_override` adds `window-controls-overlay` for desktop PWA title bar
+- Navbar mobile slide panel: animated with `slide-in-right` keyframe (0.28 s), frosted-glass backdrop (`blur(4px)`), panel width expanded to `max-w-sm` for large phones
+- Desktop nav dropdown flyout: animated with `flyout-in` keyframe (0.18 s Y + scale only — `translateX` removed to avoid Tailwind v4 double-translate bug)
+- Auth card padding is now responsive (1.5 rem → 2 rem at ≥ 400 px), fixing layout on 320 px devices
+- All auth UI text raised to WCAG-minimum readable sizes (was 0.625 rem / 10 px on back-btn, divider label, footer links)
+- `atelier-footer-link` gains `min-height: 2.75rem` for 44 px touch targets
+- Landing header gains `backdrop-filter: blur(20px)` for professional glass effect on scroll
+- Pill button design: `sm` and `lg` button sizes no longer override `rounded-full` with `rounded-md` / `rounded-lg`
+- `msapplication-TileColor` corrected from `#3b82f6` (blue) to `#99462a` (brand terracotta)
+
+---
+
 ## Tech Stack
 
 | Category | Technology |
@@ -159,7 +176,7 @@ A full-stack job search management platform. Track applications, manage document
 | UI | Radix UI primitives |
 | Forms | React Hook Form + Zod |
 | PDF | `@react-pdf/renderer` (generation) + `pdfjs-dist` (annotation) |
-| Testing | Vitest (1808 tests, 111 files) + Playwright E2E (19 spec files) |
+| Testing | Vitest (1870 tests, 112 files) + Playwright E2E (19 spec files) |
 | Error Monitoring | Sentry |
 
 ---
@@ -345,7 +362,7 @@ Vitest unit and flow tests run without any external services. Playwright E2E tes
 | Flow | `tests/flows/` | Auth flows, NESTAi chat, Stripe billing, portfolio |
 | E2E | `tests/e2e/` | Public pages, application CRUD, search, mobile UX, ATS, documents |
 
-Current: **1808 tests across 111 files**, all passing.
+Current: **1870 tests across 112 files**, all passing.
 
 Coverage thresholds: 47% statements, 40% branches, 42% functions, 50% lines.
 
