@@ -1,4 +1,4 @@
-// Jobnest service worker — static-asset caching + offline fallback.
+// Jobnest service worker — static-asset caching + offline fallback + push notifications.
 //
 // SECURITY NOTE: Successful navigation responses (HTML pages) are intentionally
 // NEVER cached. Dashboard HTML is user-specific; caching it would expose one
@@ -95,4 +95,48 @@ self.addEventListener("fetch", (event) => {
       })
     );
   }
+});
+
+// ── Push notifications ────────────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Jobnest", body: event.data ? event.data.text() : "You have a new notification." };
+  }
+
+  const title = data.title ?? "Jobnest";
+  const options = {
+    body: data.body ?? "",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    // tag deduplicates: a new push for the same tag replaces the previous one
+    tag: data.tag ?? "jobnest-reminder",
+    renotify: true,
+    data: { url: data.url ?? "/reminders" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Notification click — open / focus the relevant page ──────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url ?? "/reminders";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        // Focus an existing Jobnest tab if one is open
+        for (const client of clients) {
+          if (client.url.startsWith(self.location.origin) && "focus" in client) {
+            return client.focus().then((c) => c.navigate(targetUrl));
+          }
+        }
+        // No tab open — open a new one
+        return self.clients.openWindow(targetUrl);
+      })
+  );
 });

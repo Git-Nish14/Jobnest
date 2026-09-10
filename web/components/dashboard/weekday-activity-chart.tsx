@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import type { WeekdayActivity } from "@/types";
 
 interface Props { data: WeekdayActivity[] }
@@ -7,6 +9,8 @@ interface Props { data: WeekdayActivity[] }
 const CHART_H = 100;
 
 export function WeekdayActivityChart({ data }: Props) {
+  const [revealed, setRevealed] = useState(false);
+
   const total  = data.reduce((s, d) => s + d.count, 0);
   const maxVal = Math.max(...data.map((d) => d.count), 1);
   const peakDay = data.reduce((best, d, i) => d.count > data[best].count ? i : best, 0);
@@ -30,10 +34,21 @@ export function WeekdayActivityChart({ data }: Props) {
             {" "}({data[peakDay]?.count} app{data[peakDay]?.count !== 1 ? "s" : ""})
           </p>
         </div>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold shrink-0">Total {total}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Total {total}</span>
+          <button
+            type="button"
+            onClick={() => setRevealed((r) => !r)}
+            className="sm:hidden text-[#99462a]/40 hover:text-[#99462a] transition-colors"
+            aria-label={revealed ? "Hide chart data" : "Reveal chart data"}
+          >
+            {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-end gap-1.5 flex-1">
+      {/* Chart body — blurred on mobile until revealed */}
+      <div className={`flex items-end gap-1.5 flex-1 transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
         {data.map((item, i) => {
           const barH = Math.max(Math.round((item.count / maxVal) * CHART_H * 0.92), item.count > 0 ? 6 : 2);
           const isPeak = i === peakDay && item.count > 0;

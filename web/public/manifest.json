@@ -5,9 +5,10 @@
   "start_url": "/dashboard",
   "id": "jobnest-nishpatel",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#faf9f7",
   "theme_color": "#99462a",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "icons": [
     {
@@ -37,6 +38,9 @@
   "lang": "en",
   "dir": "ltr",
   "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "shortcuts": [
     {
       "name": "Dashboard",

@@ -117,7 +117,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#99462a",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf9f7" },
+    { media: "(prefers-color-scheme: dark)",  color: "#000000" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -125,6 +128,7 @@ export const viewport: Viewport = {
   // Allows content to extend into the notch/home-indicator area so that
   // env(safe-area-inset-*) values are non-zero and our fixed bars sit correctly.
   viewportFit: "cover",
+  colorScheme: "light dark",
 };
 
 export default async function RootLayout({
@@ -159,7 +163,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Jobnest" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-TileColor" content="#99462a" />
         <meta name="msapplication-tap-highlight" content="no" />
         {/* Apple splash screens — shown during PWA launch from home screen.
             Replace href values with properly-sized splash PNGs generated via

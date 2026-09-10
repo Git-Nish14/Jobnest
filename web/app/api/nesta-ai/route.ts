@@ -5,7 +5,7 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractAllDocuments } from "@/lib/utils/document-parser";
 import { verifyOrigin } from "@/lib/security/csrf";
-import { TOKEN_CAPS, getDailyTokenUsage, recordTokenUsage } from "@/lib/features/ai-usage";
+import { TOKEN_CAPS, getDailyTokenUsage, checkAndReserveTokens, recordTokenUsage, recordRedisOutputTokens } from "@/lib/features/ai-usage";
 import type { AiFeature } from "@/lib/features/ai-usage";
 import { buildRagContext } from "@/lib/features/nestai-rag";
 
@@ -137,7 +137,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Daily token cap (cost guardrail) ──────────────────────────────────────
+    // ── Daily token cap — preliminary gate (fast, non-atomic) ────────────────
+    // This check fails fast for users who are clearly over their daily cap
+    // without waiting for the full message-building pipeline. A second atomic
+    // check happens after groqMessages are built (where the exact token count is
+    // known), which eliminates the residual TOCTOU window between here and there.
     const dailyCap = isPro ? TOKEN_CAPS.pro : TOKEN_CAPS.free;
     const dailyUsed = await getDailyTokenUsage(user.id);
     // null = DB error: fail-closed so outages can't be exploited to bypass the cap
@@ -537,17 +541,39 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
 
     const inputTokenCount = totalEstTokens(groqMessages);
 
-    // ── Pre-stream token reservation ──────────────────────────────────────────
-    // Record input tokens NOW (before the stream starts) for two reasons:
-    //  1. TOCTOU: concurrent requests all see 0 used tokens at check-time and
-    //     all pass the cap guard; pre-recording narrows the race to a single
-    //     DB round-trip instead of the full request duration.
-    //  2. Client disconnect: flush() is only called on a clean stream close.
-    //     If the client disconnects mid-stream the writable is aborted and
-    //     flush() never fires — Groq was charged but usage was never recorded.
-    //     Recording input tokens here ensures at-minimum the input cost is
-    //     always counted even when the response is never delivered.
-    await recordTokenUsage(user.id, featureHint, inputTokenCount, 0, usedModel);
+    // ── Atomic token reservation ──────────────────────────────────────────────
+    // Redis INCRBY atomically reserves the input tokens so concurrent requests
+    // that both passed the preliminary DB check serialize here instead of both
+    // streaming back to the client. Falls back to DB-only on Redis unavailability.
+    // This is safe to call after the Groq fetch because the stream has not yet
+    // been piped to the response — we can still return a 429 if over cap.
+    const capLabel = dailyCap >= 1_000_000
+      ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
+      : `${(dailyCap / 1_000).toLocaleString("en-US")}k`;
+    const reservation = await checkAndReserveTokens(user.id, dailyCap, inputTokenCount);
+    if (reservation === null) {
+      return NextResponse.json(
+        { error: "AI service is temporarily unavailable. Please try again shortly." },
+        { status: 503 }
+      );
+    }
+    if (!reservation.allowed) {
+      return NextResponse.json(
+        {
+          error: isPro
+            ? `You've reached your daily AI limit of ${capLabel} tokens. Usage resets at midnight UTC.`
+            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for 20x more capacity, or wait until midnight UTC.`,
+          code: "DAILY_CAP_REACHED",
+          used: reservation.used,
+          cap: dailyCap,
+        },
+        { status: 429 }
+      );
+    }
+    // DB analytics record — fire-and-forget (Redis is the authoritative cap source)
+    recordTokenUsage(user.id, featureHint, inputTokenCount, 0, usedModel).catch(
+      (err) => console.error("[ai-usage] pre-stream DB record failed:", err)
+    );
 
     // Stream tokens from Groq SSE → client.
     // TransformStream avoids the Node.js internal kState.transformAlgorithm error
@@ -581,10 +607,13 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
         }
       },
       flush() {
-        // Input tokens were already recorded pre-stream; record only output here.
+        // Input tokens were reserved pre-stream; record only output here.
         const outputTokenCount = Math.ceil(outputChars / 4);
+        // Update Redis (cap enforcer) and DB (analytics) for output tokens.
+        recordRedisOutputTokens(user.id, outputTokenCount, reservation.midnightTs)
+          .catch((err) => console.error("[ai-usage] flush Redis update failed:", err));
         recordTokenUsage(user.id, featureHint, 0, outputTokenCount, usedModel)
-          .catch((err) => console.error("[ai-usage] flush log failed:", err));
+          .catch((err) => console.error("[ai-usage] flush DB log failed:", err));
       },
     });
     // pipeTo propagates back-pressure and surfaces client-disconnect cancellations.
