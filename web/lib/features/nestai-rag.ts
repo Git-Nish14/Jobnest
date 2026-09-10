@@ -171,7 +171,7 @@ export async function hasRecentEmbeddings(
   return (count ?? 0) > 0;
 }
 
-// ── Semantic search ───────────────────────────────────────────────────────────
+// ── Search ────────────────────────────────────────────────────────────────────
 
 export interface SearchResult {
   source_type: string;
@@ -181,8 +181,9 @@ export interface SearchResult {
 }
 
 /**
- * Embed `query` and retrieve the top-K most similar stored items via pgvector.
- * Returns an empty array if embeddings are unavailable or the RPC fails.
+ * Hybrid search: BM25 full-text + cosine similarity fused via Reciprocal Rank Fusion.
+ * Falls back to pure cosine (`nestai_semantic_search`) if the hybrid RPC is unavailable.
+ * Returns an empty array if embeddings are unavailable or every RPC fails.
  */
 export async function semanticSearch(
   supabase:    SupabaseClient,
@@ -194,6 +195,24 @@ export async function semanticSearch(
   const vec = await generateEmbedding(query);
   if (!vec) return [];
 
+  // Try hybrid search first (migration 048+)
+  const { data: hybridData, error: hybridError } = await supabase.rpc(
+    "nestai_hybrid_search",
+    {
+      p_user_id:      userId,
+      p_embedding:    `[${vec.join(",")}]`,
+      p_query:        query,
+      p_source_types: sourceTypes ?? null,
+      p_limit:        limit,
+    }
+  );
+
+  if (!hybridError) {
+    return (hybridData as SearchResult[]) ?? [];
+  }
+
+  // Fallback: pure cosine similarity (migration 047)
+  console.warn("[RAG] hybrid search unavailable, falling back to cosine:", hybridError.message);
   const { data, error } = await supabase.rpc("nestai_semantic_search", {
     p_user_id:      userId,
     p_embedding:    `[${vec.join(",")}]`,

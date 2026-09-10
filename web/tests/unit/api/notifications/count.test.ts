@@ -4,8 +4,9 @@
  * Covers:
  *  - 401 when not authenticated
  *  - 429 when rate-limited
- *  - 200 returns { overdueReminders, upcomingInterviews, total }
+ *  - 200 returns { overdueReminders, upcomingInterviews, unreadNotifications, total }
  *  - 200 when all counts are zero
+ *  - 200 total includes unread in-app notifications
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -17,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 
 const mockCreateClient = vi.mocked(createClient);
-const mockCheckRL    = vi.mocked(checkRateLimit);
+const mockCheckRL      = vi.mocked(checkRateLimit);
 
 // Builds a chain that resolves with { count: N, error: null }
 function makeCountChain(count: number) {
@@ -33,15 +34,22 @@ function makeCountChain(count: number) {
   return chain;
 }
 
+/**
+ * Creates a mock server client that returns the three counts in order:
+ * 1st from() call → overdueCount, 2nd → upcomingCount, 3rd → unreadCount.
+ * All three are now queried in parallel (Promise.all) in the route handler.
+ */
 function makeServerClient(
   user: unknown = { id: "uid-1", email: "u@test.com" },
-  overdueCount = 3,
+  overdueCount  = 3,
   upcomingCount = 1,
+  unreadCount   = 0,
 ) {
   let idx = 0;
+  const counts = [overdueCount, upcomingCount, unreadCount];
   return {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }) },
-    from: vi.fn(() => makeCountChain(idx++ === 0 ? overdueCount : upcomingCount)),
+    from: vi.fn(() => makeCountChain(counts[idx++] ?? 0)),
   };
 }
 
@@ -68,21 +76,38 @@ describe("GET /api/notifications/count — rate limit", () => {
 });
 
 describe("GET /api/notifications/count — success", () => {
-  it("returns counts from both tables", async () => {
-    mockCreateClient.mockResolvedValue(makeServerClient({ id: "uid-1" }, 2, 1) as never);
+  it("returns counts from all three sources and correct total", async () => {
+    mockCreateClient.mockResolvedValue(
+      makeServerClient({ id: "uid-1" }, 2, 1, 0) as never,
+    );
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.overdueReminders).toBe(2);
     expect(body.upcomingInterviews).toBe(1);
+    expect(body.unreadNotifications).toBe(0);
     expect(body.total).toBe(3);
   });
 
-  it("returns total of 0 when no overdue or upcoming", async () => {
-    mockCreateClient.mockResolvedValue(makeServerClient({ id: "uid-1" }, 0, 0) as never);
+  it("includes unread in-app notifications in total", async () => {
+    mockCreateClient.mockResolvedValue(
+      makeServerClient({ id: "uid-1" }, 1, 0, 3) as never,
+    );
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.unreadNotifications).toBe(3);
+    expect(body.total).toBe(4); // 1 overdue + 0 upcoming + 3 unread
+  });
+
+  it("returns total of 0 when no overdue, upcoming, or unread", async () => {
+    mockCreateClient.mockResolvedValue(
+      makeServerClient({ id: "uid-1" }, 0, 0, 0) as never,
+    );
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.total).toBe(0);
+    expect(body.unreadNotifications).toBe(0);
   });
 });

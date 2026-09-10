@@ -301,6 +301,9 @@ describe("upsertEmbeddings", () => {
 });
 
 // ── semanticSearch ────────────────────────────────────────────────────────────
+//
+// The function now tries nestai_hybrid_search first (migration 048+), falling
+// back to nestai_semantic_search when the hybrid RPC is unavailable.
 
 describe("semanticSearch", () => {
   const originalFetch = global.fetch;
@@ -315,12 +318,12 @@ describe("semanticSearch", () => {
   it("returns empty array when generateEmbedding returns null (no key)", async () => {
     delete process.env.OPENAI_API_KEY;
     const supabase = makeSupabase();
-     
+
     const result = await semanticSearch(supabase as any, "user-1", "find Google apps");
     expect(result).toEqual([]);
   });
 
-  it("returns search results from the RPC on success", async () => {
+  it("calls nestai_hybrid_search first and returns its results", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({ data: [{ embedding: FAKE_VEC }] }),
@@ -329,16 +332,39 @@ describe("semanticSearch", () => {
     const mockRows = [
       { source_type: "application", source_id: "app-1", content: "Company: Google", similarity: 0.93 },
     ];
-    const supabase = { rpc: vi.fn().mockResolvedValue({ data: mockRows, error: null }) };
+    const rpcSpy = vi.fn().mockResolvedValue({ data: mockRows, error: null });
+    const supabase = { rpc: rpcSpy };
 
-     
     const result = await semanticSearch(supabase as any, "user-1", "Google applications", 10);
     expect(result).toHaveLength(1);
     expect(result[0].source_type).toBe("application");
     expect(result[0].similarity).toBeCloseTo(0.93);
+    expect(rpcSpy).toHaveBeenCalledWith("nestai_hybrid_search", expect.objectContaining({ p_limit: 10 }));
   });
 
-  it("returns empty array when RPC returns an error", async () => {
+  it("falls back to nestai_semantic_search when hybrid RPC errors", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ data: [{ embedding: FAKE_VEC }] }),
+    } as unknown as Response);
+
+    const cosineRows = [
+      { source_type: "contact", source_id: "con-1", content: "Name: Alice", similarity: 0.80 },
+    ];
+    const rpcSpy = vi.fn()
+      .mockResolvedValueOnce({ data: null, error: { message: "function not found" } }) // hybrid fails
+      .mockResolvedValueOnce({ data: cosineRows, error: null }); // cosine succeeds
+    const supabase = { rpc: rpcSpy };
+
+    const result = await semanticSearch(supabase as any, "user-1", "Alice");
+    expect(result).toHaveLength(1);
+    expect(result[0].source_type).toBe("contact");
+    expect(rpcSpy).toHaveBeenCalledTimes(2);
+    expect(rpcSpy).toHaveBeenNthCalledWith(1, "nestai_hybrid_search", expect.any(Object));
+    expect(rpcSpy).toHaveBeenNthCalledWith(2, "nestai_semantic_search", expect.any(Object));
+  });
+
+  it("returns empty array when both hybrid and cosine RPCs fail", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({ data: [{ embedding: FAKE_VEC }] }),
@@ -346,12 +372,11 @@ describe("semanticSearch", () => {
 
     const supabase = { rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "rpc failed" } }) };
 
-     
     const result = await semanticSearch(supabase as any, "user-1", "anything");
     expect(result).toEqual([]);
   });
 
-  it("passes sourceTypes filter to the RPC when provided", async () => {
+  it("passes sourceTypes and limit to the hybrid RPC", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({ data: [{ embedding: FAKE_VEC }] }),
@@ -360,12 +385,15 @@ describe("semanticSearch", () => {
     const rpcSpy = vi.fn().mockResolvedValue({ data: [], error: null });
     const supabase = { rpc: rpcSpy };
 
-     
     await semanticSearch(supabase as any, "user-1", "query", 5, ["application", "contact"]);
 
     expect(rpcSpy).toHaveBeenCalledWith(
-      "nestai_semantic_search",
-      expect.objectContaining({ p_source_types: ["application", "contact"], p_limit: 5 }),
+      "nestai_hybrid_search",
+      expect.objectContaining({
+        p_source_types: ["application", "contact"],
+        p_limit: 5,
+        p_query: "query",
+      }),
     );
   });
 });

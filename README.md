@@ -53,7 +53,7 @@ A modern, secure platform to organise and manage your entire job search. Built w
 
 ### Dashboard
 - **Condensed navigation**: desktop nav bar shows 4 items — `Applications` (direct link), `Job Search` hover-dropdown (Interviews, Reminders, Contacts, Networking), `Tools` hover-dropdown (Templates, Salary, ATS Scan, Interview Prep), `NESTAi` (direct link with Sparkles icon); dropdowns open on mouse hover with a 120 ms close delay, also toggle on click, and close on Escape or Tab-away; mobile slide panel shows the same groups with section headers, with items already in the bottom tab bar excluded to prevent duplication; logo link to `/dashboard` replaces the former "Overview" nav item
-- Stats: total applications, this week/month, active pipeline, offers, upcoming interviews
+- Stats: total applications, this week/month, active pipeline, offers, upcoming interviews; **mobile privacy mode** — all three stat card values are blurred by default on mobile (< sm breakpoint); an Eye/EyeOff toggle reveals them on tap; values are always visible on desktop
 - **Application Velocity**: D / W / M granularity toggle; last 30 days (daily), last 24 weeks (weekly), or full account history from first application (monthly); per-mode window selectors; x-axis labels thin out automatically when many bars are shown
 - Status distribution pie chart; Recent applications list; Tasks panel
 - **Quick-access cards**: Document Library + ATS Scanner; H1B cap tracker for OPT/H1B users
@@ -172,6 +172,7 @@ Three-tab page for relationship-driven job searching:
 - Manual and **auto-generated cadence** (Day 7, 14, 21 for Applied/Phone Screen apps)
 - Types: Follow Up, Interview, Deadline; mark complete; overdue detection
 - **Bulk actions**: "Mark all complete" (marks all pending/overdue reminders at once), "Clear completed" (deletes completed section), "Delete all" (with confirmation dialog); buttons appear in the page header and update via router.refresh for instant UI feedback
+- **Real-time updates**: `/reminders` page subscribes to `postgres_changes` on the `reminders` table via `RemindersRealtimeProvider`; INSERT/UPDATE/DELETE events apply optimistic state updates instantly without a full page reload; mutations call an optional `onMutate` callback for parent-controlled refresh; `router.refresh()` still fires after each mutation to sync server-side join data
 - **Re-engagement emails**: automated email to users inactive 14+ days (30-day cooldown, opt-out in profile)
 - **Milestone celebration emails**: automatic celebratory email at every 100th application (100, 200, 300…) and every 10th offer received (10, 20, 30…); warm terracotta/emerald gradient templates with personalised copy that escalates as the numbers grow; deduped via `user_metadata.app_milestone_last` and `offer_milestone_last` so re-sends never happen; both milestones written in a single `updateUserById` call to prevent metadata overwrite race; in-app notification created alongside each email
 - **Weekly motivation emails**: sent every Wednesday at ~8am in each user's local timezone; personalised hook sentence (8-priority logic: offers > active pipeline > response rate > apps this week > total) with a 4-stat grid and a rotating 7-quote bank; progress bar nudge for users below 100 apps; skips opted-out users, those inactive > 30 days, and those with 0 applications; ISO week dedup prevents double-send across cron windows
@@ -195,7 +196,8 @@ Three-tab page for relationship-driven job searching:
 
 ### NESTAi - AI Job Search Assistant
 - ChatGPT-style interface; full access to applications, interviews, reminders, contacts, salary, documents
-- **Semantic RAG context (Pro)**: pgvector-backed retrieval — at query time NESTAi embeds your question with `text-embedding-3-small`, does cosine-similarity search across your stored application/contact/reminder embeddings, and injects only the most relevant chunks as context instead of a full data dump; lazy-indexes with a 2-hour TTL cache; falls back to full-context approach when `OPENAI_API_KEY` is absent or for Free users; requires pgvector extension + migration 047; `nestai_semantic_search` RPC enforces ownership
+- **Hybrid semantic RAG context (Pro)**: pgvector-backed retrieval — at query time NESTAi embeds your question with `text-embedding-3-small`, runs **BM25 + cosine similarity fused via Reciprocal Rank Fusion** (`nestai_hybrid_search` RPC, migration 048) for better recall on short keyword queries; lazy-indexes with a 2-hour TTL cache; nightly cron (`/api/cron/nestai-reindex`, 02:00 UTC) pre-warms embeddings for all active Pro users so the first morning message is never a cache miss; falls back to pure cosine (`nestai_semantic_search`) when hybrid RPC is unavailable, and to full-context for Free users; requires pgvector extension + migrations 047–048; both RPCs enforce per-user ownership
+- **Conversation memory (Pro)**: after ≥ 4 message exchanges, NESTAi extracts up to 20 bullet-point preference notes (preferred roles, target companies, work style) from the session via `llama-3.1-8b-instant`; persisted in `nestai_memory` table; injected into the system prompt on every subsequent session under `=== REMEMBERED USER PREFERENCES ===`; PATCH endpoint strips `===` delimiters before storage to prevent system-prompt delimiter injection; DELETE clears memory; both write endpoints enforce CSRF origin check
 - **Streaming responses** with stop button; markdown rendering; suggested follow-ups; animated "Thinking..." indicator while awaiting first token; `aria-live="polite"` on the streaming bubble so screen readers announce incoming content
 - **Chat-to-PDF export**: "Export" button in NESTAi topbar; styled PDF with user/AI bubbles, timestamps, and session title via `@react-pdf/renderer`; downloads as `nestai-{title}.pdf`; RLS-enforced
 - **Work authorization aware**: user's visa status injected into system prompt
@@ -222,8 +224,8 @@ Three-tab page for relationship-driven job searching:
 - **Daily prep streak**: any prep activity increments the streak; resets after a gap day; longest streak preserved
 
 ### Notifications
-- **Real-time bell**: Supabase Realtime channel (`postgres_changes`) on `reminders` + `interviews` tables scoped to `user_id=eq.{userId}` — badge updates instantly on any DB change; 5-minute fallback poll for resilience; no more 60-second polling lag
-- Badge caps at 99+; popover with quick links
+- **Real-time bell**: Supabase Realtime channel (`postgres_changes`) on `reminders` + `interviews` + **`notifications`** tables scoped to `user_id=eq.{userId}` — badge updates instantly on any DB change; 5-minute fallback poll for resilience; badge total is the sum of overdue reminders + upcoming interviews (24 h window) + **unread in-app notifications** (`notifications.is_read = false`)
+- Badge caps at 99+; popover shows separate rows for each category with contextual links; "View all notifications →" footer always visible
 - `/notifications` page - All/Unread/Read tabs, bulk mark-read/clear, cursor pagination
 - Daily cron: in-app notifications for overdue reminders + upcoming interviews (24h window)
 - Idempotent via `(user_id, source_type, source_id)` partial unique index
@@ -378,7 +380,7 @@ web/
 ├── public/
 │   ├── llms.txt                  # LLM-readable site description (GEO)
 │   └── robots.txt
-├── vercel.json                   # 7 cron job schedules
+├── vercel.json                   # 10 cron job schedules
 └── proxy.ts                      # Route protection + security headers
 
 supabase/
@@ -499,6 +501,9 @@ Run migrations in order from `supabase/migrations/` via the Supabase SQL editor:
 | 33 | `...033_company_tier.sql` | `company_tier` enum + column |
 | 34 | `...034_feedback.sql` | `user_feedback` table |
 | 35 | `...035_document_purge_queue.sql` | `document_purge_queue` table + DB trigger that schedules 30-day file purge on rejection |
+| 36-46 | Networking, ratings, AI usage, feature flags, referrals | Extended feature tables |
+| 47 | `...047_nestai_rag.sql` | `nestai_embeddings` table, IVFFlat vector index, `nestai_semantic_search` RPC |
+| 48 | `...048_hybrid_search_and_memory.sql` | GIN FTS index on embeddings, `nestai_hybrid_search` RPC (BM25+cosine+RRF), `nestai_memory` table |
 
 ### Installation
 
@@ -520,9 +525,9 @@ npm run build         # Production build
 npm run start         # Production server
 npm run lint          # ESLint
 npm run typecheck     # tsc --noEmit
-npm test              # Vitest (1676 tests, 101 files)
-npm run test:coverage # Coverage report
-npm run test:e2e      # Playwright E2E — 17 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
+npm test              # Vitest (1775 tests, 108 files)
+npm run test:coverage # Coverage report (thresholds: stmt 47%, branch 40%, fn 42%, line 50%)
+npm run test:e2e      # Playwright E2E — 19 spec files; authenticated suites require E2E_TEST_EMAIL + E2E_TEST_PASSWORD
 npm run analyze       # Webpack bundle analysis — opens interactive treemap (ANALYZE=true next build)
 ```
 
@@ -534,7 +539,7 @@ npm run analyze       # Webpack bundle analysis — opens interactive treemap (A
 
 | Suite | Location | What it covers |
 |---|---|---|
-| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers, **performance sprint** (next.config.ts bundle analyzer + AVIF/WebP + Supabase hostname scoping, font consolidation across 5 layouts, SW v2 cache names + offline pre-caching + null-guard, offline page force-static, manifest icon references), **Aug 2026 sprint** (download proxy `original_name` lookup + CRLF/NUL sanitisation, upload route control-char sanitisation in `original_name`, cron SMTP 500 guard for milestone-celebrations + weekly-motivation) |
+| Unit | `tests/unit/` | lib utilities, all API route handlers, analytics (incl. implicit ghost rate), Zod schemas, security helpers, **performance sprint** (next.config.ts bundle analyzer + AVIF/WebP + Supabase hostname scoping, font consolidation across 5 layouts, SW v2 cache names + offline pre-caching + null-guard, offline page force-static, manifest icon references), **Aug 2026 sprint** (download proxy `original_name` lookup + CRLF/NUL sanitisation, upload route control-char sanitisation in `original_name`, cron SMTP 500 guard for milestone-celebrations + weekly-motivation), **Sep 2026 sprint** (`nestai-reindex` cron (auth, OpenAI key gate, empty subs, user indexing, error cap), `nesta-ai/memory` GET/PATCH/DELETE (auth, CSRF, rate-limit, Zod, Groq extraction, dedup-newest-20, NONE skip), notifications/count 3-source total, nestai-rag hybrid-first + cosine fallback) |
 | Flow | `tests/flows/` | Login, signup, forgot-password, change-password, delete+reactivate, NESTAi chat+upload, Stripe billing, developer identity, portfolio |
 | E2E (Playwright) | `tests/e2e/` | Public pages, auth flows, UI smoke tests, application delete (card + detail page), application filters + search (spinner, stale data, URL state, status pills), **Search Intelligence** (all 6 cards visible, ghost rate non-zero, live opportunities count, empty-dashboard guard), **Mobile UX** (bottom tab bar, nav-open slide-away, nav dedup, NPS API, chart no overflow), **Applications redesign** (card renders position/company/status, title nav, always-visible mobile actions, status pills filter+URL+reset, count row, mobile FAB visible/hidden), **Resume Audit** (unauthenticated 401 guards, ATS tab layout, weekly goal profile persistence with real Supabase, single-header Edit on mobile, SW v2 cache names, API validation real-DB), **Performance sprint** (/offline page 200+HTML+content, /sw.js v2 caches+null-guard+no auth pre-caching, /manifest.json icon-192/512 references, --font-newsreader/--font-manrope CSS vars on body, offline browser simulation via context.setOffline), **Aug 2026 sprint** (upload-on-pick storage request fires before submit, "Uploading…" spinner while upload is in flight, non-PDF magic-byte toast + zero network calls, form lock during submit, navbar dropdown fully opaque, unauthenticated download proxy 401) |
 

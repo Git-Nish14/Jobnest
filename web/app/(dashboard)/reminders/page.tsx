@@ -1,6 +1,5 @@
-import { Bell, Clock, CheckCircle2 } from "lucide-react";
 import { getReminders, getDueReminders } from "@/services";
-import { ReminderList, ReminderForm, ReminderBulkActions } from "@/components/reminders";
+import { RemindersRealtimeProvider, ReminderForm, ReminderBulkActions } from "@/components/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +9,17 @@ export default async function RemindersPage() {
     getDueReminders(),
   ]);
 
-  const pending = (reminders || []).filter((r) => !r.is_completed);
-  const completed = (reminders || []).filter((r) => r.is_completed);
-  const overdue = dueReminders || [];
+  const allReminders = reminders ?? [];
+  const allDue = dueReminders ?? [];
+
+  const completedIds = allReminders
+    .filter((r) => r.is_completed)
+    .map((r) => r.id);
+
+  // Union of overdue + pending for bulk actions (dedup by id)
+  const bulkPendingIds = Array.from(
+    new Set([...allDue, ...allReminders.filter((r) => !r.is_completed)].map((r) => r.id))
+  );
 
   return (
     <div>
@@ -26,67 +33,18 @@ export default async function RemindersPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <ReminderBulkActions
-            pendingIds={[...overdue, ...pending].map((r) => r.id)}
-            completedIds={completed.map((r) => r.id)}
+            pendingIds={bulkPendingIds}
+            completedIds={completedIds}
           />
           <ReminderForm />
         </div>
       </header>
 
-      <div className="space-y-8">
-        {/* Overdue */}
-        {overdue.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="h-5 w-5 text-[#ba1a1a]" />
-              <h2 className="db-headline text-xl font-semibold text-[#ba1a1a]">
-                Overdue ({overdue.length})
-              </h2>
-            </div>
-            <div className="db-content-card border border-[#ba1a1a]/15">
-              <ReminderList reminders={overdue} />
-            </div>
-          </section>
-        )}
-
-        {/* Pending */}
-        <section>
-          <div className="flex items-center gap-3 mb-4">
-            <Bell className="h-5 w-5 text-[#99462a]" />
-            <h2 className="db-headline text-xl font-semibold text-[#1a1c1b]">
-              Upcoming Reminders
-            </h2>
-          </div>
-          <div className="db-content-card">
-            {pending.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-center">
-                <Bell className="h-10 w-10 text-[#55433d]/30 mb-3" />
-                <p className="text-[#55433d] font-medium">No pending reminders</p>
-                <p className="text-sm text-[#55433d]/60 mt-1">
-                  Create reminders to stay on top of follow-ups
-                </p>
-              </div>
-            ) : (
-              <ReminderList reminders={pending} />
-            )}
-          </div>
-        </section>
-
-        {/* Completed */}
-        {completed.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="h-5 w-5 text-[#55433d]/50" />
-              <h2 className="db-headline text-xl font-semibold text-[#55433d]">
-                Completed ({completed.length})
-              </h2>
-            </div>
-            <div className="db-content-card">
-              <ReminderList reminders={completed.slice(0, 10)} showCompleted />
-            </div>
-          </section>
-        )}
-      </div>
+      {/* ── Live-updating reminder lists via Supabase Realtime ── */}
+      <RemindersRealtimeProvider
+        initialReminders={allReminders}
+        initialDueReminders={allDue}
+      />
     </div>
   );
 }

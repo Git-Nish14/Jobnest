@@ -10,7 +10,6 @@ export async function GET() {
 
     if (authError || !user) throw ApiError.unauthorized();
 
-    // Generous rate limit — this is polled periodically by the notification bell
     const rl = await checkRateLimit(`notifications-count:${user.id}`, {
       maxRequests: 60,
       windowMs: 60_000,
@@ -18,10 +17,13 @@ export async function GET() {
     if (!rl.allowed) throw ApiError.tooManyRequests("Too many requests.");
 
     const now = new Date().toISOString();
-    // 24 hours from now for "upcoming" interviews
     const in24h = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ count: overdueCount }, { count: upcomingCount }] = await Promise.all([
+    const [
+      { count: overdueCount },
+      { count: upcomingCount },
+      { count: unreadCount },
+    ] = await Promise.all([
       // Overdue reminders: not completed, remind_at in the past
       supabase
         .from("reminders")
@@ -38,20 +40,28 @@ export async function GET() {
         .eq("status", "Scheduled")
         .gte("scheduled_at", now)
         .lte("scheduled_at", in24h),
+
+      // Unread in-app notifications (system, billing, account, etc.)
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false),
     ]);
 
     const overdue = overdueCount ?? 0;
     const upcoming = upcomingCount ?? 0;
+    const unread = unreadCount ?? 0;
 
     return NextResponse.json(
       {
-        overdueReminders:  overdue,
+        overdueReminders:   overdue,
         upcomingInterviews: upcoming,
-        total: overdue + upcoming,
+        unreadNotifications: unread,
+        total: overdue + upcoming + unread,
       },
       {
         headers: {
-          // Cache for 30 s at CDN edge — stale-while-revalidate keeps it fresh
           "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
         },
       }

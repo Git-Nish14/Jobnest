@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import { Clock, CheckCircle2, Trash2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -18,9 +19,11 @@ import { formatDate as fmtDate_, formatTime as formatTime_ } from "@/lib/utils/d
 interface ReminderListProps {
   reminders: (Reminder & { job_applications?: { company: string; position: string } | null })[];
   showCompleted?: boolean;
+  /** Called after a successful mutation so the parent can refresh state. */
+  onMutate?: () => void;
 }
 
-export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
+export function ReminderList({ reminders, showCompleted, onMutate }: ReminderListProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
       .eq("id", id);
 
     if (error) toast.error("Failed to complete reminder");
-    else { toast.success("Reminder completed"); router.refresh(); }
+    else { toast.success("Reminder completed"); if (onMutate) { onMutate(); } else { router.refresh(); } }
     setLoadingId(null);
   };
 
@@ -71,7 +74,7 @@ export function ReminderList({ reminders, showCompleted }: ReminderListProps) {
     const supabase = createClient();
     const { error } = await supabase.from("reminders").delete().eq("id", id);
     if (error) toast.error("Failed to delete reminder");
-    else { toast.success("Reminder deleted"); router.refresh(); }
+    else { toast.success("Reminder deleted"); if (onMutate) { onMutate(); } else { router.refresh(); } }
     setLoadingId(null);
   };
 

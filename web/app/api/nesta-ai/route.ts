@@ -346,12 +346,34 @@ export async function POST(request: NextRequest) {
     const workAuthorization: string | null =
       user.user_metadata?.work_authorization ?? null;
 
+    // Load persisted conversation memory (Pro users) — non-blocking, fail-safe
+    let userMemory = "";
+    if (isPro) {
+      const { data: memRow } = await supabase
+        .from("nestai_memory")
+        .select("preferences")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (memRow?.preferences) {
+        // Strip any === sequences to prevent prompt-injection via delimiter confusion.
+        // Cap to ~800 chars (~200 tokens) so memory cannot silently blow the token budget.
+        userMemory = memRow.preferences
+          .replace(/={3,}/g, "---")
+          .slice(0, 800);
+      }
+    }
+
     const buildSystemPrompt = (context: string, isRag = false) => {
       const aboutLines: string[] = [];
       if (nestaiContext) aboutLines.push(nestaiContext);
       if (workAuthorization) aboutLines.push(`Work authorization: ${workAuthorization}. Factor this in when discussing companies, roles, or whether an employer is likely to sponsor.`);
       const aboutSection = aboutLines.length
         ? `\n=== ABOUT THIS USER ===\n${aboutLines.join("\n")}\n=== END USER CONTEXT ===\n`
+        : "";
+
+      const memorySection = userMemory
+        ? `\n=== REMEMBERED USER PREFERENCES ===\n${userMemory}\n=== END PREFERENCES ===\n`
         : "";
 
       const dataLabel = isRag
@@ -361,7 +383,7 @@ export async function POST(request: NextRequest) {
       return `You are NESTAi, a sharp and helpful AI assistant built into Jobnest — a job application tracking platform. You have complete access to this user's job search data and must use it to give accurate, specific answers.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-${aboutSection}
+${aboutSection}${memorySection}
 === ${dataLabel} ===
 ${context}
 === END OF DATA ===

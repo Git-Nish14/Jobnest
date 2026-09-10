@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Bell, Clock, Calendar, X } from "lucide-react";
+import { Bell, Clock, Calendar, Inbox, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface NotifCount {
-  overdueReminders: number;
-  upcomingInterviews: number;
-  total: number;
+  overdueReminders:    number;
+  upcomingInterviews:  number;
+  unreadNotifications: number;
+  total:               number;
 }
 
 // Fallback poll interval — catches any missed Realtime events
@@ -35,14 +36,9 @@ export function NotificationBell() {
     fetchCounts();
 
     const supabase = createClient();
-    // channel is set asynchronously after getUser() resolves; use a flag to
-    // handle the case where cleanup fires before getUser() completes.
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    // Scope the subscription to the authenticated user's rows only.
-    // Without a filter, every reminder/interview write by any user would fire
-    // fetchCounts() for every online client — O(users) amplification per DB write.
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (cancelled || !user) return;
 
@@ -56,6 +52,11 @@ export function NotificationBell() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "interviews", filter: `user_id=eq.${user.id}` },
+          fetchCounts,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
           fetchCounts,
         )
         .subscribe();
@@ -163,10 +164,27 @@ export function NotificationBell() {
                   </div>
                 </Link>
               )}
+
+              {(counts?.unreadNotifications ?? 0) > 0 && (
+                <Link
+                  href="/notifications"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <Inbox className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {counts!.unreadNotifications} unread notification{counts!.unreadNotifications !== 1 ? "s" : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Tap to view all</p>
+                  </div>
+                </Link>
+              )}
             </div>
           )}
 
-          {/* View all link — always shown */}
           <Link
             href="/notifications"
             onClick={() => setOpen(false)}
