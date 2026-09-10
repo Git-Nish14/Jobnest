@@ -1,6 +1,6 @@
 # Jobnest
 
-A full-stack job search management platform. Track applications, manage documents, and prepare for interviews — all in one place.
+A full-stack job search management platform. Track applications, manage documents, and prepare for interviews. All in one place.
 
 **Live:** [jobnest.nishpatel.dev](https://jobnest.nishpatel.dev) · **By [Nish Patel](https://nishpatel.dev)**
 
@@ -138,22 +138,18 @@ A full-stack job search management platform. Track applications, manage document
 - Student discount via server-side `.edu` allowlist (16 academic TLDs)
 - Plan enforcement reads `subscriptions` via service role and fails closed on DB error
 
----
-
-### Design System & PWA (features-2)
-- Responsive design covering all screen types: phones, tablets, foldables (Galaxy Fold, Pixel Fold, Surface Duo), landscape, and desktop PWA window-controls-overlay
-- Foldable device support via `@media (horizontal-viewport-segments: 2)` and `@media (vertical-viewport-segments: 2)` — bottom tab bar hides when dual-screen navigation is sufficient
-- PWA `themeColor` is now a light/dark array; `ThemeToggle` syncs `<meta name="theme-color">` at runtime so iOS status bar matches the active UI theme (class-based, not system preference)
-- `color-scheme: light` / `dark` on `:root` and `.dark` — browser-native scrollbars, inputs, and selects render in the correct palette
-- `manifest.json` orientation changed from `portrait-primary` to `any`; `display_override` adds `window-controls-overlay` for desktop PWA title bar
-- Navbar mobile slide panel: animated with `slide-in-right` keyframe (0.28 s), frosted-glass backdrop (`blur(4px)`), panel width expanded to `max-w-sm` for large phones
-- Desktop nav dropdown flyout: animated with `flyout-in` keyframe (0.18 s Y + scale only — `translateX` removed to avoid Tailwind v4 double-translate bug)
-- Auth card padding is now responsive (1.5 rem → 2 rem at ≥ 400 px), fixing layout on 320 px devices
-- All auth UI text raised to WCAG-minimum readable sizes (was 0.625 rem / 10 px on back-btn, divider label, footer links)
-- `atelier-footer-link` gains `min-height: 2.75rem` for 44 px touch targets
-- Landing header gains `backdrop-filter: blur(20px)` for professional glass effect on scroll
-- Pill button design: `sm` and `lg` button sizes no longer override `rounded-full` with `rounded-md` / `rounded-lg`
-- `msapplication-TileColor` corrected from `#3b82f6` (blue) to `#99462a` (brand terracotta)
+### Design System and PWA
+- Responsive across all screen types: phones, tablets, foldables (Galaxy Fold, Pixel Fold, Surface Duo), landscape, and desktop PWA
+- Foldable device support via `@media (horizontal-viewport-segments: 2)` and `@media (vertical-viewport-segments: 2)`; bottom tab bar is hidden when dual-screen navigation is sufficient
+- PWA `themeColor` is a light/dark array; `ThemeToggle` syncs `<meta name="theme-color">` at runtime so the iOS status bar matches the active UI theme
+- `color-scheme: light` / `dark` on `:root` and `.dark`; browser-native scrollbars, inputs, and selects render in the correct palette
+- `manifest.json` orientation is `any`; `display_override` adds `window-controls-overlay` for desktop PWA title bar
+- Navbar mobile slide panel: `slide-in-right` animation (0.28 s), frosted-glass backdrop with `blur(4px)`, panel width expanded to `max-w-sm`
+- Desktop nav dropdown flyout: `flyout-in` animation (Y and scale only; `translateX` omitted to avoid Tailwind v4 additive-transform conflict)
+- Auth card padding is responsive (1.5 rem on narrow viewports, 2 rem at 400 px and above)
+- All auth UI text meets WCAG minimum sizes; footer links have a 44 px touch target
+- Landing header has `backdrop-filter: blur(20px)` for a professional glass effect on scroll
+- `sm` and `lg` button sizes inherit `rounded-full` for consistent pill shape across all sizes
 
 ---
 
