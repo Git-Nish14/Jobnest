@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import type { StatusCount } from "@/types";
 
 interface AtelierStatusChartProps {
@@ -23,6 +27,8 @@ function getMeta(status: string) {
 }
 
 export function AtelierStatusChart({ data, total }: AtelierStatusChartProps) {
+  const [revealed, setRevealed] = useState(false);
+
   const active = data.filter((d) => d.count > 0);
 
   const inProgress = data
@@ -63,62 +69,75 @@ export function AtelierStatusChart({ data, total }: AtelierStatusChartProps) {
 
   return (
     <div className="db-panel h-full flex flex-col gap-5">
-      <div>
-        <h2 className="db-panel-title">Application Pipeline</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Your progress through each hiring stage</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="db-panel-title">Application Pipeline</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Your progress through each hiring stage</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRevealed((r) => !r)}
+          className="sm:hidden shrink-0 text-[#99462a]/40 hover:text-[#99462a] transition-colors mt-0.5"
+          aria-label={revealed ? "Hide chart data" : "Reveal chart data"}
+        >
+          {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
       </div>
 
-      {/* Donut + key metrics */}
-      <div className="flex items-center gap-5">
-        <div className="relative shrink-0">
-          <div
-            className="w-24 h-24 rounded-full"
-            style={{ background: `conic-gradient(${gradient})` }}
-          />
-          {/* Hole — matches the panel surface color */}
-          <div className="absolute inset-0 flex items-center justify-center">
+      {/* Chart body — blurred on mobile until revealed */}
+      <div className={`flex flex-col gap-5 transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
+        {/* Donut + key metrics */}
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0">
             <div
-              className="w-14 h-14 rounded-full flex flex-col items-center justify-center"
-              style={{ backgroundColor: "var(--atelier-surface)" }}
-            >
-              <span className="text-base font-bold text-foreground leading-none">{total}</span>
-              <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">total</span>
+              className="w-24 h-24 rounded-full"
+              style={{ background: `conic-gradient(${gradient})` }}
+            />
+            {/* Hole — matches the panel surface color */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="w-14 h-14 rounded-full flex flex-col items-center justify-center"
+                style={{ backgroundColor: "var(--atelier-surface)" }}
+              >
+                <span className="text-base font-bold text-foreground leading-none">{total}</span>
+                <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">total</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Funnel KPIs */}
+          <div className="flex-1 space-y-2.5 min-w-0">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Response rate</span>
+              <span className="text-xs font-bold text-[#99462a] dark:text-[#ccff00]">{responseRate}%</span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-[#e9e8e6] dark:bg-[#1a1a1a] overflow-hidden">
+              <div className="h-full rounded-full bg-[#99462a] dark:bg-[#ccff00]" style={{ width: `${responseRate}%` }} />
+            </div>
+            <div className="flex justify-between items-baseline pt-1">
+              <div className="text-center">
+                <p className="text-base font-bold text-foreground">{inProgress}</p>
+                <p className="text-[10px] text-muted-foreground">In progress</p>
+              </div>
+              <div className="text-center">
+                <p className="text-base font-bold text-[#34d399]">{offers}</p>
+                <p className="text-[10px] text-muted-foreground">Offer{offers !== 1 ? "s" : ""}</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Funnel KPIs */}
-        <div className="flex-1 space-y-2.5 min-w-0">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Response rate</span>
-            <span className="text-xs font-bold text-[#99462a] dark:text-[#ccff00]">{responseRate}%</span>
-          </div>
-          <div className="h-1.5 w-full rounded-full bg-[#e9e8e6] dark:bg-[#1a1a1a] overflow-hidden">
-            <div className="h-full rounded-full bg-[#99462a] dark:bg-[#ccff00]" style={{ width: `${responseRate}%` }} />
-          </div>
-          <div className="flex justify-between items-baseline pt-1">
-            <div className="text-center">
-              <p className="text-base font-bold text-foreground">{inProgress}</p>
-              <p className="text-[10px] text-muted-foreground">In progress</p>
+        {/* Legend */}
+        <div className="space-y-2 flex-1">
+          {segments.map((s) => (
+            <div key={s.status} className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="text-xs text-muted-foreground flex-1 truncate">{s.label}</span>
+              <span className="text-xs font-semibold text-foreground shrink-0 tabular-nums">{s.count}</span>
+              <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">{s.pct.toFixed(0)}%</span>
             </div>
-            <div className="text-center">
-              <p className="text-base font-bold text-[#34d399]">{offers}</p>
-              <p className="text-[10px] text-muted-foreground">Offer{offers !== 1 ? "s" : ""}</p>
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="space-y-2 flex-1">
-        {segments.map((s) => (
-          <div key={s.status} className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-xs text-muted-foreground flex-1 truncate">{s.label}</span>
-            <span className="text-xs font-semibold text-foreground shrink-0 tabular-nums">{s.count}</span>
-            <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">{s.pct.toFixed(0)}%</span>
-          </div>
-        ))}
       </div>
     </div>
   );
