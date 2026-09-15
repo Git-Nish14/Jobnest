@@ -45,6 +45,8 @@ interface AttachedFile {
   loading: boolean;
   error?: string;
   storagePath?: string | null;
+  fileData?: string;       // base64 data URL for images (vision input)
+  fileMediaType?: string;
 }
 
 const MAX_REQUESTS = 5;
@@ -825,7 +827,9 @@ export default function NestAiPage() {
       const res = await fetchWithRetry("/api/nesta-ai/sessions");
       if (res.ok) {
         const data = await res.json();
-        setSessions(data.sessions || []);
+        const raw: ChatSession[] = data.sessions || [];
+        const seen = new Set<string>();
+        setSessions(raw.filter((s) => { if (seen.has(s.id)) return false; seen.add(s.id); return true; }));
       }
     } catch (err) {
       console.error("Failed to load sessions:", err);
@@ -899,7 +903,9 @@ export default function NestAiPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setSessions((prev) => [data.session, ...prev]);
+        setSessions((prev) =>
+          prev.some((s) => s.id === data.session.id) ? prev : [data.session, ...prev]
+        );
         return data.session.id;
       }
     } catch (err) {
@@ -991,9 +997,9 @@ export default function NestAiPage() {
     role: "user" | "assistant",
     content: string,
     attachment?: MessageAttachment,
-  ) => {
+  ): Promise<string | undefined> => {
     try {
-      await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}/messages`, {
+      const res = await fetchWithRetry(`/api/nesta-ai/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1002,9 +1008,14 @@ export default function NestAiPage() {
           ...(attachment ? { metadata: { attachment } } : {}),
         }),
       }, { retries: 1 });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return data?.message?.id as string | undefined;
+      }
     } catch (err) {
       console.error("Failed to save message:", err);
     }
+    return undefined;
   };
 
   // ── Shared streaming helper ────────────────────────────────────────────────
@@ -1012,7 +1023,7 @@ export default function NestAiPage() {
   const streamAIResponse = async (
     question: string,
     historySnapshot: { role: string; content: string }[],
-    filePayload: { fileContent?: string; fileName?: string },
+    filePayload: { fileContent?: string; fileData?: string; fileMediaType?: string; fileName?: string },
     sessionId: string | null,
   ) => {
     const assistantMsgId = `${Date.now() + 1}`;
@@ -1105,13 +1116,17 @@ export default function NestAiPage() {
     setWindowEndAt((prev) => prev ?? Date.now() + WINDOW_MS);
 
     if (currentSessionId) {
-      // Remove the old message + all responses from server, then resave the edited message
+      // Remove the old message + all responses from server, then resave the edited message.
+      // messageId is the DB UUID (patched in after the original save), so the DELETE will find it.
       fetchWithRetry(
         `/api/nesta-ai/sessions/${currentSessionId}/messages?from=${messageId}`,
         { method: "DELETE" },
         { retries: 1 },
       ).catch((err) => console.error("Failed to delete messages from edit point:", err));
-      saveMessage(currentSessionId, "user", trimmed, preservedAttachment);
+      const editedLocalId = updatedMsg.id;
+      saveMessage(currentSessionId, "user", trimmed, preservedAttachment).then((dbId) => {
+        if (dbId) setMessages((prev) => prev.map((m) => m.id === editedLocalId ? { ...m, id: dbId } : m));
+      });
     }
 
     const historySnapshot = priorMessages.map((m) => ({ role: m.role, content: m.content }));
@@ -1160,6 +1175,8 @@ export default function NestAiPage() {
         text: data.text ?? null,
         storagePath: data.storagePath,
         loading: false,
+        fileData: data.fileData ?? undefined,
+        fileMediaType: data.fileMediaType ?? undefined,
       });
     } catch {
       setAttachedFile({ name: file.name, text: null, loading: false, error: "Connection error — could not upload file. Please try again." });
@@ -1194,8 +1211,11 @@ export default function NestAiPage() {
     }
 
     const question = baseQuestion;
-    // File content sent as separate fields so it bypasses the 2000-char question limit
-    const filePayload = attachedFile?.text
+    // File content sent as separate fields so it bypasses the 2000-char question limit.
+    // Images are sent as base64 vision input; documents are sent as extracted text.
+    const filePayload = attachedFile?.fileData
+      ? { fileData: attachedFile.fileData, fileMediaType: attachedFile.fileMediaType, fileName: attachedFile.name }
+      : attachedFile?.text
       ? { fileContent: attachedFile.text, fileName: attachedFile.name }
       : {};
 
@@ -1237,7 +1257,12 @@ export default function NestAiPage() {
         updateSessionTitle(sessionId, baseQuestion.slice(0, 60) + (baseQuestion.length > 60 ? "…" : ""));
       }
     }
-    if (sessionId) saveMessage(sessionId, "user", baseQuestion, msgAttachment);
+    if (sessionId) {
+      const localId = userMsg.id;
+      saveMessage(sessionId, "user", baseQuestion, msgAttachment).then((dbId) => {
+        if (dbId) setMessages((prev) => prev.map((m) => m.id === localId ? { ...m, id: dbId } : m));
+      });
+    }
 
     await streamAIResponse(question, historySnapshot, filePayload, sessionId);
   };

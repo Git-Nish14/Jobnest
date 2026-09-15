@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     // ── Daily token cap — preliminary gate (fast, non-atomic) ────────────────
     // This check fails fast for users who are clearly over their daily cap
     // without waiting for the full message-building pipeline. A second atomic
-    // check happens after groqMessages are built (where the exact token count is
+    // check happens after chatMessages are built (where the exact token count is
     // known), which eliminates the residual TOCTOU window between here and there.
     const dailyCap = isPro ? TOKEN_CAPS.pro : TOKEN_CAPS.free;
     const dailyUsed = await getDailyTokenUsage(user.id);
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { question, history, fileContent, fileName } = await validateBody(request, nestaAiSchema);
+    const { question, history, fileContent, fileName, fileData, fileMediaType } = await validateBody(request, nestaAiSchema);
 
     // ── Fetch every piece of user data in parallel ─────────────────────────
     const [
@@ -313,8 +313,8 @@ export async function POST(request: NextRequest) {
       docsByApp,
     ] as const;
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-    if (!groqApiKey) {
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
       return NextResponse.json(
         { error: "AI service is temporarily unavailable. Please try again later." },
         { status: 500 }
@@ -403,16 +403,40 @@ Guidelines:
 FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
     };
 
-    // If the user attached a file, prepend its content to the user turn server-side
-    // (keeps `question` within its 2000-char validation limit on the client)
-    const userContent = fileContent
-      ? `[Attached file: ${fileName ?? "file"}]\n${fileContent}\n\n${question}`
-      : question;
+    // Strictly validate fileData is a base64 data URI before embedding in the OpenAI payload.
+    // Reject any http/https URLs to prevent SSRF via OpenAI's image-fetch infrastructure.
+    const safeFileData =
+      fileData && fileData.startsWith("data:image/") ? fileData : undefined;
+
+    // Build user turn content. Images are sent as vision parts; documents prepend extracted text.
+    const userContent: string | Array<{ type: string; [k: string]: unknown }> =
+      safeFileData && fileMediaType
+        ? [
+            { type: "text", text: question },
+            { type: "image_url", image_url: { url: safeFileData, detail: "high" } },
+          ]
+        : fileContent
+        ? `[Attached file: ${fileName ?? "file"}]\n${fileContent}\n\n${question}`
+        : question;
 
     // ── Smart context trimming ─────────────────────────────────────────────
     // Build messages, progressively trimming until within the token budget.
-    const totalEstTokens = (msgs: Array<{ content: string }>) =>
-      msgs.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+    // Vision messages have array content — estimate the text part plus a
+    // conservative 2 000-token floor for the image tiles (detail:"high" costs
+    // 765+ tokens per tile at OpenAI's pricing; 2 000 safely covers 1 image).
+    const estimateMessageTokens = (content: unknown): number => {
+      if (typeof content === "string") return estimateTokens(content);
+      if (Array.isArray(content)) {
+        const textTokens = content
+          .filter((p) => p.type === "text")
+          .reduce((s: number, p) => s + estimateTokens(p.text ?? ""), 0);
+        const imageCount = content.filter((p) => p.type === "image_url").length;
+        return textTokens + imageCount * 2_000;
+      }
+      return 0;
+    };
+    const totalEstTokens = (msgs: Array<{ content: unknown }>) =>
+      msgs.reduce((sum, m) => sum + estimateMessageTokens(m.content), 0);
 
     let trimmedHistory = history.slice(-100);
 
@@ -422,78 +446,78 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       { role: "user" as const, content: userContent },
     ];
 
-    let groqMessages: ReturnType<typeof makeMessages>;
+    let chatMessages: ReturnType<typeof makeMessages>;
 
     if (ragContext) {
       // ── RAG path (Pro + OPENAI_API_KEY) ────────────────────────────────────
       // Semantic context is already compact; just keep recent history.
-      groqMessages = makeMessages(ragContext, history.slice(-40), true);
+      chatMessages = makeMessages(ragContext, history.slice(-40), true);
 
       // If somehow still over budget, trim history further
-      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
-        groqMessages = makeMessages(ragContext, history.slice(-10), true);
+      if (totalEstTokens(chatMessages) > INPUT_TOKEN_BUDGET) {
+        chatMessages = makeMessages(ragContext, history.slice(-10), true);
       }
     } else {
       // ── Full-context path (Free users, or RAG unavailable) ─────────────────
       let context = buildContext(...contextArgs);
-      groqMessages = makeMessages(context, trimmedHistory);
+      chatMessages = makeMessages(context, trimmedHistory);
 
-      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      if (totalEstTokens(chatMessages) > INPUT_TOKEN_BUDGET) {
         // Step 1 — trim history to 20 messages
         trimmedHistory = history.slice(-20);
-        groqMessages = makeMessages(context, trimmedHistory);
+        chatMessages = makeMessages(context, trimmedHistory);
       }
 
-      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      if (totalEstTokens(chatMessages) > INPUT_TOKEN_BUDGET) {
         // Step 2 — truncate each document body to 1 000 chars
         context = buildContext(...contextArgs, { maxDocCharsEach: 1_000 });
-        groqMessages = makeMessages(context, trimmedHistory);
+        chatMessages = makeMessages(context, trimmedHistory);
       }
 
-      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      if (totalEstTokens(chatMessages) > INPUT_TOKEN_BUDGET) {
         // Step 3 — omit doc bodies entirely, cap activity log at 20 entries
         context = buildContext(...contextArgs, { maxDocCharsEach: null, maxActivityLogs: 20 });
-        groqMessages = makeMessages(context, trimmedHistory);
+        chatMessages = makeMessages(context, trimmedHistory);
       }
 
-      if (totalEstTokens(groqMessages) > INPUT_TOKEN_BUDGET) {
+      if (totalEstTokens(chatMessages) > INPUT_TOKEN_BUDGET) {
         // Step 4 — hard-truncate the context string itself
         const baseTokens =
           estimateTokens(buildSystemPrompt("")) +
           trimmedHistory.reduce((s, m) => s + estimateTokens(m.content), 0) +
-          estimateTokens(userContent);
+          estimateMessageTokens(userContent);
         const remainingChars = Math.max(500, (INPUT_TOKEN_BUDGET - baseTokens) * 4);
         context =
           context.slice(0, remainingChars) +
           "\n\n[Context truncated. Ask about specific applications or topics for full details.]";
-        groqMessages = makeMessages(context, trimmedHistory);
+        chatMessages = makeMessages(context, trimmedHistory);
       }
     }
 
-    // Primary model; falls back to the smaller instant model on 429/5xx.
-    const PRIMARY_MODEL  = "llama-3.3-70b-versatile";
-    const FALLBACK_MODEL = "llama-3.1-8b-instant";
+    // GPT-5.6 Luna is a reasoning model — it does not accept `temperature`.
+    // Use `max_completion_tokens` (covers both output + internal reasoning tokens)
+    // and optionally `reasoning_effort` (default is "medium").
+    const PRIMARY_MODEL  = "gpt-5.6-luna";
+    const FALLBACK_MODEL = "gpt-5.6-luna";
 
-    async function callGroq(model: string) {
-      return fetch("https://api.groq.com/openai/v1/chat/completions", {
+    async function callOpenAI(model: string) {
+      return fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${groqApiKey}` },
-        body: JSON.stringify({ model, messages: groqMessages, temperature: 0.6, max_tokens: 1500, stream: true }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiApiKey}` },
+        body: JSON.stringify({ model, messages: chatMessages, max_completion_tokens: 1500, reasoning_effort: "medium", stream: true }),
       });
     }
 
-    let groqResponse = await callGroq(PRIMARY_MODEL);
+    let openaiResponse = await callOpenAI(PRIMARY_MODEL);
     let usedModel = PRIMARY_MODEL;
     let isDegraded = false;
 
-    // Handle "request too large" (400) separately: re-trim aggressively and retry
-    // rather than falling back to the smaller model (which has the same context limit).
-    if (!groqResponse.ok && groqResponse.status === 400) {
-      const errBody = await groqResponse.json().catch(() => ({}));
+    // Handle "request too large" (400) separately: re-trim aggressively and retry.
+    if (!openaiResponse.ok && openaiResponse.status === 400) {
+      const errBody = await openaiResponse.json().catch(() => ({}));
       const msg: string = errBody?.error?.message ?? "";
       if (msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("context")) {
         console.warn("[nestai] Request too large, applying emergency trim and retrying");
-        // For RAG path, just strip down the context further; for full-context path, hard trim
         let emergencyCtx = ragContext
           ? ragContext.slice(0, 20_000)
           : (() => {
@@ -501,30 +525,32 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
               return c.slice(0, 20_000);
             })();
         emergencyCtx += "\n\n[Context trimmed due to size limits. Ask about specific applications for full detail.]";
-        groqMessages = makeMessages(emergencyCtx, [], Boolean(ragContext));
-        groqResponse = await callGroq(PRIMARY_MODEL);
+        chatMessages = makeMessages(emergencyCtx, [], Boolean(ragContext));
+        openaiResponse = await callOpenAI(PRIMARY_MODEL);
         isDegraded = true;
       }
     }
 
-    if (!groqResponse.ok && (groqResponse.status === 429 || groqResponse.status >= 500)) {
-      console.warn(`[nestai] ${PRIMARY_MODEL} failed (${groqResponse.status}), falling back to ${FALLBACK_MODEL}`);
-      groqResponse = await callGroq(FALLBACK_MODEL);
+    if (!openaiResponse.ok && (openaiResponse.status === 429 || openaiResponse.status >= 500)) {
+      console.warn(`[nestai] ${PRIMARY_MODEL} failed (${openaiResponse.status}), falling back to ${FALLBACK_MODEL}`);
+      openaiResponse = await callOpenAI(FALLBACK_MODEL);
       usedModel = FALLBACK_MODEL;
       isDegraded = true;
     }
 
-    if (!groqResponse.ok) {
-      const errorData = await groqResponse.json().catch(() => ({}));
-      console.error("Groq API error:", errorData);
-      if (groqResponse.status === 429) {
+    if (!openaiResponse.ok) {
+      const rawBody = await openaiResponse.text().catch(() => "");
+      let errorData: unknown = {};
+      try { errorData = JSON.parse(rawBody); } catch { /* not JSON */ }
+      console.error(`OpenAI API error ${openaiResponse.status}:`, errorData || rawBody.slice(0, 500));
+      if (openaiResponse.status === 429) {
         return NextResponse.json({ error: "AI service is busy. Please wait a moment and try again." }, { status: 429 });
       }
       return NextResponse.json({ error: "Failed to get AI response. Please try again." }, { status: 500 });
     }
 
     // Guard: body can be null in edge proxies even on HTTP 200.
-    if (!groqResponse.body) {
+    if (!openaiResponse.body) {
       return NextResponse.json({ error: "AI service returned an empty response. Please try again." }, { status: 502 });
     }
 
@@ -539,13 +565,13 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       return "chat";
     })();
 
-    const inputTokenCount = totalEstTokens(groqMessages);
+    const inputTokenCount = totalEstTokens(chatMessages);
 
     // ── Atomic token reservation ──────────────────────────────────────────────
     // Redis INCRBY atomically reserves the input tokens so concurrent requests
     // that both passed the preliminary DB check serialize here instead of both
     // streaming back to the client. Falls back to DB-only on Redis unavailability.
-    // This is safe to call after the Groq fetch because the stream has not yet
+    // This is safe to call after the OpenAI fetch because the stream has not yet
     // been piped to the response — we can still return a 429 if over cap.
     const capLabel = dailyCap >= 1_000_000
       ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
@@ -575,7 +601,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       (err) => console.error("[ai-usage] pre-stream DB record failed:", err)
     );
 
-    // Stream tokens from Groq SSE → client.
+    // Stream tokens from OpenAI SSE → client.
     // TransformStream avoids the Node.js internal kState.transformAlgorithm error
     // that occurs when ReadableStream's underlying source controller is used inside
     // Next.js's response plumbing (which wraps responses in its own TransformStream).
@@ -617,7 +643,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       },
     });
     // pipeTo propagates back-pressure and surfaces client-disconnect cancellations.
-    groqResponse.body.pipeTo(writable).catch(() => { /* stream aborted by client disconnect */ });
+    openaiResponse.body.pipeTo(writable).catch(() => { /* stream aborted by client disconnect */ });
 
     const resetInSeconds = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
 
@@ -646,12 +672,11 @@ function estimateTokens(text: string): number {
 }
 
 /**
- * Groq free tier caps at 12 000 TPM. A single request must stay under that.
- * We target 8 000 estimated input tokens (×~1.25 BPE correction ≈ 10 000 real
- * tokens), leaving ~2 000 tokens for the 1 500-token output + overhead.
- * On a paid Groq Dev tier raise this to 80_000+ (model context is 128 K).
+ * GPT-5.6 Luna supports a 1 050 000-token context window.
+ * We target 500 000 estimated input tokens, leaving ~550 000 tokens of headroom
+ * for reasoning tokens and output.
  */
-const INPUT_TOKEN_BUDGET = 8_000;
+const INPUT_TOKEN_BUDGET = 500_000;
 
 interface TrimOptions {
   maxDocCharsEach?: number | null; // undefined = full, null = skip docs, N = max chars

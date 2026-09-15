@@ -93,17 +93,18 @@ A full-stack job search management platform. Track applications, manage document
 
 ### NESTAi (AI Assistant)
 - ChatGPT-style streaming interface with full access to application data
+- Powered by **GPT-5.6 Luna** (OpenAI) — 1M-token context window, high reasoning, cost-optimised
+- Vision input: attach images (PNG, JPEG, WebP, GIF) and Luna reads them directly — no OCR needed
+- File attachments: PDF, DOCX, TXT, Markdown, and images up to 5 MB; 100 k-char document extraction
 - Hybrid semantic RAG for Pro users: BM25 + cosine similarity fused via Reciprocal Rank Fusion
 - Nightly reindex cron at 02:00 UTC for Pro users
 - Conversation memory: extracts up to 20 preference bullets per session, persisted and injected into future prompts
 - Chat-to-PDF export
-- File attachments: PDF, DOCX, TXT, Markdown, and images up to 5 MB
 - Interview Prep: 5 tailored STAR questions from a selected job description
-- Email Draft Assistant: 7 email categories with Groq drafting
+- Email Draft Assistant: 7 email categories with AI drafting
 - NESTpro Audit: 30-checkpoint resume rubric with AI qualitative scoring
-- Model fallback: `llama-3.3-70b-versatile` with automatic fallback to `llama-3.1-8b-instant`
 - Rate limits: 5 req/min (Free), 30 req/min (Pro)
-- Atomic daily token cap via Redis INCRBY reservation
+- Daily token caps: 2M (Free), 10M (Pro) enforced via atomic Redis INCRBY reservation
 
 ### ATS Scanner
 - Upload resume and paste a job description for a 0-100 match score
