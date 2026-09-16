@@ -1,5 +1,5 @@
 import { getReminders, getDueReminders } from "@/services";
-import { RemindersRealtimeProvider, ReminderForm, ReminderBulkActions } from "@/components/reminders";
+import { RemindersRealtimeProvider, ReminderForm, ReminderBulkActions, PushNotificationSubscriber } from "@/components/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,7 @@ export default async function RemindersPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <PushNotificationSubscriber />
           <ReminderBulkActions
             pendingIds={bulkPendingIds}
             completedIds={completedIds}

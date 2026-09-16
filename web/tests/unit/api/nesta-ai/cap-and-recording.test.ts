@@ -25,20 +25,23 @@ vi.mock("@/lib/security/csrf",          () => ({ verifyOrigin: vi.fn().mockRetur
 vi.mock("@/lib/features/nestai-rag",    () => ({ buildRagContext: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/utils/document-parser",  () => ({ extractAllDocuments: vi.fn().mockResolvedValue([]) }));
 vi.mock("@/lib/features/ai-usage", () => ({
-  TOKEN_CAPS:        { free: 100_000, pro: 2_000_000 },
-  getDailyTokenUsage: vi.fn(),
-  recordTokenUsage:   vi.fn().mockResolvedValue(undefined),
+  TOKEN_CAPS:              { free: 100_000, pro: 2_000_000 },
+  getDailyTokenUsage:      vi.fn(),
+  checkAndReserveTokens:   vi.fn().mockResolvedValue({ allowed: true, used: 0, midnightTs: 0 }),
+  recordTokenUsage:        vi.fn().mockResolvedValue(undefined),
+  recordRedisOutputTokens: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { POST } from "@/app/api/nesta-ai/route";
 import { createClient }       from "@/lib/supabase/server";
 import { checkRateLimit }     from "@/lib/security/rate-limit";
-import { getDailyTokenUsage, recordTokenUsage } from "@/lib/features/ai-usage";
+import { getDailyTokenUsage, checkAndReserveTokens, recordTokenUsage } from "@/lib/features/ai-usage";
 
-const mockCreate      = vi.mocked(createClient);
-const mockCheckRL     = vi.mocked(checkRateLimit);
-const mockDailyUsage  = vi.mocked(getDailyTokenUsage);
-const mockRecordUsage = vi.mocked(recordTokenUsage);
+const mockCreate         = vi.mocked(createClient);
+const mockCheckRL        = vi.mocked(checkRateLimit);
+const mockDailyUsage     = vi.mocked(getDailyTokenUsage);
+const mockReserve        = vi.mocked(checkAndReserveTokens);
+const mockRecordUsage    = vi.mocked(recordTokenUsage);
 
 const USER_ID = "user-cap-test-000000000000";
 
@@ -70,6 +73,8 @@ beforeEach(() => {
   mockCheckRL.mockReturnValue({ allowed: true, remaining: 29, resetTime: Date.now() + 60_000 });
   mockCreate.mockResolvedValue(makeClient(USER_ID) as never);
   mockDailyUsage.mockResolvedValue(0);
+  // Default: atomic reservation succeeds (cap not reached)
+  mockReserve.mockResolvedValue({ allowed: true, used: 0, midnightTs: 0 });
 });
 
 // ── Cap label formatting ──────────────────────────────────────────────────────
@@ -107,59 +112,85 @@ describe("daily cap 429 — capLabel formatting", () => {
   });
 });
 
-// ── Pre-stream token reservation ──────────────────────────────────────────────
+// ── Atomic pre-stream reservation (Redis INCRBY) ─────────────────────────────
 
-describe("pre-stream token recording", () => {
-  it("recordTokenUsage is called with inputTokens > 0 and outputTokens = 0 before streaming", async () => {
-    // Mock GROQ_API_KEY and a minimal valid Groq streaming response
-    process.env.GROQ_API_KEY = "gsk_test_key";
-
-    // A minimal SSE stream that sends one token then DONE
-    const sseBody = `data: {"choices":[{"delta":{"content":"Hi"}}]}\n\ndata: [DONE]\n\n`;
-    const stream  = new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(sseBody));
-        controller.close();
-      },
+describe("atomic pre-stream reservation", () => {
+  function makeGroqStream(content = "Hi") {
+    const sseBody =
+      `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`;
+    const stream = new ReadableStream({
+      start(c) { c.enqueue(new TextEncoder().encode(sseBody)); c.close(); },
     });
+    return { ok: true, status: 200, body: stream, json: vi.fn() } as unknown as Response;
+  }
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true, status: 200,
-      body: stream,
-      json: vi.fn(),
-    } as unknown as Response);
+  it("checkAndReserveTokens is called with inputTokens > 0 before streaming", async () => {
+    process.env.GROQ_API_KEY = "gsk_test_key";
+    global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
 
     const res = await POST(makePostRequest() as never);
-    // The response is a stream — just drain it so flush() fires
     if (res.body) {
       const reader = res.body.getReader();
-      while (true) {
-        const { done } = await reader.read();
-        if (done) break;
-      }
+      while (!(await reader.read()).done) { /* drain */ }
     }
 
-    // recordTokenUsage must have been called at least once with outputTokens = 0
-    // (the pre-stream reservation call)
-    const reservationCall = mockRecordUsage.mock.calls.find(
-      (call) => call[2] > 0 && call[3] === 0,   // inputTokens > 0, outputTokens = 0
-    );
-    expect(reservationCall).toBeDefined();
-    // Confirm it was called BEFORE a flush call (if flush fired it records output only)
-    const firstCall = mockRecordUsage.mock.calls[0];
-    expect(firstCall[2]).toBeGreaterThan(0); // inputTokens
-    expect(firstCall[3]).toBe(0);            // outputTokens = 0 (pre-stream)
+    // checkAndReserveTokens must be called with (userId, cap, inputTokens > 0)
+    expect(mockReserve).toHaveBeenCalledOnce();
+    const [uid, cap, tokens] = mockReserve.mock.calls[0];
+    expect(uid).toBe(USER_ID);
+    expect(cap).toBe(100_000);   // free plan cap
+    expect(tokens).toBeGreaterThan(0);
 
-    // Cleanup
+    // DB analytics record should also fire (fire-and-forget)
+    const dbInputCall = mockRecordUsage.mock.calls.find(
+      ([, , inputTok, outputTok]) => inputTok > 0 && outputTok === 0,
+    );
+    expect(dbInputCall).toBeDefined();
+
     delete process.env.GROQ_API_KEY;
     delete (global as Record<string, unknown>).fetch;
   });
 
-  it("recordTokenUsage is NOT called when daily cap is already reached (short-circuits before recording)", async () => {
-    mockDailyUsage.mockResolvedValue(100_000); // at cap
-    await POST(makePostRequest() as never);
-    // Should have returned 429 before ever calling recordTokenUsage
+  it("returns 429 and skips checkAndReserveTokens when preliminary DB cap is reached", async () => {
+    // Preliminary gate (getDailyTokenUsage) triggers before messages are built
+    mockDailyUsage.mockResolvedValue(100_000);
+    const res = await POST(makePostRequest() as never);
+    expect(res.status).toBe(429);
+    // Atomic reservation must NOT be called — we already rejected
+    expect(mockReserve).not.toHaveBeenCalled();
     expect(mockRecordUsage).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when atomic reservation is denied (concurrent cap-race scenario)", async () => {
+    process.env.GROQ_API_KEY = "gsk_test_key";
+    global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
+    // Preliminary gate passes (0 < 100k) but atomic check finds cap exceeded
+    mockDailyUsage.mockResolvedValue(0);
+    mockReserve.mockResolvedValue({ allowed: false, used: 99_500, midnightTs: 0 });
+
+    const res = await POST(makePostRequest() as never);
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.code).toBe("DAILY_CAP_REACHED");
+    expect(body.used).toBe(99_500);
+    // No DB record when denied
+    expect(mockRecordUsage).not.toHaveBeenCalled();
+
+    delete process.env.GROQ_API_KEY;
+    delete (global as Record<string, unknown>).fetch;
+  });
+
+  it("returns 503 when both Redis and DB are unavailable (checkAndReserveTokens returns null)", async () => {
+    process.env.GROQ_API_KEY = "gsk_test_key";
+    global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
+    mockDailyUsage.mockResolvedValue(0);
+    mockReserve.mockResolvedValue(null);   // null = complete outage
+
+    const res = await POST(makePostRequest() as never);
+    expect(res.status).toBe(503);
+
+    delete process.env.GROQ_API_KEY;
+    delete (global as Record<string, unknown>).fetch;
   });
 
   it("recordTokenUsage is NOT called when Groq API key is missing", async () => {

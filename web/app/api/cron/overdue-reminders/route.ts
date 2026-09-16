@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendOverdueReminderEmail, type OverdueReminderItem } from "@/lib/email/nodemailer";
 import { createNotifications, type NotificationInput } from "@/lib/notifications/create";
+import { sendUserPushNotifications } from "@/lib/push/send";
 
 export async function GET(request: NextRequest) {
   // Auth: Vercel injects Authorization: Bearer <CRON_SECRET> automatically.
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
   const results = {
     notificationsCreated: 0,
     emailsSent: 0,
+    pushSent: 0,
     skipped: 0,
     errors: [] as string[],
   };
@@ -158,6 +160,29 @@ export async function GET(request: NextRequest) {
             results.emailsSent++;
           } else {
             results.errors.push(`email ${user.email}: ${emailResult.error}`);
+          }
+        }
+
+        // ── Push notification for overdue reminders ──────────────────────────
+        if ((overdueReminders?.length ?? 0) > 0) {
+          const overdueCount = overdueReminders!.length;
+          // Truncate to 100 chars: Web Push payloads have a 4 KB encrypted limit.
+          // A very long reminder title would silently cause the send to fail.
+          const firstTitle   = (overdueReminders![0].title ?? "").slice(0, 100);
+          const pushPayload  = {
+            title: overdueCount === 1 ? "Overdue reminder" : `${overdueCount} overdue reminders`,
+            body:  overdueCount === 1
+              ? firstTitle
+              : `${firstTitle} and ${overdueCount - 1} more`,
+            url:   "/reminders",
+            tag:   "overdue-reminders",
+          };
+          try {
+            const { sent } = await sendUserPushNotifications(userId, pushPayload);
+            results.pushSent += sent;
+          } catch (pushErr) {
+            const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+            results.errors.push(`push ${user.email}: ${msg}`);
           }
         }
       } catch (err) {

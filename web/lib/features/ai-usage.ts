@@ -6,6 +6,108 @@ export const TOKEN_CAPS = {
   pro:  2_000_000,
 } as const;
 
+// ── Redis-based atomic token cap ──────────────────────────────────────────────
+// Uses Upstash REST API (same env vars as the doc-cache in nesta-ai/route.ts).
+// Falls back to the DB-based getDailyTokenUsage check when Redis is unavailable.
+
+function tokenCapKey(userId: string, date: string) {
+  return `token-cap:${userId}:${date}`;
+}
+
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function utcMidnightTs(): number {
+  const d = new Date();
+  d.setUTCHours(24, 0, 0, 0);
+  return Math.floor(d.getTime() / 1000);
+}
+
+async function redisPipeline(commands: unknown[][]): Promise<unknown[] | null> {
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  try {
+    const res = await fetch(`${url}/pipeline`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(commands),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as Array<{ result: unknown }>;
+    return json.map((r) => r.result);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Atomically reserves `tokens` against the daily cap using Redis INCRBY.
+ * Returns:
+ *  - null  → both Redis and DB are unavailable; caller should return 503
+ *  - { allowed: false, used }  → cap exceeded; reservation undone
+ *  - { allowed: true,  used, midnightTs }  → reservation committed in Redis
+ *
+ * `midnightTs` is the Unix timestamp of the next UTC midnight; pass it to
+ * `recordRedisOutputTokens` in the stream flush to update the Redis counter
+ * for output tokens without recomputing the expiry.
+ */
+export async function checkAndReserveTokens(
+  userId: string,
+  cap: number,
+  tokens: number,
+): Promise<{ allowed: boolean; used: number; midnightTs: number } | null> {
+  const date       = todayUtc();
+  const key        = tokenCapKey(userId, date);
+  const midnightTs = utcMidnightTs();
+
+  // Atomic: INCRBY then EXPIREAT NX (sets TTL only if none exists yet)
+  const results = await redisPipeline([
+    ["INCRBY",   key, tokens],
+    ["EXPIREAT", key, midnightTs, "NX"],
+  ]);
+
+  if (results !== null) {
+    const newTotal = results[0] as number;
+    if (newTotal > cap) {
+      // Undo the reservation — cap exceeded.
+      // If DECRBY fails the counter is inflated for the rest of the day (fail-safe:
+      // user gets less quota, never more), but we must log it for operational visibility.
+      const undone = await redisPipeline([["DECRBY", key, tokens]]);
+      if (undone === null) {
+        console.error("[ai-usage] DECRBY failed after cap exceeded — counter may be inflated for user:", userId);
+      }
+      return { allowed: false, used: newTotal - tokens, midnightTs };
+    }
+    return { allowed: true, used: newTotal, midnightTs };
+  }
+
+  // Redis unavailable — fall back to DB (carries TOCTOU risk but beats a 503)
+  console.warn("[ai-usage] Redis unavailable; falling back to DB cap check");
+  const current = await getDailyTokenUsage(userId);
+  if (current === null) return null;
+  if (current + tokens > cap) return { allowed: false, used: current, midnightTs };
+  return { allowed: true, used: current + tokens, midnightTs };
+}
+
+/**
+ * Increments the Redis daily counter for output tokens (called from stream flush).
+ * Fire-and-forget — errors are logged but not thrown.
+ */
+export async function recordRedisOutputTokens(
+  userId: string,
+  outputTokens: number,
+  midnightTs: number,
+): Promise<void> {
+  const key = tokenCapKey(userId, todayUtc());
+  await redisPipeline([
+    ["INCRBY",   key, outputTokens],
+    ["EXPIREAT", key, midnightTs, "NX"],
+  ]);
+}
+
 export type AiFeature =
   | "chat"
   | "resume_audit"

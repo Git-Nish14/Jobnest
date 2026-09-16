@@ -17,12 +17,15 @@ vi.mock("@/lib/utils/document-parser", () => ({
   extractTextFromBuffer: vi.fn(),
   extractAllDocuments: vi.fn(),
 }));
-// Mock ai-usage so getDailyTokenUsage returns 0 (cap not reached) and
-// recordTokenUsage is a no-op — both require a live DB which isn't present in unit tests.
+// Mock ai-usage so the cap gate is always open and all recording is a no-op.
+// checkAndReserveTokens replaces the old getDailyTokenUsage+recordTokenUsage
+// pre-stream pattern; both need to be mocked here.
 vi.mock("@/lib/features/ai-usage", () => ({
-  TOKEN_CAPS:        { free: 100_000, pro: 2_000_000 },
-  getDailyTokenUsage: vi.fn().mockResolvedValue(0),
-  recordTokenUsage:   vi.fn().mockResolvedValue(undefined),
+  TOKEN_CAPS:              { free: 100_000, pro: 2_000_000 },
+  getDailyTokenUsage:      vi.fn().mockResolvedValue(0),
+  checkAndReserveTokens:   vi.fn().mockResolvedValue({ allowed: true, used: 0, midnightTs: 0 }),
+  recordTokenUsage:        vi.fn().mockResolvedValue(undefined),
+  recordRedisOutputTokens: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Intercept global fetch — captures the Groq API call made by the NESTAi route

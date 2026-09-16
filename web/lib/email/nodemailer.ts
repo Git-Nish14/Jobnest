@@ -135,6 +135,8 @@ function emailHtml({
       p, td { color: #d1d5db !important; }
       h1, h2, .heading { color: #f9fafb !important; }
       .muted { color: #9ca3af !important; }
+      a { color: #ccff00 !important; }
+      .btn-primary { background-color: #ccff00 !important; color: #111210 !important; }
       .callout-red    { background-color: #3b0e0e !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
       .callout-orange { background-color: #3b1c0e !important; border-color: #7c2d12 !important; color: #fdba74 !important; }
       .callout-amber  { background-color: #3b2e0e !important; border-color: #92400e !important; color: #fcd34d !important; }
@@ -142,6 +144,28 @@ function emailHtml({
       .stat-cell { background-color: #2d2f2e !important; border-color: #3d3f3e !important; }
       .stat-label { color: #9ca3af !important; }
     }
+
+    /* Gmail Android dark mode — Gmail injects [data-ogsc] on <html> instead of
+       firing the media query. Mirror every dark-mode rule here so Gmail Android
+       shows the intended Atelier dark palette rather than Gmail's auto-inversion. */
+    [data-ogsc] body, [data-ogsc] .bg-outer { background-color: #111210 !important; }
+    [data-ogsc] .card-body { background-color: #1a1c1b !important; color: #e5e7eb !important; }
+    [data-ogsc] .card-footer { background-color: #111210 !important; border-top-color: #2d2f2e !important; }
+    [data-ogsc] .footer-link { color: #9ca3af !important; }
+    [data-ogsc] .footer-copy { color: #6b7280 !important; }
+    [data-ogsc] .otp-inner { background-color: #2d2f2e !important; border-color: #ccff00 !important; }
+    [data-ogsc] .otp-code { color: #ccff00 !important; }
+    [data-ogsc] p, [data-ogsc] td { color: #d1d5db !important; }
+    [data-ogsc] h1, [data-ogsc] h2, [data-ogsc] .heading { color: #f9fafb !important; }
+    [data-ogsc] .muted { color: #9ca3af !important; }
+    [data-ogsc] a { color: #ccff00 !important; }
+    [data-ogsc] .btn-primary { background-color: #ccff00 !important; color: #111210 !important; }
+    [data-ogsc] .callout-red    { background-color: #3b0e0e !important; border-color: #7f1d1d !important; color: #fca5a5 !important; }
+    [data-ogsc] .callout-orange { background-color: #3b1c0e !important; border-color: #7c2d12 !important; color: #fdba74 !important; }
+    [data-ogsc] .callout-amber  { background-color: #3b2e0e !important; border-color: #92400e !important; color: #fcd34d !important; }
+    [data-ogsc] .callout-green  { background-color: #0e3b1c !important; border-color: #14532d !important; color: #86efac !important; }
+    [data-ogsc] .stat-cell { background-color: #2d2f2e !important; border-color: #3d3f3e !important; }
+    [data-ogsc] .stat-label { color: #9ca3af !important; }
   </style>
 </head>
 <body>
