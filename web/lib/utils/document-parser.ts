@@ -73,7 +73,7 @@ async function setCachedText(buf: Buffer, text: string): Promise<void> {
 }
 
 /** Max characters to include per document (keeps token usage reasonable) */
-const MAX_CHARS = 5000;
+const MAX_CHARS = 100_000;
 
 interface ParseResult {
   text: string | null;

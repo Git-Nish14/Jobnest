@@ -128,19 +128,26 @@ describe("POST /api/nesta-ai/parse-file — text extraction", () => {
 // ── Image handling ────────────────────────────────────────────────────────────
 
 describe("POST /api/nesta-ai/parse-file — image files", () => {
-  it("skips text extraction for image/png and returns context note as text", async () => {
+  it("skips text extraction for image/png and returns base64 fileData with null text", async () => {
     const img = new File(["png-bytes"], "screenshot.png", { type: "image/png" });
     const res = await POST(makeRequest(img, VALID_SESSION_ID) as never);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.text).toMatch(/\[Image attached: screenshot\.png\]/);
+    expect(body.text).toBeNull();
+    expect(body.fileData).toBeDefined();
+    expect((body.fileData as string).startsWith("data:image/")).toBe(true);
+    expect(body.fileMediaType).toBe("image/png");
     expect(mockExtract).not.toHaveBeenCalled();
   });
 
-  it("skips text extraction for image/jpeg", async () => {
+  it("skips text extraction for image/jpeg and returns base64 fileData", async () => {
     const img = new File(["jpg-bytes"], "photo.jpg", { type: "image/jpeg" });
     const res = await POST(makeRequest(img, VALID_SESSION_ID) as never);
     expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.text).toBeNull();
+    expect((body.fileData as string).startsWith("data:image/")).toBe(true);
+    expect(body.fileMediaType).toBe("image/jpeg");
     expect(mockExtract).not.toHaveBeenCalled();
   });
 });

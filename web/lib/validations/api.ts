@@ -34,7 +34,15 @@ export const nestaAiSchema = z.object({
     .trim(),
   fileContent: z
     .string()
-    .max(15000, "Attached file content is too large")
+    .max(100000, "Attached file content is too large")
+    .optional(),
+  fileData: z
+    .string()
+    .max(7_000_000, "Image file is too large") // 5 MB × 1.38 base64 expansion
+    .refine((v) => v.startsWith("data:image/"), { message: "fileData must be a data: image URI" })
+    .optional(),
+  fileMediaType: z
+    .enum(["image/jpeg", "image/png", "image/gif", "image/webp"])
     .optional(),
   fileName: z.string().max(255).optional(),
   history: z

@@ -32,10 +32,15 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const isImage = IMAGE_MIME_RE.test(file.type);
 
-    // Text extraction — images get a context note, everything else is parsed
-    let text: string | null;
+    // Images are returned as base64 data URLs for vision input to GPT-5.6 Luna.
+    // Documents are text-extracted as before.
+    let text: string | null = null;
+    let fileData: string | undefined;
+    let fileMediaType: string | undefined;
+
     if (isImage) {
-      text = `[Image attached: ${file.name}]`;
+      fileData = `data:${file.type};base64,${buffer.toString("base64")}`;
+      fileMediaType = file.type;
     } else {
       const { text: extracted, error } = await extractTextFromBuffer(buffer, file.name);
       if (error && !extracted) {
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ text, fileName: file.name, storagePath });
+    return NextResponse.json({ text, fileName: file.name, storagePath, fileData, fileMediaType });
   } catch (error) {
     return errorResponse(error);
   }

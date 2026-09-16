@@ -1,6 +1,6 @@
 # Jobnest
 
-A full-stack job search management platform. Track applications, manage documents, and prepare for interviews — all in one place.
+A full-stack job search management platform. Track applications, manage documents, and prepare for interviews. All in one place.
 
 **Live:** [jobnest.nishpatel.dev](https://jobnest.nishpatel.dev) · **By [Nish Patel](https://nishpatel.dev)**
 
@@ -93,17 +93,18 @@ A full-stack job search management platform. Track applications, manage document
 
 ### NESTAi (AI Assistant)
 - ChatGPT-style streaming interface with full access to application data
+- Powered by **GPT-5.6 Luna** (OpenAI) — 1M-token context window, high reasoning, cost-optimised
+- Vision input: attach images (PNG, JPEG, WebP, GIF) and Luna reads them directly — no OCR needed
+- File attachments: PDF, DOCX, TXT, Markdown, and images up to 5 MB; 100 k-char document extraction
 - Hybrid semantic RAG for Pro users: BM25 + cosine similarity fused via Reciprocal Rank Fusion
 - Nightly reindex cron at 02:00 UTC for Pro users
 - Conversation memory: extracts up to 20 preference bullets per session, persisted and injected into future prompts
 - Chat-to-PDF export
-- File attachments: PDF, DOCX, TXT, Markdown, and images up to 5 MB
 - Interview Prep: 5 tailored STAR questions from a selected job description
-- Email Draft Assistant: 7 email categories with Groq drafting
+- Email Draft Assistant: 7 email categories with AI drafting
 - NESTpro Audit: 30-checkpoint resume rubric with AI qualitative scoring
-- Model fallback: `llama-3.3-70b-versatile` with automatic fallback to `llama-3.1-8b-instant`
 - Rate limits: 5 req/min (Free), 30 req/min (Pro)
-- Atomic daily token cap via Redis INCRBY reservation
+- Daily token caps: 2M (Free), 10M (Pro) enforced via atomic Redis INCRBY reservation
 
 ### ATS Scanner
 - Upload resume and paste a job description for a 0-100 match score
@@ -138,6 +139,19 @@ A full-stack job search management platform. Track applications, manage document
 - Student discount via server-side `.edu` allowlist (16 academic TLDs)
 - Plan enforcement reads `subscriptions` via service role and fails closed on DB error
 
+### Design System and PWA
+- Responsive across all screen types: phones, tablets, foldables (Galaxy Fold, Pixel Fold, Surface Duo), landscape, and desktop PWA
+- Foldable device support via `@media (horizontal-viewport-segments: 2)` and `@media (vertical-viewport-segments: 2)`; bottom tab bar is hidden when dual-screen navigation is sufficient
+- PWA `themeColor` is a light/dark array; `ThemeToggle` syncs `<meta name="theme-color">` at runtime so the iOS status bar matches the active UI theme
+- `color-scheme: light` / `dark` on `:root` and `.dark`; browser-native scrollbars, inputs, and selects render in the correct palette
+- `manifest.json` orientation is `any`; `display_override` adds `window-controls-overlay` for desktop PWA title bar
+- Navbar mobile slide panel: `slide-in-right` animation (0.28 s), frosted-glass backdrop with `blur(4px)`, panel width expanded to `max-w-sm`
+- Desktop nav dropdown flyout: `flyout-in` animation (Y and scale only; `translateX` omitted to avoid Tailwind v4 additive-transform conflict)
+- Auth card padding is responsive (1.5 rem on narrow viewports, 2 rem at 400 px and above)
+- All auth UI text meets WCAG minimum sizes; footer links have a 44 px touch target
+- Landing header has `backdrop-filter: blur(20px)` for a professional glass effect on scroll
+- `sm` and `lg` button sizes inherit `rounded-full` for consistent pill shape across all sizes
+
 ---
 
 ## Tech Stack
@@ -159,7 +173,7 @@ A full-stack job search management platform. Track applications, manage document
 | UI | Radix UI primitives |
 | Forms | React Hook Form + Zod |
 | PDF | `@react-pdf/renderer` (generation) + `pdfjs-dist` (annotation) |
-| Testing | Vitest (1808 tests, 111 files) + Playwright E2E (19 spec files) |
+| Testing | Vitest (1870 tests, 112 files) + Playwright E2E (19 spec files) |
 | Error Monitoring | Sentry |
 
 ---
@@ -345,7 +359,7 @@ Vitest unit and flow tests run without any external services. Playwright E2E tes
 | Flow | `tests/flows/` | Auth flows, NESTAi chat, Stripe billing, portfolio |
 | E2E | `tests/e2e/` | Public pages, application CRUD, search, mobile UX, ATS, documents |
 
-Current: **1808 tests across 111 files**, all passing.
+Current: **1870 tests across 112 files**, all passing.
 
 Coverage thresholds: 47% statements, 40% branches, 42% functions, 50% lines.
 
