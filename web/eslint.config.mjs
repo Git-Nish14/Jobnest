@@ -6,6 +6,9 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    settings: {
+      react: { version: "19" },
+    },
     rules: {
       // Allow _-prefixed variables used for destructure-to-omit patterns,
       // e.g. const { field: _field, ...rest } = obj
