@@ -19,6 +19,13 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 vi.mock("@/lib/security/csrf",       () => ({ verifyOrigin: vi.fn() }));
+vi.mock("nodemailer", () => ({
+  default: {
+    createTransport: vi.fn(() => ({
+      sendMail: vi.fn().mockResolvedValue({ messageId: "test-id" }),
+    })),
+  },
+}));
 
 import { POST } from "@/app/api/feedback/route";
 import { createClient }  from "@/lib/supabase/server";
