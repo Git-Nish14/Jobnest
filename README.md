@@ -173,7 +173,7 @@ A full-stack job search management platform. Track applications, manage document
 | UI | Radix UI primitives |
 | Forms | React Hook Form + Zod |
 | PDF | `@react-pdf/renderer` (generation) + `pdfjs-dist` (annotation) |
-| Testing | Vitest (1870 tests, 112 files) + Playwright E2E (19 spec files) |
+| Testing | Vitest (1913 tests, 113 files) + Playwright E2E (19 spec files) |
 | Error Monitoring | Sentry |
 
 ---
@@ -359,7 +359,7 @@ Vitest unit and flow tests run without any external services. Playwright E2E tes
 | Flow | `tests/flows/` | Auth flows, NESTAi chat, Stripe billing, portfolio |
 | E2E | `tests/e2e/` | Public pages, application CRUD, search, mobile UX, ATS, documents |
 
-Current: **1870 tests across 112 files**, all passing.
+Current: **1913 tests across 113 files**, all passing.
 
 Coverage thresholds: 47% statements, 40% branches, 42% functions, 50% lines.
 

@@ -202,7 +202,7 @@ export default async function RootLayout({
           Skip to content
         </a>
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" />
         <CookieBanner />
         <SpeedInsights />
         {/* Service worker registration — enables app-shell caching for instant PWA launch */}

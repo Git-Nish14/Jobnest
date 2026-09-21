@@ -260,11 +260,12 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           user_id:        userId,
           label:          "Resume",
           storage_path:   resumeUpload.path,
-          mime_type:      "application/pdf",
+          mime_type:      resumeUpload.file.type,
           size_bytes:     resumeUpload.file.size,
           is_current:     true,
           is_master:      false,
-          original_name:  resumeUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() || "resume.pdf",
+          original_name:  resumeUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() ||
+                          (resumeUpload.file.type.includes("pdf") ? "resume.pdf" : "resume.docx"),
         });
       }
 
@@ -280,11 +281,12 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           user_id:        userId,
           label:          "Cover Letter",
           storage_path:   coverLetterUpload.path,
-          mime_type:      "application/pdf",
+          mime_type:      coverLetterUpload.file.type,
           size_bytes:     coverLetterUpload.file.size,
           is_current:     true,
           is_master:      false,
-          original_name:  coverLetterUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() || "cover_letter.pdf",
+          original_name:  coverLetterUpload.file.name.replace(/[\x00-\x1f\x7f]/g, "").trim() ||
+                          (coverLetterUpload.file.type.includes("pdf") ? "cover_letter.pdf" : "cover_letter.docx"),
         });
       }
 
@@ -309,19 +311,27 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
       toast.error("File size must be less than 5MB");
       return;
     }
-    if (file.type !== "application/pdf") {
-      toast.error("Only PDF files are allowed");
+
+    const ALLOWED_TYPES: Record<string, string> = {
+      "application/pdf": "PDF",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    };
+    if (!ALLOWED_TYPES[file.type]) {
+      toast.error("Only PDF and DOCX files are allowed");
       return;
     }
 
-    // Client-side magic-byte check: PDF files start with %PDF (0x25 0x50 0x44 0x46).
-    // This is not a server-side guarantee but blocks accidental and casual spoofing
-    // before the bytes even leave the browser. The server-side upload API route
-    // enforces this with full magic-byte validation — this is defence in depth.
+    // Client-side magic-byte check (defence-in-depth). Direct uploads go straight
+    // to Supabase Storage from the browser; URL-import uploads are re-validated
+    // server-side via validateMagicBytes. Both paths rely on this client check
+    // as the primary gate for direct uploads.
+    // PDF: %PDF = 0x25 0x50 0x44 0x46
+    // DOCX: PK ZIP = 0x50 0x4B 0x03 0x04
     const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    const isPDF = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
-    if (!isPDF) {
-      toast.error("File does not appear to be a valid PDF — upload rejected");
+    const isPDF  = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
+    const isDOCX = header[0] === 0x50 && header[1] === 0x4B && header[2] === 0x03 && header[3] === 0x04;
+    if (!isPDF && !isDOCX) {
+      toast.error(`File does not appear to be a valid ${ALLOWED_TYPES[file.type]} — upload rejected`);
       return;
     }
 
@@ -738,7 +748,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                   </div>
                   <input
                     type="file"
-                    accept=".pdf"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     className="hidden"
                     disabled={resumeUploading}
                     onChange={(e) => handleFileChange(e, "resume")}
@@ -791,7 +801,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                   </div>
                   <input
                     type="file"
-                    accept=".pdf"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     className="hidden"
                     disabled={coverLetterUploading}
                     onChange={(e) => handleFileChange(e, "coverLetter")}
