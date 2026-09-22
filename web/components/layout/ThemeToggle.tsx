@@ -15,6 +15,18 @@ function readStoredTheme(): Theme {
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
+
+  // Keep <meta name="theme-color"> in sync with the class-based toggle.
+  // Next.js renders two theme-color metas with media queries (light/dark),
+  // but the browser picks between them based on prefers-color-scheme — it
+  // doesn't react to JS-driven class changes. We update ALL theme-color
+  // metas to the same resolved colour so the iOS status bar / PWA chrome
+  // reflects the actual UI state regardless of system preference.
+  const color = theme === "dark" ? "#000000" : "#faf9f7";
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    m.setAttribute("content", color);
+  });
+
   try {
     localStorage.setItem("jobnest_theme", theme);
   } catch {

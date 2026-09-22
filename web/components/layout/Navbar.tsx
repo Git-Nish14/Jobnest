@@ -275,7 +275,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
                           {isOpen && (
                             <div
-                              className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50"
+                              className="nav-flyout-animate absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50"
                               onMouseEnter={() => openNav(group.key)}
                               onMouseLeave={scheduleClose}
                             >
@@ -422,10 +422,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         {mobileMenuOpen && (
           <>
             <div
-              className="fixed inset-0 z-50 bg-black/60 lg:hidden"
+              className="nav-overlay-animate fixed inset-0 z-50 lg:hidden"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xs lg:hidden db-root atelier-slide-panel">
+            <div className="nav-panel-animate fixed inset-y-0 right-0 z-50 w-full max-w-sm lg:hidden db-root atelier-slide-panel">
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-4 h-14 border-b atelier-dropdown-header">
                   <span className="text-xl atelier-nav-logo">Jobnest</span>

@@ -125,7 +125,7 @@ describe("atomic pre-stream reservation", () => {
   }
 
   it("checkAndReserveTokens is called with inputTokens > 0 before streaming", async () => {
-    process.env.GROQ_API_KEY = "gsk_test_key";
+    process.env.OPENAI_API_KEY = "gsk_test_key";
     global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
 
     const res = await POST(makePostRequest() as never);
@@ -147,7 +147,7 @@ describe("atomic pre-stream reservation", () => {
     );
     expect(dbInputCall).toBeDefined();
 
-    delete process.env.GROQ_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     delete (global as Record<string, unknown>).fetch;
   });
 
@@ -162,7 +162,7 @@ describe("atomic pre-stream reservation", () => {
   });
 
   it("returns 429 when atomic reservation is denied (concurrent cap-race scenario)", async () => {
-    process.env.GROQ_API_KEY = "gsk_test_key";
+    process.env.OPENAI_API_KEY = "gsk_test_key";
     global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
     // Preliminary gate passes (0 < 100k) but atomic check finds cap exceeded
     mockDailyUsage.mockResolvedValue(0);
@@ -176,12 +176,12 @@ describe("atomic pre-stream reservation", () => {
     // No DB record when denied
     expect(mockRecordUsage).not.toHaveBeenCalled();
 
-    delete process.env.GROQ_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     delete (global as Record<string, unknown>).fetch;
   });
 
   it("returns 503 when both Redis and DB are unavailable (checkAndReserveTokens returns null)", async () => {
-    process.env.GROQ_API_KEY = "gsk_test_key";
+    process.env.OPENAI_API_KEY = "gsk_test_key";
     global.fetch = vi.fn().mockResolvedValue(makeGroqStream());
     mockDailyUsage.mockResolvedValue(0);
     mockReserve.mockResolvedValue(null);   // null = complete outage
@@ -189,15 +189,15 @@ describe("atomic pre-stream reservation", () => {
     const res = await POST(makePostRequest() as never);
     expect(res.status).toBe(503);
 
-    delete process.env.GROQ_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     delete (global as Record<string, unknown>).fetch;
   });
 
   it("recordTokenUsage is NOT called when Groq API key is missing", async () => {
-    const savedKey = process.env.GROQ_API_KEY;
-    delete process.env.GROQ_API_KEY;
+    const savedKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     await POST(makePostRequest() as never);
     expect(mockRecordUsage).not.toHaveBeenCalled();
-    process.env.GROQ_API_KEY = savedKey;
+    process.env.OPENAI_API_KEY = savedKey;
   });
 });

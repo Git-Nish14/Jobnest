@@ -78,9 +78,12 @@
 .atelier-card {
   background-color: var(--atelier-surface);
   border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 4px 32px #1a1c1b08;
+  padding: 1.5rem;
+  box-shadow: 0 4px 32px #1a1c1b08, 0 1px 4px #1a1c1b06;
   border: 1px solid #dbc1b91a;
+}
+@media (min-width: 400px) {
+  .atelier-card { padding: 2rem; }
 }
 
 /* ── Error banner ───────────────────────────────────────────────────────── */
@@ -98,7 +101,7 @@
 .atelier-label {
   display: block;
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -188,11 +191,11 @@
   padding-left: 1rem;
   padding-right: 1rem;
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--atelier-on-surface-var);
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .atelier-divider-line {
@@ -272,7 +275,7 @@
   gap: 0.375rem;
   min-height: 2.75rem;
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -362,17 +365,21 @@
 /* ── Footer links ───────────────────────────────────────────────────────── */
 .atelier-footer-link {
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   color: var(--atelier-on-surface-var);
-  opacity: 0.4;
+  opacity: 0.45;
   text-decoration: none;
   transition: opacity 0.2s;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0;
 }
 
 .atelier-footer-link:hover {
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 /* ── "Forgot?" link ─────────────────────────────────────────────────────── */
@@ -382,7 +389,7 @@
   min-height: 2.75rem;
   padding: 0.5rem 0.25rem;
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -433,9 +440,12 @@
 .atelier-card-low {
   background-color: var(--atelier-surface-low);
   border-radius: 1rem;
-  padding: 2rem 2.5rem;
-  box-shadow: 0 4px 32px #1a1c1b05;
+  padding: 1.5rem;
+  box-shadow: 0 4px 32px #1a1c1b05, 0 1px 4px #1a1c1b04;
   border: 1px solid #dbc1b91a;
+}
+@media (min-width: 400px) {
+  .atelier-card-low { padding: 2rem 2.5rem; }
 }
 
 /* ── OAuth button — elevated (white bg, for use on surface-container-low card) */
@@ -473,11 +483,11 @@
   padding-left: 1rem;
   padding-right: 1rem;
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--atelier-on-surface-var);
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 /* ── Password strength meter ────────────────────────────────────────────── */

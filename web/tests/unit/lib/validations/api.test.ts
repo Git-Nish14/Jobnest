@@ -49,6 +49,48 @@ describe("nestaAiSchema", () => {
     expect(result.fileContent).toBe("file text here");
     expect(result.fileName).toBe("resume.pdf");
   });
+
+  it("accepts a valid fileData data URI", () => {
+    const result = nestaAiSchema.parse({
+      question: "What's in this image?",
+      fileData: "data:image/png;base64,abc",
+      fileMediaType: "image/png",
+    });
+    expect(result.fileData).toBe("data:image/png;base64,abc");
+  });
+
+  it("rejects fileData that is not a data URI", () => {
+    expect(() =>
+      nestaAiSchema.parse({ question: "x", fileData: "https://evil.com/image.jpg" })
+    ).toThrow();
+  });
+
+  it("rejects fileData over 7_000_000 chars", () => {
+    expect(() =>
+      nestaAiSchema.parse({ question: "x", fileData: "data:image/png;base64," + "a".repeat(7_000_000) })
+    ).toThrow();
+  });
+
+  it("accepts all valid fileMediaType values", () => {
+    for (const mime of ["image/jpeg", "image/png", "image/gif", "image/webp"] as const) {
+      const result = nestaAiSchema.parse({
+        question: "x",
+        fileData: "data:image/png;base64,abc",
+        fileMediaType: mime,
+      });
+      expect(result.fileMediaType).toBe(mime);
+    }
+  });
+
+  it("rejects invalid fileMediaType like application/pdf", () => {
+    expect(() =>
+      nestaAiSchema.parse({
+        question: "x",
+        fileData: "data:image/png;base64,abc",
+        fileMediaType: "application/pdf",
+      })
+    ).toThrow();
+  });
 });
 
 describe("contactApiSchema", () => {

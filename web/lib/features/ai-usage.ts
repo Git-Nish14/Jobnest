@@ -2,8 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // Daily token caps per plan
 export const TOKEN_CAPS = {
-  free: 100_000,
-  pro:  2_000_000,
+  free: 2_000_000,
+  pro:  10_000_000,
 } as const;
 
 // ── Redis-based atomic token cap ──────────────────────────────────────────────

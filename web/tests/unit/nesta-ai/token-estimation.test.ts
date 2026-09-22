@@ -10,7 +10,7 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-const INPUT_TOKEN_BUDGET = 124_500;
+const INPUT_TOKEN_BUDGET = 500_000;
 
 describe("estimateTokens", () => {
   it("returns 1 for 1–4 chars", () => {
@@ -38,12 +38,12 @@ describe("estimateTokens", () => {
 });
 
 describe("INPUT_TOKEN_BUDGET", () => {
-  it("is less than 128K (llama-3.1-8b-instant context window)", () => {
-    expect(INPUT_TOKEN_BUDGET).toBeLessThan(128_000);
+  it("is less than 1_050_000 (gpt-5.6-luna context window)", () => {
+    expect(INPUT_TOKEN_BUDGET).toBeLessThan(1_050_000);
   });
 
   it("leaves at least 3000 tokens as reserve", () => {
-    expect(128_000 - INPUT_TOKEN_BUDGET).toBeGreaterThanOrEqual(3_000);
+    expect(1_050_000 - INPUT_TOKEN_BUDGET).toBeGreaterThanOrEqual(3_000);
   });
 });
 
@@ -68,15 +68,49 @@ describe("trimming thresholds", () => {
     expect(tokens).toBe(6_250);
   });
 
-  it("10 large PDFs would consume ~62 500 tokens — exceeds half the budget", () => {
+  it("10 large PDFs would consume ~62 500 tokens — fits within the budget", () => {
     const tenPdfs = estimateTokens("x".repeat(25_000)) * 10;
     expect(tenPdfs).toBe(62_500);
-    expect(tenPdfs).toBeGreaterThan(INPUT_TOKEN_BUDGET / 2);
+    expect(tenPdfs).toBeLessThan(INPUT_TOKEN_BUDGET);
   });
 
   it("truncating docs to 1000 chars each reduces 10 PDFs to ~2500 tokens", () => {
     const truncated = estimateTokens("x".repeat(1_000)) * 10;
     expect(truncated).toBe(2_500);
+  });
+});
+
+// Mirror the estimateMessageTokens function from the route (vision content = 2000 tokens floor)
+function estimateMessageTokens(content: string | Array<{ type: string; text?: string }>): number {
+  if (typeof content === "string") return estimateTokens(content);
+  let tokens = 0;
+  for (const part of content) {
+    if (part.type === "image_url" || part.type === "image") {
+      tokens += 2000;
+    } else if (part.type === "text" && part.text) {
+      tokens += estimateTokens(part.text);
+    }
+  }
+  return tokens;
+}
+
+describe("estimateMessageTokens — vision", () => {
+  it("image content returns 2000 tokens floor per image", () => {
+    const tokens = estimateMessageTokens([{ type: "image_url" }]);
+    expect(tokens).toBe(2000);
+  });
+
+  it("text + image returns sum of text tokens + 2000", () => {
+    const tokens = estimateMessageTokens([
+      { type: "text", text: "a".repeat(400) }, // 100 tokens
+      { type: "image_url" },                    // 2000 tokens
+    ]);
+    expect(tokens).toBe(2100);
+  });
+
+  it("string content uses normal char/4 estimation", () => {
+    const tokens = estimateMessageTokens("a".repeat(400));
+    expect(tokens).toBe(100);
   });
 });
 

@@ -28,7 +28,7 @@ vi.mock("@/lib/features/ai-usage", () => ({
   recordRedisOutputTokens: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Intercept global fetch — captures the Groq API call made by the NESTAi route
+// Intercept global fetch — captures the OpenAI API call made by the NESTAi route
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -87,6 +87,7 @@ function makeStreamResponse(tokens = "Hello! I see your data.") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.OPENAI_API_KEY = "sk-test-key";
   mockCheckRL.mockReturnValue({ allowed: true, remaining: 4, resetTime: Date.now() + 60_000 });
   mockCreateClient.mockResolvedValue(makeServerClient() as never);
   mockExtract.mockResolvedValue({ text: "Extracted resume content", error: null });
@@ -186,18 +187,18 @@ describe("NESTAi — chat message", () => {
     expect(res.headers.get("X-RateLimit-Remaining")).toBeDefined();
   });
 
-  it("returns 500 with generic message (not internal config) when GROQ_API_KEY missing", async () => {
-    const original = process.env.GROQ_API_KEY;
-    process.env.GROQ_API_KEY = "";
+  it("returns 500 with generic message (not internal config) when OPENAI_API_KEY missing", async () => {
+    const original = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "";
     const res = await chat(makeRequest("/api/nesta-ai", { question: "test", history: [] }) as never);
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).toMatch(/temporarily unavailable/i);
-    expect(body.error).not.toMatch(/GROQ_API_KEY/i);
-    process.env.GROQ_API_KEY = original;
+    expect(body.error).not.toMatch(/OPENAI_API_KEY/i);
+    process.env.OPENAI_API_KEY = original;
   });
 
-  it("returns 429 from Groq as user-friendly message when both models are exhausted", async () => {
+  it("returns 429 from OpenAI as user-friendly message when both models are exhausted", async () => {
     // Both primary and fallback return 429 → route surfaces the 429
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }));
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hi", history: [] }) as never);
@@ -210,24 +211,24 @@ describe("NESTAi — chat message", () => {
 // ── Model fallback ─────────────────────────────────────────────────────────────
 
 describe("NESTAi — model fallback", () => {
-  it("falls back to llama-3.1-8b-instant when primary returns 429", async () => {
+  it("retries with gpt-5.6-luna when primary returns 429", async () => {
     mockFetch
       .mockResolvedValueOnce(new Response("{}", { status: 429 }))   // primary fails
-      .mockResolvedValueOnce(makeStreamResponse("Fallback OK"));     // fallback succeeds
+      .mockResolvedValueOnce(makeStreamResponse("Fallback OK"));     // retry succeeds
 
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
     expect(res.status).toBe(200);
 
-    // Second Groq call must have used the fallback model
-    const groqCalls = mockFetch.mock.calls.filter(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    // Second OpenAI call must have used the same model (gpt-5.6-luna)
+    const openaiCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCalls).toHaveLength(2);
-    const fallbackBody = JSON.parse((groqCalls[1]![1] as RequestInit).body as string);
-    expect(fallbackBody.model).toBe("llama-3.1-8b-instant");
+    expect(openaiCalls).toHaveLength(2);
+    const fallbackBody = JSON.parse((openaiCalls[1]![1] as RequestInit).body as string);
+    expect(fallbackBody.model).toBe("gpt-5.6-luna");
   });
 
-  it("falls back to llama-3.1-8b-instant when primary returns 500", async () => {
+  it("retries with gpt-5.6-luna when primary returns 503", async () => {
     mockFetch
       .mockResolvedValueOnce(new Response("{}", { status: 503 }))
       .mockResolvedValueOnce(makeStreamResponse("Recovered"));
@@ -235,10 +236,10 @@ describe("NESTAi — model fallback", () => {
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
     expect(res.status).toBe(200);
 
-    const groqCalls = mockFetch.mock.calls.filter(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    const openaiCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCalls).toHaveLength(2);
+    expect(openaiCalls).toHaveLength(2);
   });
 
   it("sets X-NESTAi-Degraded header to '1' when fallback model is used", async () => {
@@ -248,7 +249,7 @@ describe("NESTAi — model fallback", () => {
 
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
     expect(res.headers.get("X-NESTAi-Degraded")).toBe("1");
-    expect(res.headers.get("X-NESTAi-Model")).toBe("llama-3.1-8b-instant");
+    expect(res.headers.get("X-NESTAi-Model")).toBe("gpt-5.6-luna");
   });
 
   it("sets X-NESTAi-Degraded to '0' and primary model name when primary succeeds", async () => {
@@ -256,53 +257,53 @@ describe("NESTAi — model fallback", () => {
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
     expect(res.status).toBe(200);
     expect(res.headers.get("X-NESTAi-Degraded")).toBe("0");
-    expect(res.headers.get("X-NESTAi-Model")).toBe("llama-3.3-70b-versatile");
+    expect(res.headers.get("X-NESTAi-Model")).toBe("gpt-5.6-luna");
   });
 
   it("does not fall back when primary fails with a 400 (client error, not capacity)", async () => {
     // 400 is a client error — route should NOT retry with fallback model
     mockFetch.mockResolvedValueOnce(new Response("{}", { status: 400 }));
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
-    // Only one Groq call should have been made
-    const groqCalls = mockFetch.mock.calls.filter(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    // Only one OpenAI call should have been made
+    const openaiCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCalls).toHaveLength(1);
+    expect(openaiCalls).toHaveLength(1);
     expect(res.status).toBe(500); // surfaces as server error to client
   });
 });
 
-// ── context trimming / Groq call verification ─────────────────────────────────
+// ── context trimming / OpenAI call verification ─────────────────────────────────
 
 describe("NESTAi — context trimming", () => {
-  it("does not call Groq when question exceeds schema limit (2000 chars)", async () => {
+  it("does not call OpenAI when question exceeds schema limit (2000 chars)", async () => {
     const res = await chat(makeRequest("/api/nesta-ai", { question: "x".repeat(2001), history: [] }) as never);
     expect(res.status).toBe(422);
-    // Groq should not have been called — rate-limit check happens before it anyway
-    const groqCalls = mockFetch.mock.calls.filter(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    // OpenAI should not have been called — rate-limit check happens before it anyway
+    const openaiCalls = mockFetch.mock.calls.filter(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCalls).toHaveLength(0);
+    expect(openaiCalls).toHaveLength(0);
   });
 
-  it("sends request to Groq with primary model llama-3.3-70b-versatile and stream: true", async () => {
+  it("sends request to OpenAI with primary model gpt-5.6-luna and stream: true", async () => {
     await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
-    const groqCall = mockFetch.mock.calls.find(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    const openaiCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCall).toBeDefined();
-    const requestBody = JSON.parse((groqCall![1] as RequestInit).body as string);
-    expect(requestBody.model).toBe("llama-3.3-70b-versatile");
+    expect(openaiCall).toBeDefined();
+    const requestBody = JSON.parse((openaiCall![1] as RequestInit).body as string);
+    expect(requestBody.model).toBe("gpt-5.6-luna");
     expect(requestBody.stream).toBe(true);
   });
 
   it("injects about_me into system prompt", async () => {
     await chat(makeRequest("/api/nesta-ai", { question: "Who am I?", history: [] }) as never);
-    const groqCall = mockFetch.mock.calls.find(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    const openaiCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCall).toBeDefined();
-    const requestBody = JSON.parse((groqCall![1] as RequestInit).body as string);
+    expect(openaiCall).toBeDefined();
+    const requestBody = JSON.parse((openaiCall![1] as RequestInit).body as string);
     const systemMsg = (requestBody.messages as Array<{ role: string; content: string }>)
       .find((m) => m.role === "system");
     expect(systemMsg?.content).toContain("Software engineer seeking senior roles.");
@@ -315,11 +316,11 @@ describe("NESTAi — context trimming", () => {
       fileContent: "John Doe — Senior Engineer",
       fileName: "cv.pdf",
     }) as never);
-    const groqCall = mockFetch.mock.calls.find(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("groq.com")
+    const openaiCall = mockFetch.mock.calls.find(
+      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("openai.com")
     );
-    expect(groqCall).toBeDefined();
-    const requestBody = JSON.parse((groqCall![1] as RequestInit).body as string);
+    expect(openaiCall).toBeDefined();
+    const requestBody = JSON.parse((openaiCall![1] as RequestInit).body as string);
     const userMsg = (requestBody.messages as Array<{ role: string; content: string }>)
       .find((m) => m.role === "user");
     expect(userMsg?.content).toContain("cv.pdf");
@@ -330,10 +331,10 @@ describe("NESTAi — context trimming", () => {
 // ── Streaming robustness — body null guard + TransformStream ───────────────────
 
 describe("NESTAi — streaming body-null guard (BUG-2 regression)", () => {
-  it("returns 502 with a safe message when Groq returns a null body on a 200", async () => {
+  it("returns 502 with a safe message when OpenAI returns a null body on a 200", async () => {
     // This covers the body-null guard added after the TransformStream refactor.
     // A proxy or misconfigured gateway can return a 200 with no body — without
-    // the guard the non-null assertion `groqResponse.body!.pipeTo(...)` would throw.
+    // the guard the non-null assertion `response.body!.pipeTo(...)` would throw.
     const nullBodyResponse = new Response(null, { status: 200 });
     mockFetch.mockResolvedValue(nullBodyResponse);
     const res = await chat(makeRequest("/api/nesta-ai", { question: "Hello", history: [] }) as never);
