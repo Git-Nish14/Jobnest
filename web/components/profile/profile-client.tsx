@@ -675,6 +675,9 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage your profile, security and preferences</p>
+        <a href="#chatgpt" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">
+          Set up ChatGPT plugin
+        </a>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
