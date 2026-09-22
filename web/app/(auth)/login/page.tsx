@@ -10,9 +10,15 @@ import { Loader2, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/lib/validations/application";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import { createClient } from "@/lib/supabase/client";
+import { safeAuthRedirect } from "@/lib/auth/redirect";
 
 type LoginStep = "credentials" | "otp";
 type OAuthProvider = "google" | "github" | "linkedin_oidc";
+
+function loginDestination() {
+  const query = new URLSearchParams(window.location.search);
+  return safeAuthRedirect(query.get("redirect") ?? query.get("next"));
+}
 
 const OAUTH_LABELS: Record<OAuthProvider, string> = {
   google: "Google",
@@ -129,7 +135,7 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(loginDestination())}` },
     });
     if (oauthError) { setError(oauthError.message); setOauthLoading(null); }
   };
@@ -203,7 +209,7 @@ export default function LoginPage() {
         return;
       }
       sessionStorage.setItem("jobnest_session", "active");
-      router.push("/dashboard");
+      router.push(loginDestination());
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed. Please try again.");
