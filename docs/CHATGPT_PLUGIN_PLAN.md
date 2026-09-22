@@ -128,6 +128,10 @@ The local implementation is written and validated. Do not start it again from sc
 
 No migration has been applied to hosted Supabase and no app has been deployed. The full build used synthetic environment values to avoid writing real user data. The initial sandboxed build failed to download existing Google Fonts; rerunning with approved network access passed. The dependency install succeeded on resumption without package/lock changes. `npm.ps1` is blocked by Windows execution policy; use **`npm.cmd`**.
 
+The feature was committed as `dd97bf2` and pushed to `origin/chatgpt-MCP`. Its first TruffleHog run reported zero verified secrets and three unverified generic-URI matches caused by credential-bearing URLs used only as rejection fixtures. Local, uncommitted fixes now construct those three fixture URLs from separate fragments and remove the unsupported `fail` action input; the two affected test files pass all 80 tests. The user explicitly requested no commit or push yet. Because the workflow scans the entire PR commit range, fold these local changes into `dd97bf2` with an amend/history rewrite when authorized; an ordinary follow-up commit may leave the old false-positive strings visible to the scanner.
+
+A live ChatGPT connector attempt subsequently reached the deployed DCR endpoint but received `invalid_client_metadata`. The deployed authorization-server and protected-resource discovery documents were fetched and are correct. A local, uncommitted compatibility fix now accepts broader RFC client metadata (including a requested refresh grant or extra requested scopes) and normalizes the registered client response to Jobnest's implemented subset: authorization code, response type code, public `none` authentication, and `applications:write`. Registration validation errors now identify rejected field names without echoing values. The OAuth test file passes all 48 tests, typecheck passes, and targeted ESLint passes. This change still needs the same authorized amend/push and deployment before retrying connector creation.
+
 Remaining release work is explicit: run migrations on a staging/hosted project, configure the canonical production URL, deploy, verify Settings/consent on desktop/mobile, and connect actual ChatGPT test accounts. The local Playwright browser binary was not installed, so no authenticated browser visual check is claimed. The new database behavior has been executed in isolated PostgreSQL, but real Supabase auth/PostgREST and existing triggers need staging acceptance.
 
 ## How another AI should continue
@@ -153,5 +157,7 @@ Remaining release work is explicit: run migrations on a staging/hosted project, 
 | Production build | Passed after permitting existing Google Fonts downloads; synthetic test environment, no deployment |
 | PostgreSQL migration checks | 13 passed using actual migration SQL in isolated PGlite; minimal fixtures for pre-existing tables |
 | Built-server HTTP smoke | Passed discovery, OAuth challenge, cookie-protected JSON responses, consent login return |
+| TruffleHog CI follow-up | Local fix prepared; zero verified secrets in failed run, three URI-fixture false positives removed, unsupported workflow input removed; not committed or pushed |
+| Live ChatGPT DCR follow-up | Deployed discovery verified; local metadata-normalization fix prepared; 48 OAuth tests, typecheck, and targeted ESLint pass; not committed, pushed, or deployed |
 | Authenticated browser / live ChatGPT / hosted Supabase | Not run; release acceptance still required |
 | Deployment | Not performed |

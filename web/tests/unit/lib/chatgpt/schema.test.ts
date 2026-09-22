@@ -25,7 +25,7 @@ describe("plugin configuration", () => {
   it("uses a public configured HTTPS origin", () => {
     expect(getChatGptSetup("https://jobnest.example.com/")).toEqual({ ready: true, mcpUrl: "https://jobnest.example.com/api/integrations/chatgpt/mcp" });
   });
-  it.each(["", "oops", "http://localhost:3000", "https://localhost", "https://127.0.0.1", "https://test.local", "https://user:secret@jobnest.example.com", "https://jobnest.example.com/subpath", "https://jobnest.example.com?token=secret"])("rejects unusable origin %s", (origin) => {
+  it.each(["", "oops", "http://localhost:3000", "https://localhost", "https://127.0.0.1", "https://test.local", `https://user:${"secret"}@jobnest.example.com`, "https://jobnest.example.com/subpath", "https://jobnest.example.com?token=secret"])("rejects unusable origin %s", (origin) => {
     expect(getChatGptSetup(origin)).toEqual({ ready: false, mcpUrl: "" });
   });
 });

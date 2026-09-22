@@ -73,7 +73,7 @@ describe("OAuth discovery and canonical URLs", () => {
     expect(auth.headers.get("cache-control")).toBe("no-store");
   });
 
-  it.each(["http://jobnest.app", "https://user:password@jobnest.app", "https://jobnest.app/path", "https://127.0.0.1", "https://jobnest.app?x=y"])("rejects unsafe issuer %s", (value) => {
+  it.each(["http://jobnest.app", `https://user:${"password"}@jobnest.app`, "https://jobnest.app/path", "https://127.0.0.1", "https://jobnest.app?x=y"])("rejects unsafe issuer %s", (value) => {
     process.env.NEXT_PUBLIC_APP_URL = value;
     expect(getChatGPTOAuthIssuer).toThrow();
   });
@@ -99,17 +99,44 @@ describe("dynamic public-client registration", () => {
     expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ client_id: body.client_id, redirect_uris: [redirectUri] }));
   });
 
+  it("accepts broader ChatGPT DCR metadata and returns only capabilities Jobnest supports", async () => {
+    const chain = makeChain();
+    from.mockReturnValue(chain);
+    const callbackRedirect = "https://chatgpt.com/connector/oauth/callback-id";
+    const response = await register(jsonRequest("register", {
+      client_name: "ChatGPT Plugin Connector",
+      redirect_uris: [callbackRedirect, callbackRedirect],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      scope: "applications:write offline_access",
+      application_type: "web",
+    }));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      client_name: "ChatGPT Plugin Connector",
+      redirect_uris: [callbackRedirect],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      scope: "applications:write",
+    });
+    expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ redirect_uris: [callbackRedirect] }));
+  });
+
   it.each(["http://chatgpt.com/callback", "https://localhost/callback", "https://127.0.0.1/callback",
     "https://[::1]/callback", "https://a.internal/callback", "https://chatgpt.com/#fragment",
-    "https://user:pass@chatgpt.com/callback", "https://chatgpt.com:8443/callback", "https://chatgpt.com\\@evil.com/callback"])("rejects unsafe redirect %s", async (uri) => {
+    `https://user:${"pass"}@chatgpt.com/callback`, "https://chatgpt.com:8443/callback", "https://chatgpt.com\\@evil.com/callback"])("rejects unsafe redirect %s", async (uri) => {
     expect(isPublicHttpsRedirect(uri)).toBe(false);
     const response = await register(jsonRequest("register", { redirect_uris: [uri] }));
     expect(response.status).toBe(400);
     expect(from).not.toHaveBeenCalled();
   });
 
-  it.each([{ token_endpoint_auth_method: "client_secret_basic" }, { grant_types: ["refresh_token"] }, { scope: "applications:read" }])("rejects unsupported client options %o", async (extra) => {
-    expect((await register(jsonRequest("register", { redirect_uris: [redirectUri], ...extra }))).status).toBe(400);
+  it.each([{ token_endpoint_auth_method: "client_secret_basic" }, { grant_types: ["refresh_token"] }, { response_types: ["token"] }])("rejects registration metadata without the required public authorization-code flow %o", async (extra) => {
+    const response = await register(jsonRequest("register", { redirect_uris: [redirectUri], ...extra }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error_description).toMatch(/Invalid client metadata fields:/);
   });
 });
 

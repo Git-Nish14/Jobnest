@@ -82,18 +82,29 @@ export function isPublicHttpsRedirect(value: string): boolean {
 }
 
 const registrationSchema = z.object({
-  client_name: z.string().trim().min(1).max(100).regex(/^[^\u0000-\u001f\u007f]+$/).default("ChatGPT"),
-  redirect_uris: z.array(z.string().refine(isPublicHttpsRedirect)).min(1).max(5),
-  token_endpoint_auth_method: z.literal("none").default("none"),
-  grant_types: z.array(z.literal("authorization_code")).length(1).default(["authorization_code"]),
-  response_types: z.array(z.literal("code")).length(1).default(["code"]),
-  scope: z.literal(CHATGPT_OAUTH_SCOPE).optional(),
+  client_name: z.string().trim().min(1).max(200).regex(/^[^\u0000-\u001f\u007f]+$/).default("ChatGPT"),
+  redirect_uris: z.array(z.string().refine(isPublicHttpsRedirect)).min(1).max(10),
+  token_endpoint_auth_method: z.string().max(64).default("none"),
+  grant_types: z.array(z.string().max(64)).min(1).max(5).default(["authorization_code"]),
+  response_types: z.array(z.string().max(64)).min(1).max(5).default(["code"]),
+  scope: z.string().trim().max(512).optional(),
+}).superRefine((metadata, context) => {
+  if (metadata.token_endpoint_auth_method !== "none") {
+    context.addIssue({ code: "custom", path: ["token_endpoint_auth_method"], message: "Public client authentication is required." });
+  }
+  if (!metadata.grant_types.includes("authorization_code")) {
+    context.addIssue({ code: "custom", path: ["grant_types"], message: "The authorization_code grant is required." });
+  }
+  if (!metadata.response_types.includes("code")) {
+    context.addIssue({ code: "custom", path: ["response_types"], message: "The code response type is required." });
+  }
 });
 
 export async function registerChatGPTOAuthClient(body: unknown) {
   const parsed = registrationSchema.safeParse(body);
   if (!parsed.success) {
-    throw new ChatGPTOAuthError("invalid_client_metadata", "Use HTTPS redirect URIs, authorization_code, response type code, and public client authentication (none).");
+    const fields = [...new Set(parsed.error.issues.map((issue) => String(issue.path[0] ?? "request")))].join(", ");
+    throw new ChatGPTOAuthError("invalid_client_metadata", `Invalid client metadata fields: ${fields}. Use HTTPS redirect URIs, authorization_code, response type code, and public client authentication (none).`);
   }
   const metadata = parsed.data;
   const clientId = `jobnest_client_${randomBytes(16).toString("hex")}`;
@@ -104,7 +115,11 @@ export async function registerChatGPTOAuthClient(body: unknown) {
   });
   if (error) throw new ChatGPTOAuthError("server_error", "Unable to register the connection.", 503);
   return {
-    ...metadata,
+    client_name: metadata.client_name,
+    redirect_uris: [...new Set(metadata.redirect_uris)],
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code"],
+    response_types: ["code"],
     scope: CHATGPT_OAUTH_SCOPE,
     client_id: clientId,
     client_id_issued_at: Math.floor(Date.now() / 1000),
