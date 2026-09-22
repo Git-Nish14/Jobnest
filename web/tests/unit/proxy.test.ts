@@ -32,6 +32,45 @@ function req(pathname: string, cookies: Record<string, string> = {}): NextReques
 
 const authedUser = { id: "uid", email: "a@b.com", user_metadata: { onboarding_completed: true } };
 
+describe("ChatGPT integration routing", () => {
+  it.each([
+    "/api/integrations/chatgpt/mcp", "/api/integrations/chatgpt/applications",
+    "/api/integrations/chatgpt/credentials", "/api/integrations/chatgpt/oauth/register",
+    "/api/integrations/chatgpt/oauth/authorize", "/api/integrations/chatgpt/oauth/consent",
+    "/api/integrations/chatgpt/oauth/token",
+  ])("lets %s enforce its own authentication without cookie redirects", async (path) => {
+    const response = await proxy(req(path));
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mockCreateServerClient).not.toHaveBeenCalled();
+  });
+
+  it("does not exempt sibling routes by prefix", async () => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+    const response = await proxy(req("/api/integrations/chatgpt/mcp-admin"));
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/login");
+  });
+
+  it("preserves consent query through login", async () => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+    const response = await proxy(req("/integrations/chatgpt/authorize?request=opaque"));
+    const destination = new URL(response.headers.get("location")!);
+    expect(destination.pathname).toBe("/login");
+    expect(destination.searchParams.get("redirect")).toBe("/integrations/chatgpt/authorize?request=opaque");
+  });
+
+  it("lets signed-in new users consent without onboarding losing the request", async () => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient({ ...authedUser, user_metadata: { onboarding_completed: false } }) as never);
+    expect((await proxy(req("/integrations/chatgpt/authorize?request=opaque"))).headers.get("location")).toBeNull();
+  });
+
+  it("returns already signed-in users from login to the consent page", async () => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(authedUser) as never);
+    const response = await proxy(req("/login?redirect=%2Fintegrations%2Fchatgpt%2Fauthorize%3Frequest%3Dopaque"));
+    expect(response.headers.get("location")).toBe("http://localhost/integrations/chatgpt/authorize?request=opaque");
+  });
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
 });

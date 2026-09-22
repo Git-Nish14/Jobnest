@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeAuthRedirect } from "@/lib/auth/redirect";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -24,6 +25,19 @@ const publicRoutes = new Set([
 // match a hypothetical "/api/contact-admin").
 const publicApiRoutes = new Set(["/api/contact"]);
 const publicApiPrefixes = ["/api/auth/", "/api/documents/shared/", "/api/cron/"];
+
+// These handlers own their authentication: OAuth/MCP use bearer tokens or
+// protocol validation; credentials and consent enforce the cookie session
+// themselves and must return JSON 401 rather than a login-page redirect.
+const chatGptApiRoutes = new Set([
+  "/api/integrations/chatgpt/mcp",
+  "/api/integrations/chatgpt/applications",
+  "/api/integrations/chatgpt/credentials",
+  "/api/integrations/chatgpt/oauth/register",
+  "/api/integrations/chatgpt/oauth/authorize",
+  "/api/integrations/chatgpt/oauth/consent",
+  "/api/integrations/chatgpt/oauth/token",
+]);
 
 // ── CSP nonce ──────────────────────────────────────────────────────────────
 // Generate a cryptographically random nonce per request using the Web Crypto
@@ -138,6 +152,13 @@ export async function proxy(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
+  if (chatGptApiRoutes.has(pathname)) {
+    response.headers.set("Cache-Control", "no-store");
+    addSecurityHeaders(response, nonce, isHttps);
+    response.headers.set("Referrer-Policy", "no-referrer");
+    return response;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -181,7 +202,7 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);
     if (isSafeRedirect(pathname)) {
-      loginUrl.searchParams.set("redirect", pathname);
+      loginUrl.searchParams.set("redirect", safeAuthRedirect(`${pathname}${request.nextUrl.search}`));
     }
     return addSecurityHeaders(NextResponse.redirect(loginUrl), nonce, isHttps);
   }
@@ -199,6 +220,7 @@ export async function proxy(request: NextRequest) {
   // created before onboarding was introduced have undefined → not redirected.
   const skipOnboarding =
     pathname.startsWith("/onboarding") ||
+    pathname === "/integrations/chatgpt/authorize" ||
     pathname.startsWith("/api") ||
     pathname.startsWith("/auth");
   if (user && !skipOnboarding && !isPublic && user.user_metadata?.onboarding_completed === false) {
@@ -217,7 +239,8 @@ export async function proxy(request: NextRequest) {
       request.cookies.get("__Host-sb_rm")?.value ??
       request.cookies.get("sb_rm")?.value;
     if (sbRm !== "0") {
-      return addSecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)), nonce, isHttps);
+      const destination = safeAuthRedirect(request.nextUrl.searchParams.get("redirect") ?? request.nextUrl.searchParams.get("next"));
+      return addSecurityHeaders(NextResponse.redirect(new URL(destination, request.url)), nonce, isHttps);
     }
   }
 

@@ -31,6 +31,7 @@ A full-stack job search management platform. Track applications, manage document
 - Weekly Report PDF generated server-side via `@react-pdf/renderer`
 
 ### Applications
+- Save applied jobs directly from ChatGPT through an MCP plugin with OAuth account linking; setup and disconnect controls in Account Settings. [Setup/deployment](docs/CHATGPT_PLUGIN_SETUP.md) · [Implementation checklist](docs/CHATGPT_PLUGIN_PLAN.md)
 - Full CRUD with statuses: Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn, Ghosted
 - Import from job posting URL or pasted text with Groq-powered field extraction (SSRF-protected)
 - AI JSON autofill: paste structured output from any external AI to fill all 13 fields
