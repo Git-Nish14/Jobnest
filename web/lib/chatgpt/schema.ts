@@ -9,7 +9,8 @@ export const chatGptApplicationSchema = z.object({
   applied_date: z.iso.date().describe("Actual application date, YYYY-MM-DD. Ask if unknown; tailoring a resume does not mean the user applied."),
   status: z.enum(APPLICATION_STATUSES).default("Applied"),
   job_id: z.string().trim().max(100).optional(),
-  job_url: z.string().trim().max(2083).url().refine((value) => /^https?:\/\//i.test(value), "Only HTTP or HTTPS job URLs are allowed.").optional(),
+  job_url: z.string().trim().max(2083).url().refine((value) => /^https?:\/\//i.test(value), "Only HTTP or HTTPS job URLs are allowed.")
+    .optional().describe("The plain HTTP or HTTPS job-posting URL. Send the URL itself, never Markdown link syntax."),
   salary_range: z.string().trim().max(100).optional(),
   location: z.string().trim().max(255).optional(),
   notes: z.string().trim().max(5000).optional().describe("Optional job-specific notes. Do not include a resume or unrelated personal information."),

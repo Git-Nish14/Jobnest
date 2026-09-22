@@ -205,8 +205,11 @@ export function ChatGptIntegration() {
             <p className="text-muted-foreground">Jobnest supports one active ChatGPT connection per account. Reconnecting replaces the previous connection.</p>
           </li>
           <li className="space-y-2 pl-1">
-            <p><strong>Save your next application.</strong> Start a new ChatGPT Work conversation and select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will prepare the job details and ask for any missing information before saving.</p>
-            <p className="text-muted-foreground">Approve any save prompt from ChatGPT and wait for the saved job link. JOBNEST works when the plugin is enabled in that conversation. Use Refresh status above to check your last successful save.</p>
+            <p><strong>Allow the save action.</strong> Open the Jobnest connection settings in ChatGPT and make sure its Actions control permits <strong>save_job_application</strong>. Choose an App permissions option that allows changes; ChatGPT may ask before every save. In a managed Business or Enterprise workspace, an administrator may need to approve the write action.</p>
+          </li>
+          <li className="space-y-2 pl-1">
+            <p><strong>Save your next application.</strong> Start a new ChatGPT conversation and add Jobnest from the tools menu or select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will prepare the job details and ask for any missing information before saving.</p>
+            <p className="text-muted-foreground">Approve the ChatGPT save prompt and wait for the saved Jobnest link. If ChatGPT says the conversation does not permit the action, enable Jobnest for that conversation and check its Actions/App permissions. Use Refresh status above to check your last successful save.</p>
           </li>
         </ol>
 

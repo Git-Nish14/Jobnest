@@ -23,11 +23,14 @@ Do not expose `SUPABASE_SERVICE_ROLE_KEY` to ChatGPT, user settings, URLs, logs,
 2. In ChatGPT, enable **Settings → Security and login → Developer mode**, if available for the account/workspace.
 3. Open **Plugins**, choose the add (+) option, name the plugin **Jobnest**, and enter the MCP URL. Select **OAuth** with automatic discovery/dynamic registration. Jobnest publishes public-client authentication (`none`); no shared client secret is needed.
 4. Sign into Jobnest when prompted. The consent page shows the requesting app, return host, account, and **Save job applications** permission. Select **Connect**.
-5. Install the resulting personal plugin. Start a new ChatGPT Work conversation and select **@Jobnest**.
-6. After applying to the job discussed in the conversation, type **JOBNEST**. ChatGPT asks for missing company, title, or application date, then sends the structured details. Approve any ChatGPT save confirmation and wait for a Jobnest record link.
-7. Refresh connection status in Jobnest to see the last successful save. **Disconnect ChatGPT** revokes the token while preserving saved jobs.
+5. Install the resulting personal plugin. Open the Jobnest connection settings and ensure its **Actions** control permits `save_job_application`. Choose an **App permissions** option that allows changes. A Business or Enterprise workspace administrator may need to approve this write action.
+6. Start a new ChatGPT conversation and add Jobnest from the tools menu or select **@Jobnest**.
+7. After applying to the job discussed in the conversation, type **JOBNEST**. ChatGPT asks for missing company, title, or application date, then sends the structured details. Approve any ChatGPT save confirmation and wait for a Jobnest record link.
+8. Refresh connection status in Jobnest to see the last successful save. **Disconnect ChatGPT** revokes the token while preserving saved jobs.
 
 Typing JOBNEST in an ordinary conversation without the enabled plugin cannot invoke Jobnest. Plugin/Developer mode availability may depend on account and workspace policy. A public directory listing is a separate submission/review process; this implementation does not create one.
+
+If ChatGPT says the conversation does not permit the Jobnest connector action, no save request reached Jobnest. Add Jobnest to that conversation and check the connection's **Actions** and **App permissions**. Managed workspaces can restrict write actions even when the plugin itself is installed.
 
 Official sources: [plugin quickstart](https://developers.openai.com/plugins/quickstart), [authentication](https://developers.openai.com/plugins/build/auth), [connection testing](https://developers.openai.com/plugins/deploy/connect-chatgpt).
 
