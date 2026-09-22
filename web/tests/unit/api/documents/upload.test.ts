@@ -122,6 +122,27 @@ describe("POST /api/documents/upload", () => {
     const body = await res.json();
     expect(body.document).toBeDefined();
   });
+
+  it("returns 201 on successful DOCX upload", async () => {
+    mockCreate.mockResolvedValue(makeClient() as never);
+    const docx = makeFile(
+      "resume.docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    const res = await POST(makeFormRequest({ file: docx, label: "Resume", application_id: "app-id" }) as never);
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.document).toBeDefined();
+  });
+
+  it("returns 400 for application/x-zip-compressed even though it shares the PK magic bytes", async () => {
+    mockCreate.mockResolvedValue(makeClient() as never);
+    const zip = makeFile("archive.zip", "application/x-zip-compressed");
+    const res = await POST(makeFormRequest({ file: zip, label: "Resume", application_id: "app-id" }) as never);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain("not supported");
+  });
 });
 
 // ── original_name sanitization (HTTP Response Splitting prevention) ────────────

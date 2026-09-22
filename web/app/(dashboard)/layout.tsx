@@ -4,6 +4,7 @@ import { Navbar, BottomTabBar, ScrollRestorer } from "@/components/layout";
 import { NPSFeedback } from "@/components/layout/NPSFeedback";
 import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
+import { TimezoneSync } from "@/components/auth/timezone-sync";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { redirect } from "next/navigation";
 import "./dashboard.css";
@@ -41,6 +42,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen db-root">
       <ScrollRestorer />
       <AuthSync />
+      <TimezoneSync />
       <CommandPalette />
       <Navbar user={{
         email: user.email,

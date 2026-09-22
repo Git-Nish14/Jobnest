@@ -468,3 +468,87 @@ describe("manifest.json — PWA installability", () => {
     expect(manifest.background_color).toBe("#faf9f7");
   });
 });
+
+// ── 10. timezone-sync.tsx — client-side IANA timezone persistence ─────────────
+
+describe("timezone-sync.tsx — structure and safety", () => {
+  const code = src("components/auth/timezone-sync.tsx");
+
+  it("is a 'use client' component (must be a client component to access Intl)", () => {
+    expect(code).toMatch(/^"use client"/);
+  });
+
+  it("reads timezone from Intl.DateTimeFormat().resolvedOptions().timeZone", () => {
+    expect(code).toContain("Intl.DateTimeFormat");
+    expect(code).toContain("resolvedOptions");
+    expect(code).toContain(".timeZone");
+  });
+
+  it("calls supabase.auth.updateUser to persist the timezone", () => {
+    expect(code).toContain("auth.updateUser");
+    expect(code).toContain("timezone");
+  });
+
+  it("guards against empty timezone before calling updateUser", () => {
+    // 'if (!tz) return' prevents storing empty string
+    expect(code).toContain("if (!tz)");
+  });
+
+  it("is idempotent — skips updateUser when stored timezone already matches", () => {
+    // Checks user_metadata.timezone === tz before calling updateUser
+    expect(code).toContain("timezone === tz");
+  });
+
+  it("renders null (invisible, no DOM output)", () => {
+    expect(code).toContain("return null");
+  });
+});
+
+// ── 11. sonner.tsx — theme-aware toast notification colours ──────────────────
+
+describe("sonner.tsx — theme-aware toast colours", () => {
+  const code = src("components/ui/sonner.tsx");
+
+  it("defines success classNames using dark: Tailwind variants", () => {
+    // Success: light = soft green, dark = deep emerald
+    expect(code).toContain("dark:!bg-emerald-950");
+    expect(code).toContain("dark:!border-emerald-700");
+    expect(code).toContain("dark:!text-emerald-300");
+  });
+
+  it("defines success classNames for light theme (soft green)", () => {
+    expect(code).toContain("!bg-green-50");
+    expect(code).toContain("!border-green-300");
+    expect(code).toContain("!text-green-800");
+  });
+
+  it("defines error classNames for both themes", () => {
+    expect(code).toContain("!bg-red-50");
+    expect(code).toContain("dark:!bg-red-950");
+  });
+
+  it("defines warning classNames for both themes", () => {
+    expect(code).toContain("!bg-amber-50");
+    expect(code).toContain("dark:!bg-amber-950");
+  });
+
+  it("defines info classNames for both themes", () => {
+    expect(code).toContain("!bg-blue-50");
+    expect(code).toContain("dark:!bg-blue-950");
+  });
+
+  it("uses !important prefix on all type-specific bg classes to override sonner inline styles", () => {
+    // Every type-specific bg class must be prefixed with ! (Tailwind !important)
+    const typeClasses = code.match(/classNames:\s*\{[\s\S]*?\}/)?.[0] ?? "";
+    const bgMatches = typeClasses.match(/bg-[a-z]+-\d+/g) ?? [];
+    for (const cls of bgMatches) {
+      // Each bg class should appear with the ! prefix somewhere in the classNames block
+      expect(typeClasses).toContain(`!${cls}`);
+    }
+  });
+
+  it("wraps Sonner in a div with role=status and aria-live=polite for screen readers", () => {
+    expect(code).toContain('role="status"');
+    expect(code).toContain('aria-live="polite"');
+  });
+});
