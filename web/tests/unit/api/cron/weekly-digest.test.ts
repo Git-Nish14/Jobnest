@@ -1,23 +1,21 @@
 /**
  * Unit tests — GET /api/cron/weekly-digest
  *
- * Schedule: "0 * * * 6,0" (every hour on Saturday and Sunday UTC).
- * The cron fires hourly but the route gates each user to exactly Saturday 21:xx
- * in their stored IANA timezone (isSaturday9pmInTz), then deduplicates on an
- * ISO-week key so each user receives at most one email per calendar week.
+ * Schedule: "0 21 * * 6" (Saturday 21:00 UTC, once per week).
+ * The route sends to all opted-in users each Saturday. A per-user IANA timezone
+ * gate (isSaturday9pmInTz) is implemented but commented out — it requires an
+ * hourly cron schedule ("0 * * * 6,0") and a Vercel plan that supports it.
  *
  * Covers:
  *  - 401 when Authorization header is missing or wrong
  *  - Skips user with no email
- *  - Skips user not opted in (weekly_digest falsy)
- *  - Skips user when isSaturday9pmInTz returns false (wrong hour or day)
- *  - Sends to user whose local time is Saturday 21:xx (UTC timezone at 21:00 UTC)
- *  - Sends to user in UTC+3 when clock is at 18:00 UTC Saturday
+ *  - Skips user not opted in (weekly_digest falsy / notification_prefs absent)
  *  - Skips user already stamped with this week's digest_sent_week
- *  - Skips user already stamped with attempted:this-week (SMTP failure last hour)
- *  - Does NOT skip user stamped with a previous week
+ *  - Skips user already stamped with attempted:this-week (SMTP failure last run)
+ *  - Sends to opted-in user and returns sent:1
  *  - Stamps digest_sent_week with ISO-week key on successful send
- *  - Stamps digest_sent_week with "attempted:WEEK" on send failure (no retry spam)
+ *  - Sends again the following week (previous week's stamp does not block)
+ *  - Stamps digest_sent_week with "attempted:WEEK" on send failure
  *  - Returns correct sent/skipped counts for a mixed user set
  *  - Handles listUsers error gracefully
  */
@@ -39,16 +37,9 @@ const mockEmail = vi.mocked(sendWeeklyDigestEmail);
 
 const CRON_SECRET = "test-cron-secret";
 
-// Saturday September 19, 2026 21:00:00 UTC — a valid Saturday 21:xx in UTC.
+// Saturday September 19, 2026 21:00:00 UTC — matches the cron schedule.
 // getISOWeek(this date) = "2026-W38".
 const SAT_2100_UTC = Date.UTC(2026, 8, 19, 21, 0, 0);
-
-// Saturday September 19, 2026 18:00:00 UTC — 21:00 Moscow time (UTC+3).
-const SAT_1800_UTC = Date.UTC(2026, 8, 19, 18, 0, 0);
-
-// Sunday September 20, 2026 21:00:00 UTC — NOT Saturday for UTC users.
-const SUN_2100_UTC = Date.UTC(2026, 8, 20, 21, 0, 0);
-
 const WEEK_38 = "2026-W38";
 
 function makeReq(authHeader?: string) {
@@ -63,16 +54,10 @@ function validReq() { return makeReq(`Bearer ${CRON_SECRET}`); }
 function makeChainWith(result: unknown) {
   const chain: Record<string, unknown> = {};
   const self = () => vi.fn().mockReturnValue(chain);
-  chain.select  = self();
-  chain.eq      = self();
-  chain.gte     = self();
-  chain.lte     = self();
-  chain.lt      = self();
-  chain.not     = self();
-  chain.order   = self();
-  chain.limit   = self();
-  chain.is      = self();
-  chain.then    = (resolve: (v: unknown) => unknown) =>
+  chain.select = self(); chain.eq  = self(); chain.gte = self();
+  chain.lte    = self(); chain.lt  = self(); chain.not = self();
+  chain.order  = self(); chain.limit = self(); chain.is = self();
+  chain.then = (resolve: (v: unknown) => unknown) =>
     Promise.resolve(result).then(resolve);
   return chain;
 }
@@ -80,14 +65,13 @@ function makeChainWith(result: unknown) {
 function countResult(n: number) {
   return makeChainWith({ data: { count: n } as unknown, error: null });
 }
-
 function arrayResult(rows: unknown[] = []) {
   return makeChainWith({ data: rows, error: null });
 }
 
 /**
  * Build a mock admin client.
- * `from` is called 6 times per eligible user (in parallel via Promise.all):
+ * `from` is called 6 times per eligible user (via Promise.all):
  *   0 appsThisWeek (count),  1 totalActive (count),
  *   2 upcomingInterviews (count), 3 overdueReminders (count),
  *   4 recentApps (array),    5 interviews (array)
@@ -96,12 +80,8 @@ function makeAdminClient(users: unknown[], emailResult = { success: true }) {
   const updateUserById = vi.fn().mockResolvedValue({ data: {}, error: null });
   let idx = 0;
   const fromResults = [
-    countResult(3),  // appsThisWeek
-    countResult(5),  // totalActive
-    countResult(1),  // upcomingInterviews
-    countResult(0),  // overdueReminders
-    arrayResult([]), // recentApps
-    arrayResult([]), // interviews
+    countResult(3), countResult(5), countResult(1), countResult(0),
+    arrayResult([]), arrayResult([]),
   ];
 
   mockEmail.mockResolvedValue(emailResult as never);
@@ -187,22 +167,6 @@ describe("GET /api/cron/weekly-digest — skip conditions", () => {
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
-  it("skips user when their local time is not Saturday 21:xx (Sunday 21:00 UTC for UTC user)", async () => {
-    vi.setSystemTime(SUN_2100_UTC);
-    const user = makeUser({ timezone: "UTC" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    await GET(validReq());
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-
-  it("skips UTC user when clock is 18:00 UTC Saturday (not 21:xx for UTC)", async () => {
-    vi.setSystemTime(SAT_1800_UTC);
-    const user = makeUser({ timezone: "UTC" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    await GET(validReq());
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-
   it("skips user already stamped with current week (successful send)", async () => {
     const user = makeUser({ digest_sent_week: WEEK_38 });
     mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
@@ -210,7 +174,7 @@ describe("GET /api/cron/weekly-digest — skip conditions", () => {
     expect(mockEmail).not.toHaveBeenCalled();
   });
 
-  it("skips user stamped with attempted:WEEK (SMTP failure — no hourly retry spam)", async () => {
+  it("skips user stamped with attempted:WEEK (prevents double-send on edge-case double-fire)", async () => {
     const user = makeUser({ digest_sent_week: `attempted:${WEEK_38}` });
     mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
     await GET(validReq());
@@ -218,59 +182,10 @@ describe("GET /api/cron/weekly-digest — skip conditions", () => {
   });
 });
 
-// ── Timezone gate ────────────────────────────────────────────────────────────
-
-describe("GET /api/cron/weekly-digest — timezone gate", () => {
-  it("sends to UTC user when clock is Saturday 21:00 UTC", async () => {
-    // Clock already set to SAT_2100_UTC in beforeEach
-    const user = makeUser({ timezone: "UTC" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    const res = await GET(validReq());
-    const body = await res.json();
-    expect(body.sent).toBe(1);
-    expect(mockEmail).toHaveBeenCalledOnce();
-  });
-
-  it("sends to UTC+3 user (Europe/Moscow) when clock is Saturday 18:00 UTC", async () => {
-    vi.setSystemTime(SAT_1800_UTC); // 18:00 UTC = 21:00 Moscow
-    const user = makeUser({ timezone: "Europe/Moscow" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    const res = await GET(validReq());
-    const body = await res.json();
-    expect(body.sent).toBe(1);
-    expect(mockEmail).toHaveBeenCalledOnce();
-  });
-
-  it("skips UTC+3 user when clock is Saturday 21:00 UTC (it's already Sunday 00:00 for them)", async () => {
-    // SAT_2100_UTC is already set — 21:00 UTC = 00:00 Sunday Moscow time (UTC+3)
-    const user = makeUser({ timezone: "Europe/Moscow" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    await GET(validReq());
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-
-  it("falls back to UTC for users with no stored timezone", async () => {
-    // No timezone in metadata → defaults to "UTC" → sends at 21:00 UTC Saturday
-    const user = makeUser({ timezone: undefined });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    const res = await GET(validReq());
-    const body = await res.json();
-    expect(body.sent).toBe(1);
-  });
-
-  it("skips gracefully when stored timezone is an invalid IANA string", async () => {
-    const user = makeUser({ timezone: "Not/A/Real/Timezone" });
-    mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
-    // isSaturday9pmInTz catches the RangeError and returns false — no crash
-    await expect(GET(validReq())).resolves.not.toThrow();
-    expect(mockEmail).not.toHaveBeenCalled();
-  });
-});
-
 // ── Happy path ────────────────────────────────────────────────────────────────
 
 describe("GET /api/cron/weekly-digest — happy path", () => {
-  it("sends email to eligible user and returns sent:1", async () => {
+  it("sends email to eligible opted-in user and returns sent:1", async () => {
     const user = makeUser();
     mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
     const res = await GET(validReq());
@@ -280,9 +195,9 @@ describe("GET /api/cron/weekly-digest — happy path", () => {
     expect(body.skipped).toBe(0);
     expect(mockEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        email: "user@example.com",
-        appUrl:  expect.any(String),
-        stats:   expect.objectContaining({ applicationsThisWeek: expect.any(Number) }),
+        email:  "user@example.com",
+        appUrl: expect.any(String),
+        stats:  expect.objectContaining({ applicationsThisWeek: expect.any(Number) }),
       })
     );
   });
@@ -301,7 +216,7 @@ describe("GET /api/cron/weekly-digest — happy path", () => {
   });
 
   it("sends again the following week when previous stamp is from last week", async () => {
-    const user = makeUser({ digest_sent_week: "2026-W37" }); // previous week
+    const user = makeUser({ digest_sent_week: "2026-W37" });
     mockAdmin.mockReturnValue(makeAdminClient([user]) as never);
     const res = await GET(validReq());
     const body = await res.json();
@@ -316,10 +231,7 @@ describe("GET /api/cron/weekly-digest — happy path", () => {
     const alreadySent = { ...makeUser(), id: "uid-3", email: "c@test.com",
                           user_metadata: { ...makeUser().user_metadata, digest_sent_week: WEEK_38 } };
 
-    // Use the shared factory so from() returns proper count vs. array results
-    // alternating on each call (avoids .map() crash on a count object).
     const client = makeAdminClient([eligible, noOptIn, alreadySent]);
-    // Override listUsers to return all three users in one page
     client.auth.admin.listUsers
       .mockResolvedValueOnce({ data: { users: [eligible, noOptIn, alreadySent] }, error: null })
       .mockResolvedValue({ data: { users: [] }, error: null });
@@ -335,7 +247,7 @@ describe("GET /api/cron/weekly-digest — happy path", () => {
 // ── Send failure — dedup stamp ────────────────────────────────────────────────
 
 describe("GET /api/cron/weekly-digest — send failure handling", () => {
-  it("stamps attempted:WEEK on SMTP failure so cron does not retry this hour", async () => {
+  it("stamps attempted:WEEK on SMTP failure so a double-fire does not retry the address", async () => {
     const user = makeUser();
     const client = makeAdminClient([user], { success: false, error: "SMTP timeout" });
     mockAdmin.mockReturnValue(client as never);

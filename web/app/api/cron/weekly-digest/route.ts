@@ -11,28 +11,21 @@ function getISOWeek(d: Date): string {
   return `${thursday.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
 }
 
-// Returns true when the current moment is Saturday 21:xx in the given IANA timezone.
-// The cron fires every hour on Saturday and Sunday UTC; this gates each user to
-// exactly their local Saturday 9 PM slot.
-// Uses numeric weekday (0=Sun…6=Sat) rather than locale-formatted strings to
-// avoid dependence on ICU abbreviation tables (which differ across Node versions).
-function isSaturday9pmInTz(tz: string): boolean {
-  try {
-    const now = new Date();
-    // weekday: 0=Sun,1=Mon,...,6=Sat via numeric day-of-week derived from locale parts
-    const dateParts = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      weekday: "long",
-      hour: "numeric",
-      hour12: false,
-    }).formatToParts(now);
-    const weekday = dateParts.find(p => p.type === "weekday")?.value; // "Saturday"
-    const hour = parseInt(dateParts.find(p => p.type === "hour")?.value ?? "-1", 10);
-    return weekday === "Saturday" && hour === 21;
-  } catch {
-    return false;
-  }
-}
+// PER-USER TIMEZONE GATE — disabled: requires hourly cron ("0 * * * 6,0") which needs
+// a Vercel plan that supports multi-day comma patterns and sub-daily intervals.
+// To re-enable: (1) upgrade plan, (2) change schedule to "0 * * * 6,0" in vercel.json,
+// (3) uncomment isSaturday9pmInTz below and the userTz gate in the user loop.
+//
+// function isSaturday9pmInTz(tz: string): boolean {
+//   try {
+//     const dateParts = new Intl.DateTimeFormat("en-US", {
+//       timeZone: tz, weekday: "long", hour: "numeric", hour12: false,
+//     }).formatToParts(new Date());
+//     const weekday = dateParts.find(p => p.type === "weekday")?.value;
+//     const hour    = parseInt(dateParts.find(p => p.type === "hour")?.value ?? "-1", 10);
+//     return weekday === "Saturday" && hour === 21;
+//   } catch { return false; }
+// }
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -76,10 +69,9 @@ export async function GET(request: NextRequest) {
         if (!weeklyDigest) { results.skipped++; continue; }
         if (!user.email) { results.skipped++; continue; }
 
-        // Per-user timezone gate: only send when it is Saturday 21:xx in their local time.
-        // Falls back to UTC for users whose timezone has not been synced yet.
-        const userTz = (user.user_metadata?.timezone as string | undefined) ?? "UTC";
-        if (!isSaturday9pmInTz(userTz)) { results.skipped++; continue; }
+        // Timezone gate — uncomment when upgrading to hourly cron (see comment above):
+        // const userTz = (user.user_metadata?.timezone as string | undefined) ?? "UTC";
+        // if (!isSaturday9pmInTz(userTz)) { results.skipped++; continue; }
 
         // ISO-week dedup: at most one attempt per calendar week per user.
         // Stamp is set to thisWeek on success or "attempted:thisWeek" on SMTP failure
@@ -165,14 +157,13 @@ export async function GET(request: NextRequest) {
 
         if (result.success) {
           results.sent++;
-          console.log(`[cron/weekly-digest] sent to ${user.email} (tz: ${userTz})`);
+          console.log(`[cron/weekly-digest] sent to ${user.email}`);
         } else {
           results.errors.push(`${user.email}: ${result.error}`);
           console.warn(`[cron/weekly-digest] failed for ${user.email}: ${result.error}`);
         }
-        // Stamp regardless of send success/failure so the hourly cron does not
-        // retry broken addresses every hour for the rest of Saturday night.
-        // "sent" = delivered, "attempted:YYYY-WNN" = tried but SMTP failed.
+        // Stamp regardless of outcome so the cron doesn't re-attempt the same address
+        // in a future edge-case double-fire. "attempted:YYYY-WNN" = SMTP failed.
         await admin.auth.admin.updateUserById(user.id, {
           user_metadata: {
             digest_sent_week: result.success ? thisWeek : `attempted:${thisWeek}`,
