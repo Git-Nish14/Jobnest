@@ -715,7 +715,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Resume (PDF)</Label>
+              <Label>Resume (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
                   <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
@@ -742,7 +742,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
+                        <span className="text-sm text-[#55433d]/50">Upload PDF or DOCX</span>
                       </>
                     )}
                   </div>
@@ -768,7 +768,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </div>
 
             <div className="space-y-2">
-              <Label>Cover Letter (PDF)</Label>
+              <Label>Cover Letter (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
                   <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
@@ -795,7 +795,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
+                        <span className="text-sm text-[#55433d]/50">Upload PDF or DOCX</span>
                       </>
                     )}
                   </div>

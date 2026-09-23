@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
+import * as mammoth from "mammoth";
 
 const BUCKET = "documents";
 
@@ -129,8 +130,6 @@ export async function extractDocumentText(
       const cached = await getCachedText(buffer);
       if (cached) return { text: cached, error: null };
 
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mammoth = require("mammoth") as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
       const result = await mammoth.extractRawText({ buffer });
       const text = result.value.trim().slice(0, MAX_CHARS);
       if (text) await setCachedText(buffer, text);
@@ -171,8 +170,6 @@ export async function extractTextFromBuffer(
     }
 
     if (ext === "docx" || ext === "doc") {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mammoth = require("mammoth") as { extractRawText: (opts: { buffer: Buffer }) => Promise<{ value: string }> };
       const result = await mammoth.extractRawText({ buffer });
       const text = result.value.trim().slice(0, MAX_CHARS);
       return text
