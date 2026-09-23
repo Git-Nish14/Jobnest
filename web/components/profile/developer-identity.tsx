@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { Plus, Trash2, Loader2, Code, Award, GraduationCap } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense, type ReactNode } from "react";
+import { Plus, Trash2, Loader2, Code, Award, GraduationCap, ChevronDown, FolderKanban, Globe, Link2, GitBranch, type LucideIcon } from "lucide-react";
 import { ResumeImportButton } from "./ResumeImportButton";
 import { GitHubSection } from "@/components/portfolio/GitHubSection";
 import { ProjectsSection } from "@/components/portfolio/ProjectsSection";
@@ -357,42 +357,83 @@ function EducationSection() {
 
 // ── Main export ────────────────────────────────────────────────────────────────
 
+function CareerDisclosure({ id, title, description, icon: Icon, children }: {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  children: ReactNode;
+}) {
+  return (
+    <details id={id} className="group/career scroll-mt-32 border-t border-border">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-foreground">{title}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{description}</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open/career:rotate-180" aria-hidden="true" />
+      </summary>
+      {/* Native details preserves each form's drafts while it is collapsed. */}
+      <div className="px-4 pb-5 pt-1 sm:px-5 [&>.db-content-card]:rounded-none [&>.db-content-card]:border-0 [&>.db-content-card]:bg-transparent [&>.db-content-card]:p-0 [&>.db-content-card]:shadow-none [&>.db-content-card>h2]:sr-only [&>.db-content-card>h2+*]:mt-0">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 export function DeveloperIdentity() {
   const [refreshKey, setRefreshKey] = useState(0);
   const handleImported = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
-    <div className="space-y-8">
-      {/* ── Core identity ── */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="db-headline text-xl font-semibold text-foreground">Developer Identity</h2>
+    <div className="space-y-5">
+      <section aria-labelledby="professional-background-heading" className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4 p-4 sm:p-5">
+          <div>
+            <h2 id="professional-background-heading" className="db-headline text-xl font-semibold">Professional background</h2>
+            <p className="mt-1 text-sm text-muted-foreground">The experience and qualifications behind your profile.</p>
+          </div>
           <ResumeImportButton onImported={handleImported} />
         </div>
-        <SkillsSection key={`skills-${refreshKey}`} />
-        <CertificationsSection key={`certs-${refreshKey}`} />
-        <EducationSection key={`edu-${refreshKey}`} />
-      </div>
+        <CareerDisclosure id="skills" title="Skills" description="Your tools, strengths, and areas of expertise." icon={Code}>
+          <SkillsSection key={`skills-${refreshKey}`} />
+        </CareerDisclosure>
+        <CareerDisclosure id="certifications" title="Certifications" description="Professional credentials and expiry dates." icon={Award}>
+          <CertificationsSection key={`certs-${refreshKey}`} />
+        </CareerDisclosure>
+        <CareerDisclosure id="education" title="Education" description="Degrees, schools, and ongoing studies." icon={GraduationCap}>
+          <EducationSection key={`edu-${refreshKey}`} />
+        </CareerDisclosure>
+      </section>
 
-      {/* ── Portfolio & Presence ── */}
-      <div className="space-y-6">
-        <div className="border-t border-border pt-6">
-          <h2 className="db-headline text-xl font-semibold text-foreground mb-6">Portfolio & Presence</h2>
-          {/* GitHubSection uses useSearchParams — wrap in Suspense */}
-          <div className="space-y-6">
-            <Suspense fallback={
-              <div className="db-content-card flex items-center gap-2 text-xs text-muted-foreground py-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading GitHub…
-              </div>
-            }>
-              <GitHubSection />
-            </Suspense>
-            <ProjectsSection />
-            <LinkedInSection />
-            <PortfolioSettings />
-          </div>
+      <section aria-labelledby="portfolio-presence-heading" className="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div className="p-4 sm:p-5">
+          <h2 id="portfolio-presence-heading" className="db-headline text-xl font-semibold">Portfolio &amp; presence</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Showcase your work and choose what others can see.</p>
         </div>
-      </div>
+        <CareerDisclosure id="github" title="GitHub" description="Connect your account and choose repositories to showcase." icon={GitBranch}>
+          {/* GitHubSection uses useSearchParams — keep its Suspense boundary. */}
+          <Suspense fallback={
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading GitHub…
+            </div>
+          }>
+            <GitHubSection />
+          </Suspense>
+        </CareerDisclosure>
+        <CareerDisclosure id="projects" title="Projects" description="Highlight the work you want employers to discover." icon={FolderKanban}>
+          <ProjectsSection />
+        </CareerDisclosure>
+        <CareerDisclosure id="linkedin" title="LinkedIn" description="Your profile link and readiness checklist." icon={Link2}>
+          <LinkedInSection />
+        </CareerDisclosure>
+        <CareerDisclosure id="portfolio" title="Public portfolio" description="Manage your public address and profile visibility." icon={Globe}>
+          <PortfolioSettings />
+        </CareerDisclosure>
+      </section>
     </div>
   );
 }

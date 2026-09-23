@@ -2,9 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { ProfileClient } from "@/components/profile";
-import { DeveloperIdentity } from "@/components/profile/developer-identity";
-import { ReferralCard } from "@/components/profile/referral-card";
-import { ChatGptIntegration } from "@/components/profile/chatgpt-integration";
 import { WORK_AUTHORIZATION_OPTIONS, type WorkAuthorization } from "@/config";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +62,6 @@ export default async function ProfilePage() {
   )];
 
   return (
-    <>
     <ProfileClient
       user={{
         id: user.id,
@@ -97,20 +93,5 @@ export default async function ProfilePage() {
       }}
       pendingDeletion={pendingDeletion}
     />
-
-    <div className="mt-8">
-      <ChatGptIntegration />
-    </div>
-
-    {/* ── Developer Identity — skills, certifications, education ── */}
-    <div className="mt-8">
-      <DeveloperIdentity />
-    </div>
-
-    {/* ── Referral program ── */}
-    <div className="mt-8">
-      <ReferralCard />
-    </div>
-    </>
   );
 }

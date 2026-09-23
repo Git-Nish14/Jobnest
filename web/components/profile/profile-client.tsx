@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect, type MutableRefObject } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Loader2, User, Trash2, Check, ArrowLeft,
+  Loader2, Trash2, Check, ArrowLeft,
   Mail, Eye, EyeOff, ShieldAlert, RotateCcw, BrainCircuit, Bell,
-  Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck, Camera,
+  Shield, CalendarDays, KeyRound, AlertTriangle, BadgeCheck, Camera, ChevronDown, Gift,
 } from "lucide-react";
+import { ChatGptIntegration } from "./chatgpt-integration";
+import { DeveloperIdentity } from "./developer-identity";
+import { ReferralCard } from "./referral-card";
+import { ProfileNavigation, ProfilePanel, useProfileNavigation } from "./profile-navigation";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
 import { formatDate as fmtDate } from "@/lib/utils/date";
 import { createClient } from "@/lib/supabase/client";
@@ -78,10 +82,10 @@ function daysUntil(iso: string): number {
 
 function Callout({ type, children }: { type: "error" | "success"; children: React.ReactNode }) {
   return (
-    <div className={`flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-sm mb-4 ${
+    <div role={type === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-sm mb-4 ${
       type === "error"
         ? "bg-destructive/8 border border-destructive/20 text-destructive"
-        : "bg-emerald-50 border border-emerald-200 text-emerald-700"
+        : "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
     }`}>
       {type === "success" && <Check className="h-4 w-4 shrink-0 mt-0.5" />}
       <span>{children}</span>
@@ -98,7 +102,7 @@ function OtpRow({ values, refs, onChange, onKeyDown, onPaste, danger = false }: 
   danger?: boolean;
 }) {
   return (
-    <div className="flex gap-2">
+    <div className="grid max-w-[19rem] grid-cols-6 gap-1.5 sm:gap-2">
       {values.map((digit, i) => (
         <input
           key={i}
@@ -114,7 +118,7 @@ function OtpRow({ values, refs, onChange, onKeyDown, onPaste, danger = false }: 
           onPaste={onPaste}
           autoComplete="off"
           aria-label={`Digit ${i + 1}`}
-          className={`h-12 w-11 rounded-xl border-2 bg-background text-center text-lg font-semibold transition-all focus:outline-none focus:ring-0 ${
+          className={`h-12 w-full min-w-0 rounded-xl border-2 bg-background text-center text-lg font-semibold transition-all focus:outline-none focus:ring-0 ${
             danger
               ? `border-destructive/30 focus:border-destructive text-destructive ${digit ? "border-destructive/60" : ""}`
               : `border-border focus:border-primary ${digit ? "border-primary/60 bg-primary/5" : ""}`
@@ -146,6 +150,7 @@ function PwInput({ id, label, value, show, onToggle, onChange, onKeyDown }: {
 
 export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }: ProfileClientProps) {
   const router = useRouter();
+  const { section, anchor } = useProfileNavigation();
 
   // ── Display name ──────────────────────────────────────────────────────────
   const [displayName, setDisplayName] = useState(user.displayName);
@@ -666,236 +671,67 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
 
   const initial = (displayName || user.email).charAt(0).toUpperCase();
 
-  // ── Layout ────────────────────────────────────────────────────────────────
+  const providerLabels = user.oauthProviders.map((provider) =>
+    provider === "google" ? "Google" : provider === "github" ? "GitHub" : provider === "linkedin_oidc" ? "LinkedIn" : provider.charAt(0).toUpperCase() + provider.slice(1)
+  );
+  const signInMethod = [hasPw ? "Email & password" : null, ...providerLabels].filter(Boolean).join(" · ") || "Email";
 
   return (
-    <div className="max-w-5xl">
-
-      {/* Page title */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your profile, security and preferences</p>
-        <a href="#chatgpt" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">
-          Set up ChatGPT plugin
-        </a>
+    <div className="mx-auto max-w-5xl space-y-6 [&_[id]]:scroll-mt-48">
+      <header>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Your workspace</p>
+        <h1 className="db-page-title">Profile & settings</h1>
+        <p className="mt-2 text-sm text-muted-foreground">A little about you. Everything that makes Jobnest yours.</p>
+      </header>
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-card p-5 sm:gap-5 sm:p-6">
+        <div className="relative shrink-0">
+          <Avatar className="h-16 w-16 border border-border sm:h-18 sm:w-18">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || user.email} />}
+            <AvatarFallback className="bg-primary/10 text-2xl font-semibold text-primary">
+              {avatarUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : initial}
+            </AvatarFallback>
+          </Avatar>
+          <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} aria-label="Change profile photo"
+            className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50">
+            {avatarUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload profile photo" className="hidden" onChange={handleAvatarChange} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="wrap-break-word text-lg font-semibold tracking-tight">{displayName || user.email.split("@")[0]}</p>
+          <p className="mt-0.5 break-all text-sm text-muted-foreground">{user.email}</p>
+          {avatarError && <p role="alert" className="mt-1.5 text-xs text-destructive">{avatarError}</p>}
+        </div>
+        <p className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex"><CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> Joined {formatDate(user.createdAt)}</p>
       </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-
-        {/* ── Left sidebar ──────────────────────────────────────────────── */}
-        <aside className="w-full lg:w-67 shrink-0">
-          <div className="lg:sticky lg:top-6 space-y-4">
-
-            {/* Profile card */}
-            <Card className="overflow-hidden shadow-sm">
-              <div className="h-20 bg-linear-to-br from-primary/30 via-primary/12 to-transparent" />
-              <CardContent className="px-5 pb-5 -mt-10">
-                {/* Avatar with upload overlay */}
-                <div className="relative group w-fit">
-                  <Avatar className="h-18 w-18 border-4 border-background shadow-md">
-                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || user.email} />}
-                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-bold">
-                      {avatarUploading
-                        ? <Loader2 className="h-6 w-6 animate-spin text-primary-foreground" />
-                        : initial}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  {/* Camera button overlay */}
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={avatarUploading}
-                    aria-label="Change profile photo"
-                    className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150 disabled:cursor-not-allowed"
-                  >
-                    {avatarUploading
-                      ? <Loader2 className="h-5 w-5 text-white animate-spin" />
-                      : <Camera className="h-5 w-5 text-white" />}
-                  </button>
-
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    aria-label="Upload profile photo"
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                  />
-                </div>
-
-                {avatarError && (
-                  <p className="text-xs text-destructive mt-1.5">{avatarError}</p>
-                )}
-
-                <div className="mt-3 min-w-0">
-                  <p className="font-bold text-base leading-tight wrap-break-word">
-                    {displayName || user.email.split("@")[0]}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5 break-all">{user.email}</p>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Free plan
-                  </span>
-                  {workAuth && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300">
-                      <BadgeCheck className="h-3 w-3 shrink-0" />
-                      {workAuth}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-4 pt-4 border-t space-y-3">
-                  {(() => {
-                    const providerLabels = user.oauthProviders.map((p) =>
-                      p === "google" ? "Google" : p === "github" ? "GitHub" : p === "linkedin_oidc" ? "LinkedIn" : p.charAt(0).toUpperCase() + p.slice(1)
-                    );
-                    const authMethod = hasPw && providerLabels.length > 0
-                      ? `Email + ${providerLabels.join(" + ")}`
-                      : hasPw
-                      ? "Email / Password"
-                      : providerLabels.length > 0
-                      ? providerLabels.join(" + ")
-                      : "Email";
-                    return [
-                      { icon: CalendarDays, label: "Joined", value: formatDate(user.createdAt) },
-                      {
-                        icon: KeyRound,
-                        label: hasPw ? "Password last changed" : "Sign in",
-                        value: hasPw
-                          ? (passwordChangedAt ? formatDate(passwordChangedAt) : "Set at signup")
-                          : "No password set",
-                      },
-                      { icon: Shield, label: "Auth method", value: authMethod },
-                    ];
-                  })().map(({ icon: Icon, label, value }) => (
-                    <div key={label} className="flex items-start gap-2.5">
-                      <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium leading-none">{label}</p>
-                        <p className="text-sm font-medium mt-1 wrap-break-word">{value}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick nav — desktop only */}
-            <nav className="hidden lg:block rounded-xl border bg-card shadow-sm overflow-hidden">
-              {[
-                {
-                  group: "Profile",
-                  items: [
-                    { label: "Display Name",   href: "#display-name",  icon: User },
-                    { label: "About You",       href: "#about",         icon: User },
-                    { label: "NESTAi Context",  href: "#nestai",        icon: BrainCircuit },
-                  ],
-                },
-                {
-                  group: "Career",
-                  items: [
-                    { label: "Work Authorization", href: "#work-authorization", icon: BadgeCheck },
-                  ],
-                },
-                {
-                  group: "Preferences",
-                  items: [
-                    { label: "Job Search Goals", href: "#goals",         icon: CalendarDays },
-                    { label: "Notifications",    href: "#notifications", icon: Bell },
-                  ],
-                },
-                {
-                  group: "Security",
-                  items: [
-                    { label: hasPw ? "Change Password" : "Set Password", href: "#password", icon: Shield },
-                    { label: "Danger Zone", href: "#danger", icon: AlertTriangle, danger: true },
-                  ],
-                },
-              ].map(({ group, items }) => (
-                <div key={group}>
-                  <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-semibold px-4 pt-3 pb-1">
-                    {group}
-                  </p>
-                  {items.map(({ label, href, icon: Icon, danger }) => (
-                    <a key={href} href={href}
-                      className={`flex items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-muted/60 border-t border-border/30 ${
-                        danger ? "text-destructive/80 hover:text-destructive" : "text-muted-foreground hover:text-foreground"
-                      }`}>
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
-                      {label}
-                    </a>
-                  ))}
-                </div>
-              ))}
-            </nav>
-
-          </div>
-        </aside>
-
-        {/* ── Right content ─────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0 space-y-8">
-
-          {/* ═══ Profile group ═══════════════════════════════════════════ */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
-              <div className="flex-1 h-px bg-border/60" />
-            </div>
-
-          {/* Display Name */}
-          <Card id="display-name" className="shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <User className="h-3.5 w-3.5" />
-                </div>
-                Display Name
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">
-                How your name appears across the app — set during onboarding.
-                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">display_name</code> in your account.
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4">
+      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm sm:top-16">
+        <ProfileNavigation section={section} />
+      </div>
+      <ProfilePanel id="profile" active={section} title="Personal details" description="Manage how you appear across Jobnest.">
+        <Card className="overflow-hidden shadow-none">
+          <CardContent className="p-5 sm:p-6">
+            <div id="display-name" className="max-w-xl">
+              <Label htmlFor="displayName">Display name</Label>
+              <p className="mb-3 mt-1.5 text-xs text-muted-foreground">The name you use across Jobnest.</p>
               {nameError && <Callout type="error">{nameError}</Callout>}
               {nameSuccess && <Callout type="success">Display name updated successfully.</Callout>}
               <div className="flex gap-3">
                 <Input id="displayName" value={nameInput} onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Your display name" maxLength={64} className="flex-1" />
-                <Button onClick={handleNameSave} disabled={nameSaving || nameInput === displayName} className="shrink-0">
+                  placeholder="Your display name" maxLength={64} className="min-w-0 flex-1" />
+                <Button onClick={handleNameSave} disabled={nameSaving || nameInput === displayName} className="shrink-0" aria-label="Save display name">
                   {nameSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   <span className="ml-1.5 hidden sm:inline">Save</span>
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">Leave blank to use the first part of your email address.</p>
-            </CardContent>
-          </Card>
-
-          {/* About You — profile bio from onboarding */}
-          <Card id="about" className="shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <User className="h-3.5 w-3.5" />
-                </div>
-                About You
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">
-                Your profile bio — shown on your account and filled in during onboarding.
-                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">about_me</code> in your account.
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4">
+            </div>
+            <div id="about" className="mt-6 border-t pt-6">
+              <Label htmlFor="aboutMe">About you</Label>
+              <p id="about-description" className="mb-3 mt-1.5 text-xs text-muted-foreground">A short introduction to your experience and the work you’re looking for.</p>
               {aboutMeError && <Callout type="error">{aboutMeError}</Callout>}
               {aboutMeSuccess && <Callout type="success">Bio updated.</Callout>}
               <textarea
-                id="aboutMe"
+                id="aboutMe" aria-describedby="about-description"
                 value={aboutMeInput}
                 onChange={(e) => setAboutMeInput(e.target.value)}
                 maxLength={2000}
@@ -907,62 +743,59 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                 <p className="text-xs text-muted-foreground">{aboutMeInput.length} / 2000</p>
                 <Button onClick={handleAboutMeSave} disabled={aboutMeSaving || aboutMeInput === user.aboutMe} size="sm">
                   {aboutMeSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save
+                  Save bio
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* NESTAi Context — inside Profile group */}
-          <Card id="nestai" className="shadow-sm">
+            </div>
+          </CardContent>
+        </Card>
+      </ProfilePanel>
+      <ProfilePanel id="career" active={section} title="Your career" description="Set your job search goals and keep your professional background up to date.">
+        <div className="grid gap-5 md:grid-cols-2">
+          <Card id="goals" className="min-w-0 shadow-none">
             <CardHeader className="pb-0">
               <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
-                  <BrainCircuit className="h-3.5 w-3.5" />
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <CalendarDays className="h-3.5 w-3.5" />
                 </div>
-                NESTAi Context
+                Job Search Goals
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1 ml-9">
-                Custom instructions injected into every NESTAi conversation — separate from your bio above.
-                If blank, NESTAi falls back to your About You bio.
-                Saved as <code className="text-[10px] bg-muted rounded px-1 py-0.5">nestai_context</code> in your account.
+                Set your weekly application target — shown on the dashboard
               </p>
             </CardHeader>
-            <CardContent className="pt-4">
-              {nestaiError && <Callout type="error">{nestaiError}</Callout>}
-              {nestaiSuccess && <Callout type="success">Saved — NESTAi will use this in every conversation.</Callout>}
-              <textarea
-                id="nestaiContext"
-                value={nestaiInput}
-                onChange={(e) => setNestaiInput(e.target.value)}
-                maxLength={2000}
-                rows={4}
-                placeholder="e.g. I am applying to senior frontend roles. Always refer to me by first name. Focus on React, TypeScript, and system design when reviewing my materials."
-                className="w-full rounded-xl border bg-muted/20 px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none transition-shadow"
-              />
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{nestaiInput.length} / 2000</p>
-                <Button onClick={handleNestaiSave} disabled={nestaiSaving || nestaiInput === user.nestaiContext} size="sm">
-                  {nestaiSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Context
-                </Button>
+            <CardContent className="pt-4 space-y-4">
+              {goalError   && <Callout type="error">{goalError}</Callout>}
+              {goalSuccess  && <Callout type="success">Weekly goal saved.</Callout>}
+              <div className="flex items-end gap-3">
+                <div className="space-y-1.5 min-w-0 flex-1 max-w-40">
+                  <Label htmlFor="weekly-goal">Applications per week</Label>
+                  <Input
+                    id="weekly-goal"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={goalDraft}
+                    onChange={(e) => { setGoalDraft(e.target.value); setGoalError(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleGoalSave(); }}
+                    className="w-full"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground pb-2">applications / week</p>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Your goal stays in sync with your dashboard.
+              </p>
+              <Button onClick={handleGoalSave} disabled={goalSaving} size="sm">
+                {goalSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Goal
+              </Button>
             </CardContent>
           </Card>
-
-          </div>{/* end Profile group */}
-
-          {/* ═══ Career group ════════════════════════════════════════════ */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Career</p>
-              <div className="flex-1 h-px bg-border/60" />
-            </div>
-
-          <Card id="work-authorization" className="shadow-sm">
+          <Card id="work-authorization" className="min-w-0 shadow-none">
             <CardHeader className="pb-0">
               <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <BadgeCheck className="h-3.5 w-3.5" />
                 </div>
                 Work Authorization
@@ -979,8 +812,8 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                   value={workAuth ?? ""}
                   onValueChange={(v) => setWorkAuth((v || null) as WorkAuthorization | null)}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select your work authorization status…" />
+                  <SelectTrigger className="w-full min-w-0 [&>span]:min-w-0 [&>span]:truncate" aria-label="Work authorization status">
+                    <SelectValue placeholder="Select your status…" />
                   </SelectTrigger>
                   <SelectContent>
                     {WORK_AUTHORIZATION_OPTIONS.map((opt) => (
@@ -1004,7 +837,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                     </label>
                   </div>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">Stored only in your account — never shared publicly.</p>
                   <Button onClick={handleWorkAuthSave} disabled={workAuthSaving} size="sm">
                     {workAuthSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1014,125 +847,99 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
               </div>
             </CardContent>
           </Card>
-          </div>{/* end Career group */}
-
-          {/* ═══ Preferences group ═══════════════════════════════════════ */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Preferences</p>
-              <div className="flex-1 h-px bg-border/60" />
-            </div>
-
-          {/* Job Search Goals */}
-          <Card id="goals" className="shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                </div>
-                Job Search Goals
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">
-                Set your weekly application target — shown on the dashboard
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              {goalError   && <Callout type="error">{goalError}</Callout>}
-              {goalSuccess  && <Callout type="success">Weekly goal saved.</Callout>}
-              <div className="flex items-end gap-3">
-                <div className="space-y-1.5 flex-1 max-w-40">
-                  <Label htmlFor="weekly-goal">Applications per week</Label>
-                  <Input
-                    id="weekly-goal"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={goalDraft}
-                    onChange={(e) => { setGoalDraft(e.target.value); setGoalError(null); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleGoalSave(); }}
-                    className="w-full"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground pb-2">applications / week</p>
+        </div>
+        <DeveloperIdentity />
+      </ProfilePanel>
+      <ProfilePanel id="integrations" active={section} title="Connected tools" description="Connect ChatGPT and personalize the help you get from NESTAi.">
+        <ChatGptIntegration />
+        <Card id="nestai" className="shadow-none">
+          <CardHeader className="pb-0">
+            <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <BrainCircuit className="h-3.5 w-3.5" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                You can also edit this inline on the dashboard&nbsp;Weekly&nbsp;Cadence widget.
-                Changes sync across devices.
-              </p>
-              <Button onClick={handleGoalSave} disabled={goalSaving} size="sm">
-                {goalSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Goal
+              NESTAi preferences
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 ml-9">
+              Tell NESTAi how to help with your job search. Leave this blank to use your profile bio.
+            </p>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {nestaiError && <Callout type="error">{nestaiError}</Callout>}
+            {nestaiSuccess && <Callout type="success">Saved — NESTAi will use this in every conversation.</Callout>}
+            <textarea
+              id="nestaiContext" aria-label="NESTAi instructions"
+              value={nestaiInput}
+              onChange={(e) => setNestaiInput(e.target.value)}
+              maxLength={2000}
+              rows={4}
+              placeholder="e.g. I am applying to senior frontend roles. Always refer to me by first name. Focus on React, TypeScript, and system design when reviewing my materials."
+              className="w-full rounded-xl border bg-muted/20 px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none transition-shadow"
+            />
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{nestaiInput.length} / 2000</p>
+              <Button onClick={handleNestaiSave} disabled={nestaiSaving || nestaiInput === user.nestaiContext} size="sm">
+                {nestaiSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Context
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Notifications */}
-          <Card id="notifications" className="shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <Bell className="h-3.5 w-3.5" />
-                </div>
-                Notifications
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">Choose which emails Jobnest sends you</p>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {notifError && <Callout type="error">{notifError}</Callout>}
-              {notifSuccess && <Callout type="success">Preferences saved.</Callout>}
-              <div className="divide-y">
-                {([
-                  { key: "overdueReminders" as const, label: "Overdue reminder alerts", description: "Email me when follow-up reminders are overdue" },
-                  { key: "weeklyDigest" as const, label: "Weekly digest", description: "Applications, upcoming interviews, and overdue reminders" },
-                  { key: "reEngagementEmails" as const, label: "Re-engagement emails", description: "Remind me to check in if I haven't logged in for 14+ days" },
-                ]).map(({ key, label, description }) => (
-                  <label key={key} className="flex items-center justify-between gap-4 py-3.5 cursor-pointer">
-                    <div>
-                      <p className="text-sm font-medium">{label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-                    </div>
-                    <div className="relative shrink-0">
-                      <input type="checkbox" className="peer sr-only" checked={notifPrefs[key]}
-                        onChange={(e) => setNotifPrefs((p) => ({ ...p, [key]: e.target.checked }))} />
-                      <div className="h-6 w-11 rounded-full border-2 border-input bg-muted transition-colors peer-checked:bg-primary peer-checked:border-primary" />
-                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white dark:bg-[#ccff00] shadow-sm transition-transform peer-checked:translate-x-5" />
-                    </div>
-                  </label>
-                ))}
-              </div>
-              <div className="pt-4">
-                <Button onClick={handleNotifSave} disabled={notifSaving} size="sm">
-                  {notifSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Preferences
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          </div>{/* end Preferences group */}
-
-          {/* ═══ Security group ══════════════════════════════════════════ */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Security</p>
-              <div className="flex-1 h-px bg-border/60" />
             </div>
-
-          {/* Password */}
-          <Card id="password" className="shadow-sm">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
-                <div className="h-7 w-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <Shield className="h-3.5 w-3.5" />
-                </div>
-                {hasPw ? "Change Password" : "Set Password"}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">
-                {hasPw ? "Update your password — you'll verify your email with a one-time code" : "Add a password to also sign in with email"}
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {pwSuccess ? (
+          </CardContent>
+        </Card>
+      </ProfilePanel>
+      <ProfilePanel id="account" active={section} title="Account preferences" description="Choose how you hear from us and manage your account.">
+        <Card id="notifications" className="shadow-none">
+          <CardHeader className="pb-0">
+            <CardTitle className="flex items-center gap-2.5 text-sm font-semibold">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Bell className="h-3.5 w-3.5" />
+              </div>
+              Notifications
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1 ml-9">Choose which emails Jobnest sends you</p>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {notifError && <Callout type="error">{notifError}</Callout>}
+            {notifSuccess && <Callout type="success">Preferences saved.</Callout>}
+            <div className="divide-y">
+              {([
+                { key: "overdueReminders" as const, label: "Overdue reminder alerts", description: "Email me when follow-up reminders are overdue" },
+                { key: "weeklyDigest" as const, label: "Weekly digest", description: "Applications, upcoming interviews, and overdue reminders" },
+                { key: "reEngagementEmails" as const, label: "Re-engagement emails", description: "Remind me to check in if I haven't logged in for 14+ days" },
+              ]).map(({ key, label, description }) => (
+                <label key={key} className="flex items-center justify-between gap-4 py-3.5 cursor-pointer">
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                  </div>
+                  <div className="relative shrink-0">
+                    <input type="checkbox" role="switch" aria-label={label} className="peer sr-only" checked={notifPrefs[key]}
+                      onChange={(e) => setNotifPrefs((p) => ({ ...p, [key]: e.target.checked }))} />
+                    <div className="h-6 w-11 rounded-full border-2 border-input bg-muted transition-colors peer-checked:bg-primary peer-checked:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-background peer-checked:bg-primary-foreground shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="pt-4">
+              <Button onClick={handleNotifSave} disabled={notifSaving} size="sm">
+                {notifSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Preferences
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <details id="password" open={anchor === "password"} className="group/password rounded-xl border bg-card">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-5 [&::-webkit-details-marker]:hidden sm:p-6">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><KeyRound className="h-4 w-4" aria-hidden="true" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Password & sign-in</span><span className="mt-1 block text-xs text-muted-foreground">{signInMethod}</span></span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open/password:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="space-y-4 border-t p-5 sm:p-6">
+            <div>
+              <h3 className="text-sm font-semibold">{hasPw ? "Change password" : "Set a password"}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{hasPw ? `Last changed: ${passwordChangedAt ? formatDate(passwordChangedAt) : "set at signup"}. Verify your email to update it.` : "Add a password to also sign in with your email."}</p>
+            </div>
+            {pwSuccess ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
@@ -1263,27 +1070,24 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Danger Zone */}
-          <Card id="danger" className={`shadow-sm border-l-4 ${pendingDeletion ? "border-l-orange-400" : "border-l-destructive/50"}`}>
-            <CardHeader className="pb-0">
-              <CardTitle className={`flex items-center gap-2.5 text-sm font-semibold ${pendingDeletion ? "text-orange-700" : "text-destructive"}`}>
-                <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${pendingDeletion ? "bg-orange-50 text-orange-600" : "bg-destructive/10 text-destructive"}`}>
-                  {pendingDeletion ? <ShieldAlert className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-                </div>
-                Danger Zone
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">
-                {pendingDeletion
-                  ? `Deletion on ${formatDate(pendingDeletion.scheduled_deletion_at)} — ${daysUntil(pendingDeletion.scheduled_deletion_at)} days remaining`
-                  : "Permanently remove your account and all data after a 30-day grace period"}
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4">
-
-              {pendingDeletion && (
+          </div>
+        </details>
+        <details id="referrals" open={anchor === "referrals"} className="group/referrals rounded-xl border bg-card">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-5 [&::-webkit-details-marker]:hidden sm:p-6">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Gift className="h-4 w-4" aria-hidden="true" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Refer a friend</span><span className="mt-1 block text-xs text-muted-foreground">Your invite link and referral rewards</span></span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open/referrals:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="border-t [&>.db-content-card]:border-0 [&>.db-content-card]:bg-transparent [&>.db-content-card]:shadow-none"><ReferralCard /></div>
+        </details>
+        <details id="danger" open={anchor === "danger" || Boolean(pendingDeletion)} className="group/danger rounded-xl border border-destructive/20 bg-card">
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-5 [&::-webkit-details-marker]:hidden sm:p-6">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive"><AlertTriangle className="h-4 w-4" aria-hidden="true" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-destructive">{pendingDeletion ? "Account deletion scheduled" : "Delete account"}</span><span className="mt-1 block text-xs text-muted-foreground">{pendingDeletion ? `Scheduled for ${formatDate(pendingDeletion.scheduled_deletion_at)} · ${daysUntil(pendingDeletion.scheduled_deletion_at)} days remaining` : "Permanently remove your account and data"}</span></span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open/danger:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="border-t p-5 sm:p-6">
+            {pendingDeletion && (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-4">
                     <div className="flex items-start gap-3">
@@ -1378,12 +1182,9 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
-          </div>{/* end Security group */}
-
-        </div>
-      </div>
+          </div>
+        </details>
+      </ProfilePanel>
     </div>
   );
 }
