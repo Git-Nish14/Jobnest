@@ -103,6 +103,7 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 - [x] Add a copyable `@Jobnest` folder/project instruction and tell users to place it above all other instructions.
 - [x] Show reconnect troubleshooting steps with removal/re-add fallback and both required action names.
 - [x] Redesign the ChatGPT integration card around connection health, the everyday JOBNEST workflow, guided setup, and focused help disclosures with responsive layouts.
+- [x] Place expanded setup directly below the connection controls and move keyboard focus/scroll to it while respecting reduced-motion preferences.
 - [x] Remove abandoned custom GPT/OpenAPI/API-key UI.
 - [ ] Check responsive layout, labels, keyboard controls, and clipboard failure feedback.
 

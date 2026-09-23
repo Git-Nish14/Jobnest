@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { BriefcaseBusiness, CheckCircle2, ChevronDown, Copy, ExternalLink, FileText, FolderOpen, HelpCircle, Link2, Loader2, MessageSquare, RefreshCw, Search, Settings2, ShieldCheck, Unplug } from "lucide-react";
@@ -34,6 +34,7 @@ export function ChatGptIntegration() {
   const mutationInFlight = useRef(false);
   const urlInput = useRef<HTMLInputElement>(null);
   const folderInstructionInput = useRef<HTMLTextAreaElement>(null);
+  const setupGuide = useRef<HTMLElement>(null);
 
   async function loadCredential(signal?: AbortSignal) {
     try {
@@ -120,6 +121,21 @@ export function ChatGptIntegration() {
     void loadCredential();
   }
 
+  function toggleSetupGuide() {
+    const opening = !setupOpen;
+    setSetupOpen(opening);
+    if (!opening) return;
+    window.requestAnimationFrame(() => {
+      const guide = setupGuide.current;
+      if (!guide || guide.hidden) return;
+      guide.focus({ preventScroll: true });
+      guide.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  }
+
   const connected = loaded && Boolean(credential) && !expired;
   const connectionLabel = loading
     ? "Checking connection"
@@ -183,7 +199,7 @@ export function ChatGptIntegration() {
               className="shrink-0 self-start sm:self-center"
               aria-expanded={setupOpen}
               aria-controls="chatgpt-setup-guide"
-              onClick={() => setSetupOpen(!setupOpen)}
+              onClick={toggleSetupGuide}
             >
               {setupOpen ? "Close setup" : connected ? "View setup" : credential ? "Reconnect" : "Connect ChatGPT"}
               <ChevronDown className={`transition-transform ${setupOpen ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -235,40 +251,11 @@ export function ChatGptIntegration() {
           </div>
         )}
 
-        <section aria-labelledby="chatgpt-workflow-heading" className="space-y-3">
-          <div className="space-y-1">
-            <h4 id="chatgpt-workflow-heading" className="text-sm font-semibold">Your everyday workflow</h4>
-            <p className="text-sm text-muted-foreground">Keep working in ChatGPT. Jobnest acts only after the final trigger.</p>
-          </div>
-          <ol className="grid gap-3 sm:grid-cols-3">
-            <li className="relative rounded-xl border bg-muted/20 p-4">
-              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><FileText className="h-4 w-4" aria-hidden="true" /></span>
-              <p className="text-sm font-semibold">1. Tailor</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Discuss the job and prepare your tailored resume in ChatGPT.</p>
-            </li>
-            <li className="relative rounded-xl border bg-muted/20 p-4">
-              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><BriefcaseBusiness className="h-4 w-4" aria-hidden="true" /></span>
-              <p className="text-sm font-semibold">2. Apply</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Submit the application through the employer or job platform.</p>
-            </li>
-            <li className="relative overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.06] p-4">
-              <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
-              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm"><MessageSquare className="h-4 w-4" aria-hidden="true" /></span>
-              <p className="text-sm font-semibold">3. Type JOBNEST</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">ChatGPT checks for a match, fills verified details, and saves the application.</p>
-            </li>
-          </ol>
-          <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-            Nothing is researched, checked, or saved before you type <strong className="font-semibold text-foreground">JOBNEST</strong>. It means you already applied, so ChatGPT uses today&apos;s date without asking again.
-          </div>
-        </section>
-
-        <section id="chatgpt-setup-guide" aria-labelledby="chatgpt-setup-heading" className="overflow-hidden rounded-xl border" hidden={!setupOpen}>
-          <div className="border-b bg-muted/20 px-4 py-4 sm:px-5">
+        <section ref={setupGuide} id="chatgpt-setup-guide" aria-labelledby="chatgpt-setup-heading" tabIndex={-1} className="scroll-mt-6 overflow-hidden rounded-xl border border-primary/20 shadow-sm outline-none" hidden={!setupOpen}>
+          <div className="border-b bg-primary/[0.05] px-4 py-4 sm:px-5">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <h4 id="chatgpt-setup-heading" className="text-sm font-semibold">Connect ChatGPT to Jobnest</h4>
+                <h4 id="chatgpt-setup-heading" className="flex items-center gap-2 text-sm font-semibold"><Settings2 className="h-4 w-4 text-primary" aria-hidden="true" /> Connect ChatGPT to Jobnest</h4>
                 <p className="text-xs leading-relaxed text-muted-foreground">Three steps · secure OAuth sign-in · no API key</p>
               </div>
               <span className="rounded-full border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">About 2 min</span>
@@ -328,6 +315,35 @@ export function ChatGptIntegration() {
             <a href="https://developers.openai.com/plugins/quickstart" target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Open plugin setup guide <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
+          </div>
+        </section>
+
+        <section aria-labelledby="chatgpt-workflow-heading" className="space-y-3">
+          <div className="space-y-1">
+            <h4 id="chatgpt-workflow-heading" className="text-sm font-semibold">Your everyday workflow</h4>
+            <p className="text-sm text-muted-foreground">Keep working in ChatGPT. Jobnest acts only after the final trigger.</p>
+          </div>
+          <ol className="grid gap-3 sm:grid-cols-3">
+            <li className="relative rounded-xl border bg-muted/20 p-4">
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><FileText className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">1. Tailor</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Discuss the job and prepare your tailored resume in ChatGPT.</p>
+            </li>
+            <li className="relative rounded-xl border bg-muted/20 p-4">
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><BriefcaseBusiness className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">2. Apply</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Submit the application through the employer or job platform.</p>
+            </li>
+            <li className="relative overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.06] p-4">
+              <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm"><MessageSquare className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">3. Type JOBNEST</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">ChatGPT checks for a match, fills verified details, and saves the application.</p>
+            </li>
+          </ol>
+          <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            Nothing is researched, checked, or saved before you type <strong className="font-semibold text-foreground">JOBNEST</strong>. It means you already applied, so ChatGPT uses today&apos;s date without asking again.
           </div>
         </section>
 
