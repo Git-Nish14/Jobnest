@@ -49,6 +49,7 @@ describe("ChatGPT save authentication and account boundary", () => {
       p_content_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
       p_application: {
         company: "Acme", position: "Engineer", applied_date: "2026-09-21", status: "Applied",
+        job_url: job.job_url,
         job_description: job.job_description,
       },
     });
@@ -70,7 +71,7 @@ describe("ChatGPT save validation, retries and errors", () => {
     { ...job, user_id: "someone-else" }, { ...job, unexpected: true },
     { ...job, company: " " }, { ...job, company: "x".repeat(256) },
     { ...job, applied_date: "2026-02-30" }, { ...job, applied_date: "September 21" },
-    { ...job, job_url: "javascript:alert(1)" }, { ...job, status: "Invented" },
+    { ...job, job_url: "javascript:alert(1)" }, { ...job, job_url: undefined }, { ...job, status: "Invented" },
     { ...job, job_description: " " },
   ])("rejects invalid or owner-injecting arguments", async (body) => {
     expect((await POST(saveRequest(body))).status).toBe(422);
@@ -93,7 +94,7 @@ describe("ChatGPT save validation, retries and errors", () => {
     await POST(saveRequest(job));
     await POST(saveRequest({
       position: " Engineer ", company: " Acme ", applied_date: job.applied_date, status: "Applied",
-      request_id: "second-id", job_description: ` ${job.job_description} `,
+      request_id: "second-id", job_url: ` ${job.job_url} `, job_description: ` ${job.job_description} `,
     }));
     expect(admin.rpc.mock.calls[0][1].p_content_hash).toBe(admin.rpc.mock.calls[1][1].p_content_hash);
   });

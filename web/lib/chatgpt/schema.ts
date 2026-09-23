@@ -11,7 +11,7 @@ export const chatGptApplicationSchema = z.object({
   status: z.enum(APPLICATION_STATUSES).default("Applied"),
   job_id: z.string().trim().max(100).optional().describe("The employer requisition or posting ID, if shown."),
   job_url: z.string().trim().max(2083).url().refine((value) => /^https?:\/\//i.test(value), "Only HTTP or HTTPS job URLs are allowed.")
-    .optional().describe("The plain HTTP or HTTPS job-posting URL. Send the URL itself, never Markdown link syntax."),
+    .describe("Required for every save. Use the plain HTTP or HTTPS job-posting URL from anywhere in the conversation. If it is unavailable, ask the user to provide it before saving. Send the URL itself, never Markdown link syntax."),
   salary_range: z.string().trim().max(100).optional().describe("Compensation exactly as known, including currency and hourly, monthly, or yearly cadence."),
   location: z.string().trim().max(255).optional().describe("Known job location and work arrangement, such as Remote, Hybrid, or On-site."),
   notes: z.string().trim().max(5000).optional().describe("Useful application details without dedicated fields, such as employment type, weekly hours, deadline, recruiter, team, benefits, work authorization or no-sponsorship statement, and application context. Do not include a resume, credentials, or unrelated personal information."),

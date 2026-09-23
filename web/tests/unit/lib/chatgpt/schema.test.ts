@@ -5,6 +5,7 @@ import { safeAuthRedirect } from "@/lib/auth/redirect";
 
 const validJob = {
   request_id: "save-1", company: "Acme", position: "Engineer", applied_date: "2026-09-22",
+  job_url: "https://acme.example.com/jobs/engineer",
   job_description: "Build and maintain Acme's software products.",
 };
 
@@ -34,6 +35,11 @@ describe("ChatGPT job validation", () => {
       ...withoutDescription,
       job_description: "Generated from conversation: Front-end role using React and TypeScript in a hybrid New York team.",
     }).success).toBe(true);
+  });
+  it("requires a plain HTTP(S) job URL", () => {
+    const { job_url: _url, ...withoutUrl } = validJob;
+    expect(chatGptApplicationSchema.safeParse(withoutUrl).success).toBe(false);
+    expect(chatGptApplicationSchema.safeParse({ ...withoutUrl, job_url: "https://jobs.example.com/123" }).success).toBe(true);
   });
   it("accepts every user-editable application detail available to the plugin", () => {
     const parsed = chatGptApplicationSchema.parse({

@@ -53,11 +53,12 @@ describe("ChatGPT MCP transport", () => {
       name: "save_job_application",
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       securitySchemes: [{ type: "oauth2", scopes: ["applications:write"] }],
-      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "job_description"] },
+      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "job_url", "job_description"] },
     });
     expect(result.tools[0].inputSchema.properties.user_id).toBeUndefined();
     expect(result.tools[0].inputSchema.properties.job_description.description).toContain("complete job-description text");
     expect(result.tools[0].inputSchema.properties.job_description.description).toContain("Required for every save");
+    expect(result.tools[0].inputSchema.properties.job_url.description).toContain("ask the user to provide it");
     expect(result.tools[0].inputSchema.properties.applied_date.description).toContain("Do not ask for the date");
     expect(result.tools[0].inputSchema.properties).toEqual(expect.objectContaining({
       ats_provider: expect.any(Object),

@@ -229,7 +229,7 @@ export function ChatGptIntegration() {
             <p className="text-muted-foreground">Use this folder instruction because the plugin may not remain available in folder chats unless <strong>@Jobnest</strong> is included in the instructions.</p>
           </li>
           <li className="space-y-2 pl-1">
-            <p><strong>Save your next application.</strong> In a normal conversation, add Jobnest from the tools menu or select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will fill every supported detail it can, attach the job description, and save with today&apos;s date.</p>
+            <p><strong>Save your next application.</strong> In a normal conversation, add Jobnest from the tools menu or select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will fill every supported detail it can, attach the job URL and description, and save with today&apos;s date. If the posting URL is not in the chat, ChatGPT will ask you to provide it before saving.</p>
             <p className="text-muted-foreground">Approve the ChatGPT save prompt and wait for the saved Jobnest link. If ChatGPT says the conversation does not permit the action, enable Jobnest for that conversation and check its Actions/App permissions. Use Refresh status above to check your last successful save.</p>
           </li>
         </ol>
