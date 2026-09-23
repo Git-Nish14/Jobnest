@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { ApiError, zodErrorToApiError } from "@/lib/api/errors";
-import { chatGptApplicationSchema } from "@/lib/chatgpt/schema";
+import { chatGptApplicationSchema, type ChatGptApplication } from "@/lib/chatgpt/schema";
 import {
   chatGptError,
   chatGptJson,
@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type SaveResult = {
-  application?: { id: string; company: string; position: string; status: string; applied_date: string };
+  application?: { id: string } & Omit<ChatGptApplication, "request_id">;
   duplicate?: boolean;
   error?: string;
 };

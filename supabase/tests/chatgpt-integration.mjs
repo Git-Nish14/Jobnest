@@ -43,7 +43,14 @@ async function approvedCode(label, owner = alice) {
 const exchange = (codeHash, overrides = {}) => rpc("exchange_chatgpt_oauth_code", codeHash,
   overrides.client ?? client, overrides.callback ?? callback, overrides.resource ?? resource,
   overrides.challenge ?? challenge, hash(overrides.token ?? "alice-token"), "jobnest_abcdef0");
-const job = { company: "Acme", position: "Engineer", applied_date: "2026-09-22", status: "Applied", notes: "Applied after tailoring resume" };
+const job = {
+  company: "Acme", position: "Engineer", applied_date: "2026-09-22", status: "Applied",
+  job_id: "REQ-42", job_url: "https://acme.example.com/jobs/42", salary_range: "$30-40/hr",
+  location: "New York, NY (Hybrid)", notes: "Part-time, 20 hours/week. No sponsorship available.",
+  job_description: "Complete responsibilities, qualifications, skills, benefits, and schedule.",
+  source: "Handshake", ats_provider: "Workday", requires_sponsorship: true,
+  company_tier: "Startup", glassdoor_rating: 4.2,
+};
 const save = (token, requestId, details = job, audience = resource) => rpc("save_chatgpt_application",
   hash(token), audience, requestId, hash(JSON.stringify(details)), JSON.stringify(details));
 
@@ -56,15 +63,17 @@ try {
     create table auth.users (id uuid primary key, banned_until timestamptz, deleted_at timestamptz);
     create table public.pending_deletions (id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id), cancelled_at timestamptz, deleted_at timestamptz);
     create type public.application_status as enum ('Applied','Phone Screen','Interview','Offer','Rejected','Withdrawn','Ghosted');
+    create type public.company_tier as enum ('FAANG','Tier 1','Tier 2','Tier 3','Startup');
     create table public.job_applications (
       id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade,
       company varchar(255) not null, position varchar(255) not null, status public.application_status not null,
       applied_date date not null, job_id varchar(100), job_url text, salary_range varchar(100), location varchar(255),
-      notes text, job_description text, source text, created_at timestamptz default now()
+      notes text, job_description text, source text, ats_provider text, requires_sponsorship boolean not null default false,
+      company_tier public.company_tier, glassdoor_rating numeric(3,1), created_at timestamptz default now()
     );
   `);
-  await test("migrations 51 and 52 execute unchanged", async () => {
-    for (const filename of ["20240101000051_chatgpt_integration.sql", "20240101000052_chatgpt_oauth.sql"]) {
+  await test("migrations 51 through 53 execute unchanged", async () => {
+    for (const filename of ["20240101000051_chatgpt_integration.sql", "20240101000052_chatgpt_oauth.sql", "20240101000053_chatgpt_application_metadata.sql"]) {
       await db.exec(await readFile(new URL(`../migrations/${filename}`, import.meta.url), "utf8"));
     }
   });
@@ -109,7 +118,12 @@ try {
     const stored = (await db.query("select * from public.job_applications where id=$1", [result.application.id])).rows[0];
     assert.equal(stored.user_id, alice);
     assert.equal(stored.notes, job.notes);
-    assert.equal(stored.source, null);
+    assert.equal(stored.job_description, job.job_description);
+    assert.equal(stored.source, job.source);
+    assert.equal(stored.ats_provider, job.ats_provider);
+    assert.equal(stored.requires_sponsorship, true);
+    assert.equal(stored.company_tier, job.company_tier);
+    assert.equal(Number(stored.glassdoor_rating), job.glassdoor_rating);
     assert.ok(await scalar("select last_used_at is not null as value from public.chatgpt_credentials where user_id=$1", [alice]));
   });
   await test("retries are idempotent and changed request IDs cannot bypass content conflicts", async () => {
@@ -128,7 +142,9 @@ try {
     assert.equal(await scalar("select user_id::text as value from public.job_applications where id=$1", [b.application.id]), bob);
   });
   await test("invalid input, identity injection, and wrong token audience are rejected in SQL", async () => {
-    for (const details of [{ ...job, applied_date: "2026-02-30" }, { ...job, user_id: bob }, { ...job, company: " " }, { ...job, job_url: "javascript:alert(1)" }]) {
+    for (const details of [{ ...job, applied_date: "2026-02-30" }, { ...job, user_id: bob }, { ...job, company: " " },
+      { ...job, job_url: "javascript:alert(1)" }, { ...job, ats_provider: "Unknown portal" },
+      { ...job, requires_sponsorship: "yes" }, { ...job, company_tier: "Best" }, { ...job, glassdoor_rating: 4.25 }]) {
       assert.equal((await save("alice-token", "invalid", details)).error, "invalid_application");
     }
     assert.equal((await save("alice-token", "audience", job, "https://other.example.com/mcp")).error, "invalid_key");

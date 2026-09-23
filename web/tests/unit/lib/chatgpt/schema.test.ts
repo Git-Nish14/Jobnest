@@ -19,6 +19,36 @@ describe("ChatGPT job validation", () => {
   it("accepts leap dates and known job sources", () => {
     expect(chatGptApplicationSchema.safeParse({ ...validJob, applied_date: "2024-02-29", source: "LinkedIn", job_url: "https://acme.example.com/jobs/123" }).success).toBe(true);
   });
+  it("accepts every user-editable application detail available to the plugin", () => {
+    const parsed = chatGptApplicationSchema.parse({
+      ...validJob,
+      job_id: "REQ-42",
+      job_url: "https://acme.example.com/jobs/42",
+      salary_range: "$30-40/hr",
+      location: "New York, NY (Hybrid)",
+      notes: "Part-time, 20 hours/week. No sponsorship available.",
+      job_description: "Complete responsibilities, qualifications, skills, benefits, and schedule from the posting.",
+      source: "Handshake",
+      ats_provider: "Workday",
+      requires_sponsorship: true,
+      company_tier: "Startup",
+      glassdoor_rating: 4.2,
+    });
+    expect(parsed).toMatchObject({ ats_provider: "Workday", requires_sponsorship: true, company_tier: "Startup", glassdoor_rating: 4.2 });
+  });
+  it("preserves a complete job description up to the 20,000 character limit", () => {
+    const jobDescription = `Responsibilities and qualifications\n${"x".repeat(19_964)}`;
+    const parsed = chatGptApplicationSchema.parse({ ...validJob, job_description: jobDescription });
+    expect(parsed.job_description).toBe(jobDescription);
+    expect(parsed.job_description).toHaveLength(20_000);
+    expect(chatGptApplicationSchema.safeParse({ ...validJob, job_description: `${jobDescription}x` }).success).toBe(false);
+  });
+  it.each([
+    { ats_provider: "Handshake" }, { requires_sponsorship: "yes" },
+    { company_tier: "Best company" }, { glassdoor_rating: 0.9 }, { glassdoor_rating: 4.25 },
+  ])("rejects invalid extended application details %j", (patch) => {
+    expect(chatGptApplicationSchema.safeParse({ ...validJob, ...patch }).success).toBe(false);
+  });
 });
 
 describe("plugin configuration", () => {

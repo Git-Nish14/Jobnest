@@ -40,6 +40,7 @@ describe("ChatGPT MCP transport", () => {
     const body = await response.json();
     expect(body).toMatchObject({ jsonrpc: "2.0", id: "req-1", result: { protocolVersion: "2025-11-25", capabilities: { tools: { listChanged: false } } } });
     expect(body.result.instructions).toContain("JOBNEST");
+    expect(body.result.instructions).toContain("complete job description");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("mcp-session-id")).toBeNull();
   });
@@ -54,6 +55,13 @@ describe("ChatGPT MCP transport", () => {
       inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "applied_date"] },
     });
     expect(result.tools[0].inputSchema.properties.user_id).toBeUndefined();
+    expect(result.tools[0].inputSchema.properties.job_description.description).toContain("complete job-description text");
+    expect(result.tools[0].inputSchema.properties).toEqual(expect.objectContaining({
+      ats_provider: expect.any(Object),
+      requires_sponsorship: expect.any(Object),
+      company_tier: expect.any(Object),
+      glassdoor_rating: expect.any(Object),
+    }));
   });
 
   it("returns OAuth discovery on unauthenticated POST and GET", async () => {

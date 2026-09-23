@@ -79,6 +79,34 @@ describe("ChatGPT save validation, retries and errors", () => {
     expect(admin.rpc.mock.calls[0][1].p_content_hash).toBe(admin.rpc.mock.calls[1][1].p_content_hash);
   });
 
+  it("passes every supported application detail to the transactional save", async () => {
+    const completeDescription = `Responsibilities, qualifications, skills, benefits, and schedule.\n${"Full posting text. ".repeat(700)}End.`;
+    const complete = {
+      ...job,
+      job_id: "REQ-42",
+      job_url: "https://acme.example.com/jobs/42",
+      salary_range: "$30-40/hr",
+      location: "New York, NY (Hybrid)",
+      notes: "Part-time, 20 hours/week. No sponsorship available.",
+      job_description: completeDescription,
+      source: "Handshake",
+      ats_provider: "Workday",
+      requires_sponsorship: true,
+      company_tier: "Startup",
+      glassdoor_rating: 4.2,
+    };
+    expect((await POST(saveRequest(complete))).status).toBe(201);
+    expect(admin.rpc).toHaveBeenCalledWith("save_chatgpt_application", expect.objectContaining({
+      p_application: expect.objectContaining({
+        job_description: complete.job_description,
+        ats_provider: "Workday",
+        requires_sponsorship: true,
+        company_tier: "Startup",
+        glassdoor_rating: 4.2,
+      }),
+    }));
+  });
+
   it("returns an existing application's link for idempotent retries", async () => {
     admin.rpc.mockResolvedValue({ data: { application: savedApplication, duplicate: true }, error: null });
     const response = await POST(saveRequest());

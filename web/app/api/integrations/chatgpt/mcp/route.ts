@@ -66,7 +66,7 @@ function toolDefinition() {
   return {
     name: "save_job_application",
     title: "Save an applied job to Jobnest",
-    description: "Use when the user says JOBNEST or explicitly asks to save an applied job from this conversation. Ask for missing company, position, and actual application date. Resume tailoring alone does not mean the user applied. Save only known job details, without credentials or full resumes. Reuse request_id and identical arguments on retries. This records a job; it does not submit an employer application.",
+    description: "Use when the user says JOBNEST or explicitly asks to save an applied job from this conversation. Ask only for missing company, position, and actual application date. Resume tailoring alone does not mean the user applied. Extract every supported optional field available in the conversation and omit unknown values. Put useful details without dedicated fields in notes, without credentials or full resumes. Reuse request_id and identical arguments on retries. This records a job; it does not submit an employer application.",
     inputSchema: getChatGptInputSchema(),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     securitySchemes,

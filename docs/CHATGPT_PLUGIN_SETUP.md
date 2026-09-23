@@ -9,6 +9,7 @@ See [the implementation checklist and handoff](CHATGPT_PLUGIN_PLAN.md) for compl
 1. Apply the existing Supabase migrations in order, followed by:
    - `supabase/migrations/20240101000051_chatgpt_integration.sql`
    - `supabase/migrations/20240101000052_chatgpt_oauth.sql`
+   - `supabase/migrations/20240101000053_chatgpt_application_metadata.sql`
 2. Configure the web deployment with its existing Supabase authentication settings and `SUPABASE_SERVICE_ROLE_KEY` on the server only. Set `NEXT_PUBLIC_APP_URL` to the canonical public HTTPS origin, such as `https://jobnest.your-domain.com`. It must match the origin users visit, with no subpath, query, credentials, or nonstandard port. Rebuild after changing it because Settings also uses it in the browser bundle.
 3. Keep the app's existing `CSRF_SECRET` and other required environment variables. Ensure the Supabase Auth redirect allowlist permits the app's `/auth/callback` return URL including its `next` query parameter, and verify that social sign-in returns to consent. Configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` for distributed OAuth/protocol rate limiting. Saving jobs also has a database-enforced limit of 60 requests per account per minute.
 4. Build and deploy `web/` using the project's usual Next.js deployment. Keep the MCP and OAuth endpoints publicly reachable; deployment-password screens or a CDN cookie gate will prevent ChatGPT from connecting. Endpoint authentication still protects access to accounts.
@@ -36,7 +37,8 @@ Official sources: [plugin quickstart](https://developers.openai.com/plugins/quic
 
 ## Connection behavior
 
-- The only tool is `save_job_application`. Required inputs are `request_id`, `company`, `position`, and `applied_date` (`YYYY-MM-DD`); unknown optional fields should be omitted.
+- The only tool is `save_job_application`. Required inputs are `request_id`, `company`, `position`, and `applied_date` (`YYYY-MM-DD`). It extracts every supported field present in the conversation: status, job/posting ID, plain job URL, salary, location/work arrangement, notes, the complete job description (up to 20,000 characters), source, application portal, sponsorship requirement, user-assigned company tier, and an explicitly provided Glassdoor rating. Unknown optional fields are omitted rather than invented.
+- The full job description should be included whenever it appeared in the chat. Preserve responsibilities, qualifications, skills, experience, education, benefits, employment type, schedule, and employer details instead of replacing them with a short summary. Details without dedicated fields belong in notes.
 - A repeated request ID and identical normalized details returns the same application. Reusing that ID with different details returns a conflict. Identical prior plugin submissions also deduplicate if a model generates another ID. Different job details are not silently merged with ordinary website records.
 - Deleting a saved job leaves an idempotency tombstone: retrying the original request does not recreate a deleted record.
 - Jobnest determines ownership from the token. A payload cannot specify a user ID.
