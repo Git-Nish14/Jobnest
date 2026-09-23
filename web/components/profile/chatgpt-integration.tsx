@@ -226,6 +226,16 @@ export function ChatGptIntegration() {
               You sign in securely with Jobnest; no API key is needed.
             </p>
           </div>
+          <div role="note" className="space-y-2 rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+            <h5 className="font-semibold">Already connected before? Reconnect once</h5>
+            <p className="leading-relaxed">Jobnest now needs permission to check for one matching application before saving. Older connections cannot use this permission.</p>
+            <ol className="list-decimal space-y-1 pl-5 leading-relaxed">
+              <li>Open ChatGPT Settings &rarr; Plugins and select Jobnest.</li>
+              <li>Choose reconnect if available. Otherwise remove the old Jobnest connection and add it again using the MCP URL below.</li>
+              <li>Sign in to Jobnest and approve <strong>Check and save job applications</strong>.</li>
+              <li>Permit both <strong className="break-all">check_existing_application</strong> and <strong className="break-all">save_job_application</strong>.</li>
+            </ol>
+          </div>
           <ol role="list" className="space-y-5 text-sm">
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden="true">1</span>
