@@ -101,7 +101,7 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 - [x] Build consent page identifying the requesting client, callback host, account, permission, and Connect/Cancel decision.
 - [x] Explain enabled-plugin requirement, developer mode availability, and public HTTPS requirement.
 - [x] Add a copyable `@Jobnest` folder/project instruction and tell users to place it above all other instructions.
-- [x] Show existing users a one-time reconnect notice with removal/re-add fallback and both required action names.
+- [x] Show reconnect troubleshooting steps with removal/re-add fallback and both required action names.
 - [x] Remove abandoned custom GPT/OpenAPI/API-key UI.
 - [ ] Check responsive layout, labels, keyboard controls, and clipboard failure feedback.
 

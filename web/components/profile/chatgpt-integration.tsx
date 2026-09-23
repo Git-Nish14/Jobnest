@@ -227,8 +227,8 @@ export function ChatGptIntegration() {
             </p>
           </div>
           <div role="note" className="space-y-2 rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            <h5 className="font-semibold">Already connected before? Reconnect once</h5>
-            <p className="leading-relaxed">Jobnest now needs permission to check for one matching application before saving. Older connections cannot use this permission.</p>
+            <h5 className="font-semibold">Jobnest not working in ChatGPT?</h5>
+            <p className="leading-relaxed">If Jobnest cannot check or save an application, reconnect it using the steps below.</p>
             <ol className="list-decimal space-y-1 pl-5 leading-relaxed">
               <li>Open ChatGPT Settings &rarr; Plugins and select Jobnest.</li>
               <li>Choose reconnect if available. Otherwise remove the old Jobnest connection and add it again using the MCP URL below.</li>
