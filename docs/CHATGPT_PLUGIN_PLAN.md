@@ -102,6 +102,7 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 - [x] Explain enabled-plugin requirement, developer mode availability, and public HTTPS requirement.
 - [x] Add a copyable `@Jobnest` folder/project instruction and tell users to place it above all other instructions.
 - [x] Show reconnect troubleshooting steps with removal/re-add fallback and both required action names.
+- [x] Redesign the ChatGPT integration card around connection health, the everyday JOBNEST workflow, guided setup, and focused help disclosures with responsive layouts.
 - [x] Remove abandoned custom GPT/OpenAPI/API-key UI.
 - [ ] Check responsive layout, labels, keyboard controls, and clipboard failure feedback.
 
@@ -171,5 +172,6 @@ Remaining release work is explicit: run migrations on a staging/hosted project, 
 | Mandatory description and JOBNEST defaults | Committed as `feb42d8`; 95 targeted Vitest tests, TypeScript, and targeted ESLint passed. Description is required, JOBNEST uses Applied/today without confirmation questions, and Settings supplies a copyable folder/project instruction. |
 | Mandatory job URL | Committed as `0c242c9`. ChatGPT must recover a plain HTTP(S) posting URL or ask the user for it before saving. |
 | Post-JOBNEST research and duplicate check | Local and uncommitted; 255 targeted Vitest tests across 10 files, TypeScript, targeted ESLint, and 15 PostgreSQL checks pass. Research/check/save remain gated behind JOBNEST; matching reads return one minimal record. |
+| ChatGPT integration UI redesign | Local and uncommitted; connection health, the three-step JOBNEST workflow, setup, permissions, reconnect help, and project instructions now have separate responsive sections. TypeScript, targeted ESLint, and the production build pass. |
 | Authenticated browser / live ChatGPT / hosted Supabase | Not run; release acceptance still required |
 | Deployment | Not performed |

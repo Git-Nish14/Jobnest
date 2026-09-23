@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, Copy, ExternalLink, FolderOpen, HelpCircle, Link2, Loader2, MessageSquare, RefreshCw, Unplug } from "lucide-react";
+import { BriefcaseBusiness, CheckCircle2, ChevronDown, Copy, ExternalLink, FileText, FolderOpen, HelpCircle, Link2, Loader2, MessageSquare, RefreshCw, Search, Settings2, ShieldCheck, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Textarea } from "@/components/ui";
 import { CHATGPT_FOLDER_INSTRUCTION, getChatGptSetup } from "@/lib/chatgpt/setup";
@@ -121,78 +121,88 @@ export function ChatGptIntegration() {
   }
 
   const connected = loaded && Boolean(credential) && !expired;
+  const connectionLabel = loading
+    ? "Checking connection"
+    : connected
+      ? "Connected"
+      : loaded && credential
+        ? "Connection expired"
+        : loaded
+          ? "Not connected"
+          : "Status unavailable";
 
   return (
-    <Card id="chatgpt" className="scroll-mt-8 overflow-hidden">
-      <CardHeader className="p-5 sm:p-6">
-        <div className="flex items-start gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <MessageSquare className="h-5 w-5" aria-hidden="true" />
+    <Card id="chatgpt" className="scroll-mt-8 overflow-hidden border-primary/15">
+      <CardHeader className="relative overflow-hidden border-b bg-gradient-to-br from-primary/[0.09] via-card to-card p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-background/80 text-primary shadow-sm">
+              <MessageSquare className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5 pt-0.5">
+              <CardTitle className="text-xl">ChatGPT integration</CardTitle>
+              <CardDescription className="max-w-xl leading-relaxed">
+                Tailor your resume, apply for the role, then save the full application to Jobnest from the same conversation.
+              </CardDescription>
+            </div>
           </div>
-          <div className="space-y-1.5 pt-0.5">
-            <CardTitle className="text-lg">ChatGPT</CardTitle>
-            <CardDescription className="max-w-xl leading-relaxed">
-              Tailor your resume in ChatGPT, then save your applications to Jobnest without leaving the conversation.
-            </CardDescription>
-          </div>
+          <span role="status" className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm ${
+            connected
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : loaded && credential
+                ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+              : "border-border bg-background/80 text-muted-foreground"
+          }`}>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : connected ? <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> : loaded && credential ? <Unplug className="h-3.5 w-3.5" aria-hidden="true" /> : <Link2 className="h-3.5 w-3.5" aria-hidden="true" />}
+            {connectionLabel}
+          </span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5 px-5 pb-5 pt-0 sm:px-6 sm:pb-6">
-        <section aria-labelledby="chatgpt-connection-heading" className="space-y-4 rounded-xl border bg-muted/30 p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+      <CardContent className="space-y-6 p-5 sm:p-6">
+        <section aria-labelledby="chatgpt-connection-heading" className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="min-w-0 space-y-1.5">
-              <h4 id="chatgpt-connection-heading" className="text-sm font-semibold">
-                <span role="status" className="flex items-center gap-2">
-                {loading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" /> Checking connection...</>
-                ) : connected ? (
-                  <><CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" /> Account connected</>
-                ) : loaded && credential ? (
-                  <><Unplug className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> Connection expired</>
-                ) : loaded ? (
-                  <><Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> Not connected</>
-                ) : (
-                  <><Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> Connection unavailable</>
-                )}
-                </span>
-              </h4>
-              {!loading && loaded && (
-                <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-                  {connected
-                    ? "Your account has granted access. Use JOBNEST after applying to check and save from ChatGPT."
+              <h4 id="chatgpt-connection-heading" className="text-sm font-semibold">Your Jobnest connection</h4>
+              <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+                {loading
+                  ? "Checking whether ChatGPT can access this account."
+                  : connected
+                    ? "Ready to check for duplicate applications and save jobs when you type JOBNEST."
                     : credential
-                      ? "Reconnect Jobnest in ChatGPT to check and save applications."
-                      : "Connect your Jobnest account once to check and save jobs."}
-                </p>
-              )}
+                      ? "This connection has expired. Reconnect it to keep using Jobnest in ChatGPT."
+                      : loaded
+                        ? "Connect once with secure Jobnest sign-in. No API key is required."
+                        : "Refresh the status, then use the setup guide if the connection is unavailable."}
+              </p>
             </div>
             <Button
               type="button"
-              size="sm"
               variant={connected ? "outline" : "default"}
               className="shrink-0 self-start sm:self-center"
               aria-expanded={setupOpen}
               aria-controls="chatgpt-setup-guide"
               onClick={() => setSetupOpen(!setupOpen)}
             >
-              {setupOpen ? "Hide setup guide" : connected ? "Setup guide" : loaded && credential ? "Reconnect ChatGPT" : "Set up ChatGPT"}
-              <ChevronDown className={setupOpen ? "rotate-180" : ""} aria-hidden="true" />
+              {setupOpen ? "Close setup" : connected ? "View setup" : credential ? "Reconnect" : "Connect ChatGPT"}
+              <ChevronDown className={`transition-transform ${setupOpen ? "rotate-180" : ""}`} aria-hidden="true" />
             </Button>
           </div>
 
           {!loading && loaded && credential && (
-            <dl className="grid gap-4 border-t pt-4 text-xs sm:grid-cols-3">
-              <div className="space-y-1"><dt className="text-muted-foreground">Connected</dt><dd className="font-medium">{formatDateTime(credential.created_at)}</dd></div>
-              <div className="space-y-1"><dt className="text-muted-foreground">Expires</dt><dd className="font-medium">{credential.expires_at ? formatDateTime(credential.expires_at) : "No expiry"}</dd></div>
-              <div className="space-y-1"><dt className="text-muted-foreground">Last successful save</dt><dd className="font-medium">{credential.last_used_at ? formatDateTime(credential.last_used_at) : "No jobs saved yet"}</dd></div>
+            <dl className="grid border-t bg-muted/20 text-xs sm:grid-cols-3 sm:divide-x">
+              <div className="space-y-1 border-b px-4 py-3 sm:border-b-0"><dt className="text-muted-foreground">Connected</dt><dd className="font-medium text-foreground">{formatDateTime(credential.created_at)}</dd></div>
+              <div className="space-y-1 border-b px-4 py-3 sm:border-b-0"><dt className="text-muted-foreground">Last saved</dt><dd className="font-medium text-foreground">{credential.last_used_at ? formatDateTime(credential.last_used_at) : "No jobs saved yet"}</dd></div>
+              <div className="space-y-1 px-4 py-3"><dt className="text-muted-foreground">Access expires</dt><dd className="font-medium text-foreground">{credential.expires_at ? formatDateTime(credential.expires_at) : "No expiry"}</dd></div>
             </dl>
           )}
 
-          {error && <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+          {error && <p role="alert" className="mx-4 mb-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive sm:mx-5">{error}</p>}
 
-          <div className="flex flex-wrap items-center gap-1 border-t pt-3">
+          <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
             <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" disabled={loading || busy} onClick={refresh}>
-              <RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh status
+              <RefreshCw aria-hidden="true" /> Refresh
             </Button>
             {loaded && credential && (
               <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" disabled={loading || busy} onClick={() => setConfirmDisconnect(true)}>
@@ -200,113 +210,187 @@ export function ChatGptIntegration() {
               </Button>
             )}
           </div>
+
           {confirmDisconnect && (
-            <div className="space-y-3 rounded-lg border bg-card p-3">
-              <p className="text-sm leading-relaxed">Disconnect ChatGPT? It will lose permission to check and save jobs. Your existing job records will stay in Jobnest.</p>
+            <div className="m-4 mt-0 space-y-3 rounded-lg border border-destructive/20 bg-destructive/5 p-4 sm:m-5 sm:mt-0">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Disconnect ChatGPT?</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">ChatGPT will lose permission to check and save jobs. Applications already in Jobnest will stay here.</p>
+              </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => void disconnect()}>Confirm disconnect</Button>
-                <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+                <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => void disconnect()}>Disconnect</Button>
+                <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setConfirmDisconnect(false)}>Keep connected</Button>
               </div>
             </div>
           )}
         </section>
 
         {!setup.ready && (
-          <p role="status" className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-            Plugin setup is not available on this deployment yet. Jobnest needs a configured, publicly
-            reachable HTTPS address before ChatGPT can connect. Localhost and private network addresses will not work.
-          </p>
+          <div role="status" className="flex gap-3 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+            <Settings2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Setup is not available on this deployment</p>
+              <p className="text-sm leading-relaxed opacity-80">Jobnest needs a public HTTPS address before ChatGPT can connect. Localhost and private network addresses are not supported.</p>
+            </div>
+          </div>
         )}
 
-        <section id="chatgpt-setup-guide" aria-labelledby="chatgpt-setup-heading" hidden={!setupOpen} className="space-y-5">
-          <div className="space-y-1.5">
-            <h4 id="chatgpt-setup-heading" className="text-sm font-semibold">Connect in three steps</h4>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Plugin access and Developer mode depend on your ChatGPT account and workspace settings.
-              You sign in securely with Jobnest; no API key is needed.
-            </p>
+        <section aria-labelledby="chatgpt-workflow-heading" className="space-y-3">
+          <div className="space-y-1">
+            <h4 id="chatgpt-workflow-heading" className="text-sm font-semibold">Your everyday workflow</h4>
+            <p className="text-sm text-muted-foreground">Keep working in ChatGPT. Jobnest acts only after the final trigger.</p>
           </div>
-          <div role="note" className="space-y-2 rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            <h5 className="font-semibold">Jobnest not working in ChatGPT?</h5>
-            <p className="leading-relaxed">If Jobnest cannot check or save an application, reconnect it using the steps below.</p>
-            <ol className="list-decimal space-y-1 pl-5 leading-relaxed">
-              <li>Open ChatGPT Settings &rarr; Plugins and select Jobnest.</li>
-              <li>Choose reconnect if available. Otherwise remove the old Jobnest connection and add it again using the MCP URL below.</li>
-              <li>Sign in to Jobnest and approve <strong>Check and save job applications</strong>.</li>
-              <li>Permit both <strong className="break-all">check_existing_application</strong> and <strong className="break-all">save_job_application</strong>.</li>
-            </ol>
+          <ol className="grid gap-3 sm:grid-cols-3">
+            <li className="relative rounded-xl border bg-muted/20 p-4">
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><FileText className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">1. Tailor</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Discuss the job and prepare your tailored resume in ChatGPT.</p>
+            </li>
+            <li className="relative rounded-xl border bg-muted/20 p-4">
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-background text-primary shadow-sm"><BriefcaseBusiness className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">2. Apply</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Submit the application through the employer or job platform.</p>
+            </li>
+            <li className="relative overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.06] p-4">
+              <div className="absolute right-3 top-3 h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
+              <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm"><MessageSquare className="h-4 w-4" aria-hidden="true" /></span>
+              <p className="text-sm font-semibold">3. Type JOBNEST</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">ChatGPT checks for a match, fills verified details, and saves the application.</p>
+            </li>
+          </ol>
+          <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            Nothing is researched, checked, or saved before you type <strong className="font-semibold text-foreground">JOBNEST</strong>. It means you already applied, so ChatGPT uses today&apos;s date without asking again.
           </div>
-          <ol role="list" className="space-y-5 text-sm">
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden="true">1</span>
-              <div className="min-w-0 space-y-1.5 pt-0.5">
-                <h5 className="font-semibold">Enable Developer mode</h5>
-                <p className="leading-relaxed text-muted-foreground">In ChatGPT, open Settings &rarr; Security and login &rarr; Developer mode, if available. Your workspace may need to allow it.</p>
+        </section>
+
+        <section id="chatgpt-setup-guide" aria-labelledby="chatgpt-setup-heading" className="overflow-hidden rounded-xl border" hidden={!setupOpen}>
+          <div className="border-b bg-muted/20 px-4 py-4 sm:px-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 id="chatgpt-setup-heading" className="text-sm font-semibold">Connect ChatGPT to Jobnest</h4>
+                <p className="text-xs leading-relaxed text-muted-foreground">Three steps · secure OAuth sign-in · no API key</p>
+              </div>
+              <span className="rounded-full border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">About 2 min</span>
+            </div>
+          </div>
+
+          <ol className="divide-y">
+            <li className="grid gap-3 p-4 sm:grid-cols-[2.5rem_1fr] sm:p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">1</span>
+              <div className="space-y-1.5">
+                <h5 className="text-sm font-semibold">Enable Developer mode</h5>
+                <p className="text-sm leading-relaxed text-muted-foreground">In ChatGPT, open <strong className="font-medium text-foreground">Settings &rarr; Security and login &rarr; Developer mode</strong>. Availability depends on your account and workspace policy.</p>
               </div>
             </li>
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden="true">2</span>
-              <div className="min-w-0 flex-1 space-y-3 pt-0.5">
+            <li className="grid gap-3 p-4 sm:grid-cols-[2.5rem_1fr] sm:p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">2</span>
+              <div className="min-w-0 space-y-3">
                 <div className="space-y-1.5">
-                  <h5 className="font-semibold">Add the Jobnest plugin</h5>
-                  <p className="leading-relaxed text-muted-foreground">Open Plugins and use the add (+) option. Name the plugin <strong className="font-medium text-foreground">Jobnest</strong> and paste this MCP server URL. Select <strong className="font-medium text-foreground">OAuth</strong> and use automatic discovery for authentication.</p>
+                  <h5 className="text-sm font-semibold">Add the Jobnest plugin</h5>
+                  <p className="text-sm leading-relaxed text-muted-foreground">Open <strong className="font-medium text-foreground">Plugins</strong>, choose add (+), name it <strong className="font-medium text-foreground">Jobnest</strong>, paste the URL below, and select <strong className="font-medium text-foreground">OAuth</strong> with automatic discovery.</p>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="chatgpt-mcp-url" className="block text-xs font-medium text-muted-foreground">Jobnest MCP server URL</label>
-                  <div className="flex items-center gap-2">
+                  <label htmlFor="chatgpt-mcp-url" className="text-xs font-medium text-muted-foreground">MCP server URL</label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Input ref={urlInput} id="chatgpt-mcp-url" value={setup.ready ? setup.mcpUrl : "Available after public HTTPS setup"} readOnly spellCheck={false} className="min-w-0 bg-background font-mono text-xs" />
-                    <Button type="button" size="icon" variant="outline" className="shrink-0" aria-label="Copy Jobnest MCP server URL" disabled={!setup.ready} onClick={() => void copyUrl()}><Copy aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" className="shrink-0" disabled={!setup.ready} onClick={() => void copyUrl()}>
+                      <Copy aria-hidden="true" /> Copy URL
+                    </Button>
                   </div>
                 </div>
               </div>
             </li>
-            <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden="true">3</span>
-              <div className="min-w-0 space-y-2 pt-0.5">
-                <h5 className="font-semibold">Connect your account and allow actions</h5>
-                <p className="leading-relaxed text-muted-foreground">Sign in to Jobnest when prompted, review the request, and choose <strong className="font-medium text-foreground">Connect</strong> to allow matching-application checks and saving job applications. Finish installing your personal plugin in ChatGPT.</p>
-                <p className="leading-relaxed text-muted-foreground">Open the Jobnest connection settings in ChatGPT and permit the read-only <strong className="break-all font-medium text-foreground">check_existing_application</strong> action and the write <strong className="break-all font-medium text-foreground">save_job_application</strong> action. Choose an App permissions option that allows changes; ChatGPT may ask before every save. In a managed Business or Enterprise workspace, an administrator may need to approve these actions.</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">Jobnest supports one active ChatGPT connection per account. Reconnecting replaces the previous connection.</p>
+            <li className="grid gap-3 p-4 sm:grid-cols-[2.5rem_1fr] sm:p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary" aria-hidden="true">3</span>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <h5 className="text-sm font-semibold">Sign in and allow both actions</h5>
+                  <p className="text-sm leading-relaxed text-muted-foreground">Sign in to Jobnest, approve <strong className="font-medium text-foreground">Check and save job applications</strong>, then finish installing the plugin.</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <p className="flex items-center gap-2 text-xs font-semibold"><Search className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Read-only check</p>
+                    <code className="mt-1 block break-all text-[11px] text-muted-foreground">check_existing_application</code>
+                  </div>
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <p className="flex items-center gap-2 text-xs font-semibold"><CheckCircle2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Save application</p>
+                    <code className="mt-1 block break-all text-[11px] text-muted-foreground">save_job_application</code>
+                  </div>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">Permit both actions in ChatGPT&apos;s connection settings. Managed workspaces may require administrator approval. Jobnest supports one active ChatGPT connection per account.</p>
               </div>
             </li>
           </ol>
-          <a href="https://developers.openai.com/plugins/quickstart" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-sm text-sm text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            OpenAI&apos;s plugin setup guide <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
+
+          <div className="flex flex-col gap-3 border-t bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="text-xs text-muted-foreground">Need ChatGPT-specific help?</p>
+            <a href="https://developers.openai.com/plugins/quickstart" target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1.5 rounded-sm text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Open plugin setup guide <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
         </section>
 
-        <div className="divide-y rounded-xl border">
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-              <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="flex-1">Saving jobs & troubleshooting</span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-muted-foreground sm:pl-11">
-              <p>In a normal conversation, add Jobnest from the tools menu or select <strong className="font-medium text-foreground">@Jobnest</strong>. Nothing is researched, checked, or saved until you type <strong className="font-medium text-foreground">JOBNEST</strong>. ChatGPT then researches missing public details, checks for the same company, role, and location, and warns you instead of saving another record when a match exists. Otherwise it attaches the job URL and description and saves with today&apos;s date. If a required URL or location remains unavailable, ChatGPT asks you for it.</p>
-              <p>Approve the ChatGPT save prompt and wait for the saved Jobnest link. If ChatGPT says the conversation does not permit the action, enable Jobnest for that conversation and check its Actions/App permissions. Use Refresh status above to check your last successful save.</p>
-            </div>
-          </details>
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-              <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="flex-1">Using ChatGPT projects & folders</span>
-              <span className="hidden text-xs font-normal text-muted-foreground sm:inline">Optional</span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-muted-foreground sm:pl-11">
-              <p>If you use a ChatGPT folder or project, paste this line at the very top of its instructions, above every other instruction. This keeps Jobnest available without saving anything early.</p>
-              <div className="space-y-1.5">
-                <label htmlFor="chatgpt-folder-instruction" className="block text-xs font-medium">Folder/project instruction</label>
-                <div className="flex items-start gap-2">
-                  <Textarea ref={folderInstructionInput} id="chatgpt-folder-instruction" value={CHATGPT_FOLDER_INSTRUCTION} readOnly spellCheck={false} rows={3} className="min-w-0 resize-none bg-background font-mono text-xs" />
-                  <Button type="button" size="icon" variant="outline" className="shrink-0" aria-label="Copy ChatGPT folder instruction" onClick={() => void copyFolderInstruction()}><Copy aria-hidden="true" /></Button>
+        <section aria-labelledby="chatgpt-help-heading" className="space-y-3">
+          <div className="space-y-1">
+            <h4 id="chatgpt-help-heading" className="text-sm font-semibold">Help and optional setup</h4>
+            <p className="text-sm text-muted-foreground">Open only what you need.</p>
+          </div>
+          <div className="grid gap-3">
+            <details className="group rounded-xl border bg-card">
+              <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <HelpCircle className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="flex-1">Jobnest is not working in ChatGPT</span>
+                <span className="hidden text-xs font-normal text-muted-foreground sm:inline">Reconnect</span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="border-t px-4 py-4 text-sm sm:px-11">
+                <p className="mb-3 leading-relaxed text-muted-foreground">If Jobnest cannot check or save an application, reconnect it:</p>
+                <ol className="list-decimal space-y-2 pl-5 leading-relaxed text-muted-foreground">
+                  <li>Open ChatGPT <strong className="font-medium text-foreground">Settings &rarr; Plugins</strong> and select Jobnest.</li>
+                  <li>Choose reconnect if available. Otherwise remove the connection and add it again with the MCP URL in the setup guide.</li>
+                  <li>Sign in to Jobnest and approve <strong className="font-medium text-foreground">Check and save job applications</strong>.</li>
+                  <li>Permit both <code className="break-all text-xs text-foreground">check_existing_application</code> and <code className="break-all text-xs text-foreground">save_job_application</code>.</li>
+                </ol>
+              </div>
+            </details>
+
+            <details className="group rounded-xl border bg-card">
+              <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <FolderOpen className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="flex-1">Use Jobnest in projects and folders</span>
+                <span className="hidden text-xs font-normal text-muted-foreground sm:inline">Optional</span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="space-y-3 border-t px-4 py-4 text-sm sm:px-11">
+                <p className="leading-relaxed text-muted-foreground">Paste this line at the very top of the project or folder instructions. It keeps Jobnest available without saving anything early.</p>
+                <div className="space-y-1.5">
+                  <label htmlFor="chatgpt-folder-instruction" className="text-xs font-medium text-muted-foreground">Project or folder instruction</label>
+                  <Textarea ref={folderInstructionInput} id="chatgpt-folder-instruction" value={CHATGPT_FOLDER_INSTRUCTION} readOnly spellCheck={false} rows={3} className="resize-none bg-muted/20 font-mono text-xs" />
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => void copyFolderInstruction()}><Copy aria-hidden="true" /> Copy instruction</Button>
+              </div>
+            </details>
+
+            <details className="group rounded-xl border bg-card">
+              <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="flex-1">What Jobnest checks and saves</span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="grid gap-3 border-t px-4 py-4 text-sm sm:grid-cols-2 sm:px-11">
+                <div className="space-y-1.5">
+                  <p className="font-medium">Before saving</p>
+                  <p className="leading-relaxed text-muted-foreground">ChatGPT researches missing public details and checks the same company, role, and location. If a match exists, it warns you instead of creating another record.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="font-medium">Saved to Jobnest</p>
+                  <p className="leading-relaxed text-muted-foreground">The posting URL, location, full description, and every other verified field available in the conversation or research.</p>
                 </div>
               </div>
-              <p>Use this folder instruction because the plugin may not remain available in folder chats unless <strong className="font-medium text-foreground">@Jobnest</strong> is included in the instructions.</p>
-            </div>
-          </details>
-        </div>
+            </details>
+          </div>
+        </section>
       </CardContent>
     </Card>
   );
