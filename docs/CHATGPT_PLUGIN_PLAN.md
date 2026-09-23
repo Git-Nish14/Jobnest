@@ -1,6 +1,6 @@
 # Jobnest ChatGPT plugin — implementation plan and handoff
 
-Last updated: 2026-09-22. Status: **local implementation complete; automated checks and production build pass. Hosted migration/deployment and live ChatGPT acceptance remain.**
+Last updated: 2026-09-23. Status: **duplicate checking and post-JOBNEST research are implemented locally; targeted unit, TypeScript, lint, and PostgreSQL checks pass. Hosted migration/deployment and live ChatGPT acceptance remain.**
 
 ## User request and decisions
 
@@ -22,29 +22,30 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 2. Copy the deployed Jobnest MCP URL.
 3. In ChatGPT, enable Developer mode under Settings → Security and login, if available.
 4. Add a plugin named Jobnest from Plugins using that URL and OAuth authentication/discovery.
-5. Sign into Jobnest in the browser. Review and approve permission to save job applications.
+5. Sign into Jobnest in the browser. Review and approve permission to check for a matching application and save job applications.
 6. Install the personal plugin. For a ChatGPT folder/project, paste `@Jobnest Keep Jobnest available in this chat. Do not save anything yet. I will say JOBNEST only after I actually apply.` at the top of its instructions. For a normal chat, select `@Jobnest`.
-7. Tailor a resume and, after actually applying, type JOBNEST. The keyword confirms the application, defaults status to Applied and the date to today, extracts every supported detail, always attaches the job URL and description, and calls `save_job_application`. It asks for the posting URL when it cannot recover one from the chat.
-8. Jobnest saves only to the connected account and returns the saved record link. Retries do not create duplicate records.
+7. Tailor a resume and, after actually applying, type JOBNEST. Before that trigger, ChatGPT does no Jobnest research, duplicate check, Jobnest-specific questioning, or save. After the trigger it uses chat context and public research to fill verified details, then calls `check_existing_application` with the company, role, and location.
+8. If a matching application exists, ChatGPT warns the user and does not create another record unless the user confirms it is a different requisition. Otherwise it calls `save_job_application`, defaults status to Applied and the date to today, always attaches the URL, location, and description, and returns the Jobnest link. It asks for a URL or location only when it cannot recover one after research.
 9. Settings shows connection status and last successful save. Disconnect revokes access.
 
 ## Architecture and boundaries
 
 - Existing stack: Next.js App Router (`web/`), Supabase auth/Postgres, Vitest, Playwright.
-- MCP endpoint: `/api/integrations/chatgpt/mcp`, stateless Streamable HTTP with a single write tool.
+- MCP endpoint: `/api/integrations/chatgpt/mcp`, stateless Streamable HTTP with one limited read tool and one write tool.
 - OAuth endpoints: `/api/integrations/chatgpt/oauth/{register,authorize,consent,token}` plus `/.well-known/oauth-authorization-server` and protected-resource metadata.
 - Consent page: `/integrations/chatgpt/authorize?request=<opaque-request-id>`.
 - Settings endpoint: `GET /api/integrations/chatgpt/credentials` for non-secret metadata, `DELETE` to disconnect. **No user-facing key generation endpoint.**
-- Save implementation: `/api/integrations/chatgpt/applications` handler, called internally by MCP with the OAuth bearer token. Identity is derived from the token, never accepted as a job field.
-- Supabase migrations: `20240101000051_chatgpt_integration.sql` for hashed credentials and transactional saves; `20240101000052_chatgpt_oauth.sql` for OAuth clients, requests, and code exchange; `20240101000053_chatgpt_application_metadata.sql` to save all supported user-editable application metadata.
-- Tokens are cryptographically random, stored only as hashes, scoped to saving jobs, expiring and revocable. OAuth authorization codes are short-lived, one-use, bound to client, redirect URI, PKCE, and MCP resource.
+- Save implementation: `/api/integrations/chatgpt/applications`; duplicate check: `/api/integrations/chatgpt/applications/check`. MCP calls both handlers internally with the OAuth bearer token. Identity is derived from the token, never accepted as a job field.
+- Supabase migrations: `20240101000051_chatgpt_integration.sql` for hashed credentials and transactional saves; `20240101000052_chatgpt_oauth.sql` for OAuth clients, requests, and code exchange; `20240101000053_chatgpt_application_metadata.sql` for all supported application metadata; `20240101000054_chatgpt_duplicate_check.sql` for the account-scoped match query and expanded consent.
+- Tokens are cryptographically random, stored only as hashes, scoped to `applications:read applications:write`, expiring and revocable. Migration 54 revokes previous write-only connections so users must reconnect and explicitly approve the read permission. OAuth authorization codes are short-lived, one-use, bound to client, redirect URI, PKCE, and MCP resource.
 - Initial implementation has one active connection per Jobnest account. Reconnecting replaces the previous token. Token lifetime and response `expires_in` must match; no unsupported refresh grant should be advertised.
-- Save fields: required `request_id`, `company`, `position`, `job_url`, and `job_description`; `applied_date` defaults to today and `status` to Applied; optional `job_id`, `location`, `salary_range`, `notes`, `source`, `ats_provider`, `requires_sponsorship`, `company_tier`, and `glassdoor_rating`. ChatGPT asks the user for the plain HTTP(S) posting URL when it is absent. The complete job description available in the chat is used up to 20,000 characters. When original posting text is unavailable, ChatGPT creates a detailed description from known facts and labels it `Generated from conversation:`. Unknown optional values are omitted and never invented.
-- Only job records are saved. This feature does not submit employer applications, upload resumes, read the job list, or expose unrelated account data.
+- Save fields: required `request_id`, `company`, `position`, `job_url`, `location`, and `job_description`; `applied_date` defaults to today and `status` to Applied; optional `job_id`, `salary_range`, `notes`, `source`, `ats_provider`, `requires_sponsorship`, `company_tier`, and `glassdoor_rating`. The complete job description from chat or the exact researched posting is used up to 20,000 characters. If original text remains unavailable, ChatGPT writes a detailed description from verified facts and prefixes `Generated from available information:`.
+- Research starts only after JOBNEST. Prefer the exact employer/ATS posting, then the company site, then reputable job platforms. Use facts only when the source clearly matches the same company/title/location/requisition. Never invent salary, ID, location, work arrangement, sponsorship, benefits, rating, dates, or requirements. Put concise source URLs and supported facts in notes; omit unknown optional values.
+- Only job records are checked/saved. The read tool returns at most one minimal record matching the normalized company, role, and location. It cannot list applications, and the feature does not submit employer applications, upload resumes, edit jobs, or expose unrelated account data.
 - Use configured `NEXT_PUBLIC_APP_URL` for canonical public HTTPS URLs; never trust Host/forwarded headers to construct OAuth endpoints.
 - No OpenAI API key or model API call is needed: ChatGPT performs extraction and invokes the plugin.
 - Protocol compatibility: current MCP `2026-07-28` per-request metadata/`server/discover` and legacy `2025-11-25`, `2025-06-18`, `2025-03-26` initialization clients. Current requests validate mirrored method/name/version headers. [MCP versioning](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
-- Duplicate detection is scoped to prior plugin request IDs/content hashes. Ordinary website records with the same company/title/date are not silently merged. A deleted record leaves a retry tombstone.
+- Pre-save duplicate checking compares normalized company, title, and location across all of the connected user's applications. It returns one minimal match so ChatGPT can warn the user. Save idempotency remains scoped to prior plugin request IDs/content hashes, and a deleted record leaves a retry tombstone.
 
 ## Work checklist
 
@@ -67,6 +68,8 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 - [x] Add rate limits and safe no-store responses; never expose raw tokens in logs or status APIs.
 - [x] Check blocked/deleted/deactivated account behavior and revalidate credentials after acquiring the database lock.
 - [x] Save every supported user-editable application field available in the chat, including the complete job description, portal, sponsorship, tier, and rating.
+- [x] Add an account-scoped normalized company/title/location duplicate query that returns at most one minimal record.
+- [x] Expand OAuth consent to read + write and force existing write-only connections to reconnect.
 
 ### 3. OAuth connection — complete locally
 
@@ -81,12 +84,14 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 ### 4. MCP server — complete locally
 
 - [x] Implement server/discover, initialize, ping, legacy notifications, tools/list, and tools/call with version-appropriate JSON-RPC envelopes.
-- [x] Advertise one `save_job_application` tool with OAuth security metadata and correct write/idempotency annotations.
+- [x] Advertise `check_existing_application` with read-only annotations and `save_job_application` with write/idempotency annotations.
 - [x] Publish input schema from the same Zod schema used for backend validation.
 - [x] Validate Origin, protocol version, request content type, body size, and current protocol header/body agreement.
 - [x] Return OAuth discovery challenges for missing/invalid/expired credentials.
 - [x] Return structured results and readable errors; never claim success after a failed save.
 - [x] Make only the exact required integration/OAuth URLs bypass the cookie-only proxy gate; their handlers enforce authentication.
+- [x] Gate research, duplicate checking, required-field questions, and saving behind the JOBNEST trigger only.
+- [x] Supply a generic JSON field prototype without a real company/job example that could be copied into an empty chat.
 
 ### 5. Settings and consent UI — implemented; live visual acceptance pending
 
@@ -104,7 +109,7 @@ The user explicitly requested **modern ChatGPT plugins**, not a Custom GPT Actio
 - [x] Install repository dependencies without changing package/lock versions.
 - [x] Run relevant Vitest security/route tests and existing proxy/auth regressions: 219 tests passed.
 - [x] Run TypeScript and targeted lint checks; production build passed.
-- [x] Execute both new migrations in isolated PostgreSQL via PGlite: 13 database checks passed. Existing Supabase tables use minimal fixtures; hosted triggers/API/concurrent connections remain separate.
+- [x] Execute migrations 51 through 54 in isolated PostgreSQL via PGlite: 15 database checks passed, including revocation of a pre-existing write-only connection. Existing Supabase tables use minimal fixtures; hosted triggers/API/concurrent connections remain separate.
 - [x] Verify current/legacy MCP discovery, handshake, metadata, authentication and tool behavior through protocol tests; HTTP smoke checks also pass against the built Next.js server.
 - [ ] Exercise a connected test account: sign in → consent → token → save → retry → disconnect → denied save.
 - [ ] Verify Settings/consent in browser when a usable local authenticated environment is available.
@@ -123,7 +128,7 @@ The local implementation is written and validated. Do not start it again from sc
 - `web/components/profile/chatgpt-integration.tsx`: current plugin settings card; profile page mounts it and profile header links to it.
 - `web/components/profile/chatgpt-authorize.tsx` and `web/app/integrations/chatgpt/authorize/page.tsx`: signed-in consent screen.
 - `web/lib/auth/redirect.ts`, login page, auth callback, and proxy: preserve and validate consent return paths.
-- Migrations 51/52/53: credential/save tables/functions, OAuth request/code exchange, and complete supported application metadata.
+- Migrations 51/52/53/54: credential/save tables/functions, OAuth request/code exchange, complete supported metadata, expanded consent, and the limited duplicate-check RPC.
 - `web/tests/unit/api/chatgpt/`, `web/tests/unit/api/chatgpt-oauth.test.ts`, `web/tests/unit/lib/chatgpt/`, and proxy tests: security, protocol, and auth regression coverage.
 - `supabase/tests/chatgpt-integration.mjs`: executable isolated PostgreSQL checks.
 - `web/tests/smoke/chatgpt.mjs`: unauthenticated HTTP discovery/guard/login-return checks, without writing user data.
@@ -132,7 +137,7 @@ No migration has been applied to hosted Supabase and no app has been deployed. T
 
 The feature entered `main` through PR #223. Follow-up commit `60d81aa` fixed TruffleHog URI-fixture false positives and made OAuth dynamic client registration compatible with ChatGPT metadata. Commit `e30f4c2` clarified ChatGPT write-action/App permissions and requires a plain `job_url` rather than Markdown link syntax. Both commits are on `origin/main`.
 
-Complete metadata extraction and migration 53 were committed and pushed to `main` as `a4152e9`. Mandatory descriptions, JOBNEST defaults, sample JSON, and the folder instruction were committed as `feb42d8`. The current local, uncommitted follow-up makes `job_url` mandatory and tells ChatGPT to ask the user for the posting URL when it cannot recover one from the conversation. Validation results are recorded below.
+Complete metadata extraction and migration 53 were committed and pushed to `main` as `a4152e9`. Mandatory descriptions, JOBNEST defaults, the generic field prototype, and the folder instruction were committed as `feb42d8`; mandatory job URLs were committed as `0c242c9`. The current local, uncommitted follow-up adds post-JOBNEST research, required location, duplicate checking, read-and-write consent, and migration 54. It removes the concrete real-company example so an empty chat cannot accidentally reuse it.
 
 Remaining release work is explicit: run migrations on a staging/hosted project, configure the canonical production URL, deploy, verify Settings/consent on desktop/mobile, and connect actual ChatGPT test accounts. The local Playwright browser binary was not installed, so no authenticated browser visual check is claimed. The new database behavior has been executed in isolated PostgreSQL, but real Supabase auth/PostgREST and existing triggers need staging acceptance.
 
@@ -153,16 +158,17 @@ Remaining release work is explicit: run migrations on a staging/hosted project, 
 | Official research | Complete; sources above |
 | Initial git status | Clean before this feature |
 | Dependency install | Passed `npm.cmd ci --no-audit --no-fund`; existing peer dependency warnings only |
-| Relevant unit / auth regression tests | 219 tests passed across 9 files |
+| Relevant unit / auth regression tests | 255 tests passed across 10 files for ChatGPT routes, OAuth, schemas, proxy, and login flow |
 | Typecheck | Passed `npm.cmd run typecheck` |
 | Targeted lint | Passed for integration routes/helpers/UI, login/callback/proxy and tests |
 | Production build | Passed after permitting existing Google Fonts downloads; synthetic test environment, no deployment |
-| PostgreSQL migration checks | 13 passed using actual migration SQL in isolated PGlite; minimal fixtures for pre-existing tables |
+| PostgreSQL migration checks | 15 passed using actual migrations 51 through 54 in isolated PGlite; includes old-connection revocation, normalized matching, audience checks, tenant isolation, and SQL privilege checks; minimal fixtures for pre-existing tables |
 | Built-server HTTP smoke | Passed discovery, OAuth challenge, cookie-protected JSON responses, consent login return |
 | TruffleHog CI follow-up | Zero verified secrets in the failed run; the URI-fixture false positives and unsupported workflow input were fixed in `60d81aa` on `main`. |
 | Live ChatGPT DCR follow-up | Deployed discovery verified; metadata normalization is committed on `main`; 48 OAuth tests, typecheck, and targeted ESLint passed before delivery. A post-deployment connector retry is still required. |
 | Complete chat extraction | Migration 53 and all supported metadata committed as `a4152e9`; 89 targeted Vitest tests and 13 PostgreSQL checks passed. Full 20,000-character descriptions are preserved. |
 | Mandatory description and JOBNEST defaults | Committed as `feb42d8`; 95 targeted Vitest tests, TypeScript, and targeted ESLint passed. Description is required, JOBNEST uses Applied/today without confirmation questions, and Settings supplies a copyable folder/project instruction. |
-| Mandatory job URL | Local and uncommitted; 97 targeted Vitest tests, TypeScript, and targeted ESLint pass. ChatGPT must recover a plain HTTP(S) posting URL or ask the user for it before saving. |
+| Mandatory job URL | Committed as `0c242c9`. ChatGPT must recover a plain HTTP(S) posting URL or ask the user for it before saving. |
+| Post-JOBNEST research and duplicate check | Local and uncommitted; 255 targeted Vitest tests across 10 files, TypeScript, targeted ESLint, and 15 PostgreSQL checks pass. Research/check/save remain gated behind JOBNEST; matching reads return one minimal record. |
 | Authenticated browser / live ChatGPT / hosted Supabase | Not run; release acceptance still required |
 | Deployment | Not performed |

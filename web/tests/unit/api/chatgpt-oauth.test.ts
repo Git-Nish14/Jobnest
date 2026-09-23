@@ -35,7 +35,7 @@ let getUser: ReturnType<typeof vi.fn>;
 function authParameters(overrides: Record<string, string> = {}) {
   return new URLSearchParams({ response_type: "code", client_id: clientId, redirect_uri: redirectUri,
     state: "state_from_chatgpt", code_challenge: pkceChallenge(verifier), code_challenge_method: "S256",
-    resource, scope: "applications:write", ...overrides });
+    resource, scope: "applications:read applications:write", ...overrides });
 }
 
 function tokenParameters(overrides: Record<string, string> = {}) {
@@ -67,7 +67,7 @@ describe("OAuth discovery and canonical URLs", () => {
     const protectedResource = await (await resourceMetadata()).json();
     expect(metadata).toMatchObject({ issuer, token_endpoint_auth_methods_supported: ["none"],
       grant_types_supported: ["authorization_code"], code_challenge_methods_supported: ["S256"],
-      authorization_response_iss_parameter_supported: true, scopes_supported: ["applications:write"] });
+      authorization_response_iss_parameter_supported: true, scopes_supported: ["applications:read", "applications:write"] });
     expect(metadata.registration_endpoint).toBe(`${issuer}/api/integrations/chatgpt/oauth/register`);
     expect(protectedResource).toMatchObject({ resource, authorization_servers: [issuer], bearer_methods_supported: ["header"] });
     expect(auth.headers.get("cache-control")).toBe("no-store");
@@ -119,7 +119,7 @@ describe("dynamic public-client registration", () => {
       token_endpoint_auth_method: "none",
       grant_types: ["authorization_code"],
       response_types: ["code"],
-      scope: "applications:write",
+      scope: "applications:read applications:write",
     });
     expect(chain.insert).toHaveBeenCalledWith(expect.objectContaining({ redirect_uris: [callbackRedirect] }));
   });
@@ -153,9 +153,17 @@ describe("authorization and explicit account consent", () => {
     const id = location.searchParams.get("request")!;
     expect(id).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({ request_hash: hashOAuthSecret(id),
-      code_challenge: pkceChallenge(verifier), redirect_uri: redirectUri, resource, scope: "applications:write" }));
+      code_challenge: pkceChallenge(verifier), redirect_uri: redirectUri, resource, scope: "applications:read applications:write" }));
     expect(JSON.stringify(vi.mocked(insert.insert).mock.calls)).not.toContain(id);
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("accepts the exact granted scope set in either OAuth ordering and stores it canonically", async () => {
+    const insert = makeChain();
+    from.mockReturnValueOnce(makeChain({ data: { redirect_uris: [redirectUri] }, error: null })).mockReturnValueOnce(insert);
+    const consentUrl = await beginChatGPTOAuthAuthorization(authParameters({ scope: "applications:write applications:read" }));
+    expect(new URL(consentUrl).pathname).toBe("/integrations/chatgpt/authorize");
+    expect(insert.insert).toHaveBeenCalledWith(expect.objectContaining({ scope: "applications:read applications:write" }));
   });
 
   it("does not redirect to a URI that differs from the registered URI", async () => {
@@ -188,7 +196,7 @@ describe("authorization and explicit account consent", () => {
   it("claims consent for the cookie account and exposes only display metadata", async () => {
     rpc.mockResolvedValue({ data: { client_name: "ChatGPT", redirect_uri: redirectUri, expires_at: "2026-09-22T12:00:00Z" }, error: null });
     const response = await getConsent(new Request(`${issuer}/api/integrations/chatgpt/oauth/consent?request=${requestId}`));
-    expect(await response.json()).toEqual({ clientName: "ChatGPT", redirectHost: "chatgpt.com", expiresAt: "2026-09-22T12:00:00Z", scope: "applications:write" });
+    expect(await response.json()).toEqual({ clientName: "ChatGPT", redirectHost: "chatgpt.com", expiresAt: "2026-09-22T12:00:00Z", scope: "applications:read applications:write" });
     expect(rpc).toHaveBeenCalledWith("claim_chatgpt_oauth_request", { p_request_hash: hashOAuthSecret(requestId), p_user_id: userId });
   });
 
@@ -238,7 +246,7 @@ describe("code exchange", () => {
     const result = await exchangeChatGPTOAuthCode(tokenParameters());
     expect(result.access_token).toMatch(/^jobnest_[a-f0-9]{64}$/);
     expect(result.token_type).toBe("Bearer");
-    expect(result.scope).toBe("applications:write");
+    expect(result.scope).toBe("applications:read applications:write");
     expect(result.expires_in).toBeGreaterThan(365 * 86400 - 3);
     expect(result.expires_in).toBeLessThanOrEqual(365 * 86400);
     expect(rpc).toHaveBeenCalledWith("exchange_chatgpt_oauth_code", {

@@ -159,10 +159,10 @@ export function ChatGptIntegration() {
               {!loading && loaded && (
                 <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
                   {connected
-                    ? "Your account has granted access. Save a job from ChatGPT to check that the plugin is working."
+                    ? "Your account has granted access. Use JOBNEST after applying to check and save from ChatGPT."
                     : credential
-                      ? "Reconnect Jobnest in ChatGPT to save more applications."
-                      : "Connect your Jobnest account once to start saving jobs."}
+                      ? "Reconnect Jobnest in ChatGPT to check and save applications."
+                      : "Connect your Jobnest account once to check and save jobs."}
                 </p>
               )}
             </div>
@@ -202,7 +202,7 @@ export function ChatGptIntegration() {
           </div>
           {confirmDisconnect && (
             <div className="space-y-3 rounded-lg border bg-card p-3">
-              <p className="text-sm leading-relaxed">Disconnect ChatGPT? It will lose permission to save jobs. Your existing job records will stay in Jobnest.</p>
+              <p className="text-sm leading-relaxed">Disconnect ChatGPT? It will lose permission to check and save jobs. Your existing job records will stay in Jobnest.</p>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => void disconnect()}>Confirm disconnect</Button>
                 <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
@@ -253,9 +253,9 @@ export function ChatGptIntegration() {
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary" aria-hidden="true">3</span>
               <div className="min-w-0 space-y-2 pt-0.5">
-                <h5 className="font-semibold">Connect your account and allow saves</h5>
-                <p className="leading-relaxed text-muted-foreground">Sign in to Jobnest when prompted, review the request, and choose <strong className="font-medium text-foreground">Connect</strong> to allow saving job applications. Finish installing your personal plugin in ChatGPT.</p>
-                <p className="leading-relaxed text-muted-foreground">Open the Jobnest connection settings in ChatGPT and make sure its Actions control permits <strong className="break-all font-medium text-foreground">save_job_application</strong>. Choose an App permissions option that allows changes; ChatGPT may ask before every save. In a managed Business or Enterprise workspace, an administrator may need to approve the write action.</p>
+                <h5 className="font-semibold">Connect your account and allow actions</h5>
+                <p className="leading-relaxed text-muted-foreground">Sign in to Jobnest when prompted, review the request, and choose <strong className="font-medium text-foreground">Connect</strong> to allow matching-application checks and saving job applications. Finish installing your personal plugin in ChatGPT.</p>
+                <p className="leading-relaxed text-muted-foreground">Open the Jobnest connection settings in ChatGPT and permit the read-only <strong className="break-all font-medium text-foreground">check_existing_application</strong> action and the write <strong className="break-all font-medium text-foreground">save_job_application</strong> action. Choose an App permissions option that allows changes; ChatGPT may ask before every save. In a managed Business or Enterprise workspace, an administrator may need to approve these actions.</p>
                 <p className="text-xs leading-relaxed text-muted-foreground">Jobnest supports one active ChatGPT connection per account. Reconnecting replaces the previous connection.</p>
               </div>
             </li>
@@ -273,7 +273,7 @@ export function ChatGptIntegration() {
               <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
             </summary>
             <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-muted-foreground sm:pl-11">
-              <p>In a normal conversation, add Jobnest from the tools menu or select <strong className="font-medium text-foreground">@Jobnest</strong>. After applying, type <strong className="font-medium text-foreground">JOBNEST</strong>. ChatGPT will fill every supported detail it can, attach the job URL and description, and save with today&apos;s date. If the posting URL is not in the chat, ChatGPT will ask you to provide it before saving.</p>
+              <p>In a normal conversation, add Jobnest from the tools menu or select <strong className="font-medium text-foreground">@Jobnest</strong>. Nothing is researched, checked, or saved until you type <strong className="font-medium text-foreground">JOBNEST</strong>. ChatGPT then researches missing public details, checks for the same company, role, and location, and warns you instead of saving another record when a match exists. Otherwise it attaches the job URL and description and saves with today&apos;s date. If a required URL or location remains unavailable, ChatGPT asks you for it.</p>
               <p>Approve the ChatGPT save prompt and wait for the saved Jobnest link. If ChatGPT says the conversation does not permit the action, enable Jobnest for that conversation and check its Actions/App permissions. Use Refresh status above to check your last successful save.</p>
             </div>
           </details>

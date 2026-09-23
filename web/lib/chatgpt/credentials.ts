@@ -69,7 +69,7 @@ export async function findChatGptCredential(keyHash: string) {
     .eq("key_hash", keyHash)
     .maybeSingle();
   if (error) throw ApiError.internal("Unable to verify your Jobnest connection. Please try again.");
-  if (!data || data.resource !== setup.mcpUrl || data.scope !== "applications:write" ||
+  if (!data || data.resource !== setup.mcpUrl || data.scope !== "applications:read applications:write" ||
     !Number.isFinite(Date.parse(data.expires_at)) || Date.parse(data.expires_at) <= Date.now()) {
     throw ApiError.unauthorized("Your Jobnest connection is invalid, expired, or disconnected. Reconnect Jobnest in ChatGPT.");
   }

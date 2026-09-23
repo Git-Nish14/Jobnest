@@ -104,12 +104,12 @@ export function ChatGptAuthorize({ requestId, email }: { requestId: string; emai
             <div className="flex gap-3 rounded-lg bg-primary/5 p-4">
               <BriefcaseBusiness className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
               <div className="space-y-1 text-sm">
-                <p className="font-semibold">Save job applications</p>
-                <p className="text-muted-foreground">Create job records in your Jobnest account using the job details you choose to send from ChatGPT.</p>
+                <p className="font-semibold">Check and save job applications</p>
+                <p className="text-muted-foreground">Check whether the same company, role, and location already exists, and create job records using details you choose to send from ChatGPT.</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              This permission does not allow reading your job list, editing existing jobs, or accessing your documents.
+              This permission returns only one matching application for a duplicate check. It does not expose your full job list, edit existing jobs, or access your documents.
               It does not submit applications to employers.
             </p>
             <p className="text-sm text-muted-foreground">

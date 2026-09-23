@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { chatGptApplicationSchema } from "@/lib/chatgpt/schema";
+import { chatGptApplicationSchema, chatGptDuplicateCheckSchema } from "@/lib/chatgpt/schema";
 import { CHATGPT_FOLDER_INSTRUCTION, getChatGptSetup } from "@/lib/chatgpt/setup";
 import { safeAuthRedirect } from "@/lib/auth/redirect";
 
 const validJob = {
   request_id: "save-1", company: "Acme", position: "Engineer", applied_date: "2026-09-22",
   job_url: "https://acme.example.com/jobs/engineer",
+  location: "Chicago, IL (Hybrid)",
   job_description: "Build and maintain Acme's software products.",
 };
 
@@ -21,7 +22,7 @@ describe("ChatGPT job validation", () => {
     { company: "   " }, { position: " " }, { applied_date: "2026-02-30" }, { applied_date: "2026-02-29" },
     { request_id: "" }, { job_url: "javascript:alert(1)" }, { job_url: "https://" },
     { user_id: "someone-else" }, { resume_path: "private/resume.pdf" }, { notes: "x".repeat(5001) },
-    { job_description: " " },
+    { location: " " }, { job_description: " " },
   ])("rejects unsafe or invalid inputs %j", (patch) => {
     expect(chatGptApplicationSchema.safeParse({ ...validJob, ...patch }).success).toBe(false);
   });
@@ -33,7 +34,7 @@ describe("ChatGPT job validation", () => {
     expect(chatGptApplicationSchema.safeParse(withoutDescription).success).toBe(false);
     expect(chatGptApplicationSchema.safeParse({
       ...withoutDescription,
-      job_description: "Generated from conversation: Front-end role using React and TypeScript in a hybrid New York team.",
+      job_description: "Generated from available information: Front-end role using React and TypeScript in a hybrid New York team.",
     }).success).toBe(true);
   });
   it("requires a plain HTTP(S) job URL", () => {
@@ -70,6 +71,23 @@ describe("ChatGPT job validation", () => {
     { company_tier: "Best company" }, { glassdoor_rating: 0.9 }, { glassdoor_rating: 4.25 },
   ])("rejects invalid extended application details %j", (patch) => {
     expect(chatGptApplicationSchema.safeParse({ ...validJob, ...patch }).success).toBe(false);
+  });
+});
+
+describe("ChatGPT duplicate-check validation", () => {
+  it("trims the exact company, position, and location query", () => {
+    expect(chatGptDuplicateCheckSchema.parse({
+      company: " Acme ", position: " Engineer ", location: " Chicago, IL (Hybrid) ",
+    })).toEqual({ company: "Acme", position: "Engineer", location: "Chicago, IL (Hybrid)" });
+  });
+
+  it.each([
+    {}, { company: "", position: "Engineer", location: "Chicago" },
+    { company: "Acme", position: "", location: "Chicago" },
+    { company: "Acme", position: "Engineer", location: "" },
+    { company: "Acme", position: "Engineer", location: "Chicago", user_id: "someone-else" },
+  ])("rejects incomplete or injected duplicate queries %j", (query) => {
+    expect(chatGptDuplicateCheckSchema.safeParse(query).success).toBe(false);
   });
 });
 
