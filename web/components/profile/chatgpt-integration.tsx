@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Copy, ExternalLink, Link2, Loader2, MessageSquare, RefreshCw, Unplug } from "lucide-react";
 import { toast } from "sonner";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/components/ui";
-import { getChatGptSetup } from "@/lib/chatgpt/setup";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Textarea } from "@/components/ui";
+import { CHATGPT_FOLDER_INSTRUCTION, getChatGptSetup } from "@/lib/chatgpt/setup";
 import { formatDateTime } from "@/lib/utils/date";
 
 interface ChatGptCredential {
@@ -32,6 +32,7 @@ export function ChatGptIntegration() {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const mutationInFlight = useRef(false);
   const urlInput = useRef<HTMLInputElement>(null);
+  const folderInstructionInput = useRef<HTMLTextAreaElement>(null);
 
   async function loadCredential(signal?: AbortSignal) {
     try {
@@ -98,6 +99,17 @@ export function ChatGptIntegration() {
       urlInput.current?.focus();
       urlInput.current?.select();
       toast.error("Could not copy automatically. The URL is selected so you can copy it manually.");
+    }
+  }
+
+  async function copyFolderInstruction() {
+    try {
+      await navigator.clipboard.writeText(CHATGPT_FOLDER_INSTRUCTION);
+      toast.success("ChatGPT folder instruction copied.");
+    } catch {
+      folderInstructionInput.current?.focus();
+      folderInstructionInput.current?.select();
+      toast.error("Could not copy automatically. The instruction is selected so you can copy it manually.");
     }
   }
 
@@ -208,7 +220,16 @@ export function ChatGptIntegration() {
             <p><strong>Allow the save action.</strong> Open the Jobnest connection settings in ChatGPT and make sure its Actions control permits <strong>save_job_application</strong>. Choose an App permissions option that allows changes; ChatGPT may ask before every save. In a managed Business or Enterprise workspace, an administrator may need to approve the write action.</p>
           </li>
           <li className="space-y-2 pl-1">
-            <p><strong>Save your next application.</strong> Start a new ChatGPT conversation and add Jobnest from the tools menu or select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will prepare the job details and ask for any missing information before saving.</p>
+            <p><strong>Keep Jobnest enabled in a ChatGPT folder.</strong> If you use a ChatGPT folder or project, paste this line at the very top of its instructions, above every other instruction. This keeps Jobnest available without saving anything early.</p>
+            <label htmlFor="chatgpt-folder-instruction" className="block text-xs font-medium text-muted-foreground">Folder/project instruction</label>
+            <div className="flex items-start gap-2">
+              <Textarea ref={folderInstructionInput} id="chatgpt-folder-instruction" value={CHATGPT_FOLDER_INSTRUCTION} readOnly spellCheck={false} rows={3} className="min-w-0 resize-none font-mono text-xs" />
+              <Button type="button" size="icon" variant="outline" aria-label="Copy ChatGPT folder instruction" onClick={() => void copyFolderInstruction()}><Copy aria-hidden="true" /></Button>
+            </div>
+            <p className="text-muted-foreground">Use this folder instruction because the plugin may not remain available in folder chats unless <strong>@Jobnest</strong> is included in the instructions.</p>
+          </li>
+          <li className="space-y-2 pl-1">
+            <p><strong>Save your next application.</strong> In a normal conversation, add Jobnest from the tools menu or select <strong>@Jobnest</strong>. After applying, type <strong>JOBNEST</strong>. ChatGPT will fill every supported detail it can, attach the job description, and save with today&apos;s date.</p>
             <p className="text-muted-foreground">Approve the ChatGPT save prompt and wait for the saved Jobnest link. If ChatGPT says the conversation does not permit the action, enable Jobnest for that conversation and check its Actions/App permissions. Use Refresh status above to check your last successful save.</p>
           </li>
         </ol>

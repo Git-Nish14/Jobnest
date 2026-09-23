@@ -40,7 +40,8 @@ describe("ChatGPT MCP transport", () => {
     const body = await response.json();
     expect(body).toMatchObject({ jsonrpc: "2.0", id: "req-1", result: { protocolVersion: "2025-11-25", capabilities: { tools: { listChanged: false } } } });
     expect(body.result.instructions).toContain("JOBNEST");
-    expect(body.result.instructions).toContain("complete job description");
+    expect(body.result.instructions).toContain("Always attach a non-empty job_description");
+    expect(body.result.instructions).toContain("Do not ask whether they applied");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("mcp-session-id")).toBeNull();
   });
@@ -52,10 +53,12 @@ describe("ChatGPT MCP transport", () => {
       name: "save_job_application",
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       securitySchemes: [{ type: "oauth2", scopes: ["applications:write"] }],
-      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "applied_date"] },
+      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "job_description"] },
     });
     expect(result.tools[0].inputSchema.properties.user_id).toBeUndefined();
     expect(result.tools[0].inputSchema.properties.job_description.description).toContain("complete job-description text");
+    expect(result.tools[0].inputSchema.properties.job_description.description).toContain("Required for every save");
+    expect(result.tools[0].inputSchema.properties.applied_date.description).toContain("Do not ask for the date");
     expect(result.tools[0].inputSchema.properties).toEqual(expect.objectContaining({
       ats_provider: expect.any(Object),
       requires_sponsorship: expect.any(Object),

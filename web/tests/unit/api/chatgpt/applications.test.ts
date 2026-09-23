@@ -47,7 +47,10 @@ describe("ChatGPT save authentication and account boundary", () => {
     expect(admin.rpc).toHaveBeenCalledWith("save_chatgpt_application", {
       p_key_hash: hashChatGptKey(TOKEN), p_resource: RESOURCE, p_request_id: job.request_id,
       p_content_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
-      p_application: { company: "Acme", position: "Engineer", applied_date: "2026-09-21", status: "Applied" },
+      p_application: {
+        company: "Acme", position: "Engineer", applied_date: "2026-09-21", status: "Applied",
+        job_description: job.job_description,
+      },
     });
     expect(await response.json()).toEqual({ success: true, application: savedApplication, duplicate: false, url: `${ORIGIN}/applications/application-1` });
     expect(response.headers.get("Cache-Control")).toBe("no-store");
@@ -68,14 +71,30 @@ describe("ChatGPT save validation, retries and errors", () => {
     { ...job, company: " " }, { ...job, company: "x".repeat(256) },
     { ...job, applied_date: "2026-02-30" }, { ...job, applied_date: "September 21" },
     { ...job, job_url: "javascript:alert(1)" }, { ...job, status: "Invented" },
+    { ...job, job_description: " " },
   ])("rejects invalid or owner-injecting arguments", async (body) => {
     expect((await POST(saveRequest(body))).status).toBe(422);
     expect(admin.rpc).not.toHaveBeenCalled();
   });
 
+  it("uses today's date and Applied status when JOBNEST arguments omit both", async () => {
+    const { applied_date: _date, ...withoutDate } = job;
+    expect((await POST(saveRequest(withoutDate))).status).toBe(201);
+    expect(admin.rpc).toHaveBeenCalledWith("save_chatgpt_application", expect.objectContaining({
+      p_application: expect.objectContaining({
+        applied_date: new Date().toISOString().slice(0, 10),
+        status: "Applied",
+        job_description: job.job_description,
+      }),
+    }));
+  });
+
   it("returns the same payload hash for reordered fields, trimmed values and explicit defaults", async () => {
     await POST(saveRequest(job));
-    await POST(saveRequest({ position: " Engineer ", company: " Acme ", applied_date: job.applied_date, status: "Applied", request_id: "second-id" }));
+    await POST(saveRequest({
+      position: " Engineer ", company: " Acme ", applied_date: job.applied_date, status: "Applied",
+      request_id: "second-id", job_description: ` ${job.job_description} `,
+    }));
     expect(admin.rpc.mock.calls[0][1].p_content_hash).toBe(admin.rpc.mock.calls[1][1].p_content_hash);
   });
 

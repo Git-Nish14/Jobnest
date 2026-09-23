@@ -10,6 +10,7 @@ export const credential = {
 };
 export const job = {
   request_id: "request-1", company: "Acme", position: "Engineer", applied_date: "2026-09-21",
+  job_description: "Build and maintain Acme's software products.",
 };
 export const savedApplication = { id: "application-1", company: job.company, position: job.position, applied_date: job.applied_date, status: "Applied" };
 

@@ -1,23 +1,39 @@
 import { describe, expect, it } from "vitest";
 import { chatGptApplicationSchema } from "@/lib/chatgpt/schema";
-import { getChatGptSetup } from "@/lib/chatgpt/setup";
+import { CHATGPT_FOLDER_INSTRUCTION, getChatGptSetup } from "@/lib/chatgpt/setup";
 import { safeAuthRedirect } from "@/lib/auth/redirect";
 
-const validJob = { request_id: "save-1", company: "Acme", position: "Engineer", applied_date: "2026-09-22" };
+const validJob = {
+  request_id: "save-1", company: "Acme", position: "Engineer", applied_date: "2026-09-22",
+  job_description: "Build and maintain Acme's software products.",
+};
 
 describe("ChatGPT job validation", () => {
   it("trims inputs and defaults only the status", () => {
     expect(chatGptApplicationSchema.parse({ ...validJob, company: " Acme " })).toEqual({ ...validJob, status: "Applied" });
   });
+  it("defaults a JOBNEST save to today's application date", () => {
+    const { applied_date: _date, ...withoutDate } = validJob;
+    expect(chatGptApplicationSchema.parse(withoutDate).applied_date).toBe(new Date().toISOString().slice(0, 10));
+  });
   it.each([
     { company: "   " }, { position: " " }, { applied_date: "2026-02-30" }, { applied_date: "2026-02-29" },
     { request_id: "" }, { job_url: "javascript:alert(1)" }, { job_url: "https://" },
     { user_id: "someone-else" }, { resume_path: "private/resume.pdf" }, { notes: "x".repeat(5001) },
+    { job_description: " " },
   ])("rejects unsafe or invalid inputs %j", (patch) => {
     expect(chatGptApplicationSchema.safeParse({ ...validJob, ...patch }).success).toBe(false);
   });
   it("accepts leap dates and known job sources", () => {
     expect(chatGptApplicationSchema.safeParse({ ...validJob, applied_date: "2024-02-29", source: "LinkedIn", job_url: "https://acme.example.com/jobs/123" }).success).toBe(true);
+  });
+  it("requires a description but accepts a factual generated description when posting text is unavailable", () => {
+    const { job_description: _description, ...withoutDescription } = validJob;
+    expect(chatGptApplicationSchema.safeParse(withoutDescription).success).toBe(false);
+    expect(chatGptApplicationSchema.safeParse({
+      ...withoutDescription,
+      job_description: "Generated from conversation: Front-end role using React and TypeScript in a hybrid New York team.",
+    }).success).toBe(true);
   });
   it("accepts every user-editable application detail available to the plugin", () => {
     const parsed = chatGptApplicationSchema.parse({
@@ -52,6 +68,9 @@ describe("ChatGPT job validation", () => {
 });
 
 describe("plugin configuration", () => {
+  it("provides the exact instruction users put first in ChatGPT folders", () => {
+    expect(CHATGPT_FOLDER_INSTRUCTION).toBe("@Jobnest Keep Jobnest available in this chat. Do not save anything yet. I will say JOBNEST only after I actually apply.");
+  });
   it("uses a public configured HTTPS origin", () => {
     expect(getChatGptSetup("https://jobnest.example.com/")).toEqual({ ready: true, mcpUrl: "https://jobnest.example.com/api/integrations/chatgpt/mcp" });
   });
