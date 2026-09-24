@@ -6,52 +6,37 @@ import type {
   ApplicationStats,
   ApiResponse,
   QueryParams,
-  CursorPage,
+  PaginatedResponse,
 } from "@/types";
 import { APPLICATIONS_PAGE_SIZE } from "@/types/api";
 import type { ApplicationStatus } from "@/config/constants";
 
 export { APPLICATIONS_PAGE_SIZE };
 
-// ── Cursor helpers ────────────────────────────────────────────────────────────
-
-function encodeCursor(app: JobApplication): string {
-  return btoa(`${app.applied_date}|${app.id}`);
-}
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function decodeCursor(cursor: string): { date: string; id: string } | null {
-  try {
-    const raw = atob(cursor);
-    const [date, id] = raw.split("|");
-    if (!date || !id) return null;
-    // Strict format validation prevents PostgREST filter-string injection
-    if (!DATE_RE.test(date) || !UUID_RE.test(id)) return null;
-    return { date, id };
-  } catch {
-    return null;
-  }
-}
-
 /** Strip characters that have special meaning in PostgREST .or() filter grammar. */
 function sanitizeFilterTerm(s: string): string {
   return s.replace(/[,()."']/g, " ").slice(0, 200);
 }
 
+function positiveInteger(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0) return fallback;
+  return Math.floor(value);
+}
+
 /**
- * Keyset-paginated application fetch.
- * Always sorts by applied_date DESC, id DESC so the cursor is stable across
- * concurrent inserts. Returns at most APPLICATIONS_PAGE_SIZE rows.
+ * Numbered application-page fetch with an exact filtered count.
+ * A deterministic id tie-breaker keeps adjacent pages stable when the primary
+ * sort value is shared by multiple applications.
  */
 export async function getApplicationsPage(
   params?: QueryParams
-): Promise<CursorPage<JobApplication>> {
+): Promise<PaginatedResponse<JobApplication>> {
   try {
     const supabase = await createClient();
+    const page = positiveInteger(params?.page, 1);
+    const pageSize = Math.min(100, positiveInteger(params?.pageSize, APPLICATIONS_PAGE_SIZE));
 
-    let query = supabase.from("job_applications").select("*");
+    let query = supabase.from("job_applications").select("*", { count: "exact" });
 
     // Apply the same filters as getApplications
     if (params?.search) {
@@ -84,38 +69,43 @@ export async function getApplicationsPage(
       query = query.eq("company_tier", params.tier);
     }
 
-    // Keyset cursor: fetch rows after the last seen (applied_date, id) pair.
-    // The OR condition covers both "strictly earlier date" and "same date but earlier id".
-    if (params?.cursor) {
-      const decoded = decodeCursor(params.cursor);
-      if (decoded) {
-        query = query.or(
-          `applied_date.lt.${decoded.date},and(applied_date.eq.${decoded.date},id.lt.${decoded.id})`
-        );
-      }
+    switch (params?.sort ?? "date_desc") {
+      case "date_asc":
+        query = query.order("applied_date", { ascending: true }).order("id", { ascending: true });
+        break;
+      case "company_asc":
+        query = query.order("company", { ascending: true }).order("id", { ascending: true });
+        break;
+      case "company_desc":
+        query = query.order("company", { ascending: false }).order("id", { ascending: false });
+        break;
+      case "position_asc":
+        query = query.order("position", { ascending: true }).order("id", { ascending: true });
+        break;
+      default:
+        query = query.order("applied_date", { ascending: false }).order("id", { ascending: false });
     }
 
-    // Consistent sort for stable keyset pagination
-    query = query
-      .order("applied_date", { ascending: false })
-      .order("id",           { ascending: false })
-      .limit(APPLICATIONS_PAGE_SIZE + 1); // fetch one extra to detect hasMore
-
-    const { data, error } = await query;
+    const from = (page - 1) * pageSize;
+    const { data, error, count } = await query.range(from, from + pageSize - 1);
 
     if (error) {
-      return { data: [], hasMore: false, nextCursor: null, error: error.message };
+      return { data: [], total: 0, page, pageSize, totalPages: 0, error: error.message };
     }
 
-    const rows = (data ?? []) as JobApplication[];
-    const hasMore = rows.length > APPLICATIONS_PAGE_SIZE;
-    const page    = hasMore ? rows.slice(0, APPLICATIONS_PAGE_SIZE) : rows;
-    const nextCursor = hasMore ? encodeCursor(page[page.length - 1]) : null;
-
-    return { data: page, hasMore, nextCursor };
+    const total = count ?? 0;
+    return {
+      data: (data ?? []) as JobApplication[],
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return { data: [], hasMore: false, nextCursor: null, error: message };
+    const page = positiveInteger(params?.page, 1);
+    const pageSize = Math.min(100, positiveInteger(params?.pageSize, APPLICATIONS_PAGE_SIZE));
+    return { data: [], total: 0, page, pageSize, totalPages: 0, error: message };
   }
 }
 

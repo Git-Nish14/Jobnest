@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Trash2, RefreshCw, Download, X, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Trash2, RefreshCw, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { ApplicationCard } from "./application-card";
@@ -10,22 +11,27 @@ import type { JobApplication } from "@/types";
 import { APPLICATION_STATUSES } from "@/config/constants";
 import type { ApplicationStatus } from "@/config/constants";
 import { cn } from "@/lib/utils";
-import { APPLICATIONS_PAGE_SIZE } from "@/types/api";
-
-interface Filters {
-  search?: string;
-  status?: string;
-  location?: string;
-  dateRange?: string;
-  sponsorship?: string;
-  tier?: string;
-}
 
 interface Props {
   applications: JobApplication[];
-  hasMore?: boolean;
-  nextCursor?: string | null;
-  filters?: Filters;
+  total: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+}
+
+type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
+
+export function getPaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
+  if (totalPages <= 5) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) return [1, 2, 3, "ellipsis-right", totalPages];
+  if (currentPage >= totalPages - 2) {
+    return [1, "ellipsis-left", totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, "ellipsis-left", currentPage, "ellipsis-right", totalPages];
 }
 
 function exportCSV(apps: JobApplication[]) {
@@ -43,106 +49,26 @@ function exportCSV(apps: JobApplication[]) {
 }
 
 export function ApplicationsList({
-  applications: initialApplications,
-  hasMore: initialHasMore = false,
-  nextCursor: initialCursor = null,
-  filters = {},
+  applications,
+  total,
+  currentPage,
+  totalPages,
+  pageSize,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // ── Cursor pagination state ────────────────────────────────────────────────
-  const [extraApps, setExtraApps]       = useState<JobApplication[]>([]);
-  const [cursor, setCursor]             = useState<string | null>(initialCursor);
-  const [hasMore, setHasMore]           = useState(initialHasMore);
-  const [loadingMore, setLoadingMore]   = useState(false);
+  const pageHref = useCallback((page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) params.delete("page"); else params.set("page", String(page));
+    const query = params.toString();
+    return `/applications${query ? `?${query}` : ""}`;
+  }, [searchParams]);
 
-  // Combined list: server-rendered initial page + client-loaded extras
-  const allApps = useMemo(
-    () => [...initialApplications, ...extraApps],
-    [initialApplications, extraApps]
+  const paginationItems = useMemo(
+    () => getPaginationItems(currentPage, totalPages),
+    [currentPage, totalPages],
   );
-
-  const loadMore = useCallback(async () => {
-    if (!cursor || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const supabase = createClient();
-      let query = supabase
-        .from("job_applications")
-        .select("*");
-
-      // Replicate server-side filters on the client.
-      // Strip PostgREST meta-characters from free-text terms to prevent filter injection.
-      const sanitize = (s: string) => s.replace(/[,()."']/g, " ").slice(0, 200);
-      if (filters.search) {
-        const s = sanitize(filters.search);
-        query = query.or(`company.ilike.%${s}%,position.ilike.%${s}%,job_id.ilike.%${s}%`);
-      }
-      if (filters.status && filters.status !== "all") {
-        query = query.eq("status", filters.status);
-      }
-      if (filters.location) {
-        query = query.ilike("location", `%${sanitize(filters.location)}%`);
-      }
-      if (filters.dateRange && filters.dateRange !== "all") {
-        const now = new Date();
-        let startDate: Date;
-        switch (filters.dateRange) {
-          case "today":   startDate = new Date(now); startDate.setHours(0, 0, 0, 0); break;
-          case "week":    { startDate = new Date(now); startDate.setDate(now.getDate() - now.getDay()); startDate.setHours(0,0,0,0); break; }
-          case "month":   startDate = new Date(now.getFullYear(), now.getMonth(), 1); break;
-          case "quarter": startDate = new Date(now); startDate.setMonth(now.getMonth() - 3); break;
-          case "year":    startDate = new Date(now.getFullYear(), 0, 1); break;
-          default:        startDate = new Date(0);
-        }
-        query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
-      }
-      if (filters.sponsorship === "true") {
-        query = query.eq("requires_sponsorship", true);
-      }
-      if (filters.tier && filters.tier !== "all") {
-        query = query.eq("company_tier", filters.tier);
-      }
-
-      // Decode cursor: base64("applied_date|id")
-      // atob() throws DOMException on invalid base64 — wrap it so load-more never crashes.
-      // Strict format validation also prevents PostgREST filter injection.
-      const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      try {
-        const [cursorDate, cursorId] = atob(cursor).split("|");
-        if (cursorDate && cursorId && DATE_RE.test(cursorDate) && UUID_RE.test(cursorId)) {
-          query = query.or(
-            `applied_date.lt.${cursorDate},and(applied_date.eq.${cursorDate},id.lt.${cursorId})`
-          );
-        }
-      } catch {
-        // Invalid base64 cursor — skip pagination rather than crashing
-      }
-
-      const { data, error } = await query
-        .order("applied_date", { ascending: false })
-        .order("id",           { ascending: false })
-        .limit(APPLICATIONS_PAGE_SIZE + 1);
-
-      if (error) { toast.error("Failed to load more applications."); return; }
-
-      const rows = (data ?? []) as JobApplication[];
-      const nextHasMore = rows.length > APPLICATIONS_PAGE_SIZE;
-      const page = nextHasMore ? rows.slice(0, APPLICATIONS_PAGE_SIZE) : rows;
-
-      setExtraApps((prev) => [...prev, ...page]);
-      setHasMore(nextHasMore);
-      setCursor(nextHasMore
-        ? btoa(`${page[page.length - 1].applied_date}|${page[page.length - 1].id}`)
-        : null
-      );
-    } catch {
-      toast.error("Failed to load more applications.");
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [cursor, loadingMore, filters]);
 
   // ── Bulk selection state ───────────────────────────────────────────────────
   const [selected, setSelected]               = useState<Set<string>>(new Set());
@@ -151,8 +77,8 @@ export function ApplicationsList({
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentIds = useMemo(
-    () => new Set(allApps.map((a) => a.id)),
-    [allApps]
+    () => new Set(applications.map((a) => a.id)),
+    [applications]
   );
   const effectiveSelected = useMemo(
     () => new Set([...selected].filter((id) => currentIds.has(id))),
@@ -168,7 +94,7 @@ export function ApplicationsList({
   }, []);
 
   const selectAll = () => {
-    setSelected(new Set(allApps.map((a) => a.id)));
+    setSelected(new Set(applications.map((a) => a.id)));
     setConfirmingDelete(false);
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
   };
@@ -215,7 +141,7 @@ export function ApplicationsList({
     router.refresh();
   };
 
-  const bulkExport = () => exportCSV(allApps.filter((a) => effectiveSelected.has(a.id)));
+  const bulkExport = () => exportCSV(applications.filter((a) => effectiveSelected.has(a.id)));
 
   const selectable = effectiveSelected.size > 0;
 
@@ -280,12 +206,12 @@ export function ApplicationsList({
 
           <button
             type="button"
-            onClick={effectiveSelected.size === allApps.length ? clearSelection : selectAll}
+            onClick={effectiveSelected.size === applications.length ? clearSelection : selectAll}
             disabled={bulkLoading}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             <RefreshCw className="h-3 w-3" />
-            {effectiveSelected.size === allApps.length ? "Deselect all" : "Select all"}
+            {effectiveSelected.size === applications.length ? "Deselect all" : "Select page"}
           </button>
           <button
             type="button"
@@ -301,8 +227,7 @@ export function ApplicationsList({
 
       {/* ── Count row ── */}
       <p className="text-xs text-muted-foreground mb-3 px-0.5">
-        {allApps.length} application{allApps.length !== 1 ? "s" : ""}
-        {hasMore && " (showing first page)"}
+        {total} application{total !== 1 ? "s" : ""} · Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)}
         {effectiveSelected.size > 0 && (
           <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
             · {effectiveSelected.size} selected
@@ -312,7 +237,7 @@ export function ApplicationsList({
 
       {/* ── Cards — tighter gap on mobile, comfortable on desktop ── */}
       <div className={cn("space-y-3 sm:space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
-        {allApps.map((app) => (
+        {applications.map((app) => (
           <ApplicationCard
             key={app.id}
             application={app}
@@ -323,20 +248,59 @@ export function ApplicationsList({
         ))}
       </div>
 
-      {/* ── Load more ── */}
-      {hasMore && (
-        <div className="flex justify-center mt-6">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="inline-flex items-center gap-2 text-sm font-medium px-6 py-2.5 rounded-full border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            {loadingMore
-              ? <><Loader2 className="h-4 w-4 animate-spin" />Loading…</>
-              : <>Load more</>}
-          </button>
-        </div>
+      {totalPages > 1 && (
+        <nav className="mt-8 flex items-center justify-center gap-1" aria-label="Applications pagination">
+          {currentPage > 1 ? (
+            <Link
+              href={pageHref(currentPage - 1)}
+              aria-label="Go to previous page"
+              className="mr-1 inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </Link>
+          ) : (
+            <span aria-disabled="true" className="mr-1 inline-flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-sm text-muted-foreground/40">
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </span>
+          )}
+
+          {paginationItems.map((item) => typeof item === "number" ? (
+            <Link
+              key={item}
+              href={pageHref(item)}
+              aria-label={`Go to page ${item}`}
+              aria-current={item === currentPage ? "page" : undefined}
+              className={cn(
+                "inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors",
+                item === currentPage
+                  ? "bg-[#99462a] text-white dark:bg-[#ccff00] dark:text-black"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {item}
+            </Link>
+          ) : (
+            <span key={item} className="inline-flex h-9 min-w-7 items-center justify-center text-sm text-muted-foreground" aria-hidden="true">…</span>
+          ))}
+
+          {currentPage < totalPages ? (
+            <Link
+              href={pageHref(currentPage + 1)}
+              aria-label="Go to next page"
+              className="ml-1 inline-flex h-9 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <span aria-disabled="true" className="ml-1 inline-flex h-9 items-center gap-1 rounded-lg border border-border px-2.5 text-sm text-muted-foreground/40">
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          )}
+        </nav>
       )}
     </div>
   );

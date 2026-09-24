@@ -12,6 +12,7 @@ export function ViewToggle() {
   function switchView(view: "list" | "kanban") {
     const params = new URLSearchParams(searchParams.toString());
     params.set("view", view);
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 

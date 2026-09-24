@@ -50,6 +50,8 @@ export function ApplicationFilters() {
   const createQS = useCallback(
     (params: Record<string, string>) => {
       const next = new URLSearchParams(searchParams.toString());
+      // Any filter or sort change starts a fresh result set on page one.
+      next.delete("page");
       Object.entries(params).forEach(([k, v]) => {
         if (v && v !== "all") next.set(k, v); else next.delete(k);
       });

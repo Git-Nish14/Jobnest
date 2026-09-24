@@ -1,9 +1,8 @@
 /**
  * Unit tests — services/applications.ts internal security helpers
  *
- * Tests sanitizeFilterTerm (PostgREST injection prevention) and
- * decodeCursor (format-validation preventing filter injection) by
- * examining what gets passed to the Supabase query builder.
+ * Tests filter sanitization and numbered pagination by examining what gets
+ * passed to the Supabase query builder.
  *
  * Pattern: mock createClient(), call the exported service function,
  * and inspect the .or() / .ilike() / .eq() calls.
@@ -18,8 +17,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const mockCreate = vi.mocked(createClient);
 
-function makeClient() {
-  const chain = makeChain({ data: [], error: null });
+function makeClient(result: unknown = { data: [], error: null }) {
+  const chain = makeChain(result);
   return {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "uid-1" } }, error: null }) },
     from: vi.fn().mockReturnValue(chain),
@@ -113,62 +112,49 @@ describe("getApplicationsPage — location sanitization", () => {
   });
 });
 
-// ── decodeCursor — format validation ─────────────────────────────────────────
+// ── numbered pagination ──────────────────────────────────────────────────────
 
-describe("getApplicationsPage — cursor validation", () => {
-  it("applies cursor filter when cursor has valid date|uuid format", async () => {
-    const client = makeClient();
+describe("getApplicationsPage — pagination", () => {
+  it("requests an exact count and returns page metadata", async () => {
+    const client = makeClient({ data: [{ id: "app-1" }], error: null, count: 51 });
     mockCreate.mockResolvedValue(client as never);
 
-    const validCursor = btoa("2026-05-01|123e4567-e89b-12d3-a456-426614174000");
-    await getApplicationsPage({ cursor: validCursor });
+    const result = await getApplicationsPage({ page: 2 });
 
-    // .or() called twice: once without cursor for base query? No — only once for cursor
-    const orFn = (client._chain as { or: ReturnType<typeof vi.fn> }).or;
-    // At least one .or() call should reference the cursor date
-    const calls = orFn.mock.calls as string[][];
-    const cursorCall = calls.find(([f]) => f?.includes("2026-05-01"));
-    expect(cursorCall).toBeDefined();
+    const selectFn = (client._chain as { select: ReturnType<typeof vi.fn> }).select;
+    expect(selectFn).toHaveBeenCalledWith("*", { count: "exact" });
+    expect(result).toMatchObject({ total: 51, page: 2, pageSize: 25, totalPages: 3 });
   });
 
-  it("ignores cursor when date portion has invalid format", async () => {
+  it("requests the correct row range for the selected page", async () => {
     const client = makeClient();
     mockCreate.mockResolvedValue(client as never);
 
-    // Date has slashes instead of dashes — invalid
-    const badCursor = btoa("2026/05/01|123e4567-e89b-12d3-a456-426614174000");
-    await getApplicationsPage({ cursor: badCursor });
+    await getApplicationsPage({ page: 3, pageSize: 10 });
 
-    const orFn = (client._chain as { or: ReturnType<typeof vi.fn> }).or;
-    const calls = orFn.mock.calls as string[][];
-    const hasCursorFilter = calls.some(([f]) => f?.includes("applied_date.lt."));
-    expect(hasCursorFilter).toBe(false);
+    const rangeFn = (client._chain as { range: ReturnType<typeof vi.fn> }).range;
+    expect(rangeFn).toHaveBeenCalledWith(20, 29);
   });
 
-  it("ignores cursor when id portion is not a UUID", async () => {
+  it("normalizes invalid page values to page one", async () => {
     const client = makeClient();
     mockCreate.mockResolvedValue(client as never);
 
-    // ID contains injection payload
-    const malicious = btoa("2026-05-01|not-a-uuid,company.eq.ACME");
-    await getApplicationsPage({ cursor: malicious });
+    await getApplicationsPage({ page: -4, pageSize: 10 });
 
-    const orFn = (client._chain as { or: ReturnType<typeof vi.fn> }).or;
-    const calls = orFn.mock.calls as string[][];
-    const hasInjection = calls.some(([f]) => f?.includes("company.eq.ACME"));
-    expect(hasInjection).toBe(false);
+    const rangeFn = (client._chain as { range: ReturnType<typeof vi.fn> }).range;
+    expect(rangeFn).toHaveBeenCalledWith(0, 9);
   });
 
-  it("ignores a cursor that is not valid base64", async () => {
+  it("uses the requested sort before applying the page range", async () => {
     const client = makeClient();
     mockCreate.mockResolvedValue(client as never);
 
-    await getApplicationsPage({ cursor: "!!!not-base64!!!" });
+    await getApplicationsPage({ sort: "company_asc" });
 
-    const orFn = (client._chain as { or: ReturnType<typeof vi.fn> }).or;
-    const calls = orFn.mock.calls as string[][];
-    const hasCursorFilter = calls.some(([f]) => f?.includes("applied_date.lt."));
-    expect(hasCursorFilter).toBe(false);
+    const orderFn = (client._chain as { order: ReturnType<typeof vi.fn> }).order;
+    expect(orderFn).toHaveBeenNthCalledWith(1, "company", { ascending: true });
+    expect(orderFn).toHaveBeenNthCalledWith(2, "id", { ascending: true });
   });
 });
 

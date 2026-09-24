@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
 import { getApplications, getApplicationsPage } from "@/services";
 import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton } from "@/components/applications";
@@ -23,6 +24,7 @@ interface PageProps {
     view?: string;
     sponsorship?: string;
     tier?: string;
+    page?: string;
   }>;
 }
 
@@ -31,12 +33,15 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   const view = params.view === "kanban" ? "kanban" : "list";
 
   // Kanban view needs all rows (drag-and-drop reorders all columns).
-  // List view uses cursor pagination — first page only; ApplicationsList handles "load more".
+  // List view uses URL-backed numbered pagination.
   const isKanban = view === "kanban";
 
   let apps: import("@/types").JobApplication[] = [];
-  let hasMore = false;
-  let nextCursor: string | null = null;
+  let total = 0;
+  let totalPages = 0;
+  let pageSize = 25;
+  const parsedPage = Number.parseInt(params.page ?? "1", 10);
+  const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const sponsorshipOnly = params.sponsorship === "true";
 
@@ -58,13 +63,26 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       status: params.status,
       location: params.location,
       dateRange: toDateRange(params.dateRange),
+      sort: params.sort,
+      page: currentPage,
       sponsorshipOnly,
       tier: params.tier,
     });
     if (page.error) console.error("Error fetching applications page:", page.error);
     apps = page.data;
-    hasMore = page.hasMore;
-    nextCursor = page.nextCursor;
+    total = page.total;
+    totalPages = page.totalPages;
+    pageSize = page.pageSize;
+
+    // Deletions or hand-edited URLs can leave the user past the final page.
+    if (totalPages > 0 && currentPage > totalPages) {
+      const next = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) next.set(key, value);
+      });
+      if (totalPages === 1) next.delete("page"); else next.set("page", String(totalPages));
+      redirect(`/applications${next.size ? `?${next.toString()}` : ""}`);
+    }
   }
 
   return (
@@ -108,18 +126,14 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
               params.dateRange ?? "",
               params.sponsorship ?? "",
               params.tier ?? "",
+              params.sort ?? "",
+              String(currentPage),
             ].join("|")}
             applications={apps}
-            hasMore={hasMore}
-            nextCursor={nextCursor}
-            filters={{
-              search: params.search,
-              status: params.status,
-              location: params.location,
-              dateRange: params.dateRange,
-              sponsorship: params.sponsorship,
-              tier: params.tier,
-            }}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
           />
         )
       ) : (

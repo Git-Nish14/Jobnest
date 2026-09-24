@@ -15,6 +15,8 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+  /** Set when the database query failed. */
+  error?: string;
 }
 
 export interface QueryParams {
@@ -27,24 +29,12 @@ export interface QueryParams {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
-  /** Opaque base64-encoded cursor for keyset pagination (applied_date|id). */
-  cursor?: string;
   /** When true, only return applications where requires_sponsorship = true. */
   sponsorshipOnly?: boolean;
   /** Filter by company tier. */
   tier?: string;
 }
 
-/** Items per page used by cursor-paginated queries. Defined here (not in services/)
+/** Items per page used by paginated queries. Defined here (not in services/)
  *  so client components can import it without pulling in server-only Supabase modules. */
 export const APPLICATIONS_PAGE_SIZE = 25;
-
-/** Result shape for cursor-paginated queries. */
-export interface CursorPage<T> {
-  data: T[];
-  hasMore: boolean;
-  /** Pass this as `cursor` on the next request to get the next page. null when no more pages. */
-  nextCursor: string | null;
-  /** Set when a DB or auth error occurred. Callers should distinguish this from a real empty list. */
-  error?: string;
-}
