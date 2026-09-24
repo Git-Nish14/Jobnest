@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   Search, X, ChevronDown, Loader2,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp,
-  ChevronsUpDown, Stamp, Building2, SlidersHorizontal,
+  CalendarDays, ChevronsUpDown, Stamp, Building2, SlidersHorizontal,
 } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/config";
 import { COMPANY_TIERS } from "@/types/application";
@@ -24,6 +24,15 @@ const SORT_OPTIONS = [
   { value: "position_asc", label: "Position A–Z",  icon: ChevronsUpDown },
 ];
 
+const DATE_OPTIONS = [
+  { value: "all",     label: "All dates" },
+  { value: "today",   label: "Today" },
+  { value: "week",    label: "This week" },
+  { value: "month",   label: "This month" },
+  { value: "quarter", label: "Last 3 months" },
+  { value: "year",    label: "This year" },
+] as const;
+
 // All statuses shown as horizontal pills — "All" is the default
 const STATUS_PILLS = ["All", ...APPLICATION_STATUSES] as const;
 
@@ -36,6 +45,7 @@ export function ApplicationFilters() {
 
   const currentStatus   = searchParams.get("status") || "all";
   const currentSort     = searchParams.get("sort")   || "date_desc";
+  const currentDateRange = searchParams.get("dateRange") || "all";
   const sponsorshipOnly = searchParams.get("sponsorship") === "true";
   const currentTier     = (searchParams.get("tier") || "all") as CompanyTier | "all";
 
@@ -88,6 +98,7 @@ export function ApplicationFilters() {
   const clearAdvanced = () => push(createQS({ sponsorship: "", tier: "" }));
 
   const currentSortOption = SORT_OPTIONS.find((o) => o.value === currentSort) ?? SORT_OPTIONS[0];
+  const currentDateOption = DATE_OPTIONS.find((o) => o.value === currentDateRange) ?? DATE_OPTIONS[0];
 
   return (
     /*
@@ -159,6 +170,44 @@ export function ApplicationFilters() {
                 </DropdownMenuItem>
               );
             })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Applied-date filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Application date: ${currentDateOption.label}`}
+              title={currentDateOption.label}
+              className={cn(
+                "h-9 px-2.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-colors shrink-0",
+                currentDateRange !== "all"
+                  ? "border-[#99462a]/40 dark:border-[#ccff00]/30 bg-[#99462a]/8 dark:bg-[#ccff00]/8 text-[#99462a] dark:text-[#ccff00]"
+                  : "border-[#dbc1b9]/25 dark:border-white/8 bg-[#f4f3f1] dark:bg-white/6 text-[#55433d] dark:text-white/60 hover:bg-[#e9e8e6] dark:hover:bg-white/10",
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">{currentDateOption.label}</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel className="text-[10px] text-[#55433d]/50 dark:text-white/30 uppercase tracking-widest font-semibold">
+              Application date
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {DATE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => push(createQS({ dateRange: option.value }))}
+                className={cn("flex items-center gap-2.5", currentDateRange === option.value && "font-semibold text-[#99462a] dark:text-[#ccff00]")}
+              >
+                <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                {option.label}
+                {currentDateRange === option.value && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#99462a] dark:bg-[#ccff00]" />}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
 

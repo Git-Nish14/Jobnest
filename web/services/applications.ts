@@ -71,19 +71,34 @@ export async function getApplicationsPage(
 
     switch (params?.sort ?? "date_desc") {
       case "date_asc":
-        query = query.order("applied_date", { ascending: true }).order("id", { ascending: true });
+        query = query
+          .order("applied_date", { ascending: true })
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true });
         break;
       case "company_asc":
-        query = query.order("company", { ascending: true }).order("id", { ascending: true });
+        query = query
+          .order("company", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       case "company_desc":
-        query = query.order("company", { ascending: false }).order("id", { ascending: false });
+        query = query
+          .order("company", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       case "position_asc":
-        query = query.order("position", { ascending: true }).order("id", { ascending: true });
+        query = query
+          .order("position", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       default:
-        query = query.order("applied_date", { ascending: false }).order("id", { ascending: false });
+        query = query
+          .order("applied_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
     }
 
     const from = (page - 1) * pageSize;
@@ -176,20 +191,35 @@ export async function getApplications(
     const sort = params?.sort || "date_desc";
     switch (sort) {
       case "date_asc":
-        query = query.order("applied_date", { ascending: true });
+        query = query
+          .order("applied_date", { ascending: true })
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true });
         break;
       case "company_asc":
-        query = query.order("company", { ascending: true });
+        query = query
+          .order("company", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       case "company_desc":
-        query = query.order("company", { ascending: false });
+        query = query
+          .order("company", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       case "position_asc":
-        query = query.order("position", { ascending: true });
+        query = query
+          .order("position", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
       case "date_desc":
       default:
-        query = query.order("applied_date", { ascending: false });
+        query = query
+          .order("applied_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
         break;
     }
 

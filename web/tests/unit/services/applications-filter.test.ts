@@ -154,7 +154,34 @@ describe("getApplicationsPage — pagination", () => {
 
     const orderFn = (client._chain as { order: ReturnType<typeof vi.fn> }).order;
     expect(orderFn).toHaveBeenNthCalledWith(1, "company", { ascending: true });
-    expect(orderFn).toHaveBeenNthCalledWith(2, "id", { ascending: true });
+    expect(orderFn).toHaveBeenNthCalledWith(2, "created_at", { ascending: false });
+    expect(orderFn).toHaveBeenNthCalledWith(3, "id", { ascending: false });
+  });
+
+  it("sorts newest applications by date, then creation time", async () => {
+    const client = makeClient();
+    mockCreate.mockResolvedValue(client as never);
+
+    await getApplicationsPage({ sort: "date_desc" });
+
+    const orderFn = (client._chain as { order: ReturnType<typeof vi.fn> }).order;
+    expect(orderFn).toHaveBeenNthCalledWith(1, "applied_date", { ascending: false });
+    expect(orderFn).toHaveBeenNthCalledWith(2, "created_at", { ascending: false });
+    expect(orderFn).toHaveBeenNthCalledWith(3, "id", { ascending: false });
+  });
+});
+
+describe("getApplicationsPage — date filtering", () => {
+  it("filters this month from the first day of the current month", async () => {
+    const client = makeClient();
+    mockCreate.mockResolvedValue(client as never);
+
+    await getApplicationsPage({ dateRange: "month" });
+
+    const gteFn = (client._chain as { gte: ReturnType<typeof vi.fn> }).gte;
+    const [column, date] = gteFn.mock.calls[0] as [string, string];
+    expect(column).toBe("applied_date");
+    expect(date).toMatch(/^\d{4}-\d{2}-01$/);
   });
 });
 
