@@ -28,6 +28,7 @@ const SORT_OPTIONS = [
 const DATE_OPTIONS = [
   { value: "all",     label: "All dates" },
   { value: "today",   label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
   { value: "week",    label: "This week" },
   { value: "month",   label: "This month" },
   { value: "quarter", label: "Last 3 months" },

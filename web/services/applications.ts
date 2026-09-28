@@ -51,16 +51,22 @@ export async function getApplicationsPage(
     }
     if (params?.dateRange && params.dateRange !== "all") {
       const now = new Date();
-      let startDate: Date;
-      switch (params.dateRange) {
-        case "today":   startDate = new Date(now); startDate.setHours(0, 0, 0, 0); break;
-        case "week":    startDate = new Date(now); startDate.setDate(now.getDate() - now.getDay()); startDate.setHours(0,0,0,0); break;
-        case "month":   startDate = new Date(now.getFullYear(), now.getMonth(), 1); break;
-        case "quarter": startDate = new Date(now); startDate.setMonth(now.getMonth() - 3); break;
-        case "year":    startDate = new Date(now.getFullYear(), 0, 1); break;
-        default:        startDate = new Date(0);
+      if (params.dateRange === "yesterday") {
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        query = query.eq("applied_date", yesterday.toISOString().split("T")[0]);
+      } else {
+        let startDate: Date;
+        switch (params.dateRange) {
+          case "today":   startDate = new Date(now); startDate.setHours(0, 0, 0, 0); break;
+          case "week":    startDate = new Date(now); startDate.setDate(now.getDate() - now.getDay()); startDate.setHours(0,0,0,0); break;
+          case "month":   startDate = new Date(now.getFullYear(), now.getMonth(), 1); break;
+          case "quarter": startDate = new Date(now); startDate.setMonth(now.getMonth() - 3); break;
+          case "year":    startDate = new Date(now.getFullYear(), 0, 1); break;
+          default:        startDate = new Date(0);
+        }
+        query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
       }
-      query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
     }
     if (params?.sponsorshipOnly) {
       query = query.eq("requires_sponsorship", true);
@@ -151,32 +157,38 @@ export async function getApplications(
     // Date range filter
     if (params?.dateRange && params.dateRange !== "all") {
       const now = new Date();
-      let startDate: Date;
+      if (params.dateRange === "yesterday") {
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        query = query.eq("applied_date", yesterday.toISOString().split("T")[0]);
+      } else {
+        let startDate: Date;
 
-      switch (params.dateRange) {
-        case "today":
-          startDate = new Date(now.setHours(0, 0, 0, 0));
-          break;
-        case "week":
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - now.getDay());
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case "month":
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case "quarter":
-          startDate = new Date(now);
-          startDate.setMonth(now.getMonth() - 3);
-          break;
-        case "year":
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        default:
-          startDate = new Date(0);
+        switch (params.dateRange) {
+          case "today":
+            startDate = new Date(now.setHours(0, 0, 0, 0));
+            break;
+          case "week":
+            startDate = new Date(now);
+            startDate.setDate(now.getDate() - now.getDay());
+            startDate.setHours(0, 0, 0, 0);
+            break;
+          case "month":
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case "quarter":
+            startDate = new Date(now);
+            startDate.setMonth(now.getMonth() - 3);
+            break;
+          case "year":
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+          default:
+            startDate = new Date(0);
+        }
+
+        query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
       }
-
-      query = query.gte("applied_date", startDate.toISOString().split("T")[0]);
     }
 
     // Sponsorship filter

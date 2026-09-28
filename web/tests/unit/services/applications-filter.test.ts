@@ -172,6 +172,22 @@ describe("getApplicationsPage — pagination", () => {
 });
 
 describe("getApplicationsPage — date filtering", () => {
+  it("filters yesterday as one exact calendar date", async () => {
+    const client = makeClient();
+    mockCreate.mockResolvedValue(client as never);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    await getApplicationsPage({ dateRange: "yesterday" });
+
+    const eqFn = (client._chain as { eq: ReturnType<typeof vi.fn> }).eq;
+    expect(eqFn).toHaveBeenCalledWith(
+      "applied_date",
+      yesterday.toISOString().split("T")[0],
+    );
+    expect((client._chain as { gte: ReturnType<typeof vi.fn> }).gte).not.toHaveBeenCalled();
+  });
+
   it("filters this month from the first day of the current month", async () => {
     const client = makeClient();
     mockCreate.mockResolvedValue(client as never);

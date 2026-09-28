@@ -6,7 +6,7 @@ import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewTo
 import type { QueryParams } from "@/types/api";
 import type { ApplicationStats } from "@/types";
 
-const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
+const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "yesterday", "week", "month", "quarter", "year"];
 function toDateRange(val?: string): QueryParams["dateRange"] | undefined {
   return DATE_RANGES.includes(val as QueryParams["dateRange"])
     ? (val as QueryParams["dateRange"])

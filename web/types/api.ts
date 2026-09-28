@@ -23,7 +23,7 @@ export interface QueryParams {
   search?: string;
   status?: string;
   location?: string;
-  dateRange?: "all" | "today" | "week" | "month" | "quarter" | "year";
+  dateRange?: "all" | "today" | "yesterday" | "week" | "month" | "quarter" | "year";
   sort?: string;
   page?: number;
   pageSize?: number;
