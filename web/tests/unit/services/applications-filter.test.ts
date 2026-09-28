@@ -12,7 +12,7 @@ import { makeChain } from "@/tests/helpers/supabase-mock";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { getApplicationsPage, getApplications } from "@/services/applications";
+import { getApplicationsPage, getApplications, getApplicationPipelineSummary } from "@/services/applications";
 import { createClient } from "@/lib/supabase/server";
 
 const mockCreate = vi.mocked(createClient);
@@ -224,5 +224,30 @@ describe("getApplications — sanitization parity", () => {
     const calls = orFn.mock.calls as string[][];
     const hasBadPayload = calls.some(([f]) => f?.includes(",injection"));
     expect(hasBadPayload).toBe(false);
+  });
+});
+
+describe("getApplicationPipelineSummary", () => {
+  it("returns overall pipeline counts from a lightweight field selection", async () => {
+    const client = makeClient({
+      data: [
+        { status: "Applied", applied_date: "2026-09-01" },
+        { status: "Phone Screen", applied_date: "2026-09-02" },
+        { status: "Interview", applied_date: "2026-09-03" },
+        { status: "Offer", applied_date: "2026-09-04" },
+        { status: "Rejected", applied_date: "2026-09-05" },
+      ],
+      error: null,
+    });
+    mockCreate.mockResolvedValue(client as never);
+
+    const result = await getApplicationPipelineSummary();
+
+    expect(result.error).toBeNull();
+    expect(result.data?.total).toBe(5);
+    expect(result.data?.active).toBe(3);
+    expect(result.data?.statusCounts.Offer).toBe(1);
+    expect((client._chain as { select: ReturnType<typeof vi.fn> }).select)
+      .toHaveBeenCalledWith("status, applied_date");
   });
 });

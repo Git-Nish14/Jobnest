@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
-import { getApplications, getApplicationsPage } from "@/services";
-import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton } from "@/components/applications";
+import { getApplications, getApplicationsPage, getApplicationPipelineSummary } from "@/services";
+import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton, PipelineOverview } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
+import type { ApplicationStats } from "@/types";
 
 const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
 function toDateRange(val?: string): QueryParams["dateRange"] | undefined {
@@ -40,39 +41,48 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   let total = 0;
   let totalPages = 0;
   let pageSize = 25;
+  let pipelineStats: ApplicationStats | null = null;
   const parsedPage = Number.parseInt(params.page ?? "1", 10);
   const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const sponsorshipOnly = params.sponsorship === "true";
 
   if (isKanban) {
-    const { data: applications, error } = await getApplications({
-      search: params.search,
-      status: params.status,
-      location: params.location,
-      dateRange: toDateRange(params.dateRange),
-      sort: params.sort,
-      sponsorshipOnly,
-      tier: params.tier,
-    });
+    const [{ data: applications, error }, summary] = await Promise.all([
+      getApplications({
+        search: params.search,
+        status: params.status,
+        location: params.location,
+        dateRange: toDateRange(params.dateRange),
+        sort: params.sort,
+        sponsorshipOnly,
+        tier: params.tier,
+      }),
+      getApplicationPipelineSummary(),
+    ]);
     if (error) console.error("Error fetching applications:", error.message);
     apps = applications ?? [];
+    pipelineStats = summary.data;
   } else {
-    const page = await getApplicationsPage({
-      search: params.search,
-      status: params.status,
-      location: params.location,
-      dateRange: toDateRange(params.dateRange),
-      sort: params.sort,
-      page: currentPage,
-      sponsorshipOnly,
-      tier: params.tier,
-    });
+    const [page, summary] = await Promise.all([
+      getApplicationsPage({
+        search: params.search,
+        status: params.status,
+        location: params.location,
+        dateRange: toDateRange(params.dateRange),
+        sort: params.sort,
+        page: currentPage,
+        sponsorshipOnly,
+        tier: params.tier,
+      }),
+      getApplicationPipelineSummary(),
+    ]);
     if (page.error) console.error("Error fetching applications page:", page.error);
     apps = page.data;
     total = page.total;
     totalPages = page.totalPages;
     pageSize = page.pageSize;
+    pipelineStats = summary.data;
 
     // Deletions or hand-edited URLs can leave the user past the final page.
     if (totalPages > 0 && currentPage > totalPages) {
@@ -88,11 +98,14 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   return (
     <div>
       {/* ── Header ── */}
-      <header className="db-page-header">
+      <header className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#99462a] dark:text-[#ccff00]">
+            Job search workspace
+          </p>
           <h1 className="db-page-title">Applications</h1>
-          <p className="db-page-subtitle hidden sm:block">
-            Manage and track your job applications with thoughtful intentionality.
+          <p className="db-page-subtitle mt-1">
+            Track every opportunity and keep your next move clear.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +124,11 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
       </header>
 
       {/* ── Filters (list view only) ── */}
-      {view === "list" && <ApplicationFilters />}
+      {pipelineStats && pipelineStats.total > 0 && (
+        <PipelineOverview stats={pipelineStats} />
+      )}
+
+      {view === "list" && <ApplicationFilters statusCounts={pipelineStats?.statusCounts} />}
 
       {/* ── Content ── */}
       {apps.length > 0 ? (

@@ -241,6 +241,52 @@ export async function getApplications(
   }
 }
 
+/**
+ * Lightweight, unfiltered pipeline totals for the Applications workspace.
+ * Only the two fields needed for the summary are selected so the page can
+ * keep numbered list pagination without losing the user's overall context.
+ */
+export async function getApplicationPipelineSummary(): Promise<ApiResponse<ApplicationStats>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("job_applications")
+      .select("status, applied_date");
+
+    if (error) {
+      return { data: null, error: { message: error.message, code: error.code } };
+    }
+
+    const rows = (data ?? []) as Pick<JobApplication, "status" | "applied_date">[];
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const statusCounts = rows.reduce((counts, application) => {
+      counts[application.status] = (counts[application.status] ?? 0) + 1;
+      return counts;
+    }, {} as Record<ApplicationStatus, number>);
+
+    return {
+      data: {
+        total: rows.length,
+        thisWeek: rows.filter((application) => new Date(application.applied_date) >= startOfWeek).length,
+        thisMonth: rows.filter((application) => new Date(application.applied_date) >= startOfMonth).length,
+        active:
+          (statusCounts.Applied ?? 0) +
+          (statusCounts["Phone Screen"] ?? 0) +
+          (statusCounts.Interview ?? 0),
+        statusCounts,
+      },
+      error: null,
+    };
+  } catch {
+    return { data: null, error: { message: "Failed to fetch application pipeline" } };
+  }
+}
+
 export async function getApplicationById(
   id: string
 ): Promise<ApiResponse<JobApplication>> {

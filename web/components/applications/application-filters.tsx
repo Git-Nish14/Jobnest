@@ -8,6 +8,7 @@ import {
   CalendarDays, ChevronsUpDown, Stamp, Building2, SlidersHorizontal,
 } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/config";
+import type { ApplicationStatus } from "@/config";
 import { COMPANY_TIERS } from "@/types/application";
 import type { CompanyTier } from "@/types/application";
 import {
@@ -36,7 +37,11 @@ const DATE_OPTIONS = [
 // All statuses shown as horizontal pills — "All" is the default
 const STATUS_PILLS = ["All", ...APPLICATION_STATUSES] as const;
 
-export function ApplicationFilters() {
+interface ApplicationFiltersProps {
+  statusCounts?: Partial<Record<ApplicationStatus, number>>;
+}
+
+export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
   const router      = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -298,6 +303,9 @@ export function ApplicationFilters() {
         {STATUS_PILLS.map((s) => {
           const isAll    = s === "All";
           const isActive = isAll ? currentStatus === "all" : currentStatus === s;
+          const count = isAll
+            ? APPLICATION_STATUSES.reduce((sum, status) => sum + (statusCounts?.[status] ?? 0), 0)
+            : (statusCounts?.[s] ?? 0);
           return (
             <button
               key={s}
@@ -311,6 +319,17 @@ export function ApplicationFilters() {
               )}
             >
               {s}
+              {statusCounts && (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] tabular-nums",
+                    isActive ? "bg-white/18 dark:bg-black/15" : "bg-black/5 dark:bg-white/8",
+                  )}
+                >
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
