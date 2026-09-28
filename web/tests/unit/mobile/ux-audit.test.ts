@@ -36,6 +36,10 @@ describe("ApplicationCard — mobile actions & aria", () => {
   it("options menu button has contextual aria-label including position and company", () => {
     expect(code).toContain('aria-label={`Options for');
   });
+
+  it("contains card controls in their own stacking context", () => {
+    expect(code).toContain("group relative isolate");
+  });
 });
 
 // ── 2. ApplicationFilters — debounce & aria ───────────────────────────────────
@@ -86,6 +90,10 @@ describe("ApplicationFilters — debounce & aria", () => {
 
   it("sort trigger has aria-label", () => {
     expect(code).toContain("aria-label={`Sort:");
+  });
+
+  it("keeps the sticky filter workspace above scrolling cards", () => {
+    expect(code).toContain("sticky top-14 sm:top-16 z-30");
   });
 
   it("clears timeout on cleanup (no memory leak)", () => {

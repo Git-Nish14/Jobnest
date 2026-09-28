@@ -174,7 +174,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
       data-testid="application-card"
       className={cn(
         // ── Shell ──────────────────────────────────────────────────────────
-        "group relative rounded-2xl border overflow-hidden transition-all duration-200",
+        "group relative isolate rounded-2xl border overflow-hidden transition-all duration-200",
         "border-[#dbc1b9]/40 dark:border-white/[0.07]",
         "hover:border-[#dbc1b9]/70 dark:hover:border-white/12 hover:shadow-md",
         // Status tint — very subtle background wash per status
