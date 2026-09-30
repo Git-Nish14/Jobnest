@@ -118,6 +118,18 @@ test.describe("Bottom tab bar — authenticated dashboard", () => {
     await expect(links).toHaveCount(4);
   });
 
+  test("tab bar stays stationary during a downward scroll", async ({ page }) => {
+    const tabBar = page.locator("nav[aria-label='Primary navigation']");
+    await expect(tabBar).toBeVisible();
+    const before = await tabBar.boundingBox();
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(350);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const after = await tabBar.boundingBox();
+    expect(after?.y).toBeCloseTo(before!.y, 0);
+    await expect(tabBar).toBeVisible();
+  });
+
   test("active tab for /dashboard shows aria-current='page'", async ({ page }) => {
     const tabBar = page.locator("nav[aria-label='Primary navigation']");
     await expect(tabBar).toBeVisible({ timeout: 10_000 });

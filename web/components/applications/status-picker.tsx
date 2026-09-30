@@ -105,7 +105,7 @@ export function StatusPicker({
           className={cn(
             "relative z-20 inline-flex items-center rounded-full border font-semibold transition-all",
             "hover:-translate-y-px hover:shadow-sm focus-visible:outline-none disabled:pointer-events-none disabled:opacity-70",
-            compact ? "h-8 gap-1.5 px-2 text-[11px]" : "h-10 gap-2 px-3 text-xs",
+            compact ? "min-h-11 gap-1.5 px-2 text-[11px] sm:min-h-8" : "min-h-11 gap-2 px-3 text-xs sm:min-h-10",
             presentation.badge,
           )}
         >

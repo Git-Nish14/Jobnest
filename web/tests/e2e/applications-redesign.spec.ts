@@ -276,8 +276,8 @@ test.describe("Status pills — authenticated", () => {
     await page.goto("/applications");
     const pillGroup = page.getByRole("group", { name: /filter by status/i });
     await expect(pillGroup).toBeVisible({ timeout: 10_000 });
-    // Pill group must be scrollable (status pills may extend beyond viewport width)
-    // Just verify at least the first few pills are present
+    // Pills must be scrollable, not silently clipped on a phone.
+    expect(await pillGroup.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
     await expect(pillGroup.getByRole("button", { name: /^all$/i })).toBeVisible();
     await expect(pillGroup.getByRole("button", { name: /^applied$/i })).toBeVisible();
   });
@@ -300,13 +300,14 @@ test.describe("Application count row — authenticated", () => {
 
     try {
       await page.goto("/applications");
-      // The count row text matches "N application(s)" where N >= 2
-      const countText = page.getByText(/\d+ applications?/i).first();
+      // A single page shows "N applications"; a paginated set shows
+      // "Showing X–Y of N" without repeating the same count twice.
+      const countText = page.getByText(/^(\d+ applications?|Showing \d+–\d+ of \d+)$/i).first();
       await expect(countText).toBeVisible({ timeout: 10_000 });
 
-      // Extract the number and verify it is ≥ 2 (we created 2)
+      // Extract the total and verify it is ≥ 2 (we created 2).
       const text = await countText.innerText();
-      const n = parseInt(text.match(/\d+/)?.[0] ?? "0", 10);
+      const n = parseInt(text.match(/\d+$/)?.[0] ?? "0", 10);
       expect(n).toBeGreaterThanOrEqual(2);
     } finally {
       for (const c of companies) await deleteApp(page, c);

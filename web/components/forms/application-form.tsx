@@ -405,7 +405,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           </p>
         </div>
         {!isEditing && (
-          <div className="flex gap-2 overflow-x-auto pb-0.5 sm:flex-wrap sm:overflow-visible sm:pb-0">
+          <div className="application-import-actions flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -437,12 +437,13 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
         <form
           id="application-form"
           onSubmit={handleSubmit(onSubmit)}
-          className="application-form space-y-6 pb-16 md:pb-0"
+          className="application-form space-y-6 pb-4 md:pb-0"
           style={isSubmitting ? { opacity: 0.65, pointerEvents: "none" } : undefined}
         >
           <nav className="mobile-form-steps md:hidden" aria-label="Application form sections">
-            <a href="#form-essentials">Essentials</a>
+            <a href="#form-essentials">Role</a>
             <a href="#form-tracking">Tracking</a>
+            <a href="#form-details">Details</a>
             <a href="#form-story">Context</a>
             <a href="#form-documents">Files</a>
           </nav>
@@ -748,10 +749,10 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Resume (PDF)</Label>
+              <Label>Resume (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
+                  <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {resumeUploading ? (
                       <>
                         <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
@@ -775,7 +776,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
+                        <span className="text-sm text-[#55433d]/50">Choose file</span>
                       </>
                     )}
                   </div>
@@ -801,10 +802,10 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </div>
 
             <div className="space-y-2">
-              <Label>Cover Letter (PDF)</Label>
+              <Label>Cover Letter (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
+                  <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {coverLetterUploading ? (
                       <>
                         <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
@@ -828,7 +829,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF</span>
+                        <span className="text-sm text-[#55433d]/50">Choose file</span>
                       </>
                     )}
                   </div>
@@ -873,7 +874,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </Button>
           </div>
 
-          <div className="db-mobile-action-bar application-save-bar" role="region" aria-label="Save application">
+          <div className="application-save-bar md:hidden" role="region" aria-label="Save application">
             <button
               type="button"
               onClick={() => router.back()}

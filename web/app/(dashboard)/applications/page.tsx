@@ -109,7 +109,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <div className={isKanban ? "block" : "hidden sm:block"}><ViewToggle /></div>
+          <div className="hidden md:block"><ViewToggle /></div>
           {/* Import/Export are power-user features — hidden on mobile to prevent header overflow */}
           <div className="hidden sm:flex items-center gap-2">
             <ImportButton />
@@ -125,6 +125,8 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           </Link>
         </div>
       </header>
+
+      <div className="mb-4 md:hidden" aria-label="Application view"><ViewToggle /></div>
 
       {/* ── Filters (list view only) ── */}
       {pipelineStats && pipelineStats.total > 0 && (

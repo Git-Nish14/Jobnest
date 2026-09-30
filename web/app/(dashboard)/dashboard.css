@@ -327,15 +327,6 @@ html.nav-open .bottom-tab-bar {
   pointer-events: none;
 }
 
-/* Scroll-based auto-hide — hides when user scrolls down, restores on scroll-up.
-   Driven by the 'tab-bar-hidden' class toggled in BottomTabBar.tsx scroll listener.
-   nav-open takes precedence (higher specificity via compound selector). */
-html.tab-bar-hidden .bottom-tab-bar {
-  opacity: 0;
-  transform: translateY(calc(100% + 1rem));
-  pointer-events: none;
-}
-
 /* NESTAi page — hide the tab bar via CSS (avoids hydration mismatch that
    conditional rendering caused in Next.js 16 with Turbopack).
    The 'page-nestai' class is toggled by the useEffect in BottomTabBar.tsx. */
@@ -811,16 +802,14 @@ html.page-nestai .nestai-input-area {
   .db-fab,
   .db-filter-pill,
   .nestai-input-area,
-  .db-mobile-action-bar,
   .bottom-tab-bar {
     transition: none;
   }
   .db-fab:hover  { transform: none; }
   .db-fab:active { transform: none; }
   .db-filter-pill:active { transform: none; }
-  /* Instant hide/show when nav opens or scroll hides — no slide animation */
-  html.nav-open .bottom-tab-bar,
-  html.tab-bar-hidden .bottom-tab-bar { transform: none; }
+  /* Instant hide/show when the nav drawer opens. */
+  html.nav-open .bottom-tab-bar { transform: none; }
   /* Stop sparkle rotation for users who prefer reduced motion */
   .nestai-tab-sparkle { animation: none; }
 }
@@ -836,23 +825,6 @@ html.page-nestai .nestai-input-area {
     -webkit-mask-image: none;
     mask-image: none;
   }
-}
-
-/* ── Mobile sticky action bar ──────────────────────────────────────────────── */
-.db-mobile-action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  /* Pill height (4.75rem) + pill bottom offset (0.5rem) + clearance (0.75rem) */
-  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
-  z-index: 30;
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background-color: rgba(250, 249, 247, 0.96);
-  border-top: 1px solid rgba(219, 193, 185, 0.20);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
 }
 
 /* ── Mobile job-search workspace ─────────────────────────────────────── */
@@ -1041,6 +1013,12 @@ html.page-nestai .nestai-input-area {
     flex: 0 0 auto;
   }
 
+  .application-import-actions > button {
+    width: 100%;
+    min-height: 2.75rem;
+    justify-content: center;
+  }
+
   .mobile-form-steps {
     position: sticky;
     top: 3.5rem;
@@ -1107,8 +1085,10 @@ html.page-nestai .nestai-input-area {
   }
 
   .application-save-bar {
-    z-index: 45;
-    box-shadow: 0 -12px 30px -26px rgba(26, 28, 27, 0.8);
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(219, 193, 185, 0.35);
   }
 
   .application-import-overlay {
@@ -1126,10 +1106,6 @@ html.page-nestai .nestai-input-area {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
-@media (min-width: 768px) {
-  .db-mobile-action-bar { display: none; }
-}
-
 /* ════════════════════════════════════════════════════════════════════════════
    DARK MODE — Black + #ccff00 (lime)
    These rules must be at the END of the file so they beat the :root vars above.
@@ -1317,11 +1293,6 @@ html.page-nestai .nestai-input-area {
 }
 
 /* ── Mobile action bar ───────────────────────────────────────────────────── */
-.dark .db-mobile-action-bar {
-  background-color: rgba(0, 0, 0, 0.95);
-  border-top-color: rgba(204, 255, 0, 0.08);
-}
-
 @media (max-width: 767px) {
   .dark .mobile-focus-card {
     border-color: rgba(204, 255, 0, 0.10);
@@ -1360,6 +1331,82 @@ html.page-nestai .nestai-input-area {
 
   .dark .mobile-form-section-heading > span {
     color: #000000;
+  }
+
+  .dark .application-form input:not([type="checkbox"]):not([type="file"]),
+  .dark .application-form textarea,
+  .dark .application-form button[role="combobox"] {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    background-color: #1a1a1a !important;
+    color: #f5f5f5 !important;
+  }
+
+  .dark .application-form input::placeholder,
+  .dark .application-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  .dark .application-upload-zone {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    background-color: #171717;
+  }
+
+  .dark .application-upload-zone :is(span, svg) {
+    color: rgba(255, 255, 255, 0.78) !important;
+  }
+
+  .dark .bottom-tab-inactive {
+    color: rgba(255, 255, 255, 0.8);
+    opacity: 1;
+  }
+
+  .dark .application-save-bar button[type="submit"] {
+    border-color: #ccff00 !important;
+    background-color: #ccff00 !important;
+    color: #000000 !important;
+  }
+
+  .dark .application-view-toggle {
+    background-color: #171717;
+  }
+
+  .dark .application-view-toggle button[aria-pressed="true"] {
+    background-color: #ccff00 !important;
+    color: #000000 !important;
+  }
+
+  .dark .application-view-toggle button[aria-pressed="false"] {
+    color: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  .dark .application-filter-workspace .filter-toolbar-button {
+    border-color: rgba(255, 255, 255, 0.13) !important;
+    background-color: #1a1a1a !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
+
+  .dark .application-filter-workspace .filter-toolbar-button[data-active="true"] {
+    border-color: rgba(204, 255, 0, 0.3) !important;
+    background-color: rgba(204, 255, 0, 0.09) !important;
+    color: #ccff00 !important;
+  }
+
+  .dark .application-filter-workspace [role="group"] button[aria-pressed="true"] {
+    background-color: #ccff00 !important;
+    color: #000000 !important;
+  }
+
+  .dark .application-filter-workspace [role="group"] button[aria-pressed="false"] {
+    background-color: #1a1a1a !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .dark [data-testid="application-card"] .text-foreground {
+    color: #f5f5f5 !important;
+  }
+
+  .dark [data-testid="application-card"] .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.65) !important;
   }
 }
 

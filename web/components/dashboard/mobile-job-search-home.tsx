@@ -178,24 +178,23 @@ export function MobileJobSearchHome({
                 <div className="mobile-company-mark" aria-hidden="true">
                   {application.company.charAt(0).toUpperCase()}
                 </div>
-                <Link href={`/applications/${application.id}`} className="min-w-0 flex-1 py-0.5">
-                  <p className="truncate text-sm font-semibold text-foreground">{application.position}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {application.company} · {formatDate(application.applied_date)}
-                  </p>
-                </Link>
-                <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${statusTone(application.status)}`}>
-                  {application.status}
-                </span>
+                <div className="min-w-0 flex-1 py-0.5">
+                  <Link href={`/applications/${application.id}`} className="block min-w-0">
+                    <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">{application.position}</p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {application.company} · {formatDate(application.applied_date)}
+                    </p>
+                  </Link>
+                  <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${statusTone(application.status)}`}>
+                    {application.status}
+                  </span>
+                </div>
               </article>
             ))}
           </div>
         )}
       </section>
 
-      <p className="mt-6 text-center text-[11px] text-muted-foreground">
-        {totalApplications} role{totalApplications === 1 ? "" : "s"} tracked in Jobnest
-      </p>
     </div>
   );
 }

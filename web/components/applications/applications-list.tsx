@@ -230,7 +230,9 @@ export function ApplicationsList({
       {/* ── Count row ── */}
       <div className="mb-3 flex items-center justify-between gap-3 px-0.5">
         <p className="text-xs text-muted-foreground">
-          {total} application{total !== 1 ? "s" : ""} · Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)}
+          {totalPages > 1
+            ? `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, total)} of ${total}`
+            : `${total} application${total !== 1 ? "s" : ""}`}
           {effectiveSelected.size > 0 && (
             <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
               · {effectiveSelected.size} selected

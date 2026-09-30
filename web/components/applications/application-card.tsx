@@ -319,7 +319,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
               <span className="text-sm text-muted-foreground font-medium leading-none">
                 {application.company}
               </span>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/55">Status</span>
+              <span className="hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground/55 sm:inline">Status</span>
               <StatusPicker
                 status={currentStatus}
                 company={application.company}
@@ -399,14 +399,14 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
                   ★ {application.glassdoor_rating.toFixed(1)}
                 </a>
               )}
-              <span className="ml-auto flex shrink-0">
+              <span className="ml-auto hidden shrink-0 sm:flex">
                 <CompletenessRing application={application} size={30} simple />
               </span>
             </div>
 
             {/* ── Notes preview ── */}
             {application.notes && (
-              <p className="mt-2 text-xs text-muted-foreground/60 italic line-clamp-1 border-t border-border/30 pt-1.5">
+              <p className="mt-2 hidden text-xs text-muted-foreground/60 italic line-clamp-1 border-t border-border/30 pt-1.5 sm:block">
                 &ldquo;{application.notes}&rdquo;
               </p>
             )}
