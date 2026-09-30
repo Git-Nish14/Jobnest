@@ -50,9 +50,10 @@ interface ApplicationCardProps {
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
+  mobileSelectionMode?: boolean;
 }
 
-export function ApplicationCard({ application, selectable, selected, onSelect }: ApplicationCardProps) {
+export function ApplicationCard({ application, selectable, selected, onSelect, mobileSelectionMode = false }: ApplicationCardProps) {
   const router = useRouter();
   const [deleting, setDeleting]               = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -206,7 +207,10 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
               aria-label={selected ? `Deselect ${application.position} at ${application.company}` : `Select ${application.position} at ${application.company}`}
               aria-pressed={selected}
               title={selected ? "Deselect application" : "Select for bulk actions"}
-              className="relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+              className={cn(
+                "relative z-20 h-11 w-11 shrink-0 items-center justify-center rounded-lg sm:flex",
+                mobileSelectionMode ? "flex" : "hidden",
+              )}
             >
               <span
                 className={cn(
@@ -257,7 +261,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     rel="noopener noreferrer"
                     aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:flex"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -267,7 +271,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     <button
                       type="button"
                       aria-label={`Options for ${application.position} at ${application.company}`}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground/60 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:h-8 sm:w-8 sm:rounded-lg"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>

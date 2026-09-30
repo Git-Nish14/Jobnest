@@ -17,6 +17,7 @@ import { AvgSalaryChart } from "@/components/dashboard/avg-salary-chart";
 import { MonthlyTrendsChart } from "@/components/dashboard/monthly-trends-chart";
 import { TopCompaniesChart } from "@/components/dashboard/top-companies-chart";
 import { WeekdayActivityChart } from "@/components/dashboard/weekday-activity-chart";
+import { MobileJobSearchHome } from "@/components/dashboard/mobile-job-search-home";
 import { BarChart3, Calendar, Mail, Plus, Library, ScanSearch, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,26 @@ export default async function DashboardPage() {
     : null;
 
   return (
-    <div className="space-y-8">
+    <>
+      {showOPTBanner && (
+        <div className="mb-4 md:hidden">
+          <OPTCountdownBanner optStartDate={optStartDate!} stemExtension={stemExtension} />
+        </div>
+      )}
+      <MobileJobSearchHome
+        firstName={firstName}
+        totalApplications={stats.totalApplications}
+        thisWeek={stats.thisWeek}
+        activeCount={activeCount}
+        upcomingCount={upcomingCount}
+        pendingCount={stats.pendingReminders.length}
+        responseRate={stats.responseRate}
+        nextInterviewLabel={nextInterviewLabel}
+        recentApplications={recentApps}
+      />
+
+      {/* The existing analytics workspace remains pixel-for-pixel on desktop. */}
+      <div className="hidden space-y-8 md:block">
 
       {/* ── Welcome header ── */}
       <header>
@@ -288,6 +308,7 @@ export default async function DashboardPage() {
       >
         <Plus className="w-6 h-6" />
       </Link>
-    </div>
+      </div>
+    </>
   );
 }

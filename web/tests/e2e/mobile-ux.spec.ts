@@ -405,22 +405,21 @@ test.describe("Bottom tab bar — hidden on NESTAi page", () => {
   });
 });
 
-// 6c. Dashboard FAB visible on mobile — authenticated ─────────────────────────
+// 6c. Dashboard primary action — authenticated ────────────────────────────────
 
-test.describe("Dashboard FAB — visible on mobile viewport", () => {
+test.describe("Dashboard add action — responsive placement", () => {
   test.skip(
     !E2E_EMAIL || !E2E_PASSWORD,
     "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set"
   );
 
-  test("New Application FAB is visible at 390px on the dashboard", async ({ page }) => {
+  test("in-flow Add role action is visible at 390px on the dashboard", async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await logIn(page);
     await page.goto("/dashboard");
 
-    // FAB is an <a> linking to /applications/new with title="New Application"
-    const fab = page.locator('a[href="/applications/new"][title="New Application"]');
-    await expect(fab).toBeVisible({ timeout: 10_000 });
+    const addAction = page.getByRole("link", { name: /add role/i });
+    await expect(addAction).toBeVisible({ timeout: 10_000 });
   });
 
   test("New Application FAB is also visible at 1280px (desktop)", async ({ page }) => {

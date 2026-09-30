@@ -98,27 +98,30 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   return (
     <div>
       {/* ── Header ── */}
-      <header className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <header className="mb-4 flex items-end justify-between gap-3 sm:mb-6">
+        <div className="min-w-0">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#99462a] dark:text-[#ccff00]">
             Job search workspace
           </p>
-          <h1 className="db-page-title">Applications</h1>
+          <h1 className="db-page-title app-page-title">Applications</h1>
           <p className="db-page-subtitle mt-1">
             Track every opportunity and keep your next move clear.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ViewToggle />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className={isKanban ? "block" : "hidden sm:block"}><ViewToggle /></div>
           {/* Import/Export are power-user features — hidden on mobile to prevent header overflow */}
           <div className="hidden sm:flex items-center gap-2">
             <ImportButton />
             <ExportButton />
           </div>
-          {/* Desktop-only "New Application" — mobile gets the FAB below */}
+          {/* Desktop button; mobile uses the compact in-flow add action beside the title. */}
           <Link href="/applications/new" className="hidden sm:inline-flex db-btn-page-primary">
             <Plus className="h-4 w-4" />
             New Application
+          </Link>
+          <Link href="/applications/new" className="mobile-header-add sm:hidden" aria-label="Add application">
+            <Plus className="h-5 w-5" />
           </Link>
         </div>
       </header>
@@ -267,16 +270,6 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </footer>
       )}
 
-      {/* ── Mobile FAB — "New Application" above the bottom tab bar ──
-           Hidden on sm+ where the header button is visible.            */}
-      <Link
-        href="/applications/new"
-        className="sm:hidden fixed right-4 z-40 db-fab app-mobile-fab flex items-center justify-center w-14 h-14 rounded-full"
-        aria-label="New application"
-        title="New application"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </Link>
     </div>
   );
 }

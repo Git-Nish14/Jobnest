@@ -74,6 +74,7 @@ export function ApplicationsList({
   const [selected, setSelected]               = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading]         = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [mobileSelectionMode, setMobileSelectionMode] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentIds = useMemo(
@@ -101,6 +102,7 @@ export function ApplicationsList({
   const clearSelection = () => {
     setSelected(new Set());
     setConfirmingDelete(false);
+    setMobileSelectionMode(false);
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
   };
 
@@ -226,14 +228,24 @@ export function ApplicationsList({
       )}
 
       {/* ── Count row ── */}
-      <p className="text-xs text-muted-foreground mb-3 px-0.5">
-        {total} application{total !== 1 ? "s" : ""} · Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)}
-        {effectiveSelected.size > 0 && (
-          <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
-            · {effectiveSelected.size} selected
-          </span>
-        )}
-      </p>
+      <div className="mb-3 flex items-center justify-between gap-3 px-0.5">
+        <p className="text-xs text-muted-foreground">
+          {total} application{total !== 1 ? "s" : ""} · Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, total)}
+          {effectiveSelected.size > 0 && (
+            <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
+              · {effectiveSelected.size} selected
+            </span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={() => mobileSelectionMode ? clearSelection() : setMobileSelectionMode(true)}
+          className="shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-semibold text-foreground sm:hidden"
+          aria-pressed={mobileSelectionMode}
+        >
+          {mobileSelectionMode ? "Done" : "Select"}
+        </button>
+      </div>
 
       {/* ── Cards — tighter gap on mobile, comfortable on desktop ── */}
       <div className={cn("space-y-3 sm:space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
@@ -244,6 +256,7 @@ export function ApplicationsList({
             selectable={true}
             selected={effectiveSelected.has(app.id)}
             onSelect={toggleSelect}
+            mobileSelectionMode={mobileSelectionMode}
           />
         ))}
       </div>

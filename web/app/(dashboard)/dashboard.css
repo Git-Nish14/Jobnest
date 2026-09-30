@@ -838,17 +838,6 @@ html.page-nestai .nestai-input-area {
   }
 }
 
-/* ── Mobile floating action button — applications page "New" shortcut ─────── */
-/* Sits just above the floating glass tab bar pill (4.75rem) + its bottom
-   offset (0.5rem) + a small clearance gap (0.5rem) = 5.75rem total.         */
-.app-mobile-fab {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem);
-}
-@media (min-width: 640px) {
-  /* sm+ — the FAB is hidden (sm:hidden on the element); rule is a no-op */
-  .app-mobile-fab { display: none; }
-}
-
 /* ── Mobile sticky action bar ──────────────────────────────────────────────── */
 .db-mobile-action-bar {
   position: fixed;
@@ -864,6 +853,278 @@ html.page-nestai .nestai-input-area {
   border-top: 1px solid rgba(219, 193, 185, 0.20);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+}
+
+/* ── Mobile job-search workspace ─────────────────────────────────────── */
+@media (max-width: 767px) {
+  .mobile-dashboard {
+    max-width: 32rem;
+    margin-inline: auto;
+  }
+
+  .mobile-focus-card {
+    border: 1px solid rgba(153, 70, 42, 0.18);
+    border-radius: 1.25rem;
+    padding: 1rem;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(217, 119, 87, 0.16), transparent 42%),
+      var(--atelier-surface);
+    box-shadow: 0 16px 38px -28px rgba(75, 43, 32, 0.55);
+  }
+
+  .mobile-focus-icon {
+    display: flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.9rem;
+    color: var(--atelier-primary);
+    background: rgba(153, 70, 42, 0.10);
+  }
+
+  .mobile-primary-action,
+  .mobile-secondary-action {
+    display: inline-flex;
+    min-height: 2.875rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .mobile-primary-action {
+    background: var(--atelier-primary);
+    color: white;
+  }
+
+  .mobile-secondary-action {
+    border: 1px solid rgba(219, 193, 185, 0.55);
+    background: rgba(250, 249, 247, 0.72);
+    color: var(--atelier-on-surface);
+  }
+
+  .mobile-metric-card {
+    min-width: 0;
+    padding: 0.75rem 0.35rem;
+    text-align: center;
+    border: 1px solid rgba(219, 193, 185, 0.32);
+    border-radius: 1rem;
+    background: var(--atelier-surface-low);
+  }
+
+  .mobile-metric-card strong {
+    display: block;
+    color: var(--atelier-on-surface);
+    font-family: var(--font-newsreader, Georgia, serif);
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+
+  .mobile-metric-card span {
+    display: block;
+    margin-top: 0.35rem;
+    overflow: hidden;
+    color: var(--atelier-on-surface-var);
+    font-size: 0.625rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-quick-action {
+    display: flex;
+    min-width: 0;
+    min-height: 5.25rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border: 1px solid rgba(219, 193, 185, 0.32);
+    border-radius: 1rem;
+    color: var(--atelier-primary);
+    background: var(--atelier-surface);
+    box-shadow: 0 8px 22px -20px rgba(26, 28, 27, 0.65);
+  }
+
+  .mobile-quick-action span {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--atelier-on-surface-var);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-pipeline-row {
+    display: flex;
+    min-height: 4.25rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(219, 193, 185, 0.28);
+    border-radius: 1rem;
+    background: var(--atelier-surface);
+  }
+
+  .mobile-company-mark {
+    display: flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.8rem;
+    color: var(--atelier-primary);
+    background: rgba(153, 70, 42, 0.10);
+    font-family: var(--font-newsreader, Georgia, serif);
+    font-weight: 700;
+  }
+
+  .app-page-title {
+    font-size: clamp(2rem, 11vw, 2.5rem);
+  }
+
+  .mobile-header-add {
+    display: inline-flex;
+    width: 2.875rem;
+    height: 2.875rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: white;
+    background: var(--atelier-primary);
+    box-shadow: 0 7px 20px rgba(153, 70, 42, 0.22);
+  }
+
+  .application-filter-workspace button,
+  .application-filter-workspace .db-filter-search {
+    min-height: 2.75rem;
+  }
+
+  .application-filter-workspace [role="group"] button {
+    min-height: 2.25rem;
+    padding-inline: 0.75rem;
+  }
+
+  .application-page-shell {
+    margin-inline: -1rem;
+    margin-top: -0.5rem;
+  }
+
+  .application-back-link {
+    margin-left: 0.35rem;
+    padding-inline: 0.65rem;
+  }
+
+  .application-form-card {
+    overflow: visible;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding: 1rem;
+    box-shadow: none;
+  }
+
+  .application-form input:not([type="checkbox"]):not([type="file"]),
+  .application-form button[role="combobox"] {
+    min-height: 3rem;
+  }
+
+  .application-form input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+  }
+
+  .mobile-form-steps {
+    position: sticky;
+    top: 3.5rem;
+    z-index: 20;
+    display: flex;
+    gap: 0.35rem;
+    margin-inline: -1rem;
+    padding: 0.6rem 1rem;
+    overflow-x: auto;
+    border-block: 1px solid rgba(219, 193, 185, 0.22);
+    background: rgba(250, 249, 247, 0.94);
+    scrollbar-width: none;
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-form-steps::-webkit-scrollbar { display: none; }
+
+  .mobile-form-steps a {
+    min-height: 2rem;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-inline: 0.8rem;
+    border-radius: 999px;
+    color: var(--atelier-on-surface-var);
+    background: var(--atelier-surface-low);
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .mobile-form-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding-top: 0.35rem;
+    scroll-margin-top: 7rem;
+  }
+
+  .mobile-form-section-heading > span {
+    display: flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: white;
+    background: var(--atelier-primary);
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .mobile-form-section-heading h3 {
+    color: var(--atelier-on-surface);
+    font-size: 0.9rem;
+    font-weight: 750;
+  }
+
+  .mobile-form-section-heading p {
+    margin-top: 0.15rem;
+    color: var(--atelier-on-surface-var);
+    font-size: 0.7rem;
+    line-height: 1.45;
+  }
+
+  .application-save-bar {
+    z-index: 45;
+    box-shadow: 0 -12px 30px -26px rgba(26, 28, 27, 0.8);
+  }
+
+  .application-import-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .application-import-dialog {
+    max-height: min(88dvh, 48rem);
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 @media (min-width: 768px) {
   .db-mobile-action-bar { display: none; }
@@ -1059,6 +1320,47 @@ html.page-nestai .nestai-input-area {
 .dark .db-mobile-action-bar {
   background-color: rgba(0, 0, 0, 0.95);
   border-top-color: rgba(204, 255, 0, 0.08);
+}
+
+@media (max-width: 767px) {
+  .dark .mobile-focus-card {
+    border-color: rgba(204, 255, 0, 0.10);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(204, 255, 0, 0.08), transparent 42%),
+      var(--atelier-surface);
+    box-shadow: 0 16px 38px -28px rgba(0, 0, 0, 0.95);
+  }
+
+  .dark .mobile-focus-icon,
+  .dark .mobile-company-mark {
+    background: rgba(204, 255, 0, 0.10);
+  }
+
+  .dark .mobile-primary-action,
+  .dark .mobile-header-add {
+    color: #000000;
+    box-shadow: 0 7px 20px rgba(204, 255, 0, 0.12);
+  }
+
+  .dark .mobile-secondary-action {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  .dark .mobile-metric-card,
+  .dark .mobile-quick-action,
+  .dark .mobile-pipeline-row {
+    border-color: rgba(255, 255, 255, 0.07);
+  }
+
+  .dark .mobile-form-steps {
+    border-color: rgba(204, 255, 0, 0.07);
+    background: rgba(0, 0, 0, 0.94);
+  }
+
+  .dark .mobile-form-section-heading > span {
+    color: #000000;
+  }
 }
 
 /* ── NESTAi ──────────────────────────────────────────────────────────────── */

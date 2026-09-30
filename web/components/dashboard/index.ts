@@ -6,3 +6,4 @@ export { StatusPieChart } from "./status-pie-chart";
 export { UpcomingInterviews } from "./upcoming-interviews";
 export { PendingReminders } from "./pending-reminders";
 export { ResponseRateCard } from "./response-rate-card";
+export { MobileJobSearchHome } from "./mobile-job-search-home";

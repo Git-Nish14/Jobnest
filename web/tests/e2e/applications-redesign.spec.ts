@@ -315,26 +315,26 @@ test.describe("Application count row — authenticated", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Mobile FAB — "New Application"
+// 5. Mobile in-flow add action
 // ─────────────────────────────────────────────────────────────────────────────
 
-test.describe("Mobile FAB — authenticated", () => {
+test.describe("Mobile add action — authenticated", () => {
   test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set");
 
   test.beforeEach(async ({ page }) => { await logIn(page); });
 
-  test("FAB is visible on mobile viewport and links to /applications/new", async ({ page }) => {
+  test("header add action is visible on mobile and links to /applications/new", async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto("/applications");
 
-    const fab = page.getByRole("link", { name: /new application/i });
-    await expect(fab).toBeVisible({ timeout: 10_000 });
+    const addAction = page.getByRole("link", { name: /add application/i });
+    await expect(addAction).toBeVisible({ timeout: 10_000 });
 
-    await fab.click();
+    await addAction.click();
     await expect(page).toHaveURL(/\/applications\/new/, { timeout: 10_000 });
   });
 
-  test("FAB is hidden on desktop viewport (header button shown instead)", async ({ page }) => {
+  test("mobile add action is hidden on desktop (header button shown instead)", async ({ page }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.goto("/applications");
 
@@ -342,11 +342,7 @@ test.describe("Mobile FAB — authenticated", () => {
     const headerBtn = page.getByRole("link", { name: /new application/i }).first();
     await expect(headerBtn).toBeVisible({ timeout: 10_000 });
 
-    // The FAB specifically (aria-label="New application", lower-case)
-    // is sm:hidden — on desktop it should not be visible
-    const fab = page.getByRole("link", { name: /^new application$/i, exact: true });
-    // At least one link with this name must be visible (header button)
-    await expect(fab.first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("link", { name: /add application/i })).toBeHidden();
   });
 
   test("page content starts near the top on mobile (no excessive gap)", async ({ page }) => {
