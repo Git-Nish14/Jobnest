@@ -776,7 +776,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF or DOCX</span>
+                        <span className="text-sm text-[#55433d]/50">Choose file</span>
                       </>
                     )}
                   </div>
@@ -829,7 +829,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     ) : (
                       <>
                         <Upload className="h-4 w-4 text-[#55433d]/50" />
-                        <span className="text-sm text-[#55433d]/50">Upload PDF or DOCX</span>
+                        <span className="text-sm text-[#55433d]/50">Choose file</span>
                       </>
                     )}
                   </div>
