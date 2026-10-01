@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Bell, Clock, Calendar, Inbox, X } from "lucide-react";
+import { Bell, Clock, Calendar, Inbox, X, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface NotifCount {
@@ -29,8 +29,6 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Fetch on mount, then keep up-to-date via Supabase Realtime.
-  // A fallback poll every 5 minutes covers any missed events.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCounts();
@@ -44,6 +42,35 @@ export function NotificationBell() {
 
       channel = supabase
         .channel(`notif-bell-${user.id}`)
+        // notifications INSERT — optimistically increment badge from payload (zero round-trip)
+        // then reconcile with server to stay accurate
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const row = payload.new as { is_read?: boolean };
+            if (!row.is_read) {
+              setCounts((prev) =>
+                prev
+                  ? { ...prev, unreadNotifications: prev.unreadNotifications + 1, total: prev.total + 1 }
+                  : prev,
+              );
+            }
+            fetchCounts();
+          },
+        )
+        // UPDATE/DELETE on notifications — server reconcile (need REPLICA IDENTITY FULL for reliable old-row diff)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          fetchCounts,
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+          fetchCounts,
+        )
+        // reminders/interviews — time-based counts require server logic
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "reminders", filter: `user_id=eq.${user.id}` },
@@ -52,11 +79,6 @@ export function NotificationBell() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "interviews", filter: `user_id=eq.${user.id}` },
-          fetchCounts,
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
           fetchCounts,
         )
         .subscribe();
@@ -75,15 +97,43 @@ export function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
   const total = counts?.total ?? 0;
+
+  const items = [
+    {
+      show:     (counts?.overdueReminders ?? 0) > 0,
+      href:     "/reminders",
+      iconEl:   <Clock className="h-4 w-4 text-destructive" />,
+      iconBg:   "bg-destructive/10",
+      label:    `${counts?.overdueReminders ?? 0} overdue reminder${(counts?.overdueReminders ?? 0) !== 1 ? "s" : ""}`,
+      sublabel: "Review and complete",
+      labelCls: "text-destructive",
+    },
+    {
+      show:     (counts?.upcomingInterviews ?? 0) > 0,
+      href:     "/interviews",
+      iconEl:   <Calendar className="h-4 w-4 text-primary" />,
+      iconBg:   "bg-primary/10",
+      label:    `${counts?.upcomingInterviews ?? 0} interview${(counts?.upcomingInterviews ?? 0) !== 1 ? "s" : ""} in 24 h`,
+      sublabel: "See your schedule",
+      labelCls: "",
+    },
+    {
+      show:     (counts?.unreadNotifications ?? 0) > 0,
+      href:     "/notifications",
+      iconEl:   <Inbox className="h-4 w-4 text-muted-foreground" />,
+      iconBg:   "bg-muted",
+      label:    `${counts?.unreadNotifications ?? 0} unread notification${(counts?.unreadNotifications ?? 0) !== 1 ? "s" : ""}`,
+      sublabel: "View all messages",
+      labelCls: "",
+    },
+  ] as const;
 
   return (
     <div ref={ref} className="relative">
@@ -129,59 +179,28 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y">
-              {(counts?.overdueReminders ?? 0) > 0 && (
+              {items.filter((item) => item.show).map((item) => (
+                // Entire row is the link — large tap target. "View" span is a visual affordance only
+                // (not a nested interactive element) to satisfy HTML validity.
                 <Link
-                  href="/reminders"
+                  key={item.href}
+                  href={item.href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group"
                 >
-                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                    <Clock className="h-4 w-4 text-destructive" />
+                  <div className={`h-8 w-8 rounded-full ${item.iconBg} flex items-center justify-center shrink-0`}>
+                    {item.iconEl}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-destructive">
-                      {counts!.overdueReminders} overdue reminder{counts!.overdueReminders !== 1 ? "s" : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Tap to review and complete</p>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-medium ${item.labelCls}`}>{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.sublabel}</p>
                   </div>
+                  <span className="shrink-0 flex items-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium text-primary bg-primary/8 group-hover:bg-primary/15 transition-colors">
+                    View
+                    <ChevronRight className="h-3 w-3" />
+                  </span>
                 </Link>
-              )}
-
-              {(counts?.upcomingInterviews ?? 0) > 0 && (
-                <Link
-                  href="/interviews"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Calendar className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {counts!.upcomingInterviews} interview{counts!.upcomingInterviews !== 1 ? "s" : ""} in 24 h
-                    </p>
-                    <p className="text-xs text-muted-foreground">Tap to see your schedule</p>
-                  </div>
-                </Link>
-              )}
-
-              {(counts?.unreadNotifications ?? 0) > 0 && (
-                <Link
-                  href="/notifications"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <Inbox className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {counts!.unreadNotifications} unread notification{counts!.unreadNotifications !== 1 ? "s" : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Tap to view all</p>
-                  </div>
-                </Link>
-              )}
+              ))}
             </div>
           )}
 

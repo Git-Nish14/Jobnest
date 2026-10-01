@@ -13,6 +13,8 @@ import type { ApplicationDocument } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
 export function mimeColour(mimeType: string): string {
   if (mimeType === "application/pdf")
     return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400";
@@ -29,13 +31,40 @@ export function MimeIcon({ mimeType, className = "h-4 w-4" }: { mimeType: string
   return <File className={className} />;
 }
 
+function isDocx(mimeType: string) {
+  return mimeType === DOCX_MIME || mimeType === "application/msword";
+}
+
 function isPreviewable(mimeType: string) {
-  return mimeType === "application/pdf" || mimeType.startsWith("image/");
+  return mimeType === "application/pdf" || mimeType.startsWith("image/") || isDocx(mimeType);
 }
 
 // Proxy URL — uses our own domain, not a raw Supabase CDN link.
 function proxyUrl(storagePath: string) {
   return `/api/documents?path=${encodeURIComponent(storagePath)}`;
+}
+
+// Minimal safe HTML shell for mammoth output rendered in a sandboxed iframe.
+// sandox="" prevents all scripting; @media handles dark-mode without parent access.
+function docxSrcDoc(body: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.7;
+         padding:2rem 2.5rem;color:#1a1a1a;margin:0 auto;max-width:860px}
+    h1{font-size:1.5em}h2{font-size:1.3em}h3{font-size:1.1em}
+    h1,h2,h3,h4,h5,h6{font-weight:600;margin:1em 0 .4em;line-height:1.3}
+    p{margin:0 0 .8em}ul,ol{margin:.5em 0;padding-left:1.5em}li{margin-bottom:.3em}
+    table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.9em}
+    td,th{border:1px solid #d1d5db;padding:.4em .6em;text-align:left}
+    th{background:#f9fafb;font-weight:600}
+    strong,b{font-weight:600}em,i{font-style:italic}
+    hr{border:none;border-top:1px solid #e5e7eb;margin:1.5em 0}
+    a{color:#2563eb}img{max-width:100%;height:auto}
+    @media(prefers-color-scheme:dark){
+      body{color:#e5e7eb;background:#111827}
+      td,th{border-color:#374151}th{background:#1f2937}hr{border-color:#374151}
+    }
+  </style></head><body>${body}</body></html>`;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -49,12 +78,12 @@ export interface DocPreviewDialogProps {
 export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(doc.signed_url ?? null);
   const [blobUrl,   setBlobUrl]   = useState<string | null>(null);
+  const [docxHtml,  setDocxHtml]  = useState<string | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [pdfError,  setPdfError]  = useState<string | null>(null);
+  const [docxError, setDocxError] = useState<string | null>(null);
 
   // Detect mobile / iOS where <iframe> PDF rendering doesn't work.
-  // Lazy initializer runs only on the client — avoids a second render pass and
-  // the wasted blob fetch that would be kicked off before the effect fires.
   const [isMobile] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return /iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -62,7 +91,9 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
 
   useEffect(() => {
     setBlobUrl(null);
+    setDocxHtml(null);
     setPdfError(null);
+    setDocxError(null);
 
     let cancelled = false;
     let objectUrl: string | null = null;
@@ -70,7 +101,7 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
     const run = async () => {
       setLoading(true);
       try {
-        // Step 1 — get a valid signed URL (used for loading check only now).
+        // Step 1 — get a valid signed URL (used for image rendering and "no URL" guard)
         let url = doc.signed_url ?? null;
         if (!url && doc.id) {
           const r = await fetch(`/api/documents/refresh-url?document_id=${doc.id}`, { credentials: "include" });
@@ -79,23 +110,37 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
         }
         if (!cancelled) setSignedUrl(url);
 
-        // Step 2 — fetch blob for desktop PDF iframe.
-        // On mobile we skip this entirely: the browser's native PDF handler
-        // (triggered by a direct link open) works far better than a blob iframe.
+        // Step 2 — desktop PDF: fetch as blob for toolbar-free iframe
         if (!isMobile && url && doc.mime_type === "application/pdf") {
           const res = await fetch(proxyUrl(doc.storage_path), { credentials: "include" });
           if (!cancelled) {
             if (res.ok) {
               const blob = await res.blob();
-              // Store the raw blob URL in objectUrl for correct revocation.
-              // The hash fragment (#toolbar=0) is appended only for the iframe src
-              // — URL.revokeObjectURL ignores/mishandles fragments so it must receive
-              // the bare blob: URL to actually free the memory.
               objectUrl = URL.createObjectURL(blob);
               setBlobUrl(objectUrl + "#toolbar=0&navpanes=0");
             } else {
               setPdfError("Could not load PDF. Try opening it in a new tab.");
             }
+          }
+        }
+
+        // Step 3 — DOCX: convert to HTML on the server, render in sandboxed iframe
+        if (!cancelled && isDocx(doc.mime_type)) {
+          try {
+            const res = await fetch(
+              `/api/documents/preview-html?path=${encodeURIComponent(doc.storage_path)}`,
+              { credentials: "include" },
+            );
+            if (!cancelled) {
+              if (res.ok) {
+                const data = (await res.json()) as { html: string };
+                setDocxHtml(data.html);
+              } else {
+                setDocxError("Could not generate preview.");
+              }
+            }
+          } catch {
+            if (!cancelled) setDocxError("Could not generate preview.");
           }
         }
       } catch {
@@ -121,8 +166,6 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
         showClose={false}
         className={cn(
           "flex flex-col p-0 overflow-hidden",
-          // Mobile: true fullscreen so the PDF/image fills the whole screen.
-          // Desktop: floating card capped at 4xl / 90dvh.
           isMobile
             ? "w-screen h-dvh max-w-none rounded-none border-0 translate-x-0 translate-y-0 left-0 top-0 inset-0"
             : "w-[95vw] max-w-4xl h-[90dvh]",
@@ -156,7 +199,6 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
                 <span className="sr-only">Annotate</span>
               </button>
             )}
-            {/* Download */}
             <a
               href={fileUrl}
               download={doc.original_name ?? doc.label ?? "document"}
@@ -166,7 +208,6 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
               <Download className="h-4 w-4" />
               <span className="sr-only">Download</span>
             </a>
-            {/* Open in browser */}
             <a
               href={fileUrl}
               target="_blank"
@@ -177,7 +218,6 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
               <ExternalLink className="h-4 w-4" />
               <span className="sr-only">Open in new tab</span>
             </a>
-            {/* Close — always visible; replaces Radix's absolute button on mobile */}
             <button
               type="button"
               onClick={onClose}
@@ -200,8 +240,8 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
             </div>
           )}
 
-          {/* No URL available */}
-          {!loading && !signedUrl && doc.mime_type !== "application/pdf" && (
+          {/* No signed URL — shown only for types that need one (not PDF blob path, not DOCX proxy path) */}
+          {!loading && !signedUrl && doc.mime_type !== "application/pdf" && !isDocx(doc.mime_type) && (
             <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center px-6">
               <Lock className="h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">Preview not available. File may have expired.</p>
@@ -238,21 +278,12 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1"
-                    >
+                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
                       <Button className="w-full gap-2">
                         <ExternalLink className="h-4 w-4" /> Open PDF
                       </Button>
                     </a>
-                    <a
-                      href={fileUrl}
-                      download={doc.original_name ?? doc.label ?? "document"}
-                      className="flex-1"
-                    >
+                    <a href={fileUrl} download={doc.original_name ?? doc.label ?? "document"} className="flex-1">
                       <Button variant="outline" className="w-full gap-2">
                         <Download className="h-4 w-4" /> Download
                       </Button>
@@ -288,7 +319,45 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
             </>
           )}
 
-          {/* ── Non-previewable files (DOCX, TXT, etc.) ───────────────── */}
+          {/* ── DOCX ──────────────────────────────────────────────────── */}
+          {!loading && isDocx(doc.mime_type) && (
+            docxHtml ? (
+              // Rendered in sandbox="" iframe — no scripts can execute regardless of HTML content
+              <iframe
+                srcDoc={docxSrcDoc(docxHtml)}
+                sandbox=""
+                title={doc.label}
+                className="w-full flex-1 border-0 min-h-0"
+              />
+            ) : docxError ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
+                <File className="h-12 w-12 text-muted-foreground/40" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Could not preview this document</p>
+                  <p className="text-xs text-muted-foreground mt-1">{docxError}</p>
+                </div>
+                <div className="flex gap-3">
+                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <ExternalLink className="h-3.5 w-3.5" /> Open in browser
+                    </Button>
+                  </a>
+                  <a href={fileUrl} download={doc.original_name ?? doc.label ?? "document"}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Download className="h-3.5 w-3.5" /> Download
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              // Should not normally be visible (loading covers this), but safe fallback
+              <div className="flex items-center justify-center flex-1">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )
+          )}
+
+          {/* ── Non-previewable files (TXT, etc.) ─────────────────────── */}
           {!loading && signedUrl && !isPreviewable(doc.mime_type) && (
             <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
               <File className="h-12 w-12 text-muted-foreground/40" />
