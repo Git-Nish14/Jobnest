@@ -8,6 +8,7 @@ import { ExternalLink, MapPin, Calendar } from "lucide-react";
 import type { JobApplication } from "@/types";
 import type { ApplicationStatus } from "@/config/constants";
 import { formatShortDate } from "@/lib/utils/date";
+import { StatusPicker } from "./status-picker";
 
 const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string; darkBg: string }[] = [
   { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50",             darkBg: "dark:bg-amber-950/20" },
@@ -15,6 +16,8 @@ const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: s
   { status: "Interview",    label: "Interview",    accent: "#4ade80", bg: "bg-emerald-50",            darkBg: "dark:bg-emerald-950/20" },
   { status: "Offer",        label: "Offer",        accent: "#60a5fa", bg: "bg-blue-50",              darkBg: "dark:bg-blue-950/20" },
   { status: "Rejected",     label: "Rejected",     accent: "#ff5f5f", bg: "bg-red-50",               darkBg: "dark:bg-red-950/20" },
+  { status: "Withdrawn",    label: "Withdrawn",    accent: "#94a3b8", bg: "bg-slate-50",             darkBg: "dark:bg-slate-950/20" },
+  { status: "Ghosted",      label: "Ghosted",      accent: "#a1a1aa", bg: "bg-zinc-50",              darkBg: "dark:bg-zinc-950/20" },
 ];
 
 interface KanbanBoardProps {
@@ -48,6 +51,15 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
         throw new Error((json as { error?: string }).error ?? `HTTP ${res.status}`);
       }
 
+      const movedApplication = prev.find((application) => application.id === id);
+      if (movedApplication) {
+        toast.success(`Moved ${movedApplication.company} to ${newStatus}`, {
+          action: {
+            label: "Undo",
+            onClick: () => void moveCard(id, movedApplication.status),
+          },
+        });
+      }
       router.refresh();
     } catch (err) {
       setItems(prev);
@@ -100,8 +112,8 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
     <p className="lg:hidden flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
       <span aria-hidden>‹›</span> Swipe to see all columns
     </p>
-    {/* Mobile: horizontal-scroll flex  |  Desktop (lg+): full-width 5-column grid */}
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-x-visible">
+    {/* Mobile scrolls horizontally; larger screens use roomy wrapped columns. */}
+    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-x-visible xl:grid-cols-4">
       {COLUMNS.map(({ status, label, accent, bg, darkBg }) => {
         const cards = byStatus(status);
         const isOver = dragOverCol === status;
@@ -138,6 +150,7 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
                   app={app}
                   isDragging={draggingId === app.id}
                   neutralised={isDragging && draggingId !== app.id}
+                  onStatusChange={(newStatus) => moveCard(app.id, newStatus)}
                   onDragStart={(e) => onDragStart(e, app.id)}
                   onDragEnd={onDragEnd}
                 />
@@ -161,11 +174,12 @@ interface KanbanCardProps {
   app: JobApplication;
   isDragging: boolean;
   neutralised: boolean;
+  onStatusChange: (status: ApplicationStatus) => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
 }
 
-function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: KanbanCardProps) {
+function KanbanCard({ app, isDragging, neutralised, onStatusChange, onDragStart, onDragEnd }: KanbanCardProps) {
   const initial = app.company.charAt(0).toUpperCase();
 
   return (
@@ -207,10 +221,17 @@ function KanbanCard({ app, isDragging, neutralised, onDragStart, onDragEnd }: Ka
       </div>
 
       {/* Action link */}
-      <div className="mt-2.5 pt-2.5 border-t border-border/20 dark:border-white/6 flex justify-end sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/20 pt-2.5 dark:border-white/6">
+        <StatusPicker
+          compact
+          status={app.status}
+          company={app.company}
+          position={app.position}
+          onChange={onStatusChange}
+        />
         <Link
           href={`/applications/${app.id}`}
-          className="flex items-center gap-1 text-xs text-primary dark:text-[#ccff00] hover:underline"
+          className="flex items-center gap-1 text-xs text-primary transition-opacity hover:underline dark:text-[#ccff00] sm:opacity-0 sm:group-hover:opacity-100"
           onClick={(e) => e.stopPropagation()}
         >
           <ExternalLink className="h-3 w-3" />

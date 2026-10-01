@@ -30,7 +30,7 @@ async function newRequest(label, owner = alice) {
   const requestHash = hash(`request:${label}`);
   await db.query(`insert into public.chatgpt_oauth_requests
     (request_hash,client_id,redirect_uri,state,code_challenge,resource,scope)
-    values ($1,$2,$3,'state-to-preserve',$4,$5,'applications:write')`, [requestHash, client, callback, challenge, resource]);
+    values ($1,$2,$3,'state-to-preserve',$4,$5,'applications:read applications:write')`, [requestHash, client, callback, challenge, resource]);
   if (owner) assert.ok(await rpc("claim_chatgpt_oauth_request", requestHash, owner));
   return requestHash;
 }
@@ -53,6 +53,8 @@ const job = {
 };
 const save = (token, requestId, details = job, audience = resource) => rpc("save_chatgpt_application",
   hash(token), audience, requestId, hash(JSON.stringify(details)), JSON.stringify(details));
+const checkDuplicate = (token, company, position, location, audience = resource) =>
+  rpc("check_chatgpt_application_duplicate", hash(token), audience, company, position, location);
 
 try {
   await db.exec(`
@@ -79,13 +81,23 @@ try {
   });
   await db.query("insert into auth.users(id) values ($1),($2)", [alice, bob]);
   await db.query("insert into public.chatgpt_oauth_clients(client_id,client_name,redirect_uris) values ($1,'ChatGPT',$2)", [client, [callback]]);
+  await db.query(`insert into public.chatgpt_credentials(user_id,key_hash,key_prefix,resource)
+    values ($1,$2,'jobnest_abcdef0',$3)`, [alice, hash("old-write-token"), resource]);
+  await db.query(`insert into public.chatgpt_oauth_requests
+    (request_hash,client_id,redirect_uri,state,code_challenge,resource,scope)
+    values ($1,$2,$3,'old-state',$4,$5,'applications:write')`, [hash("old-request"), client, callback, challenge, resource]);
+  await test("migration 54 revokes old write-only connections before expanding permission", async () => {
+    await db.exec(await readFile(new URL("../migrations/20240101000054_chatgpt_duplicate_check.sql", import.meta.url), "utf8"));
+    assert.equal(await scalar("select count(*)::integer as value from public.chatgpt_credentials"), 0);
+    assert.equal(await scalar("select count(*)::integer as value from public.chatgpt_oauth_requests"), 0);
+  });
 
   await test("anonymous/browser roles cannot read token tables or invoke privileged functions", async () => {
     for (const role of ["anon", "authenticated"]) {
       for (const table of ["chatgpt_credentials", "chatgpt_application_requests", "chatgpt_oauth_clients", "chatgpt_oauth_requests"]) {
         assert.equal(await scalar("select has_table_privilege($1,$2,'SELECT,INSERT,UPDATE,DELETE') as value", [role, table]), false);
       }
-      for (const signature of ["rotate_chatgpt_credential(uuid,text,text,text)", "revoke_chatgpt_credential(uuid)", "save_chatgpt_application(text,text,text,text,jsonb)", "claim_chatgpt_oauth_request(text,uuid)", "complete_chatgpt_oauth_consent(text,uuid,text)", "exchange_chatgpt_oauth_code(text,text,text,text,text,text,text)"]) {
+      for (const signature of ["rotate_chatgpt_credential(uuid,text,text,text)", "revoke_chatgpt_credential(uuid)", "save_chatgpt_application(text,text,text,text,jsonb)", "check_chatgpt_application_duplicate(text,text,text,text,text)", "claim_chatgpt_oauth_request(text,uuid)", "complete_chatgpt_oauth_consent(text,uuid,text)", "exchange_chatgpt_oauth_code(text,text,text,text,text,text,text)"]) {
         assert.equal(await scalar("select has_function_privilege($1,$2,'EXECUTE') as value", [role, signature]), false);
       }
     }
@@ -109,7 +121,7 @@ try {
     const stored = (await db.query("select * from public.chatgpt_credentials where user_id=$1", [alice])).rows[0];
     assert.equal(stored.key_hash, hash("alice-token"));
     assert.equal(stored.resource, resource);
-    assert.equal(stored.scope, "applications:write");
+    assert.equal(stored.scope, "applications:read applications:write");
   });
   await test("application writes derive account ownership and preserve actual job details", async () => {
     const result = await save("alice-token", "first");
@@ -126,6 +138,16 @@ try {
     assert.equal(Number(stored.glassdoor_rating), job.glassdoor_rating);
     assert.ok(await scalar("select last_used_at is not null as value from public.chatgpt_credentials where user_id=$1", [alice]));
   });
+  await test("duplicate checks normalize punctuation and casing but require the same location", async () => {
+    const match = await checkDuplicate("alice-token", " ACME! ", "engineer", "New York NY Hybrid");
+    assert.equal(match.match, true);
+    assert.equal(match.application.company, "Acme");
+    assert.equal(match.application.position, "Engineer");
+    assert.equal(match.application.location, job.location);
+    assert.equal(match.application.notes, undefined);
+    assert.equal((await checkDuplicate("alice-token", "Acme", "Engineer", "Chicago, IL")).match, false);
+    assert.equal((await checkDuplicate("alice-token", "Acme", "Engineer", job.location, "https://other.example.com/mcp")).error, "invalid_key");
+  });
   await test("retries are idempotent and changed request IDs cannot bypass content conflicts", async () => {
     const a = await save("alice-token", "first");
     const b = await save("alice-token", "new-id-same-payload");
@@ -137,9 +159,11 @@ try {
   });
   await test("another user can use the same request ID without reading or sharing Alice's record", async () => {
     await exchange(await approvedCode("bob", bob), { token: "bob-token" });
+    assert.equal((await checkDuplicate("bob-token", job.company, job.position, job.location)).match, false);
     const b = await save("bob-token", "first");
     assert.equal(b.duplicate, false);
     assert.equal(await scalar("select user_id::text as value from public.job_applications where id=$1", [b.application.id]), bob);
+    assert.equal((await checkDuplicate("bob-token", job.company, job.position, job.location)).application.id, b.application.id);
   });
   await test("invalid input, identity injection, and wrong token audience are rejected in SQL", async () => {
     for (const details of [{ ...job, applied_date: "2026-02-30" }, { ...job, user_id: bob }, { ...job, company: " " },

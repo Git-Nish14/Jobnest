@@ -276,8 +276,8 @@ test.describe("Status pills — authenticated", () => {
     await page.goto("/applications");
     const pillGroup = page.getByRole("group", { name: /filter by status/i });
     await expect(pillGroup).toBeVisible({ timeout: 10_000 });
-    // Pill group must be scrollable (status pills may extend beyond viewport width)
-    // Just verify at least the first few pills are present
+    // Pills must be scrollable, not silently clipped on a phone.
+    expect(await pillGroup.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
     await expect(pillGroup.getByRole("button", { name: /^all$/i })).toBeVisible();
     await expect(pillGroup.getByRole("button", { name: /^applied$/i })).toBeVisible();
   });
@@ -300,13 +300,14 @@ test.describe("Application count row — authenticated", () => {
 
     try {
       await page.goto("/applications");
-      // The count row text matches "N application(s)" where N >= 2
-      const countText = page.getByText(/\d+ applications?/i).first();
+      // A single page shows "N applications"; a paginated set shows
+      // "Showing X–Y of N" without repeating the same count twice.
+      const countText = page.getByText(/^(\d+ applications?|Showing \d+–\d+ of \d+)$/i).first();
       await expect(countText).toBeVisible({ timeout: 10_000 });
 
-      // Extract the number and verify it is ≥ 2 (we created 2)
+      // Extract the total and verify it is ≥ 2 (we created 2).
       const text = await countText.innerText();
-      const n = parseInt(text.match(/\d+/)?.[0] ?? "0", 10);
+      const n = parseInt(text.match(/\d+$/)?.[0] ?? "0", 10);
       expect(n).toBeGreaterThanOrEqual(2);
     } finally {
       for (const c of companies) await deleteApp(page, c);
@@ -315,26 +316,26 @@ test.describe("Application count row — authenticated", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. Mobile FAB — "New Application"
+// 5. Mobile in-flow add action
 // ─────────────────────────────────────────────────────────────────────────────
 
-test.describe("Mobile FAB — authenticated", () => {
+test.describe("Mobile add action — authenticated", () => {
   test.skip(!E2E_EMAIL || !E2E_PASSWORD, "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set");
 
   test.beforeEach(async ({ page }) => { await logIn(page); });
 
-  test("FAB is visible on mobile viewport and links to /applications/new", async ({ page }) => {
+  test("header add action is visible on mobile and links to /applications/new", async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await page.goto("/applications");
 
-    const fab = page.getByRole("link", { name: /new application/i });
-    await expect(fab).toBeVisible({ timeout: 10_000 });
+    const addAction = page.getByRole("link", { name: /add application/i });
+    await expect(addAction).toBeVisible({ timeout: 10_000 });
 
-    await fab.click();
+    await addAction.click();
     await expect(page).toHaveURL(/\/applications\/new/, { timeout: 10_000 });
   });
 
-  test("FAB is hidden on desktop viewport (header button shown instead)", async ({ page }) => {
+  test("mobile add action is hidden on desktop (header button shown instead)", async ({ page }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
     await page.goto("/applications");
 
@@ -342,11 +343,7 @@ test.describe("Mobile FAB — authenticated", () => {
     const headerBtn = page.getByRole("link", { name: /new application/i }).first();
     await expect(headerBtn).toBeVisible({ timeout: 10_000 });
 
-    // The FAB specifically (aria-label="New application", lower-case)
-    // is sm:hidden — on desktop it should not be visible
-    const fab = page.getByRole("link", { name: /^new application$/i, exact: true });
-    // At least one link with this name must be visible (header button)
-    await expect(fab.first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("link", { name: /add application/i })).toBeHidden();
   });
 
   test("page content starts near the top on mobile (no excessive gap)", async ({ page }) => {

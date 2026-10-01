@@ -35,13 +35,13 @@ export default async function EditApplicationPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="application-page-shell space-y-4 sm:space-y-6">
       <Link
         href={`/applications/${id}`}
-        className="inline-flex items-center gap-2 text-sm text-[#55433d] hover:text-[#99462a] transition-colors font-medium"
+        className="application-back-link inline-flex min-h-11 items-center gap-2 text-sm text-[#55433d] hover:text-[#99462a] transition-colors font-medium dark:text-white/60"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Application
+        Back to application
       </Link>
 
       <ApplicationForm

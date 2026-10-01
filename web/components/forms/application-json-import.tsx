@@ -102,11 +102,11 @@ export function ApplicationJsonImport({ onImport }: ApplicationJsonImportProps) 
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="application-import-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={handleClose}
         >
           <div
-            className="bg-[#faf9f7] dark:bg-[#0a0a0a] rounded-2xl border shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
+            className="application-import-dialog bg-[#faf9f7] dark:bg-[#0a0a0a] rounded-2xl border shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

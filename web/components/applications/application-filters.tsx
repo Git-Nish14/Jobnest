@@ -5,9 +5,10 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   Search, X, ChevronDown, Loader2,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp,
-  ChevronsUpDown, Stamp, Building2, SlidersHorizontal,
+  CalendarDays, ChevronsUpDown, Stamp, Building2, SlidersHorizontal,
 } from "lucide-react";
 import { APPLICATION_STATUSES } from "@/config";
+import type { ApplicationStatus } from "@/config";
 import { COMPANY_TIERS } from "@/types/application";
 import type { CompanyTier } from "@/types/application";
 import {
@@ -24,10 +25,24 @@ const SORT_OPTIONS = [
   { value: "position_asc", label: "Position A–Z",  icon: ChevronsUpDown },
 ];
 
+const DATE_OPTIONS = [
+  { value: "all",     label: "All dates" },
+  { value: "today",   label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "week",    label: "This week" },
+  { value: "month",   label: "This month" },
+  { value: "quarter", label: "Last 3 months" },
+  { value: "year",    label: "This year" },
+] as const;
+
 // All statuses shown as horizontal pills — "All" is the default
 const STATUS_PILLS = ["All", ...APPLICATION_STATUSES] as const;
 
-export function ApplicationFilters() {
+interface ApplicationFiltersProps {
+  statusCounts?: Partial<Record<ApplicationStatus, number>>;
+}
+
+export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
   const router      = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -36,6 +51,7 @@ export function ApplicationFilters() {
 
   const currentStatus   = searchParams.get("status") || "all";
   const currentSort     = searchParams.get("sort")   || "date_desc";
+  const currentDateRange = searchParams.get("dateRange") || "all";
   const sponsorshipOnly = searchParams.get("sponsorship") === "true";
   const currentTier     = (searchParams.get("tier") || "all") as CompanyTier | "all";
 
@@ -50,6 +66,8 @@ export function ApplicationFilters() {
   const createQS = useCallback(
     (params: Record<string, string>) => {
       const next = new URLSearchParams(searchParams.toString());
+      // Any filter or sort change starts a fresh result set on page one.
+      next.delete("page");
       Object.entries(params).forEach(([k, v]) => {
         if (v && v !== "all") next.set(k, v); else next.delete(k);
       });
@@ -86,20 +104,21 @@ export function ApplicationFilters() {
   const clearAdvanced = () => push(createQS({ sponsorship: "", tier: "" }));
 
   const currentSortOption = SORT_OPTIONS.find((o) => o.value === currentSort) ?? SORT_OPTIONS[0];
+  const currentDateOption = DATE_OPTIONS.find((o) => o.value === currentDateRange) ?? DATE_OPTIONS[0];
 
   return (
     /*
      * Sticky below the navbar on all screen sizes.
-     * z-30 sits above card content (z-0) but below the bulk-actions bar (z-20… sticky top-16).
-     * The bulk bar stacks ON TOP when it appears, which is the right layering.
+     * z-30 keeps the filter workspace above cards as they scroll underneath;
+     * each card also owns an isolated stacking context so controls cannot bleed through.
      */
-    <div className="sticky top-14 sm:top-16 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/95 dark:bg-black/95 backdrop-blur-md border-b border-border/30 dark:border-white/5 pt-2 pb-2.5">
+    <div className="application-filter-workspace sticky top-14 sm:top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/98 dark:bg-black/98 backdrop-blur-md border-b border-border/40 dark:border-white/7 pt-2 pb-2.5 shadow-[0_8px_18px_-18px_rgba(75,43,32,0.45)] dark:shadow-[0_8px_18px_-18px_rgba(0,0,0,0.9)]">
 
       {/* ── Row 1: Search + Sort + Advanced Filter ── */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
 
         {/* Search — full-width, grows to fill space */}
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-0">
+        <form onSubmit={handleSearchSubmit} className="relative w-full min-w-0 md:w-auto md:flex-1">
           {isPending
             ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99462a] animate-spin pointer-events-none" />
             : <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#55433d]/40 pointer-events-none dark:text-white/30" />
@@ -131,10 +150,10 @@ export function ApplicationFilters() {
               type="button"
               aria-label={`Sort: ${currentSortOption.label}`}
               title={currentSortOption.label}
-              className="h-9 px-2.5 flex items-center gap-1.5 rounded-xl border border-[#dbc1b9]/25 dark:border-white/8 bg-[#f4f3f1] dark:bg-white/6 text-xs font-medium text-[#55433d] dark:text-white/60 hover:bg-[#e9e8e6] dark:hover:bg-white/10 transition-colors shrink-0"
+              className="filter-toolbar-button h-9 flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#dbc1b9]/25 bg-[#f4f3f1] px-2.5 text-xs font-medium text-[#55433d] transition-colors hover:bg-[#e9e8e6] dark:border-white/8 dark:bg-white/6 dark:text-white/60 dark:hover:bg-white/10 md:flex-none"
             >
               <currentSortOption.icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{currentSortOption.label}</span>
+              <span className="md:hidden">Sort</span><span className="hidden md:inline">{currentSortOption.label}</span>
               <ChevronDown className="h-3 w-3 opacity-50" />
             </button>
           </DropdownMenuTrigger>
@@ -160,6 +179,45 @@ export function ApplicationFilters() {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Applied-date filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Application date: ${currentDateOption.label}`}
+              title={currentDateOption.label}
+              data-active={currentDateRange !== "all"}
+              className={cn(
+                "filter-toolbar-button h-9 flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium transition-colors md:flex-none",
+                currentDateRange !== "all"
+                  ? "border-[#99462a]/40 dark:border-[#ccff00]/30 bg-[#99462a]/8 dark:bg-[#ccff00]/8 text-[#99462a] dark:text-[#ccff00]"
+                  : "border-[#dbc1b9]/25 dark:border-white/8 bg-[#f4f3f1] dark:bg-white/6 text-[#55433d] dark:text-white/60 hover:bg-[#e9e8e6] dark:hover:bg-white/10",
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="md:hidden">Date</span><span className="hidden md:inline">{currentDateOption.label}</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel className="text-[10px] text-[#55433d]/50 dark:text-white/30 uppercase tracking-widest font-semibold">
+              Application date
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {DATE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => push(createQS({ dateRange: option.value }))}
+                className={cn("flex items-center gap-2.5", currentDateRange === option.value && "font-semibold text-[#99462a] dark:text-[#ccff00]")}
+              >
+                <CalendarDays className="h-3.5 w-3.5 opacity-60" />
+                {option.label}
+                {currentDateRange === option.value && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#99462a] dark:bg-[#ccff00]" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Advanced filter — sponsorship + tier */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -167,14 +225,16 @@ export function ApplicationFilters() {
               type="button"
               aria-label="Advanced filters"
               title="More filters"
+              data-active={advancedCount > 0}
               className={cn(
-                "relative h-9 w-9 flex items-center justify-center rounded-xl border transition-colors shrink-0",
+                "filter-toolbar-button relative h-9 flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium transition-colors md:w-9 md:flex-none md:px-0",
                 advancedCount > 0
                   ? "border-[#99462a]/40 dark:border-[#ccff00]/30 bg-[#99462a]/8 dark:bg-[#ccff00]/8 text-[#99462a] dark:text-[#ccff00]"
                   : "border-[#dbc1b9]/25 dark:border-white/8 bg-[#f4f3f1] dark:bg-white/6 text-[#55433d] dark:text-white/60 hover:bg-[#e9e8e6] dark:hover:bg-white/10"
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span className="md:hidden">Filters</span>
               {advancedCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full bg-[#99462a] dark:bg-[#ccff00] text-white dark:text-black text-[9px] font-bold flex items-center justify-center px-0.5 leading-none">
                   {advancedCount}
@@ -240,18 +300,22 @@ export function ApplicationFilters() {
       {/* ── Row 2: Status pills — horizontal scroll, no scrollbar ── */}
       {/* no-scrollbar: scrollbar hidden via dashboard.css utility */}
       <div
-        className="no-scrollbar flex items-center gap-1.5 mt-2"
+        className="no-scrollbar flex items-center gap-1.5 mt-2 overflow-x-auto overscroll-x-contain touch-pan-x"
         role="group"
         aria-label="Filter by status"
       >
         {STATUS_PILLS.map((s) => {
           const isAll    = s === "All";
           const isActive = isAll ? currentStatus === "all" : currentStatus === s;
+          const count = isAll
+            ? APPLICATION_STATUSES.reduce((sum, status) => sum + (statusCounts?.[status] ?? 0), 0)
+            : (statusCounts?.[s] ?? 0);
           return (
             <button
               key={s}
               type="button"
               onClick={() => push(createQS({ status: isAll ? "" : s }))}
+              aria-pressed={isActive}
               className={cn(
                 "whitespace-nowrap shrink-0 rounded-full text-xs font-semibold px-2.5 py-1 transition-all duration-150",
                 isActive
@@ -260,6 +324,17 @@ export function ApplicationFilters() {
               )}
             >
               {s}
+              {statusCounts && (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] tabular-nums",
+                    isActive ? "bg-white/18 dark:bg-black/15" : "bg-black/5 dark:bg-white/8",
+                  )}
+                >
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}

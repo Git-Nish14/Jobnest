@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink } from "lucide-react";
+import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink, Save } from "lucide-react";
 import { ApplicationJsonImport } from "./application-json-import";
 import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
@@ -394,18 +394,18 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
   };
 
   return (
-    <div className="db-content-card">
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="db-content-card application-form-card">
+      <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
-          <h2 className="db-headline text-2xl font-semibold text-[#1a1c1b]">
+          <h2 className="db-headline text-[1.75rem] font-semibold leading-tight text-[#1a1c1b] dark:text-white sm:text-2xl">
             {isEditing ? "Edit Application" : "New Application"}
           </h2>
-          <p className="text-sm text-[#55433d]/70 mt-1">
-            {isEditing ? "Update the details of your job application" : "Track a new job application"}
+          <p className="mt-1 text-sm text-[#55433d]/70 dark:text-white/50">
+            {isEditing ? "Keep this opportunity accurate and actionable." : "Save the essentials first. You can add the rest anytime."}
           </p>
         </div>
         {!isEditing && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="application-import-actions flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -435,10 +435,24 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
       </div>
 
         <form
+          id="application-form"
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-6"
+          className="application-form space-y-6 pb-4 md:pb-0"
           style={isSubmitting ? { opacity: 0.65, pointerEvents: "none" } : undefined}
         >
+          <nav className="mobile-form-steps md:hidden" aria-label="Application form sections">
+            <a href="#form-essentials">Role</a>
+            <a href="#form-tracking">Tracking</a>
+            <a href="#form-details">Details</a>
+            <a href="#form-story">Context</a>
+            <a href="#form-documents">Files</a>
+          </nav>
+
+          <div id="form-essentials" className="mobile-form-section-heading md:hidden">
+            <span>1</span>
+            <div><h3>Role essentials</h3><p>The details you need to recognize this opportunity.</p></div>
+          </div>
+
           {/* Company & Position */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -538,6 +552,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </div>
           </div>
 
+          <div id="form-tracking" className="mobile-form-section-heading md:hidden">
+            <span>2</span>
+            <div><h3>Search tracking</h3><p>Useful context for comparing where your best leads come from.</p></div>
+          </div>
+
           {/* Provider */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -632,6 +651,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             <span className="text-sm text-foreground">This role requires visa sponsorship (H-1B / OPT / EAD)</span>
           </label>
 
+          <div id="form-details" className="mobile-form-section-heading md:hidden">
+            <span>3</span>
+            <div><h3>Role details</h3><p>Keep the posting, compensation, and location within reach.</p></div>
+          </div>
+
           {/* Job ID & URL */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -679,6 +703,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </div>
           </div>
 
+          <div id="form-story" className="mobile-form-section-heading md:hidden">
+            <span>4</span>
+            <div><h3>Context &amp; preparation</h3><p>Add what will help with follow-ups, ATS matching, and interviews.</p></div>
+          </div>
+
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
@@ -712,13 +741,18 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             )}
           </div>
 
+          <div id="form-documents" className="mobile-form-section-heading md:hidden">
+            <span>5</span>
+            <div><h3>Tailored documents</h3><p>Attach the exact resume and cover letter used for this role.</p></div>
+          </div>
+
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Resume (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
+                  <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {resumeUploading ? (
                       <>
                         <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
@@ -771,7 +805,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               <Label>Cover Letter (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
                 <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
+                  <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {coverLetterUploading ? (
                       <>
                         <Loader2 className="h-4 w-4 text-[#99462a] animate-spin" />
@@ -822,7 +856,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="hidden justify-end gap-3 pt-4 md:flex">
             <Button
               type="button"
               variant="outline"
@@ -839,16 +873,38 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                   : isEditing ? "Save Changes" : "Create Application"}
             </Button>
           </div>
+
+          <div className="application-save-bar md:hidden" role="region" aria-label="Save application">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="h-12 shrink-0 rounded-full px-3 text-sm font-semibold text-muted-foreground"
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              className="h-12 flex-1 text-sm"
+              disabled={isSubmitting || resumeUploading || coverLetterUploading}
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSubmitting
+                ? (isEditing ? "Saving…" : "Creating…")
+                : (resumeUploading || coverLetterUploading)
+                  ? "Uploading file…"
+                  : isEditing ? "Save changes" : "Create application"}
+            </Button>
+          </div>
         </form>
 
       {/* ── JD Parser modal ────────────────────────────────────────────── */}
       {parseModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          className="application-import-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={() => setParseModalOpen(false)}
         >
           <div
-            className="bg-[#faf9f7] dark:bg-[#0a0a0a] rounded-2xl border shadow-2xl w-full max-w-lg"
+            className="application-import-dialog bg-[#faf9f7] dark:bg-[#0a0a0a] rounded-2xl border shadow-2xl w-full max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b">

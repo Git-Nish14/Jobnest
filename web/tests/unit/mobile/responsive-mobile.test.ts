@@ -99,14 +99,15 @@ describe("dashboard.css — mobile additions", () => {
     expect(css).toContain("4rem");
   });
 
-  it("defines .db-mobile-action-bar for sticky app-detail Edit button", () => {
-    expect(css).toContain(".db-mobile-action-bar");
+  it("does not reserve a second fixed mobile action bar", () => {
+    expect(css).not.toContain(".db-mobile-action-bar");
   });
 
-  it(".db-mobile-action-bar hides on md+ screens", () => {
-    // It must have a @media (min-width: 768px) rule that sets display: none
-    const afterClass = css.slice(css.indexOf(".db-mobile-action-bar"));
-    expect(afterClass).toContain("display: none");
+  it("styles an in-flow application save row", () => {
+    expect(css).toContain(".application-save-bar");
+    const rule = css.slice(css.indexOf(".application-save-bar"), css.indexOf(".application-save-bar") + 200);
+    expect(rule).toContain("display: flex");
+    expect(rule).not.toContain("position: fixed");
   });
 
   it("defines .db-scroll-x for horizontal table scroll", () => {

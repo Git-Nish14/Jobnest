@@ -7,17 +7,19 @@ vi.mock("@/lib/chatgpt/credentials", () => ({
   readChatGptJson: async (request: Request) => request.json(),
 }));
 vi.mock("@/lib/chatgpt/oauth", () => ({
-  CHATGPT_OAUTH_SCOPE: "applications:write",
+  CHATGPT_OAUTH_SCOPE: "applications:read applications:write",
   getChatGPTOAuthIssuer: () => "https://jobnest.example.com",
   getChatGPTProtectedResourceMetadataUrl: () => "https://jobnest.example.com/.well-known/oauth-protected-resource/api/integrations/chatgpt/mcp",
 }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 vi.mock("@/app/api/integrations/chatgpt/applications/route", () => ({ POST: vi.fn() }));
+vi.mock("@/app/api/integrations/chatgpt/applications/check/route", () => ({ POST: vi.fn() }));
 
 import { POST, GET, DELETE } from "@/app/api/integrations/chatgpt/mcp/route";
 import { authenticateChatGpt } from "@/lib/chatgpt/credentials";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { POST as saveApplication } from "@/app/api/integrations/chatgpt/applications/route";
+import { POST as checkApplication } from "@/app/api/integrations/chatgpt/applications/check/route";
 
 function request(method: string, params?: unknown, headers: Record<string, string> = {}) {
   return new Request("https://jobnest.example.com/api/integrations/chatgpt/mcp", {
@@ -40,27 +42,38 @@ describe("ChatGPT MCP transport", () => {
     const body = await response.json();
     expect(body).toMatchObject({ jsonrpc: "2.0", id: "req-1", result: { protocolVersion: "2025-11-25", capabilities: { tools: { listChanged: false } } } });
     expect(body.result.instructions).toContain("JOBNEST");
+    expect(body.result.instructions).toContain("only after the user types the trigger JOBNEST");
     expect(body.result.instructions).toContain("Always attach a non-empty job_description");
     expect(body.result.instructions).toContain("Do not ask whether they applied");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("mcp-session-id")).toBeNull();
   });
 
-  it("lists only the scoped write tool, with strict required input fields", async () => {
+  it("lists separately scoped duplicate-check and save tools with strict inputs", async () => {
     const { result } = await (await POST(request("tools/list"))).json();
-    expect(result.tools).toHaveLength(1);
-    expect(result.tools[0]).toMatchObject({
+    expect(result.tools).toHaveLength(2);
+    const checkTool = result.tools.find((tool: { name: string }) => tool.name === "check_existing_application");
+    const saveTool = result.tools.find((tool: { name: string }) => tool.name === "save_job_application");
+    expect(checkTool).toMatchObject({
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      securitySchemes: [{ type: "oauth2", scopes: ["applications:read"] }],
+      inputSchema: { additionalProperties: false, required: ["company", "position", "location"] },
+    });
+    expect(checkTool.description).toContain("without that trigger does not authorize this call");
+    expect(saveTool).toMatchObject({
       name: "save_job_application",
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       securitySchemes: [{ type: "oauth2", scopes: ["applications:write"] }],
-      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "job_url", "job_description"] },
+      inputSchema: { additionalProperties: false, required: ["request_id", "company", "position", "job_url", "location", "job_description"] },
     });
-    expect(result.tools[0].inputSchema.properties.user_id).toBeUndefined();
-    expect(result.tools[0].inputSchema.properties.job_description.description).toContain("complete job-description text");
-    expect(result.tools[0].inputSchema.properties.job_description.description).toContain("Required for every save");
-    expect(result.tools[0].inputSchema.properties.job_url.description).toContain("ask the user to provide it");
-    expect(result.tools[0].inputSchema.properties.applied_date.description).toContain("Do not ask for the date");
-    expect(result.tools[0].inputSchema.properties).toEqual(expect.objectContaining({
+    expect(saveTool.description).toContain("without that trigger does not authorize this call");
+    expect(saveTool.inputSchema.properties.user_id).toBeUndefined();
+    expect(saveTool.inputSchema.properties.job_description.description).toContain("complete job-description text");
+    expect(saveTool.inputSchema.properties.job_description.description).toContain("Required for every save");
+    expect(saveTool.inputSchema.properties.job_url.description).toContain("ask the user to provide it");
+    expect(saveTool.inputSchema.properties.applied_date.description).toContain("Do not ask for the date");
+    expect(saveTool.inputSchema.properties.requires_sponsorship.description).toContain("does not sponsor visas");
+    expect(saveTool.inputSchema.properties).toEqual(expect.objectContaining({
       ats_provider: expect.any(Object),
       requires_sponsorship: expect.any(Object),
       company_tier: expect.any(Object),
@@ -74,9 +87,10 @@ describe("ChatGPT MCP transport", () => {
       const response = await handler(request("tools/list"));
       expect(response.status).toBe(401);
       expect(response.headers.get("www-authenticate")).toContain('resource_metadata="https://jobnest.example.com/.well-known/oauth-protected-resource/api/integrations/chatgpt/mcp"');
-      expect(response.headers.get("www-authenticate")).toContain('scope="applications:write"');
+      expect(response.headers.get("www-authenticate")).toContain('scope="applications:read applications:write"');
     }
     expect(saveApplication).not.toHaveBeenCalled();
+    expect(checkApplication).not.toHaveBeenCalled();
   });
 
   it("rejects hostile origins and unsupported protocol headers", async () => {
@@ -99,6 +113,7 @@ describe("ChatGPT MCP transport", () => {
     expect((await POST(makeNotification("notifications/initialized"))).status).toBe(202);
     expect((await POST(makeNotification("tools/call"))).status).toBe(400);
     expect(saveApplication).not.toHaveBeenCalled();
+    expect(checkApplication).not.toHaveBeenCalled();
   });
 
   it("returns structured saved data from the authenticated save service", async () => {
@@ -112,6 +127,16 @@ describe("ChatGPT MCP transport", () => {
     expect(forwarded.headers.get("authorization")).toBe("Bearer test-token");
     expect(await forwarded.json()).toEqual(args);
     expect(forwarded.headers.has("cookie")).toBe(false);
+  });
+
+  it("returns a read-only duplicate warning from the authenticated check service", async () => {
+    const data = { match: true, application: { id: "a1", company: "Acme", position: "Engineer", location: "Chicago, IL" }, warning: "Do not apply again." };
+    vi.mocked(checkApplication).mockResolvedValue(Response.json(data) as never);
+    const args = { company: "Acme", position: "Engineer", location: "Chicago, IL" };
+    const { result } = await (await POST(request("tools/call", { name: "check_existing_application", arguments: args }))).json();
+    expect(result.structuredContent).toEqual(data);
+    expect(await vi.mocked(checkApplication).mock.calls[0][0].json()).toEqual(args);
+    expect(saveApplication).not.toHaveBeenCalled();
   });
 
   it("preserves backend failures as tool errors, never success", async () => {
@@ -134,6 +159,7 @@ describe("ChatGPT MCP transport", () => {
     expect((await (await POST(request("tools/call", { name: "read_jobs" }))).json()).error.code).toBe(-32602);
     expect((await (await POST(request("tools/call", []))).json()).error.code).toBe(-32602);
     expect(saveApplication).not.toHaveBeenCalled();
+    expect(checkApplication).not.toHaveBeenCalled();
   });
 
   it("declines optional SSE and session deletion", async () => {
@@ -162,7 +188,13 @@ describe("current MCP per-request protocol", () => {
     });
   });
   it("lists tools with the current result envelope", async () => {
-    expect((await (await POST(modernRequest("tools/list"))).json()).result).toMatchObject({ resultType: "complete", tools: [expect.objectContaining({ name: "save_job_application" })] });
+    expect((await (await POST(modernRequest("tools/list"))).json()).result).toMatchObject({
+      resultType: "complete",
+      tools: expect.arrayContaining([
+        expect.objectContaining({ name: "check_existing_application" }),
+        expect.objectContaining({ name: "save_job_application" }),
+      ]),
+    });
   });
   it("rejects missing per-request metadata", async () => {
     const response = await POST(modernRequest("tools/list", { _meta: {} }));

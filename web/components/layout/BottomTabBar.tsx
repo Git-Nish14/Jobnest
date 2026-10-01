@@ -12,8 +12,6 @@ const REGULAR_TABS = [
   { href: "/interviews",   label: "Interviews",   icon: Calendar },
 ] as const;
 
-const SCROLL_HIDE_THRESHOLD = 80; // px scrolled before hiding
-
 export function BottomTabBar() {
   const pathname = usePathname();
 
@@ -31,32 +29,6 @@ export function BottomTabBar() {
     // html.page-nestai → dashboard.css hides .bottom-tab-bar + repositions
     // .nestai-input-area so the chat input sits at the safe-area bottom.
     document.documentElement.classList.toggle("page-nestai", onNestAi);
-
-    // Clear any stale scroll-hide state left over from a previous page.
-    document.documentElement.classList.remove("tab-bar-hidden");
-
-    if (onNestAi) return; // NESTAi has its own full-screen layout, no scroll listener
-
-    let lastY = window.scrollY;
-    let ticking = false;
-
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const y = window.scrollY;
-        const shouldHide = y > lastY && y > SCROLL_HIDE_THRESHOLD;
-        document.documentElement.classList.toggle("tab-bar-hidden", shouldHide);
-        lastY = y;
-        ticking = false;
-      });
-    }
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      document.documentElement.classList.remove("tab-bar-hidden");
-    };
   }, [pathname]); // re-run on every route change
 
   /*
@@ -141,7 +113,7 @@ export function BottomTabBar() {
               "text-[11px] font-semibold leading-none tracking-wide transition-all duration-200",
               nestAiActive
                 ? "text-[#99462a] dark:text-[#ccff00] opacity-100"
-                : "text-[#55433d] dark:text-white/55 opacity-65"
+                : "text-[#55433d] dark:text-white/75 opacity-80"
             )}
           >
             NESTAi

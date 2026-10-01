@@ -118,6 +118,18 @@ test.describe("Bottom tab bar — authenticated dashboard", () => {
     await expect(links).toHaveCount(4);
   });
 
+  test("tab bar stays stationary during a downward scroll", async ({ page }) => {
+    const tabBar = page.locator("nav[aria-label='Primary navigation']");
+    await expect(tabBar).toBeVisible();
+    const before = await tabBar.boundingBox();
+    await page.evaluate(() => window.scrollTo(0, 500));
+    await page.waitForTimeout(350);
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const after = await tabBar.boundingBox();
+    expect(after?.y).toBeCloseTo(before!.y, 0);
+    await expect(tabBar).toBeVisible();
+  });
+
   test("active tab for /dashboard shows aria-current='page'", async ({ page }) => {
     const tabBar = page.locator("nav[aria-label='Primary navigation']");
     await expect(tabBar).toBeVisible({ timeout: 10_000 });
@@ -405,22 +417,21 @@ test.describe("Bottom tab bar — hidden on NESTAi page", () => {
   });
 });
 
-// 6c. Dashboard FAB visible on mobile — authenticated ─────────────────────────
+// 6c. Dashboard primary action — authenticated ────────────────────────────────
 
-test.describe("Dashboard FAB — visible on mobile viewport", () => {
+test.describe("Dashboard add action — responsive placement", () => {
   test.skip(
     !E2E_EMAIL || !E2E_PASSWORD,
     "Skipped: E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set"
   );
 
-  test("New Application FAB is visible at 390px on the dashboard", async ({ page }) => {
+  test("in-flow Add role action is visible at 390px on the dashboard", async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     await logIn(page);
     await page.goto("/dashboard");
 
-    // FAB is an <a> linking to /applications/new with title="New Application"
-    const fab = page.locator('a[href="/applications/new"][title="New Application"]');
-    await expect(fab).toBeVisible({ timeout: 10_000 });
+    const addAction = page.getByRole("link", { name: /add role/i });
+    await expect(addAction).toBeVisible({ timeout: 10_000 });
   });
 
   test("New Application FAB is also visible at 1280px (desktop)", async ({ page }) => {

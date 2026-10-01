@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
-import { getApplications, getApplicationsPage } from "@/services";
-import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton } from "@/components/applications";
+import { getApplications, getApplicationsPage, getApplicationPipelineSummary } from "@/services";
+import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton, PipelineOverview } from "@/components/applications";
 import type { QueryParams } from "@/types/api";
+import type { ApplicationStats } from "@/types";
 
-const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "week", "month", "quarter", "year"];
+const DATE_RANGES: QueryParams["dateRange"][] = ["all", "today", "yesterday", "week", "month", "quarter", "year"];
 function toDateRange(val?: string): QueryParams["dateRange"] | undefined {
   return DATE_RANGES.includes(val as QueryParams["dateRange"])
     ? (val as QueryParams["dateRange"])
@@ -23,6 +25,7 @@ interface PageProps {
     view?: string;
     sponsorship?: string;
     tier?: string;
+    page?: string;
   }>;
 }
 
@@ -31,69 +34,106 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   const view = params.view === "kanban" ? "kanban" : "list";
 
   // Kanban view needs all rows (drag-and-drop reorders all columns).
-  // List view uses cursor pagination — first page only; ApplicationsList handles "load more".
+  // List view uses URL-backed numbered pagination.
   const isKanban = view === "kanban";
 
   let apps: import("@/types").JobApplication[] = [];
-  let hasMore = false;
-  let nextCursor: string | null = null;
+  let total = 0;
+  let totalPages = 0;
+  let pageSize = 25;
+  let pipelineStats: ApplicationStats | null = null;
+  const parsedPage = Number.parseInt(params.page ?? "1", 10);
+  const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const sponsorshipOnly = params.sponsorship === "true";
 
   if (isKanban) {
-    const { data: applications, error } = await getApplications({
-      search: params.search,
-      status: params.status,
-      location: params.location,
-      dateRange: toDateRange(params.dateRange),
-      sort: params.sort,
-      sponsorshipOnly,
-      tier: params.tier,
-    });
+    const [{ data: applications, error }, summary] = await Promise.all([
+      getApplications({
+        search: params.search,
+        status: params.status,
+        location: params.location,
+        dateRange: toDateRange(params.dateRange),
+        sort: params.sort,
+        sponsorshipOnly,
+        tier: params.tier,
+      }),
+      getApplicationPipelineSummary(),
+    ]);
     if (error) console.error("Error fetching applications:", error.message);
     apps = applications ?? [];
+    pipelineStats = summary.data;
   } else {
-    const page = await getApplicationsPage({
-      search: params.search,
-      status: params.status,
-      location: params.location,
-      dateRange: toDateRange(params.dateRange),
-      sponsorshipOnly,
-      tier: params.tier,
-    });
+    const [page, summary] = await Promise.all([
+      getApplicationsPage({
+        search: params.search,
+        status: params.status,
+        location: params.location,
+        dateRange: toDateRange(params.dateRange),
+        sort: params.sort,
+        page: currentPage,
+        sponsorshipOnly,
+        tier: params.tier,
+      }),
+      getApplicationPipelineSummary(),
+    ]);
     if (page.error) console.error("Error fetching applications page:", page.error);
     apps = page.data;
-    hasMore = page.hasMore;
-    nextCursor = page.nextCursor;
+    total = page.total;
+    totalPages = page.totalPages;
+    pageSize = page.pageSize;
+    pipelineStats = summary.data;
+
+    // Deletions or hand-edited URLs can leave the user past the final page.
+    if (totalPages > 0 && currentPage > totalPages) {
+      const next = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) next.set(key, value);
+      });
+      if (totalPages === 1) next.delete("page"); else next.set("page", String(totalPages));
+      redirect(`/applications${next.size ? `?${next.toString()}` : ""}`);
+    }
   }
 
   return (
     <div>
       {/* ── Header ── */}
-      <header className="db-page-header">
-        <div>
-          <h1 className="db-page-title">Applications</h1>
-          <p className="db-page-subtitle hidden sm:block">
-            Manage and track your job applications with thoughtful intentionality.
+      <header className="mb-4 flex items-end justify-between gap-3 sm:mb-6">
+        <div className="min-w-0">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#99462a] dark:text-[#ccff00]">
+            Job search workspace
+          </p>
+          <h1 className="db-page-title app-page-title">Applications</h1>
+          <p className="db-page-subtitle mt-1">
+            Track every opportunity and keep your next move clear.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <ViewToggle />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="hidden md:block"><ViewToggle /></div>
           {/* Import/Export are power-user features — hidden on mobile to prevent header overflow */}
           <div className="hidden sm:flex items-center gap-2">
             <ImportButton />
             <ExportButton />
           </div>
-          {/* Desktop-only "New Application" — mobile gets the FAB below */}
+          {/* Desktop button; mobile uses the compact in-flow add action beside the title. */}
           <Link href="/applications/new" className="hidden sm:inline-flex db-btn-page-primary">
             <Plus className="h-4 w-4" />
             New Application
           </Link>
+          <Link href="/applications/new" className="mobile-header-add sm:hidden" aria-label="Add application">
+            <Plus className="h-5 w-5" />
+          </Link>
         </div>
       </header>
 
+      <div className="mb-4 md:hidden" aria-label="Application view"><ViewToggle /></div>
+
       {/* ── Filters (list view only) ── */}
-      {view === "list" && <ApplicationFilters />}
+      {pipelineStats && pipelineStats.total > 0 && (
+        <PipelineOverview stats={pipelineStats} />
+      )}
+
+      {view === "list" && <ApplicationFilters statusCounts={pipelineStats?.statusCounts} />}
 
       {/* ── Content ── */}
       {apps.length > 0 ? (
@@ -108,18 +148,14 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
               params.dateRange ?? "",
               params.sponsorship ?? "",
               params.tier ?? "",
+              params.sort ?? "",
+              String(currentPage),
             ].join("|")}
             applications={apps}
-            hasMore={hasMore}
-            nextCursor={nextCursor}
-            filters={{
-              search: params.search,
-              status: params.status,
-              location: params.location,
-              dateRange: params.dateRange,
-              sponsorship: params.sponsorship,
-              tier: params.tier,
-            }}
+            total={total}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
           />
         )
       ) : (
@@ -236,16 +272,6 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
         </footer>
       )}
 
-      {/* ── Mobile FAB — "New Application" above the bottom tab bar ──
-           Hidden on sm+ where the header button is visible.            */}
-      <Link
-        href="/applications/new"
-        className="sm:hidden fixed right-4 z-40 db-fab app-mobile-fab flex items-center justify-center w-14 h-14 rounded-full"
-        aria-label="New application"
-        title="New application"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </Link>
     </div>
   );
 }

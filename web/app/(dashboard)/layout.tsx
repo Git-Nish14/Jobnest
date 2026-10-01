@@ -6,6 +6,7 @@ import { DeletionBanner } from "@/components/profile";
 import { AuthSync } from "@/components/auth/auth-sync";
 import { TimezoneSync } from "@/components/auth/timezone-sync";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { TouchScrollGuard } from "@/components/layout/TouchScrollGuard";
 import { redirect } from "next/navigation";
 import "./dashboard.css";
 
@@ -44,6 +45,7 @@ export default async function DashboardLayout({
       <AuthSync />
       <TimezoneSync />
       <CommandPalette />
+      <TouchScrollGuard />
       <Navbar user={{
         email: user.email,
         // user_metadata is typed as {[key:string]:any}; guard at runtime so a

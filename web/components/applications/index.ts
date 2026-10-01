@@ -9,3 +9,5 @@ export { TailoringChecklist } from "./tailoring-checklist";
 export { StatusTimeline } from "./status-timeline";
 export { CSVImportWizard } from "./csv-import-wizard";
 export { ImportButton } from "./import-button";
+export { PipelineOverview } from "./pipeline-overview";
+export { StatusPicker } from "./status-picker";

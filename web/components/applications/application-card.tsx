@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
   MapPin, DollarSign, Calendar, ScanSearch, Copy,
@@ -16,32 +16,32 @@ import {
 import type { JobApplication } from "@/types";
 import { cn } from "@/lib/utils";
 import { SOURCE_COLORS } from "@/config/constants";
+import type { ApplicationStatus } from "@/config/constants";
 import { AtsProviderBadge } from "@/components/ui/brand-icons";
 import { formatDate } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
+import { StatusPicker } from "./status-picker";
 
 // ── Per-status tokens ─────────────────────────────────────────────────────────
 // tint: very-low-opacity wash on the card background — the TODO item finally shipped.
 // accent: left border colour.
 // avatar: reuses existing dashboard.css db-status-* classes for the company initial.
-// badge: same db-status-* for the pill badge.
 const STATUS_TOKENS: Record<
   string,
-  { tint: string; accent: string; avatar: string; badge: string }
+  { tint: string; accent: string; avatar: string }
 > = {
-  "Applied":      { tint: "bg-amber-500/[0.05] dark:bg-amber-500/[0.08]",    accent: "bg-amber-400",    avatar: "db-status-applied",   badge: "db-status-applied" },
-  "Phone Screen": { tint: "bg-orange-500/[0.05] dark:bg-orange-500/[0.08]",  accent: "bg-[#99462a]",    avatar: "db-status-phone",     badge: "db-status-phone" },
-  "Interview":    { tint: "bg-emerald-500/[0.06] dark:bg-emerald-500/[0.09]", accent: "bg-emerald-500",  avatar: "db-status-interview", badge: "db-status-interview" },
-  "Offer":        { tint: "bg-emerald-500/[0.08] dark:bg-emerald-500/[0.11]", accent: "bg-emerald-600",  avatar: "db-status-offer",     badge: "db-status-offer" },
-  "Accepted":     { tint: "bg-emerald-500/[0.10] dark:bg-emerald-500/[0.13]", accent: "bg-emerald-700",  avatar: "db-status-accepted",  badge: "db-status-accepted" },
-  "Rejected":     { tint: "bg-red-500/[0.05] dark:bg-red-500/[0.08]",         accent: "bg-red-400",      avatar: "db-status-rejected",  badge: "db-status-rejected" },
-  "Withdrawn":    { tint: "",                                                   accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-withdrawn", badge: "db-status-withdrawn" },
-  "Ghosted":      { tint: "bg-zinc-500/[0.04] dark:bg-zinc-500/[0.07]",       accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-ghosted",   badge: "db-status-ghosted" },
+  "Applied":      { tint: "bg-amber-500/[0.05] dark:bg-amber-500/[0.08]",     accent: "bg-amber-400",    avatar: "db-status-applied" },
+  "Phone Screen": { tint: "bg-orange-500/[0.05] dark:bg-orange-500/[0.08]",   accent: "bg-[#99462a]",    avatar: "db-status-phone" },
+  "Interview":    { tint: "bg-emerald-500/[0.06] dark:bg-emerald-500/[0.09]", accent: "bg-emerald-500",  avatar: "db-status-interview" },
+  "Offer":        { tint: "bg-blue-500/[0.06] dark:bg-blue-500/[0.09]",       accent: "bg-blue-500",     avatar: "db-status-offer" },
+  "Rejected":     { tint: "bg-red-500/[0.05] dark:bg-red-500/[0.08]",         accent: "bg-red-400",      avatar: "db-status-rejected" },
+  "Withdrawn":    { tint: "",                                                  accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-withdrawn" },
+  "Ghosted":      { tint: "bg-zinc-500/[0.04] dark:bg-zinc-500/[0.07]",       accent: "bg-zinc-300 dark:bg-zinc-600", avatar: "db-status-ghosted" },
 };
 
 function tokens(status: string) {
   return STATUS_TOKENS[status] ?? {
-    tint: "", accent: "bg-border", avatar: "db-status-default", badge: "db-status-default",
+    tint: "", accent: "bg-border", avatar: "db-status-default",
   };
 }
 
@@ -50,16 +50,23 @@ interface ApplicationCardProps {
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
+  mobileSelectionMode?: boolean;
 }
 
-export function ApplicationCard({ application, selectable, selected, onSelect }: ApplicationCardProps) {
+export function ApplicationCard({ application, selectable, selected, onSelect, mobileSelectionMode = false }: ApplicationCardProps) {
   const router = useRouter();
   const [deleting, setDeleting]               = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [duplicating, setDuplicating]         = useState(false);
   const [duplicated, setDuplicated]           = useState(false);
+  const [currentStatus, setCurrentStatus]     = useState<ApplicationStatus>(application.status);
+  const [statusUpdating, setStatusUpdating]   = useState(false);
 
-  const tok      = tokens(application.status);
+  useEffect(() => {
+    setCurrentStatus(application.status);
+  }, [application.status]);
+
+  const tok      = tokens(currentStatus);
   const initial  = application.company.charAt(0).toUpperCase();
   const dateStr  = formatDate(application.applied_date);
 
@@ -114,12 +121,61 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
     }
   };
 
+  const saveStatus = async (status: ApplicationStatus) => {
+    const response = await fetch(`/api/applications/${application.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error((body as { error?: string }).error || "Status update failed");
+    }
+  };
+
+  const handleStatusChange = async (nextStatus: ApplicationStatus) => {
+    if (nextStatus === currentStatus || statusUpdating) return;
+    const previousStatus = currentStatus;
+    setCurrentStatus(nextStatus);
+    setStatusUpdating(true);
+
+    try {
+      await saveStatus(nextStatus);
+      toast.success(`Moved ${application.company} to ${nextStatus}`, {
+        description: application.position,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            void (async () => {
+              try {
+                setCurrentStatus(previousStatus);
+                await saveStatus(previousStatus);
+                toast.success("Status change undone");
+                router.refresh();
+              } catch {
+                setCurrentStatus(nextStatus);
+                toast.error("Could not undo the status change");
+              }
+            })();
+          },
+        },
+      });
+      router.refresh();
+    } catch (error) {
+      setCurrentStatus(previousStatus);
+      toast.error(error instanceof Error ? error.message : "Failed to update status");
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
   return (
     <div
       data-testid="application-card"
       className={cn(
         // ── Shell ──────────────────────────────────────────────────────────
-        "group relative rounded-2xl border overflow-hidden transition-all duration-200",
+        "group relative isolate rounded-2xl border overflow-hidden transition-all duration-200",
         "border-[#dbc1b9]/40 dark:border-white/[0.07]",
         "hover:border-[#dbc1b9]/70 dark:hover:border-white/12 hover:shadow-md",
         // Status tint — very subtle background wash per status
@@ -141,22 +197,33 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
       {/* ── Left accent bar (status colour) ── */}
       <div className={cn("absolute left-0 inset-y-0 w-0.75 rounded-l-2xl", tok.accent)} />
 
-      {/* ── Selection checkbox — tap target 44×44 on mobile ── */}
-      {selectable && (
-        <button
-          type="button"
-          onClick={() => onSelect?.(application.id)}
-          aria-label={selected ? "Deselect" : "Select application"}
-          className={cn(
-            "absolute top-0 left-0 z-10 h-full w-full bg-transparent",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#99462a]",
-          )}
-        />
-      )}
-
       {/* ── Card body ── */}
       <div className="relative pl-6 pr-4 py-4 sm:pl-7 sm:pr-5 sm:py-4.5">
         <div className="flex gap-3 sm:gap-3.5">
+          {selectable && (
+            <button
+              type="button"
+              onClick={() => onSelect?.(application.id)}
+              aria-label={selected ? `Deselect ${application.position} at ${application.company}` : `Select ${application.position} at ${application.company}`}
+              aria-pressed={selected}
+              title={selected ? "Deselect application" : "Select for bulk actions"}
+              className={cn(
+                "relative z-20 h-11 w-11 shrink-0 items-center justify-center rounded-lg sm:flex",
+                mobileSelectionMode ? "flex" : "hidden",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
+                  selected
+                    ? "border-[#99462a] bg-[#99462a] text-white dark:border-[#ccff00] dark:bg-[#ccff00] dark:text-black"
+                    : "border-[#dbc1b9] bg-background/80 text-transparent hover:border-[#99462a] dark:border-white/20 dark:hover:border-[#ccff00]",
+                )}
+              >
+                <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+              </span>
+            </button>
+          )}
 
           {/* Company avatar — status-coloured background */}
           <div
@@ -178,10 +245,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
             <div className="flex items-start gap-2">
               <Link
                 href={`/applications/${application.id}`}
-                className={cn(
-                  "flex-1 min-w-0 block",
-                  selectable && "pointer-events-auto relative z-10",
-                )}
+                className="relative z-10 block min-w-0 flex-1"
               >
                 <h3 className="font-semibold text-[15px] sm:text-base text-foreground hover:text-[#99462a] dark:hover:text-[#ccff00] transition-colors leading-snug line-clamp-2">
                   {application.position}
@@ -189,10 +253,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
               </Link>
 
               {/* Actions — always visible, no hover-only on mobile */}
-              <div className={cn(
-                "flex items-center gap-0.5 shrink-0 -mt-0.5 relative z-10",
-                selectable && "pointer-events-auto",
-              )}>
+              <div className="relative z-10 -mt-0.5 flex items-center gap-0.5 shrink-0">
                 {application.job_url && (
                   <a
                     href={application.job_url}
@@ -200,7 +261,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     rel="noopener noreferrer"
                     aria-label={`View job posting for ${application.position} at ${application.company}`}
                     title="View job posting"
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:flex"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
@@ -210,7 +271,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                     <button
                       type="button"
                       aria-label={`Options for ${application.position} at ${application.company}`}
-                      className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground/60 hover:text-[#99462a] dark:hover:text-[#ccff00] hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:h-8 sm:w-8 sm:rounded-lg"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
@@ -253,14 +314,19 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
               </div>
             </div>
 
-            {/* ── Row 2: Company + Status badge ── */}
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {/* ── Row 2: Company + inline status action ── */}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground font-medium leading-none">
                 {application.company}
               </span>
-              <span className={cn("db-status-badge shrink-0", tok.badge)}>
-                {application.status}
-              </span>
+              <span className="hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground/55 sm:inline">Status</span>
+              <StatusPicker
+                status={currentStatus}
+                company={application.company}
+                position={application.position}
+                pending={statusUpdating}
+                onChange={handleStatusChange}
+              />
               {application.requires_sponsorship && (
                 <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 shrink-0">
                   <Stamp className="h-2.5 w-2.5 shrink-0" />
@@ -333,14 +399,14 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
                   ★ {application.glassdoor_rating.toFixed(1)}
                 </a>
               )}
-              {/* Spacer pushes ring to right */}
-              <span className="flex-1" />
-              <CompletenessRing application={application} size={30} simple />
+              <span className="ml-auto hidden shrink-0 sm:flex">
+                <CompletenessRing application={application} size={30} simple />
+              </span>
             </div>
 
             {/* ── Notes preview ── */}
             {application.notes && (
-              <p className="mt-2 text-xs text-muted-foreground/60 italic line-clamp-1 border-t border-border/30 pt-1.5">
+              <p className="mt-2 hidden text-xs text-muted-foreground/60 italic line-clamp-1 border-t border-border/30 pt-1.5 sm:block">
                 &ldquo;{application.notes}&rdquo;
               </p>
             )}
@@ -348,12 +414,6 @@ export function ApplicationCard({ application, selectable, selected, onSelect }:
         </div>
       </div>
 
-      {/* ── Selection tick (shown when selected) ── */}
-      {selectable && selected && (
-        <div className="absolute top-3 right-3 z-20 h-5 w-5 rounded-full bg-[#99462a] dark:bg-[#ccff00] flex items-center justify-center shadow-sm pointer-events-none">
-          <Check className="h-3 w-3 text-white dark:text-black" strokeWidth={3} />
-        </div>
-      )}
     </div>
   );
 }

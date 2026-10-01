@@ -2,8 +2,8 @@
  * Structural tests for the mobile UX sprint (June 2026).
  *
  * Covers the following shipped changes (all checked against real source files):
- *   - BottomTabBar: scroll auto-hide, page-nestai CSS class toggle, no conditional render
- *   - dashboard.css: tab-bar-hidden + page-nestai rules
+ *   - BottomTabBar: stable navigation while scrolling, page-nestai CSS class toggle
+ *   - dashboard.css: page-nestai rules
  *   - globals.css: atelier-bottom-bar + atelier-bottom-card CSS classes
  *   - NESTAi page: mobile ⋯ bottom sheet, NESTpro Audit rename, MoreHorizontal fix
  *   - ATSScanner: NESTpro Audit rename (no FAANG in user-visible labels)
@@ -30,7 +30,7 @@ function readSrc(rel: string) {
 
 // ── 1. BottomTabBar — scroll auto-hide + page-nestai class toggle ─────────────
 
-describe("BottomTabBar — scroll auto-hide + page-nestai", () => {
+describe("BottomTabBar — stable navigation + page-nestai", () => {
   const src = readSrc("components/layout/BottomTabBar.tsx");
 
   it("uses window.location.pathname inside useEffect (not stale React state)", () => {
@@ -41,17 +41,13 @@ describe("BottomTabBar — scroll auto-hide + page-nestai", () => {
     expect(src).toContain('classList.toggle("page-nestai"');
   });
 
-  it("removes tab-bar-hidden class on every route change", () => {
-    expect(src).toContain('classList.remove("tab-bar-hidden")');
+  it("does not shift the tab bar while a user scrolls", () => {
+    expect(src).not.toContain('classList.toggle("tab-bar-hidden"');
+    expect(src).not.toContain('addEventListener("scroll"');
   });
 
   it("uses pathname from usePathname() as useEffect dependency", () => {
     expect(src).toContain("}, [pathname])");
-  });
-
-  it("defines a scroll hide threshold constant", () => {
-    expect(src).toContain("SCROLL_HIDE_THRESHOLD");
-    expect(src).toContain("80");
   });
 
   it("uses suppressHydrationWarning on the nav element", () => {
@@ -70,18 +66,11 @@ describe("BottomTabBar — scroll auto-hide + page-nestai", () => {
 
 // ── 2. dashboard.css — new CSS rules ──────────────────────────────────────────
 
-describe("dashboard.css — tab-bar-hidden + page-nestai rules", () => {
+describe("dashboard.css — stationary tab bar + page-nestai rules", () => {
   const css = readSrc("app/(dashboard)/dashboard.css");
 
-  it("defines html.tab-bar-hidden .bottom-tab-bar (scroll auto-hide)", () => {
-    expect(css).toContain("html.tab-bar-hidden .bottom-tab-bar");
-  });
-
-  it("tab-bar-hidden rule sets opacity:0 and translateY", () => {
-    const ruleStart = css.indexOf("html.tab-bar-hidden .bottom-tab-bar");
-    const ruleChunk = css.slice(ruleStart, ruleStart + 200);
-    expect(ruleChunk).toContain("opacity: 0");
-    expect(ruleChunk).toContain("translateY");
+  it("does not define scroll auto-hide", () => {
+    expect(css).not.toContain("html.tab-bar-hidden .bottom-tab-bar");
   });
 
   it("defines html.page-nestai .bottom-tab-bar (hides bar on NESTAi)", () => {
@@ -104,8 +93,8 @@ describe("dashboard.css — tab-bar-hidden + page-nestai rules", () => {
     expect(ruleChunk).toContain("env(safe-area-inset-bottom");
   });
 
-  it("reduced-motion block covers both nav-open and tab-bar-hidden", () => {
-    expect(css).toContain("html.tab-bar-hidden .bottom-tab-bar { transform: none");
+  it("reduced-motion block covers nav-open", () => {
+    expect(css).toContain("html.nav-open .bottom-tab-bar { transform: none");
   });
 });
 

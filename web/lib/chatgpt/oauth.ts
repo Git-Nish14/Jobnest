@@ -10,11 +10,15 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { generateChatGptKey } from "@/lib/chatgpt/credentials";
 import { getChatGptSetup } from "@/lib/chatgpt/setup";
 
-export const CHATGPT_OAUTH_SCOPE = "applications:write";
+export const CHATGPT_OAUTH_SCOPES = ["applications:read", "applications:write"] as const;
+export const CHATGPT_OAUTH_SCOPE = CHATGPT_OAUTH_SCOPES.join(" ");
 export const CHATGPT_OAUTH_REQUEST_LIFETIME_MS = 10 * 60 * 1000;
 const OAUTH_BODY_LIMIT = 16 * 1024;
 const OPAQUE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const CLIENT_PATTERN = /^jobnest_client_[a-f0-9]{32}$/;
+const authorizationScopeSchema = z.string().trim().transform((value) => value.split(/\s+/)).refine((scopes) =>
+  scopes.length === CHATGPT_OAUTH_SCOPES.length && CHATGPT_OAUTH_SCOPES.every((scope) => scopes.includes(scope)),
+).transform(() => CHATGPT_OAUTH_SCOPE);
 
 export class ChatGPTOAuthError extends Error {
   constructor(public readonly code: string, message: string, public readonly status = 400) {
@@ -144,7 +148,7 @@ const authorizationSchema = z.object({
   code_challenge_method: z.literal("S256"),
   state: z.string().min(1).max(1024).regex(/^[^\u0000-\u001f\u007f]+$/),
   resource: z.string().max(2048),
-  scope: z.literal(CHATGPT_OAUTH_SCOPE),
+  scope: authorizationScopeSchema,
   response_mode: z.literal("query").optional(),
 });
 
@@ -174,7 +178,7 @@ export async function beginChatGPTOAuthAuthorization(parameters: URLSearchParams
   }
   const parsed = authorizationSchema.safeParse(values);
   if (!parsed.success) return authorizationCallback(recipient.data.redirect_uri, recipient.data.state, {
-    error: "invalid_request", error_description: "Use response type code, applications:write scope, and S256 PKCE.",
+    error: "invalid_request", error_description: `Use response type code, ${CHATGPT_OAUTH_SCOPE} scope, and S256 PKCE.`,
   });
   const input = parsed.data;
   if (input.resource !== resource) return authorizationCallback(input.redirect_uri, input.state, {

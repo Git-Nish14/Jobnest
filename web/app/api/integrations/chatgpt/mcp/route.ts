@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { ApiError } from "@/lib/api/errors";
 import { authenticateChatGpt, hashChatGptKey, readChatGptJson } from "@/lib/chatgpt/credentials";
-import { getChatGptInputSchema } from "@/lib/chatgpt/schema";
+import { getChatGptDuplicateCheckInputSchema, getChatGptInputSchema } from "@/lib/chatgpt/schema";
 import { CHATGPT_INSTRUCTIONS } from "@/lib/chatgpt/setup";
 import { CHATGPT_OAUTH_SCOPE, getChatGPTOAuthIssuer, getChatGPTProtectedResourceMetadataUrl } from "@/lib/chatgpt/oauth";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { POST as saveApplication } from "@/app/api/integrations/chatgpt/applications/route";
+import { POST as checkApplication } from "@/app/api/integrations/chatgpt/applications/check/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,17 +62,26 @@ function decodedMcpName(value: string | null) {
   return bytes.toString("base64") === encoded ? bytes.toString("utf8") : null;
 }
 
-function toolDefinition() {
-  const securitySchemes = [{ type: "oauth2", scopes: [CHATGPT_OAUTH_SCOPE] }];
-  return {
+function toolDefinitions() {
+  const saveSecurity = [{ type: "oauth2", scopes: ["applications:write"] }];
+  const checkSecurity = [{ type: "oauth2", scopes: ["applications:read"] }];
+  return [{
+    name: "check_existing_application",
+    title: "Check whether this job was already applied to",
+    description: "Call only after the user says JOBNEST, and before save_job_application. A request phrased without that trigger does not authorize this call. Never call while merely discussing a job or tailoring a resume. This checks only the connected user's Jobnest records for the same normalized company, role, and location. If match is true, clearly tell the user they already have a matching application and do not save another record unless they confirm it is a different requisition. This tool never creates or changes records.",
+    inputSchema: getChatGptDuplicateCheckInputSchema(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    securitySchemes: checkSecurity,
+    _meta: { securitySchemes: checkSecurity },
+  }, {
     name: "save_job_application",
     title: "Save an applied job to Jobnest",
-    description: "Use when the user says JOBNEST or explicitly asks to save an applied job from this conversation. JOBNEST confirms the user applied: do not ask for confirmation or the application date; set status to Applied and use today's date unless another date is explicitly known. Ask only if company, position, or job_url cannot be recovered. job_url is required: search the whole chat for the plain HTTP(S) posting URL and ask the user for it before saving when absent. Always attach job_description: use the complete posting text found anywhere in the chat, or create a detailed factual description from known chat details prefixed 'Generated from conversation:'. Extract every supported optional field available and omit unknown values. Put useful details without dedicated fields in notes, without credentials or full resumes. Reuse request_id and identical arguments on retries. This records a job; it does not submit an employer application.",
+    description: "Use only after the user says JOBNEST. A request phrased without that trigger does not authorize this call. Never research, check, or save while merely discussing a job or tailoring a resume. JOBNEST confirms the user applied: do not ask for confirmation or the application date; set status to Applied and use today's date unless another date is explicitly known. After JOBNEST, research missing public facts, then call check_existing_application with company, position, and location. If it matches, warn the user and do not save another record unless they confirm it is a different requisition. Ask if company, position, location, or job_url cannot be recovered. job_url and job_description are required. Never invent salary or other facts. Reuse request_id and identical arguments on retries. This records a job; it does not submit an employer application.",
     inputSchema: getChatGptInputSchema(),
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-    securitySchemes,
-    _meta: { securitySchemes },
-  };
+    securitySchemes: saveSecurity,
+    _meta: { securitySchemes: saveSecurity },
+  }];
 }
 
 export async function POST(request: Request) {
@@ -148,18 +158,21 @@ export async function POST(request: Request) {
           instructions: CHATGPT_INSTRUCTIONS,
         });
       case "ping": return result({});
-      case "tools/list": return result({ tools: [toolDefinition()] });
+      case "tools/list": return result({ tools: toolDefinitions() });
       case "tools/call": {
-        if (params.name !== "save_job_application") return rpcError(id, -32602, "Unknown tool.");
+        if (params.name !== "save_job_application" && params.name !== "check_existing_application") {
+          return rpcError(id, -32602, "Unknown tool.");
+        }
         const headers = new Headers({ "Content-Type": "application/json", Authorization: request.headers.get("authorization")! });
         if (request.headers.has("x-forwarded-for")) headers.set("x-forwarded-for", request.headers.get("x-forwarded-for")!);
-        // Reuse the save handler in process, never a network fetch or user URL.
-        const saved = await saveApplication(new Request(`${getChatGPTOAuthIssuer()}/api/integrations/chatgpt/applications`, {
+        // Reuse authenticated handlers in process, never a network fetch or user URL.
+        const isCheck = params.name === "check_existing_application";
+        const response = await (isCheck ? checkApplication : saveApplication)(new Request(`${getChatGPTOAuthIssuer()}/api/integrations/chatgpt/applications${isCheck ? "/check" : ""}`, {
           method: "POST", headers, body: JSON.stringify(params.arguments ?? {}),
         }));
-        const data = await saved.json();
-        if (saved.status === 401) throw ApiError.unauthorized("Reconnect Jobnest in ChatGPT to save jobs.");
-        if (!saved.ok) {
+        const data = await response.json();
+        if (response.status === 401) throw ApiError.unauthorized("Reconnect Jobnest in ChatGPT to check and save jobs.");
+        if (!response.ok) {
           return result({ isError: true, content: [{ type: "text", text: JSON.stringify(data) }] });
         }
         return result({ structuredContent: data, content: [{ type: "text", text: JSON.stringify(data) }] });

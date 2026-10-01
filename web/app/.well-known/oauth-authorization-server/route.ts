@@ -1,4 +1,4 @@
-import { chatGPTOAuthErrorResponse, chatGPTOAuthJson, CHATGPT_OAUTH_SCOPE, getChatGPTOAuthIssuer } from "@/lib/chatgpt/oauth";
+import { chatGPTOAuthErrorResponse, chatGPTOAuthJson, CHATGPT_OAUTH_SCOPES, getChatGPTOAuthIssuer } from "@/lib/chatgpt/oauth";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,7 @@ export async function GET() {
       grant_types_supported: ["authorization_code"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
-      scopes_supported: [CHATGPT_OAUTH_SCOPE],
+      scopes_supported: [...CHATGPT_OAUTH_SCOPES],
       authorization_response_iss_parameter_supported: true,
     });
   } catch (error) { return chatGPTOAuthErrorResponse(error); }
