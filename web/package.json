@@ -13,6 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:mobile": "playwright test --config tests/mobile-browser/playwright.config.ts",
+    "test:mobile:webkit": "playwright test --config tests/mobile-browser/playwright.webkit.config.ts",
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {

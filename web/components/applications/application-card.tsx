@@ -21,6 +21,7 @@ import { AtsProviderBadge } from "@/components/ui/brand-icons";
 import { formatDate } from "@/lib/utils/date";
 import { CompletenessRing } from "./completeness-ring";
 import { StatusPicker } from "./status-picker";
+import { MobileApplicationCard } from "./mobile-application-card";
 
 // ── Per-status tokens ─────────────────────────────────────────────────────────
 // tint: very-low-opacity wash on the card background — the TODO item finally shipped.
@@ -88,11 +89,15 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
         setDuplicated(true);
         setTimeout(() => setDuplicated(false), 2000);
         router.refresh();
+        toast.success("Application duplicated");
+        return true;
       } else {
         toast.error("Failed to duplicate application. Please try again.");
+        return false;
       }
     } catch {
       toast.error("Failed to duplicate application. Please try again.");
+      return false;
     } finally {
       setDuplicating(false);
     }
@@ -115,9 +120,11 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
       }
       toast.success("Application deleted");
       router.refresh();
+      return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete application");
       setDeleting(false);
+      return false;
     }
   };
 
@@ -135,7 +142,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
   };
 
   const handleStatusChange = async (nextStatus: ApplicationStatus) => {
-    if (nextStatus === currentStatus || statusUpdating) return;
+    if (nextStatus === currentStatus || statusUpdating) return false;
     const previousStatus = currentStatus;
     setCurrentStatus(nextStatus);
     setStatusUpdating(true);
@@ -162,20 +169,36 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
         },
       });
       router.refresh();
+      return true;
     } catch (error) {
       setCurrentStatus(previousStatus);
       toast.error(error instanceof Error ? error.message : "Failed to update status");
+      return false;
     } finally {
       setStatusUpdating(false);
     }
   };
 
   return (
+    <>
+    <MobileApplicationCard
+      application={application}
+      status={currentStatus}
+      selected={selected}
+      selectionMode={selectable && mobileSelectionMode}
+      onSelect={onSelect}
+      saving={statusUpdating}
+      deleting={deleting}
+      duplicating={duplicating}
+      onSaveStatus={handleStatusChange}
+      onDuplicate={handleDuplicate}
+      onDelete={handleDeleteConfirm}
+    />
     <div
       data-testid="application-card"
       className={cn(
         // ── Shell ──────────────────────────────────────────────────────────
-        "group relative isolate rounded-2xl border overflow-hidden transition-all duration-200",
+        "group relative isolate hidden rounded-2xl border overflow-hidden transition-all duration-200 md:block",
         "border-[#dbc1b9]/40 dark:border-white/[0.07]",
         "hover:border-[#dbc1b9]/70 dark:hover:border-white/12 hover:shadow-md",
         // Status tint — very subtle background wash per status
@@ -415,5 +438,6 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
       </div>
 
     </div>
+    </>
   );
 }

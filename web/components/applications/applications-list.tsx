@@ -11,6 +11,7 @@ import type { JobApplication } from "@/types";
 import { APPLICATION_STATUSES } from "@/config/constants";
 import type { ApplicationStatus } from "@/config/constants";
 import { cn } from "@/lib/utils";
+import styles from "./mobile-workspace.module.css";
 
 interface Props {
   applications: JobApplication[];
@@ -151,7 +152,7 @@ export function ApplicationsList({
     <div>
       {/* ── Bulk actions bar — stacks above the sticky filter bar ── */}
       {selectable && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#99462a]/30 dark:border-[#ccff00]/30 bg-background px-4 py-2.5 shadow-sm">
+        <div className={`mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#99462a]/30 dark:border-[#ccff00]/30 bg-background px-4 py-2.5 shadow-sm ${styles.bulkBar}`}>
           <span className="text-xs font-semibold text-foreground mr-1">
             {effectiveSelected.size} selected
           </span>
@@ -234,7 +235,7 @@ export function ApplicationsList({
             ? `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, total)} of ${total}`
             : `${total} application${total !== 1 ? "s" : ""}`}
           {effectiveSelected.size > 0 && (
-            <span className="ml-1.5 font-semibold text-[#99462a] dark:text-[#ccff00]">
+            <span className="ml-1.5 hidden font-semibold text-[#99462a] dark:text-[#ccff00] md:inline">
               · {effectiveSelected.size} selected
             </span>
           )}
@@ -242,7 +243,7 @@ export function ApplicationsList({
         <button
           type="button"
           onClick={() => mobileSelectionMode ? clearSelection() : setMobileSelectionMode(true)}
-          className="shrink-0 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-semibold text-foreground sm:hidden"
+          className="min-h-11 shrink-0 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground md:hidden"
           aria-pressed={mobileSelectionMode}
         >
           {mobileSelectionMode ? "Done" : "Select"}
@@ -250,7 +251,7 @@ export function ApplicationsList({
       </div>
 
       {/* ── Cards — tighter gap on mobile, comfortable on desktop ── */}
-      <div className={cn("space-y-3 sm:space-y-4", bulkLoading && "pointer-events-none opacity-60")}>
+      <div className={cn("grid gap-3 sm:gap-4", bulkLoading && "pointer-events-none opacity-60")}>
         {applications.map((app) => (
           <ApplicationCard
             key={app.id}
@@ -264,7 +265,13 @@ export function ApplicationsList({
       </div>
 
       {totalPages > 1 && (
-        <nav className="mt-8 flex items-center justify-center gap-1" aria-label="Applications pagination">
+        <>
+        <nav className={`${styles.mobileOnly} ${styles.pagination}`} aria-label="Applications pagination">
+          {currentPage > 1 ? <Link href={pageHref(currentPage - 1)} className={styles.pageLink} aria-label="Previous page"><ChevronLeft size={18} /></Link> : <span className={styles.pageLink} aria-disabled="true"><ChevronLeft size={18} /></span>}
+          <span>Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages ? <Link href={pageHref(currentPage + 1)} className={styles.pageLink} aria-label="Next page"><ChevronRight size={18} /></Link> : <span className={styles.pageLink} aria-disabled="true"><ChevronRight size={18} /></span>}
+        </nav>
+        <nav className="mt-8 hidden items-center justify-center gap-1 md:flex" aria-label="Applications pagination">
           {currentPage > 1 ? (
             <Link
               href={pageHref(currentPage - 1)}
@@ -316,6 +323,7 @@ export function ApplicationsList({
             </span>
           )}
         </nav>
+        </>
       )}
     </div>
   );

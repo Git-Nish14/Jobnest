@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, FileText, Sparkles, Bell, BrainCircuit } from "lucide-react";
 import { getApplications, getApplicationsPage, getApplicationPipelineSummary } from "@/services";
-import { ExportButton, ApplicationsList, ApplicationFilters, KanbanBoard, ViewToggle, ImportButton, PipelineOverview } from "@/components/applications";
+import { ApplicationsList, ApplicationFilters, KanbanBoard, PipelineOverview } from "@/components/applications";
+import { ApplicationsHeader } from "@/components/applications/applications-header";
 import type { QueryParams } from "@/types/api";
 import type { ApplicationStats } from "@/types";
 
@@ -95,62 +96,33 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
     }
   }
 
+  const resultsKey = [
+    params.search ?? "", params.status ?? "", params.location ?? "",
+    params.dateRange ?? "", params.sponsorship ?? "", params.tier ?? "",
+    params.sort ?? "", String(currentPage),
+  ].join("|");
+
   return (
     <div>
       {/* ── Header ── */}
-      <header className="mb-4 flex items-end justify-between gap-3 sm:mb-6">
-        <div className="min-w-0">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#99462a] dark:text-[#ccff00]">
-            Job search workspace
-          </p>
-          <h1 className="db-page-title app-page-title">Applications</h1>
-          <p className="db-page-subtitle mt-1">
-            Track every opportunity and keep your next move clear.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <div className="hidden md:block"><ViewToggle /></div>
-          {/* Import/Export are power-user features — hidden on mobile to prevent header overflow */}
-          <div className="hidden sm:flex items-center gap-2">
-            <ImportButton />
-            <ExportButton />
-          </div>
-          {/* Desktop button; mobile uses the compact in-flow add action beside the title. */}
-          <Link href="/applications/new" className="hidden sm:inline-flex db-btn-page-primary">
-            <Plus className="h-4 w-4" />
-            New Application
-          </Link>
-          <Link href="/applications/new" className="mobile-header-add sm:hidden" aria-label="Add application">
-            <Plus className="h-5 w-5" />
-          </Link>
-        </div>
-      </header>
+      <ApplicationsHeader />
 
-      <div className="mb-4 md:hidden" aria-label="Application view"><ViewToggle /></div>
-
-      {/* ── Filters (list view only) ── */}
+      {/* Desktop pipeline; mobile focuses on the applications themselves. */}
       {pipelineStats && pipelineStats.total > 0 && (
-        <PipelineOverview stats={pipelineStats} />
+        <div className="hidden md:block"><PipelineOverview stats={pipelineStats} /></div>
       )}
 
-      {view === "list" && <ApplicationFilters statusCounts={pipelineStats?.statusCounts} />}
+      {view === "list"
+        ? <ApplicationFilters statusCounts={pipelineStats?.statusCounts} />
+        : <div className="md:hidden"><ApplicationFilters statusCounts={pipelineStats?.statusCounts} /></div>}
 
       {/* ── Content ── */}
       {apps.length > 0 ? (
         view === "kanban" ? (
-          <KanbanBoard applications={apps} />
+          <KanbanBoard key={resultsKey} applications={apps} />
         ) : (
           <ApplicationsList
-            key={[
-              params.search ?? "",
-              params.status ?? "",
-              params.location ?? "",
-              params.dateRange ?? "",
-              params.sponsorship ?? "",
-              params.tier ?? "",
-              params.sort ?? "",
-              String(currentPage),
-            ].join("|")}
+            key={resultsKey}
             applications={apps}
             total={total}
             currentPage={currentPage}
@@ -197,7 +169,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             </div>
 
             {/* 3-step guide */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="hidden md:grid md:grid-cols-3 gap-4">
               {[
                 {
                   icon: FileText,
@@ -251,7 +223,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
             </div>
 
             {/* Tips strip */}
-            <div className="mt-6 rounded-xl border bg-muted/30 px-5 py-4 flex items-start gap-3">
+            <div className="mt-6 rounded-xl border bg-muted/30 px-5 py-4 hidden items-start gap-3 md:flex">
               <Sparkles className="h-4 w-4 text-[#99462a] shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 <span className="font-semibold text-foreground">Pro tip:</span> paste the full job description when adding an application —
@@ -264,7 +236,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
 
       {/* ── Footer quote (list view only) ── */}
       {apps.length > 0 && view === "list" && (
-        <footer className="mt-16 sm:mt-20 flex flex-col items-center text-center pb-2">
+        <footer className="mt-16 sm:mt-20 hidden flex-col items-center text-center pb-2 md:flex">
           <div className="w-12 h-px bg-[#dbc1b9]/30 mb-6" />
           <p className="db-headline italic text-muted-foreground/50 text-sm">
             Refining the search for meaningful contribution.

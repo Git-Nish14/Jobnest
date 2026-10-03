@@ -16,6 +16,7 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { MobileApplicationFilters } from "./mobile-application-filters";
 
 const SORT_OPTIONS = [
   { value: "date_desc",    label: "Newest first",  icon: CalendarArrowDown },
@@ -59,7 +60,7 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
   const advancedCount = (sponsorshipOnly ? 1 : 0) + (currentTier !== "all" ? 1 : 0);
 
   const push = useCallback(
-    (qs: string) => startTransition(() => router.push(`/applications?${qs}`)),
+    (qs: string) => startTransition(() => router.push(`/applications?${qs}`, { scroll: false })),
     [router, startTransition],
   );
 
@@ -84,12 +85,12 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
 
   // Debounced search sync
   const urlSearch = searchParams.get("search") ?? "";
+  useEffect(() => { setSearch(urlSearch); }, [urlSearch]);
   useEffect(() => {
     if (search === urlSearch) return;
     const t = setTimeout(() => pushRef.current(createQSRef.current({ search })), 400);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, urlSearch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,12 +108,16 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
   const currentDateOption = DATE_OPTIONS.find((o) => o.value === currentDateRange) ?? DATE_OPTIONS[0];
 
   return (
-    /*
-     * Sticky below the navbar on all screen sizes.
-     * z-30 keeps the filter workspace above cards as they scroll underneath;
-     * each card also owns an isolated stacking context so controls cannot bleed through.
-     */
-    <div className="application-filter-workspace sticky top-14 sm:top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/98 dark:bg-black/98 backdrop-blur-md border-b border-border/40 dark:border-white/7 pt-2 pb-2.5 shadow-[0_8px_18px_-18px_rgba(75,43,32,0.45)] dark:shadow-[0_8px_18px_-18px_rgba(0,0,0,0.9)]">
+    <>
+    <MobileApplicationFilters
+      search={search}
+      onSearchChange={setSearch}
+      onSearchSubmit={handleSearchSubmit}
+      onClearSearch={clearSearch}
+      pending={isPending}
+    />
+    {/* Desktop retains its existing inline filter workspace. */}
+    <div className="application-filter-workspace hidden md:block sticky top-14 sm:top-16 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/98 dark:bg-black/98 backdrop-blur-md border-b border-border/40 dark:border-white/7 pt-2 pb-2.5 shadow-[0_8px_18px_-18px_rgba(75,43,32,0.45)] dark:shadow-[0_8px_18px_-18px_rgba(0,0,0,0.9)]">
 
       {/* ── Row 1: Search + Sort + Advanced Filter ── */}
       <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
@@ -377,5 +382,6 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
         </div>
       )}
     </div>
+    </>
   );
 }

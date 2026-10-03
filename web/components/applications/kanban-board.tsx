@@ -9,6 +9,7 @@ import type { JobApplication } from "@/types";
 import type { ApplicationStatus } from "@/config/constants";
 import { formatShortDate } from "@/lib/utils/date";
 import { StatusPicker } from "./status-picker";
+import styles from "./mobile-workspace.module.css";
 
 const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string; darkBg: string }[] = [
   { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50",             darkBg: "dark:bg-amber-950/20" },
@@ -69,6 +70,10 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
   }
 
   function onDragStart(e: React.DragEvent, id: string) {
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      e.preventDefault();
+      return;
+    }
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
@@ -158,7 +163,7 @@ export function KanbanBoard({ applications }: KanbanBoardProps) {
 
               {cards.length === 0 && (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-xs text-muted-foreground/60 text-center px-2">Drop a card here</p>
+                  <p className="text-xs text-muted-foreground/60 text-center px-2"><span className="md:hidden">No applications</span><span className="hidden md:inline">Drop a card here</span></p>
                 </div>
               )}
             </div>
@@ -187,7 +192,7 @@ function KanbanCard({ app, isDragging, neutralised, onStatusChange, onDragStart,
       draggable={!neutralised}
       onDragStart={neutralised ? undefined : onDragStart}
       onDragEnd={onDragEnd}
-      className={`group bg-white dark:bg-[#111111] rounded-xl p-3.5 border border-border/30 dark:border-white/6 shadow-sm transition-all select-none ${
+      className={`${styles.boardCard} group bg-white dark:bg-[#111111] rounded-xl p-3.5 border border-border/30 dark:border-white/6 shadow-sm transition-all select-none ${
         neutralised
           ? "pointer-events-none"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
@@ -222,16 +227,17 @@ function KanbanCard({ app, isDragging, neutralised, onStatusChange, onDragStart,
 
       {/* Action link */}
       <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/20 pt-2.5 dark:border-white/6">
-        <StatusPicker
+        <div className="hidden md:block"><StatusPicker
           compact
           status={app.status}
           company={app.company}
           position={app.position}
           onChange={onStatusChange}
-        />
+        /></div>
+        <Link href={`/applications/${app.id}/edit`} className="inline-flex min-h-11 items-center text-xs font-semibold text-primary md:hidden">Edit application</Link>
         <Link
           href={`/applications/${app.id}`}
-          className="flex items-center gap-1 text-xs text-primary transition-opacity hover:underline dark:text-[#ccff00] sm:opacity-0 sm:group-hover:opacity-100"
+          className="flex min-h-11 items-center gap-1 text-xs text-primary transition-opacity hover:underline dark:text-[#ccff00] md:min-h-0 sm:opacity-0 sm:group-hover:opacity-100 max-md:opacity-100"
           onClick={(e) => e.stopPropagation()}
         >
           <ExternalLink className="h-3 w-3" />

@@ -4,9 +4,73 @@ import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isTouchPointer, useTouchClickGuard } from "./use-touch-click-guard";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+const DropdownTouchContext = React.createContext<(() => void) | null>(null);
+
+function DropdownMenu({
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const changeOpen = (nextOpen: boolean) => {
+    if (nextOpen === open) return;
+    if (controlledOpen === undefined) setUncontrolledOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
+
+  return (
+    <DropdownTouchContext.Provider value={() => changeOpen(!open)}>
+      <DropdownMenuPrimitive.Root {...props} open={open} onOpenChange={changeOpen}>
+        {children}
+      </DropdownMenuPrimitive.Root>
+    </DropdownTouchContext.Provider>
+  );
+}
+
+const DropdownMenuTrigger = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger>
+>(({ onPointerDown, onPointerDownCapture, onClick, onClickCapture, ...props }, ref) => {
+  const toggleOnTouch = React.useContext(DropdownTouchContext);
+  const touch = useTouchClickGuard<HTMLButtonElement>();
+
+  return (
+    <DropdownMenuPrimitive.Trigger
+      {...props}
+      ref={ref}
+      onPointerDownCapture={(event) => {
+        onPointerDownCapture?.(event);
+        touch.onPointerDownCapture(event);
+      }}
+      onPointerDown={(event) => {
+        onPointerDown?.(event);
+        if (isTouchPointer(event)) {
+          if (event.defaultPrevented) touch.cancelTouch();
+          // Radix opens on pointerdown. Defer touch activation until the browser
+          // confirms a tap so a swipe can scroll without opening a menu.
+          event.preventDefault();
+        }
+      }}
+      onClickCapture={(event) => {
+        touch.onClickCapture(event);
+        if (!event.defaultPrevented) onClickCapture?.(event);
+      }}
+      onClick={(event) => {
+        onClick?.(event);
+        const isTouchTap = touch.consumeTouchClick();
+        if (!event.defaultPrevented && !props.disabled && (isTouchTap || event.detail === 0)) {
+          toggleOnTouch?.();
+        }
+      }}
+    />
+  );
+});
+DropdownMenuTrigger.displayName = DropdownMenuPrimitive.Trigger.displayName;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 const DropdownMenuSub = DropdownMenuPrimitive.Sub;
@@ -53,20 +117,31 @@ DropdownMenuSubContent.displayName =
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-xl border border-[#dbc1b9]/20 dark:border-white/8 bg-[#faf9f7] dark:bg-[#111111] p-1 text-[#1a1c1b] dark:text-white shadow-lg dark:shadow-black/60",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
-));
+>(({ className, sideOffset = 4, onPointerDownCapture, onClickCapture, ...props }, ref) => {
+  const touch = useTouchClickGuard<HTMLDivElement>();
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 min-w-[8rem] overflow-hidden rounded-xl border border-[#dbc1b9]/20 dark:border-white/8 bg-[#faf9f7] dark:bg-[#111111] p-1 text-[#1a1c1b] dark:text-white shadow-lg dark:shadow-black/60",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          className
+        )}
+        {...props}
+        onPointerDownCapture={(event) => {
+          onPointerDownCapture?.(event);
+          touch.onPointerDownCapture(event);
+        }}
+        onClickCapture={(event) => {
+          touch.onClickCapture(event);
+          if (!event.defaultPrevented) onClickCapture?.(event);
+        }}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+});
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = React.forwardRef<
@@ -74,7 +149,7 @@ const DropdownMenuItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean;
   }
->(({ className, inset, ...props }, ref) => (
+>(({ className, inset, onPointerUp, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
@@ -83,6 +158,12 @@ const DropdownMenuItem = React.forwardRef<
       className
     )}
     {...props}
+    onPointerUp={(event) => {
+      onPointerUp?.(event);
+      // Radix synthesizes a click when a pointer is released over another item.
+      // Touch selection must come from a browser-confirmed tap, never a swipe.
+      if (isTouchPointer(event)) event.preventDefault();
+    }}
   />
 ));
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
@@ -90,7 +171,7 @@ DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 const DropdownMenuCheckboxItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
->(({ className, children, checked, ...props }, ref) => (
+>(({ className, children, checked, onPointerUp, ...props }, ref) => (
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
@@ -99,6 +180,10 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     )}
     checked={checked}
     {...props}
+    onPointerUp={(event) => {
+      onPointerUp?.(event);
+      if (isTouchPointer(event)) event.preventDefault();
+    }}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
@@ -114,7 +199,7 @@ DropdownMenuCheckboxItem.displayName =
 const DropdownMenuRadioItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerUp, ...props }, ref) => (
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
@@ -122,6 +207,10 @@ const DropdownMenuRadioItem = React.forwardRef<
       className
     )}
     {...props}
+    onPointerUp={(event) => {
+      onPointerUp?.(event);
+      if (isTouchPointer(event)) event.preventDefault();
+    }}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>

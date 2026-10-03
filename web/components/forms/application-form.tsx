@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink, Save } from "lucide-react";
+import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink, ChevronDown } from "lucide-react";
 import { ApplicationJsonImport } from "./application-json-import";
 import { AtsProviderIcon } from "@/components/ui/brand-icons";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { getNetworkErrorMessage } from "@/lib/utils/fetch-retry";
 import { APPLICATION_STATUSES, APPLICATION_SOURCES, APPLICATION_PROVIDERS } from "@/config";
 import { COMPANY_TIERS } from "@/types/application";
 import type { JobApplication } from "@/types";
+import styles from "./application-form.module.css";
 import {
   Button,
   Input,
@@ -40,10 +41,105 @@ interface ApplicationFormProps {
   initialDocuments?: ExistingDoc[];
 }
 
+type FormSection = "details" | "tracking" | "context" | "documents";
+
+const OPTIONAL_FIELD_SECTIONS: Partial<Record<keyof ApplicationFormData, FormSection>> = {
+  job_id: "details",
+  job_url: "details",
+  salary_range: "details",
+  location: "details",
+  source: "tracking",
+  ats_provider: "tracking",
+  company_tier: "tracking",
+  requires_sponsorship: "tracking",
+  notes: "context",
+  job_description: "context",
+};
+
+function subscribeToMobile(callback: () => void) {
+  const query = window.matchMedia("(max-width: 767px)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
+function FormSelect({
+  id, value, onValueChange, options, placeholder, allowEmpty = false, renderOption,
+}: {
+  id: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: readonly string[];
+  placeholder: string;
+  allowEmpty?: boolean;
+  renderOption?: (option: string) => ReactNode;
+}) {
+  const isMobile = useSyncExternalStore(
+    subscribeToMobile,
+    () => window.matchMedia("(max-width: 767px)").matches,
+    () => false,
+  );
+
+  if (isMobile) {
+    return (
+      <div className={styles.nativeSelect}>
+        <select id={id} value={value} onChange={(event) => onValueChange(event.target.value)}>
+          {allowEmpty && <option value="">Not specified</option>}
+          {options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        <ChevronDown aria-hidden="true" size={16} />
+      </div>
+    );
+  }
+
+  return (
+    <Select value={value} onValueChange={(next) => onValueChange(next === "__none__" ? "" : next)}>
+      <SelectTrigger id={id}><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>
+        {allowEmpty && <SelectItem value="__none__">— Not specified —</SelectItem>}
+        {options.map((option) => (
+          <SelectItem key={option} value={option}>{renderOption?.(option) ?? option}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function OptionalSection({
+  section, title, summary, expanded, onToggle, children,
+}: {
+  section: FormSection;
+  title: string;
+  summary: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={styles.optionalSection} data-section={section}>
+      <button
+        type="button"
+        className={styles.sectionToggle}
+        aria-expanded={expanded}
+        aria-controls={`form-${section}`}
+        onClick={onToggle}
+      >
+        <span><span className={styles.sectionTitle}>{title}</span><span className={styles.sectionSummary}>{summary}</span></span>
+        <ChevronDown aria-hidden="true" size={18} />
+      </button>
+      <div id={`form-${section}`} className={`${styles.sectionFields} space-y-6`} data-expanded={expanded}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export function ApplicationForm({ application, userId, initialDocuments }: ApplicationFormProps) {
   const router = useRouter();
   const isEditing = !!application;
   const submittingRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<FormSection>>(() => new Set());
+  const [showImportOptions, setShowImportOptions] = useState(false);
 
   const [resumeUpload, setResumeUpload] = useState<{ file: File; path: string } | null>(null);
   const [resumeUploading, setResumeUploading] = useState(false);
@@ -68,6 +164,8 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
   } = useForm<ApplicationFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(applicationSchema) as any,
+    // Optional sections stay mounted; reveal invalid fields before moving focus.
+    shouldFocusError: false,
     defaultValues: {
       company: application?.company || "",
       position: application?.position || "",
@@ -93,6 +191,39 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
   const currentTier     = watch("company_tier");
   const watchedCompany  = watch("company");
   const watchedPosition = watch("position");
+  const watchedLocation = watch("location");
+  const watchedSalary = watch("salary_range");
+  const watchedJobUrl = watch("job_url");
+  const watchedNotes = watch("notes");
+  const watchedDescription = watch("job_description");
+
+  const toggleSection = (section: FormSection) => {
+    setExpandedSections((previous) => {
+      const next = new Set(previous);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  const onInvalid = (fieldErrors: FieldErrors<ApplicationFormData>) => {
+    const invalidFields = Object.keys(fieldErrors) as (keyof ApplicationFormData)[];
+    setExpandedSections((previous) => {
+      const next = new Set(previous);
+      invalidFields.forEach((field) => {
+        const section = OPTIONAL_FIELD_SECTIONS[field];
+        if (section) next.add(section);
+      });
+      return next;
+    });
+    requestAnimationFrame(() => {
+      const field = invalidFields
+        .flatMap((key) => Array.from(formRef.current?.querySelectorAll<HTMLElement>(`[id="${key}"], [id="${key}-desktop"]`) ?? []))
+        .find((element) => element && element.getClientRects().length > 0);
+      field?.focus();
+      field?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  };
 
   // ── Duplicate detection ──────────────────────────────────────────────────
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
@@ -394,17 +525,30 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
   };
 
   return (
-    <div className="db-content-card application-form-card">
+    <div className={`db-content-card application-form-card ${styles.card}`}>
       <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h2 className="db-headline text-[1.75rem] font-semibold leading-tight text-[#1a1c1b] dark:text-white sm:text-2xl">
             {isEditing ? "Edit Application" : "New Application"}
           </h2>
-          <p className="mt-1 text-sm text-[#55433d]/70 dark:text-white/50">
+          <p className={`mt-1 text-sm text-[#55433d]/70 dark:text-white/50 ${styles.helperText}`}>
             {isEditing ? "Keep this opportunity accurate and actionable." : "Save the essentials first. You can add the rest anytime."}
           </p>
         </div>
         {!isEditing && (
+          <div className={styles.importOptions}>
+            <button
+              type="button"
+              className={styles.importToggle}
+              aria-expanded={showImportOptions}
+              aria-controls="application-import-options"
+              onClick={() => setShowImportOptions((current) => !current)}
+            >
+              <Sparkles size={16} aria-hidden="true" />
+              Autofill this application
+              <ChevronDown size={16} aria-hidden="true" />
+            </button>
+            <div id="application-import-options" className={styles.importButtons} data-expanded={showImportOptions}>
           <div className="application-import-actions flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               type="button"
@@ -431,28 +575,19 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               }}
             />
           </div>
+            </div>
+          </div>
         )}
       </div>
 
         <form
           id="application-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="application-form space-y-6 pb-4 md:pb-0"
+          ref={formRef}
+          noValidate
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
+          className={`application-form space-y-6 pb-4 md:pb-0 ${styles.form}`}
           style={isSubmitting ? { opacity: 0.65, pointerEvents: "none" } : undefined}
         >
-          <nav className="mobile-form-steps md:hidden" aria-label="Application form sections">
-            <a href="#form-essentials">Role</a>
-            <a href="#form-tracking">Tracking</a>
-            <a href="#form-details">Details</a>
-            <a href="#form-story">Context</a>
-            <a href="#form-documents">Files</a>
-          </nav>
-
-          <div id="form-essentials" className="mobile-form-section-heading md:hidden">
-            <span>1</span>
-            <div><h3>Role essentials</h3><p>The details you need to recognize this opportunity.</p></div>
-          </div>
-
           {/* Company & Position */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -462,9 +597,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 placeholder="e.g., Google"
                 {...register("company")}
                 className={errors.company ? "border-destructive" : ""}
+                aria-invalid={!!errors.company}
+                aria-describedby={errors.company ? "company-error" : undefined}
               />
               {errors.company && (
-                <p className="text-sm text-destructive">
+                <p id="company-error" className="text-sm text-destructive">
                   {errors.company.message}
                 </p>
               )}
@@ -476,9 +613,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 placeholder="e.g., Software Engineer"
                 {...register("position")}
                 className={errors.position ? "border-destructive" : ""}
+                aria-invalid={!!errors.position}
+                aria-describedby={errors.position ? "position-error" : undefined}
               />
               {errors.position && (
-                <p className="text-sm text-destructive">
+                <p id="position-error" className="text-sm text-destructive">
                   {errors.position.message}
                 </p>
               )}
@@ -495,46 +634,28 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select
+              <FormSelect
+                id="status"
                 value={currentStatus}
                 onValueChange={(value) =>
-                  setValue("status", value as ApplicationFormData["status"])
+                  setValue("status", value as ApplicationFormData["status"], { shouldDirty: true, shouldValidate: true })
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {APPLICATION_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={APPLICATION_STATUSES}
+                placeholder="Select status"
+              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="source">Source</Label>
-              <Select
+            <div className="hidden space-y-2 md:block">
+              <Label htmlFor="source-desktop">Source</Label>
+              <FormSelect
+                id="source-desktop"
                 value={currentSource || ""}
                 onValueChange={(value) =>
-                  // "__none__" is the sentinel for the "clear" option — Radix forbids value=""
-                  // on SelectItem, so we use a sentinel and map it back to "" here.
-                  setValue("source", (value === "__none__" ? "" : value) as ApplicationFormData["source"])
+                  setValue("source", value as ApplicationFormData["source"], { shouldDirty: true, shouldValidate: true })
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Where did you find it?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— Not specified —</SelectItem>
-                  {APPLICATION_SOURCES.map((src) => (
-                    <SelectItem key={src} value={src}>
-                      {src}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={APPLICATION_SOURCES}
+                placeholder="Where did you find it?"
+                allowEmpty
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="applied_date">Applied Date</Label>
@@ -543,45 +664,51 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 type="date"
                 {...register("applied_date")}
                 className={errors.applied_date ? "border-destructive" : ""}
+                aria-invalid={!!errors.applied_date}
+                aria-describedby={errors.applied_date ? "applied-date-error" : undefined}
               />
               {errors.applied_date && (
-                <p className="text-sm text-destructive">
+                <p id="applied-date-error" className="text-sm text-destructive">
                   {errors.applied_date.message}
                 </p>
               )}
             </div>
           </div>
 
-          <div id="form-tracking" className="mobile-form-section-heading md:hidden">
-            <span>2</span>
-            <div><h3>Search tracking</h3><p>Useful context for comparing where your best leads come from.</p></div>
-          </div>
+          <OptionalSection
+            section="tracking"
+            title="Tracking & company"
+            summary={[currentSource, currentProvider, currentTier].filter(Boolean).join(" · ") || "Source, portal, company tier & sponsorship"}
+            expanded={expandedSections.has("tracking")}
+            onToggle={() => toggleSection("tracking")}
+          >
+            <div className="space-y-2 md:hidden">
+              <Label htmlFor="source">Source</Label>
+              <FormSelect
+                id="source"
+                value={currentSource || ""}
+                onValueChange={(value) => setValue("source", value as ApplicationFormData["source"], { shouldDirty: true, shouldValidate: true })}
+                options={APPLICATION_SOURCES}
+                placeholder="Where did you find it?"
+                allowEmpty
+              />
+            </div>
 
           {/* Provider */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ats_provider">Application Portal</Label>
-              <Select
+              <FormSelect
+                id="ats_provider"
                 value={currentProvider || ""}
                 onValueChange={(value) =>
-                  setValue("ats_provider", (value === "__none__" ? "" : value) as ApplicationFormData["ats_provider"])
+                  setValue("ats_provider", value as ApplicationFormData["ats_provider"], { shouldDirty: true, shouldValidate: true })
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Which portal did you apply through?" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— Not specified —</SelectItem>
-                  {APPLICATION_PROVIDERS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      <span className="flex items-center gap-2">
-                        <AtsProviderIcon provider={p} className="h-4 w-4 shrink-0" />
-                        {p}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={APPLICATION_PROVIDERS}
+                placeholder="Which portal did you apply through?"
+                allowEmpty
+                renderOption={(provider) => <span className="flex items-center gap-2"><AtsProviderIcon provider={provider} className="h-4 w-4 shrink-0" />{provider}</span>}
+              />
             </div>
           </div>
 
@@ -589,22 +716,16 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company_tier">Company Tier <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Select
+              <FormSelect
+                id="company_tier"
                 value={currentTier || ""}
                 onValueChange={(value) =>
-                  setValue("company_tier", (value === "__none__" ? "" : value) as ApplicationFormData["company_tier"])
+                  setValue("company_tier", value as ApplicationFormData["company_tier"], { shouldDirty: true, shouldValidate: true })
                 }
-              >
-                <SelectTrigger id="company_tier">
-                  <SelectValue placeholder="Select tier…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
-                  {COMPANY_TIERS.map((tier) => (
-                    <SelectItem key={tier} value={tier}>{tier}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={COMPANY_TIERS}
+                placeholder="Select tier…"
+                allowEmpty
+              />
             </div>
 
             <div className="space-y-2">
@@ -617,7 +738,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     href={`https://www.glassdoor.com/Search/results.htm?keyword=${encodeURIComponent(watchedCompany)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                    className={`inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline ${styles.ratingSearch}`}
                   >
                     Search <ExternalLink className="h-2.5 w-2.5" />
                   </a>
@@ -650,11 +771,15 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             />
             <span className="text-sm text-foreground">This role requires visa sponsorship (H-1B / OPT / EAD)</span>
           </label>
+          </OptionalSection>
 
-          <div id="form-details" className="mobile-form-section-heading md:hidden">
-            <span>3</span>
-            <div><h3>Role details</h3><p>Keep the posting, compensation, and location within reach.</p></div>
-          </div>
+          <OptionalSection
+            section="details"
+            title="Job details"
+            summary={[watchedLocation, watchedSalary].filter(Boolean).join(" · ") || (watchedJobUrl ? "Job posting added" : "Location, salary & job posting")}
+            expanded={expandedSections.has("details")}
+            onToggle={() => toggleSection("details")}
+          >
 
           {/* Job ID & URL */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -664,7 +789,9 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 id="job_id"
                 placeholder="e.g., JOB-12345"
                 {...register("job_id")}
+                aria-invalid={!!errors.job_id}
               />
+              {errors.job_id && <p className="text-sm text-destructive">{errors.job_id.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="job_url">Job URL</Label>
@@ -674,9 +801,11 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 placeholder="https://..."
                 {...register("job_url")}
                 className={errors.job_url ? "border-destructive" : ""}
+                aria-invalid={!!errors.job_url}
+                aria-describedby={errors.job_url ? "job-url-error" : undefined}
               />
               {errors.job_url && (
-                <p className="text-sm text-destructive">
+                <p id="job-url-error" className="text-sm text-destructive">
                   {errors.job_url.message}
                 </p>
               )}
@@ -691,7 +820,9 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 id="salary_range"
                 placeholder="e.g., $100k - $150k"
                 {...register("salary_range")}
+                aria-invalid={!!errors.salary_range}
               />
+              {errors.salary_range && <p className="text-sm text-destructive">{errors.salary_range.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
@@ -699,14 +830,20 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                 id="location"
                 placeholder="e.g., Remote, New York, NY"
                 {...register("location")}
+                aria-invalid={!!errors.location}
               />
+              {errors.location && <p className="text-sm text-destructive">{errors.location.message}</p>}
             </div>
           </div>
+          </OptionalSection>
 
-          <div id="form-story" className="mobile-form-section-heading md:hidden">
-            <span>4</span>
-            <div><h3>Context &amp; preparation</h3><p>Add what will help with follow-ups, ATS matching, and interviews.</p></div>
-          </div>
+          <OptionalSection
+            section="context"
+            title="Notes & job description"
+            summary={[watchedNotes && "Notes added", watchedDescription && "Description added"].filter(Boolean).join(" · ") || "Keep contacts, preparation & the full posting"}
+            expanded={expandedSections.has("context")}
+            onToggle={() => toggleSection("context")}
+          >
 
           {/* Notes */}
           <div className="space-y-2">
@@ -716,14 +853,17 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               rows={6}
               placeholder="Interview notes, contacts, etc."
               {...register("notes")}
+              aria-invalid={!!errors.notes}
+              aria-describedby={errors.notes ? "notes-error" : undefined}
             />
+            {errors.notes && <p id="notes-error" className="text-sm text-destructive">{errors.notes.message}</p>}
           </div>
 
           {/* Job Description */}
           <div className="space-y-2">
             <Label htmlFor="job_description">
               Job Description
-              <span className="ml-1.5 text-xs text-[#55433d]/50 font-normal">
+              <span className={`ml-1.5 text-xs text-[#55433d]/50 font-normal ${styles.helperText}`}>
                 (paste the full JD — powers ATS scan &amp; NESTAi tailoring)
               </span>
             </Label>
@@ -733,25 +873,34 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               rows={6}
               {...register("job_description")}
               className={errors.job_description ? "border-destructive" : ""}
+              aria-invalid={!!errors.job_description}
+              aria-describedby={errors.job_description ? "job-description-error" : undefined}
             />
             {errors.job_description && (
-              <p className="text-sm text-destructive">
+              <p id="job-description-error" className="text-sm text-destructive">
                 {errors.job_description.message}
               </p>
             )}
           </div>
+          </OptionalSection>
 
-          <div id="form-documents" className="mobile-form-section-heading md:hidden">
-            <span>5</span>
-            <div><h3>Tailored documents</h3><p>Attach the exact resume and cover letter used for this role.</p></div>
-          </div>
+          <OptionalSection
+            section="documents"
+            title="Application documents"
+            summary={[
+              (resumeUpload || existingResume || (!isNewApp && application?.resume_path)) && "Resume attached",
+              (coverLetterUpload || existingCoverLetter || (!isNewApp && application?.cover_letter_path)) && "Cover letter attached",
+            ].filter(Boolean).join(" · ") || "Attach the resume & cover letter used for this role"}
+            expanded={expandedSections.has("documents")}
+            onToggle={() => toggleSection("documents")}
+          >
 
           {/* File Uploads */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Resume (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
-                <label className="flex-1 cursor-pointer">
+                <label className="min-w-0 flex-1 cursor-pointer">
                   <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {resumeUploading ? (
                       <>
@@ -783,7 +932,8 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                   <input
                     type="file"
                     accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden"
+                    className="sr-only"
+                    aria-label="Upload resume"
                     disabled={resumeUploading}
                     onChange={(e) => handleFileChange(e, "resume")}
                   />
@@ -794,6 +944,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     variant="ghost"
                     size="icon"
                     onClick={() => removeFile("resume")}
+                    aria-label="Remove uploaded resume"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -804,7 +955,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             <div className="space-y-2">
               <Label>Cover Letter (PDF or DOCX)</Label>
               <div className="flex items-center gap-2">
-                <label className="flex-1 cursor-pointer">
+                <label className="min-w-0 flex-1 cursor-pointer">
                   <div className="application-upload-zone flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#dbc1b9]/50 rounded-lg hover:border-[#99462a]/40 hover:bg-[#99462a]/5 transition-colors">
                     {coverLetterUploading ? (
                       <>
@@ -836,7 +987,8 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                   <input
                     type="file"
                     accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden"
+                    className="sr-only"
+                    aria-label="Upload cover letter"
                     disabled={coverLetterUploading}
                     onChange={(e) => handleFileChange(e, "coverLetter")}
                   />
@@ -847,6 +999,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
                     variant="ghost"
                     size="icon"
                     onClick={() => removeFile("coverLetter")}
+                    aria-label="Remove uploaded cover letter"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -854,9 +1007,10 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
               </div>
             </div>
           </div>
+          </OptionalSection>
 
           {/* Actions */}
-          <div className="hidden justify-end gap-3 pt-4 md:flex">
+          <div className={`flex justify-end gap-3 pt-4 ${styles.actions}`}>
             <Button
               type="button"
               variant="outline"
@@ -874,27 +1028,6 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
             </Button>
           </div>
 
-          <div className="application-save-bar md:hidden" role="region" aria-label="Save application">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="h-12 shrink-0 rounded-full px-3 text-sm font-semibold text-muted-foreground"
-            >
-              Cancel
-            </button>
-            <Button
-              type="submit"
-              className="h-12 flex-1 text-sm"
-              disabled={isSubmitting || resumeUploading || coverLetterUploading}
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isSubmitting
-                ? (isEditing ? "Saving…" : "Creating…")
-                : (resumeUploading || coverLetterUploading)
-                  ? "Uploading file…"
-                  : isEditing ? "Save changes" : "Create application"}
-            </Button>
-          </div>
         </form>
 
       {/* ── JD Parser modal ────────────────────────────────────────────── */}

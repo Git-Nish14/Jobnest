@@ -1,0 +1,212 @@
+.sectionToggle,
+.importToggle {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  /* Keep the original desktop space beneath the single action row. */
+  .form { padding-bottom: 1.5rem; }
+  .optionalSection,
+  .sectionFields {
+    display: contents;
+  }
+
+  .sectionFields > :last-child {
+    margin-block-end: 1.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  :global(.dark) .card .helperText {
+    color: #aaa !important;
+  }
+
+  .card {
+    min-width: 0;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form > * {
+    min-width: 0;
+    margin-block: 0;
+  }
+
+  .form :is(input, textarea, select) {
+    max-width: 100%;
+    font-size: 1rem;
+    scroll-margin-block: 6rem;
+  }
+
+  .form input[type="date"] {
+    display: block;
+    min-width: 0;
+    appearance: none;
+  }
+
+  .nativeSelect {
+    position: relative;
+    min-width: 0;
+  }
+
+  .nativeSelect select {
+    display: block;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.65rem 2.5rem 0.65rem 0.75rem;
+    appearance: none;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  .nativeSelect select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .nativeSelect > svg {
+    position: absolute;
+    top: 50%;
+    right: 0.9rem;
+    transform: translateY(-50%);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  .optionalSection {
+    overflow: hidden;
+    border: 1px solid hsl(var(--border));
+    border-radius: 1rem;
+    background: hsl(var(--background));
+  }
+
+  .optionalSection + .optionalSection {
+    margin-top: -0.75rem;
+  }
+
+  .sectionToggle {
+    display: flex;
+    width: 100%;
+    min-height: 4.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    color: hsl(var(--foreground));
+    text-align: left;
+    touch-action: pan-y;
+  }
+
+  .sectionToggle > span {
+    min-width: 0;
+  }
+
+  .sectionTitle,
+  .sectionSummary {
+    display: block;
+  }
+
+  .sectionTitle {
+    font-size: 0.875rem;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  .sectionSummary {
+    margin-top: 0.25rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.75rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .sectionToggle > svg {
+    flex: 0 0 auto;
+  }
+
+  .sectionToggle[aria-expanded="true"] > svg,
+  .importToggle[aria-expanded="true"] > svg:last-child {
+    transform: rotate(180deg);
+  }
+
+  .sectionFields {
+    padding: 0.25rem 1rem 1rem;
+  }
+
+  .sectionFields[data-expanded="false"] {
+    display: none;
+  }
+
+  .sectionFields > * {
+    min-width: 0;
+  }
+
+  .sectionFields label {
+    line-height: 1.5;
+  }
+
+  .ratingSearch {
+    min-height: 2.75rem;
+    flex: 0 0 auto;
+    padding-inline: 0.5rem;
+  }
+
+  .form :global(.application-upload-zone) {
+    min-width: 0;
+    min-height: 3.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .form :global(.application-upload-zone) > svg {
+    flex-shrink: 0;
+  }
+
+  .form label:focus-within :global(.application-upload-zone) {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .actions {
+    border-top: 1px solid hsl(var(--border));
+    padding-top: 1.25rem;
+  }
+
+  .actions > button {
+    min-height: 3rem;
+  }
+
+  .actions > button[type="submit"] {
+    flex: 1;
+    white-space: normal;
+  }
+
+  .importToggle {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding-block: 0.5rem;
+    color: hsl(var(--foreground));
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .importToggle > svg {
+    flex: 0 0 auto;
+  }
+
+  .importButtons[data-expanded="false"] {
+    display: none;
+  }
+
+  .importButtons[data-expanded="true"] {
+    padding-block: 0.25rem 0.5rem;
+  }
+}
