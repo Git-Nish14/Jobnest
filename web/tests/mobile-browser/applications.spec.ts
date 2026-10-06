@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { applications } from "./fixtures";
-import { expectNoOverflow, expectOpaqueNavigation, fixture, swipe } from "./helpers";
+import { expectNoOverflow, expectOpaqueNavigation, expectSheetInViewport, fixture, swipe } from "./helpers";
 
 for (const width of [320, 375, 430, 767]) {
   for (const theme of ["light", "dark"]) {
@@ -21,6 +21,7 @@ for (const width of [320, 375, 430, 767]) {
       await page.screenshot({ path: testInfo.outputPath(`applications-${width}-${theme}.png`) });
       await page.getByRole("button", { name: "Filters", exact: true }).tap();
       await expect(page.getByRole("dialog", { name: "Filter applications" })).toBeVisible();
+      await expectSheetInViewport(page);
       await expect(page.getByRole("button", { name: "Close filters" })).toBeFocused();
       await expectNoOverflow(page);
       await page.screenshot({ path: testInfo.outputPath(`filters-${width}-${theme}.png`) });
@@ -28,6 +29,7 @@ for (const width of [320, 375, 430, 767]) {
       await expect(page.getByRole("button", { name: "Filters", exact: true })).toBeFocused();
       await page.getByRole("button", { name: /^Manage / }).first().tap();
       await expect(page.getByRole("combobox", { name: "Application status", exact: true })).toHaveCount(1);
+      await expectSheetInViewport(page);
       await expect(page.getByRole("button", { name: "Close application actions" })).toBeFocused();
       await expectNoOverflow(page);
       await page.screenshot({ path: testInfo.outputPath(`manage-${width}-${theme}.png`) });
@@ -66,6 +68,7 @@ test("filters are drafted in one sheet and only apply on confirmation", async ({
   const filters = page.getByRole("button", { name: "Filters", exact: true });
   await filters.tap();
   const dialog = page.getByRole("dialog", { name: "Filter applications" });
+  await expectSheetInViewport(page);
   await dialog.getByRole("combobox", { name: "Status", exact: true }).selectOption("Interview");
   await dialog.getByRole("combobox", { name: "Sort by", exact: true }).selectOption("company_asc");
   await expect(page).toHaveURL(/page=4&search=engineer$/);
@@ -96,6 +99,7 @@ test("a failed status save keeps the draft open and preserves the saved status",
   const manage = page.getByRole("button", { name: /^Manage / }).first();
   await manage.tap();
   const status = page.getByRole("combobox", { name: "Application status", exact: true });
+  await expectSheetInViewport(page);
   await status.selectOption("Interview");
   await page.getByRole("button", { name: "Save status", exact: true }).tap();
   await expect(page.getByText("Could not save status", { exact: true })).toBeVisible();
@@ -118,12 +122,14 @@ test("short landscape sheets keep every action reachable without overflow", asyn
   await fixture(page, "/applications");
   await page.getByRole("button", { name: "Filters", exact: true }).tap();
   const dialog = page.getByRole("dialog", { name: "Filter applications" });
+  await expectSheetInViewport(page);
   await expectNoOverflow(page);
   await page.screenshot({ path: testInfo.outputPath("filters-landscape.png") });
   await dialog.getByRole("combobox", { name: "Status", exact: true }).selectOption("Interview");
   await dialog.getByRole("button", { name: "Apply filters" }).tap();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: /^Manage / }).first().tap();
+  await expectSheetInViewport(page);
   await page.getByRole("combobox", { name: "Application status", exact: true }).selectOption("Interview");
   await page.getByRole("button", { name: "Save status", exact: true }).tap();
   await expect(page.getByRole("dialog")).toHaveCount(0);

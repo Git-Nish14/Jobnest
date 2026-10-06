@@ -80,7 +80,7 @@ export function MobileApplicationCard({ application, status, selected, selection
       </article>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={styles.sheet} showClose={false} data-mobile-sheet="application-actions"
+        <DialogContent placement="bottom" className={styles.sheet} showClose={false} data-mobile-sheet="application-actions"
           onOpenAutoFocus={(event) => { event.preventDefault(); closeRef.current?.focus({ preventScroll: true }); }}
           onCloseAutoFocus={(event) => { event.preventDefault(); manageRef.current?.focus({ preventScroll: true }); }}>
           <div className={styles.sheetHeader}>

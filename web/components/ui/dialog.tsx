@@ -33,14 +33,19 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     /** Set to false when you place your own close button inside the dialog header. */
     showClose?: boolean;
+    /** Bottom sheets must not inherit the centered dialog's individual translate. */
+    placement?: "center" | "bottom";
   }
->(({ className, children, showClose = true, ...props }, ref) => (
+>(({ className, children, showClose = true, placement = "center", ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-[#dbc1b9]/20 dark:border-white/8 bg-[#faf9f7] dark:bg-[#0f0f0f] p-6 shadow-2xl dark:shadow-black/80 duration-200 rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed z-50 grid w-full gap-4 border border-[#dbc1b9]/20 dark:border-white/8 bg-[#faf9f7] dark:bg-[#0f0f0f] p-6 shadow-2xl dark:shadow-black/80",
+        placement === "center"
+          ? "left-[50%] top-[50%] max-w-lg translate-x-[-50%] translate-y-[-50%] duration-200 rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]"
+          : "inset-x-0 bottom-0 max-w-none max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain rounded-t-3xl",
         className
       )}
       {...props}

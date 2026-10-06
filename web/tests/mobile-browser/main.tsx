@@ -10,7 +10,8 @@ import { StatusPicker } from "@/components/applications/status-picker";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { TouchScrollGuard } from "@/components/layout/TouchScrollGuard";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-  Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui";
+  Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
+  Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui";
 import type { ApplicationStatus } from "@/config/constants";
 import { usePathname, useSearchParams } from "./mocks/navigation";
 import { applications } from "./fixtures";
@@ -49,6 +50,13 @@ function Controls() {
       </SelectContent>
     </Select>
     <button type="button" className="db-btn-page-primary" onClick={() => trigger.current?.focus()}>Focus action trigger</button>
+    <Dialog>
+      <DialogTrigger className="db-btn-page-primary">Open centered dialog</DialogTrigger>
+      <DialogContent>
+        <DialogTitle>Centered dialog fixture</DialogTitle>
+        <DialogDescription>The default dialog placement remains centered.</DialogDescription>
+      </DialogContent>
+    </Dialog>
     <div className="h-[1600px]" aria-hidden="true" />
   </main>;
 }

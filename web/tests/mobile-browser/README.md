@@ -14,6 +14,18 @@ real scroll gestures. WebKit results and reports use separate
 `artifacts/webkit-results` and `artifacts/webkit-report` directories. A desktop
 WebKit process with mobile emulation is not a physical iPhone Safari session.
 
+Production CSS can differ from development CSS after optimization. After a
+current `npm run build`, run
+`npx playwright test --config tests/mobile-browser/playwright.production-css.config.ts`.
+This launches a separate fixture server on port 4175, serves the actual `.next`
+CSS bytes in client-manifest order, and uses the emitted CSS module class names.
+It does not recompile styles with Vite. The focused Chromium/WebKit suite checks
+the full bounds of both mobile sheets, scrolling/action reachability, filter
+apply, status save/retry, and preservation of the default centered dialog.
+Artifacts use separate `production-css-results` and `production-css-report`
+directories. Rebuild after CSS changes; the suite intentionally requires an
+existing matching Next build.
+
 The harness renders the real application header, cards, filters, board, form,
 shared controls, touch guard, bottom navigation, and styles. A small fixture shell
 replaces the authenticated layout; Next routing and the Supabase client use
@@ -37,6 +49,8 @@ keyboard/mouse behavior, and the following user flows:
 - Native form status swipes, preserving collapsed values on save, revealing and
   focusing invalid fields, and creating an application with essential fields.
 - Closing mobile sheets when resizing into the desktop layout.
+- Keeping the entire mobile sheet inside the viewport, including its left/top
+  edges; document overflow alone does not detect dialogs shifted off screen.
 
 Screenshots, failure traces, and the HTML report are written under ignored
 `tests/mobile-browser/artifacts/`. This is component/browser coverage. It does

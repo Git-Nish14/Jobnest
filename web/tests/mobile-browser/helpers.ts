@@ -1,4 +1,4 @@
-import { expect, type CDPSession, type Locator, type Page } from "@playwright/test";
+import { expect, test, type CDPSession, type Locator, type Page } from "@playwright/test";
 
 export async function fixture(page: Page, path: string) {
   const writes: Array<{ url: string; method: string; body: string | null }> = [];
@@ -18,6 +18,10 @@ export async function fixture(page: Page, path: string) {
   });
   await page.goto(path);
   await expect(page.locator("#root")).not.toBeEmpty();
+  if (test.info().project.metadata.productionCss) {
+    await expect(page.locator('meta[name="mobile-fixture-css"]')).toHaveAttribute("content", "next-production-build");
+    await expect(page.locator("style[data-vite-dev-id]")).toHaveCount(0);
+  }
   return { writes, errors };
 }
 
@@ -71,4 +75,20 @@ export async function expectOpaqueNavigation(page: Page) {
     return 1;
   });
   expect(alpha, "Navigation needs an opaque backing when backdrop blur is unavailable").toBe(1);
+}
+
+export async function expectSheetInViewport(page: Page) {
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+  await expect(async () => {
+    const bounds = await sheet.boundingBox();
+    expect(bounds).not.toBeNull();
+    const viewport = page.viewportSize()!;
+    const geometry = JSON.stringify({ bounds, viewport });
+    expect(bounds!.x, geometry).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y, geometry).toBeGreaterThanOrEqual(0);
+    expect(bounds!.width, geometry).toBe(viewport.width);
+    expect(bounds!.x + bounds!.width, geometry).toBeLessThanOrEqual(viewport.width);
+    expect(bounds!.y + bounds!.height, geometry).toBeLessThanOrEqual(viewport.height);
+  }).toPass({ timeout: 5_000 });
 }

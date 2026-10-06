@@ -50,8 +50,6 @@
   max-height: calc(100dvh - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  transform: none;
-  translate: none;
   border-radius: 24px 24px 0 0;
   padding: 24px 20px max(20px, env(safe-area-inset-bottom));
   background: hsl(var(--background));

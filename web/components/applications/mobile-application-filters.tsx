@@ -92,7 +92,7 @@ export function MobileApplicationFilters({ search, onSearchChange, onSearchSubmi
       {summary && <div className={styles.filterSummary}><p>{summary}</p>{(count > 0 || current.sort !== "date_desc") && <button type="button" className={styles.resetLink} onClick={() => apply({ ...DEFAULTS, view: current.view })}>Clear</button>}</div>}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className={styles.sheet} showClose={false} data-mobile-sheet="application-filters"
+        <DialogContent placement="bottom" className={styles.sheet} showClose={false} data-mobile-sheet="application-filters"
           onOpenAutoFocus={(event) => { event.preventDefault(); closeRef.current?.focus({ preventScroll: true }); }}
           onCloseAutoFocus={(event) => { event.preventDefault(); triggerRef.current?.focus({ preventScroll: true }); }}>
           <div className={styles.sheetHeader}>
