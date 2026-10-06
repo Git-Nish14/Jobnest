@@ -31,6 +31,9 @@ export const STATUS_PRESENTATION: Record<ApplicationStatus, {
   badge: string;
   description: string;
 }> = {
+  Saved: { icon: CircleDot, dot: "bg-slate-400", badge: "bg-slate-500/10 text-slate-700 dark:text-slate-300", description: "Not applied yet" },
+  Preparing: { icon: CircleDot, dot: "bg-indigo-500", badge: "bg-indigo-500/10 text-indigo-800 dark:text-indigo-300", description: "Preparing your application" },
+  Accepted: { icon: Handshake, dot: "bg-emerald-500", badge: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300", description: "Offer accepted" },
   Applied: {
     icon: CircleCheckBig,
     dot: "bg-amber-400",

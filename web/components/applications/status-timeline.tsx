@@ -41,18 +41,22 @@ function getMeta(status: string) {
 // ── Timeline builder ──────────────────────────────────────────────────────────
 
 /** Exported for unit testing. Not part of the public component API. */
-export function buildStages(activities: ActivityLog[], appliedDate: string): Stage[] {
+export function buildStages(activities: ActivityLog[], appliedDate: string, fallbackStatus = "Applied"): Stage[] {
   // Activities arrive newest-first from the service; reverse to get chronological order.
   const chronological = [...activities].reverse();
 
   const stages: Stage[] = [];
   const now = new Date();
+  const created = chronological.find((a) => a.activity_type === "Created");
+  const firstChange = chronological.find((a) => a.activity_type === "Status Changed");
+  const initialStatus = typeof created?.metadata?.initial_status === "string" ? created.metadata.initial_status
+    : typeof firstChange?.metadata?.old_status === "string" ? firstChange.metadata.old_status : fallbackStatus;
 
   // Seed with the Applied stage using the user-entered applied_date as the anchor.
   // We use noon UTC to avoid day-boundary issues from timezone offsets.
   stages.push({
-    status: "Applied",
-    enteredAt: new Date(`${appliedDate}T12:00:00Z`),
+    status: initialStatus,
+    enteredAt: (initialStatus === "Saved" || initialStatus === "Preparing") && created ? new Date(created.created_at) : new Date(`${appliedDate}T12:00:00Z`),
     exitedAt: null,
     daysSpent: 0,
     isCurrent: true,
@@ -110,7 +114,7 @@ export function StatusTimeline({ activities, appliedDate, currentStatus }: Props
   // which would render "NaNd" in the UI. Bail out silently instead.
   if (!appliedDate || isNaN(new Date(`${appliedDate}T12:00:00Z`).getTime())) return null;
 
-  const stages = buildStages(activities, appliedDate);
+  const stages = buildStages(activities, appliedDate, currentStatus);
 
   // If we have only the Applied seed and the current status is still Applied
   // there's nothing interesting to show yet — omit the section entirely.

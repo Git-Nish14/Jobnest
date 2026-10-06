@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Download, Loader2, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
@@ -21,6 +22,7 @@ function clampGoal(v: number) {
 }
 
 export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
+  const router = useRouter();
   const [goal, setGoal] = useState(initialGoal ?? DEFAULT_GOAL);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -54,8 +56,6 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
     const n = parseInt(draft, 10);
     if (!isNaN(n) && n > 0) {
       const clamped = clampGoal(n);
-      setGoal(clamped);
-      localStorage.setItem(GOAL_KEY, String(clamped));
       setSaving(true);
       savingRef.current = true;
       try {
@@ -67,6 +67,10 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
         if (!res.ok) {
           const data = await res.json().catch(() => ({})) as { error?: string };
           toast.error(data.error ?? "Couldn't save goal — try again");
+        } else {
+          setGoal(clamped);
+          localStorage.setItem(GOAL_KEY, String(clamped));
+          router.refresh();
         }
       } catch {
         toast.error("Couldn't save goal — check your connection");
@@ -76,7 +80,7 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
       }
     }
     setEditing(false);
-  }, [draft]);
+  }, [draft, router]);
 
   useEffect(() => {
     if (editing) {

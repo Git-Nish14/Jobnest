@@ -1,48 +1,7 @@
-"use client";
-
 import type { SourceEffectiveness } from "@/types";
 
-interface Props {
-  data: SourceEffectiveness[];
-}
-
-export function SourceEffectivenessChart({ data }: Props) {
-  if (data.length === 0) {
-    return (
-      <div className="db-panel h-full flex flex-col">
-        <h2 className="db-panel-title mb-4">Source Effectiveness</h2>
-        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-          Apply from at least 2 sources to see response rates.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="db-panel h-full flex flex-col">
-      <div className="flex justify-between items-start mb-5">
-        <h2 className="db-panel-title">Source Effectiveness</h2>
-        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Response rate</span>
-      </div>
-
-      <div className="flex flex-col gap-3 flex-1">
-        {data.map((row) => (
-          <div key={row.source}>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-foreground truncate max-w-[60%]">{row.source}</span>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-muted-foreground">{row.responded}/{row.total}</span>
-                <span className="text-xs font-semibold text-foreground w-9 text-right">{row.responseRate}%</span>
-              </div>
-            </div>
-            {/* SVG avoids inline style — width attr is an SVG presentation attribute */}
-            <svg width="100%" height="6" aria-hidden="true" className="rounded-full overflow-hidden">
-              <rect x="0" y="0" width="100%" height="6" className="fill-[#dbc1b9]/30 dark:fill-white/10" />
-              <rect x="0" y="0" width={`${row.responseRate}%`} height="6" rx="3" className="fill-[#99462a] dark:fill-[#ccff00]" />
-            </svg>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+export function SourceEffectivenessChart({ data }: { data: SourceEffectiveness[] }) {
+  return <section className="db-content-card" aria-labelledby="sources-title"><h2 id="sources-title" className="db-headline text-xl">Outcomes by source</h2><p className="text-xs text-muted-foreground mt-2 mb-4">Applications submitted at least 30 days ago. Positive progress means a recorded screen, interview, or offer; rejection replies count only as replies. These are descriptive patterns, not a recommendation to favor one channel.</p>
+    {data.length === 0 ? <p className="text-sm text-muted-foreground">No applications have reached the 30-day comparison window yet.</p> : <div className="overflow-x-auto"><table className="w-full text-sm min-w-[480px]"><caption className="sr-only">Source comparison, including unresolved and small samples</caption><thead><tr>{["Source", "Applications", "Any reply", "Positive progress", "Unresolved"].map((label) => <th key={label} scope="col" className="text-left p-2">{label}</th>)}</tr></thead><tbody>{data.map((row) => <tr key={row.source} className="border-t border-border"><th scope="row" className="text-left font-medium p-2">{row.source}<p className="font-normal text-xs text-muted-foreground">{row.excludedRecent ?? 0} recent excluded{row.total < 10 ? " ? small sample" : ""}</p></th><td className="p-2">{row.total}</td><td className="p-2">{row.responded}/{row.total} ({row.responseRate}%)</td><td className="p-2">{row.positive ?? 0}/{row.total} ({row.positiveRate ?? 0}%)</td><td className="p-2">{row.pending ?? 0}</td></tr>)}</tbody></table></div>}
+  </section>;
 }

@@ -27,6 +27,8 @@ export interface Interview {
 }
 
 interface PrepHubProps {
+  initialTab?: Tab;
+  context?: { company: string; position: string; href: string; type: string; notes: string | null; description: string | null } | null;
   initialProblems: CodingProblem[];
   initialAssessments: Assessment[];
   initialBehavioral: BehavioralAnswer[];
@@ -105,8 +107,9 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; short: string }[]
 export function PrepHub({
   initialProblems, initialAssessments, initialBehavioral,
   initialMockInterviews, initialInterviewQuestions, initialStreak, interviews,
+  initialTab = "problems", context,
 }: PrepHubProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("problems");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [problems, setProblems] = useState(initialProblems);
   const [assessments, setAssessments] = useState(initialAssessments);
   const [behavioral, setBehavioral] = useState(initialBehavioral);
@@ -157,6 +160,7 @@ export function PrepHub({
         <StreakBadge streak={streak} />
       </div>
 
+      {context && <section className="db-content-card"><p className="text-xs text-muted-foreground">Preparing for {context.type}</p><h2 className="font-semibold text-lg mt-1">{context.position} at {context.company}</h2><a className="db-link-primary text-sm inline-block mt-2" href={context.href}>Open role, documents and interview details</a>{context.notes && <p className="text-sm whitespace-pre-wrap mt-3">{context.notes}</p>}{context.description && <details className="mt-3"><summary className="text-sm cursor-pointer">Review saved job requirements</summary><p className="text-sm text-muted-foreground whitespace-pre-wrap mt-2">{context.description}</p></details>}</section>}
       {/* Progress rings */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <ProgressRing value={solvedProblems} max={Math.max(problems.length, 1)} label="DSA Solved" color="#99462a" icon={Code2} />

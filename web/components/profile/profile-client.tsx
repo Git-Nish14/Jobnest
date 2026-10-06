@@ -314,6 +314,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
       // Mirror to localStorage so the dashboard widget picks it up immediately
       localStorage.setItem("jobnest_weekly_goal", String(n));
       setGoalSuccess(true);
+      router.refresh();
       setTimeout(() => setGoalSuccess(false), 3000);
     } catch {
       setGoalError("Failed to save. Please try again.");

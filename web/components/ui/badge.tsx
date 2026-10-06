@@ -40,6 +40,9 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 
 // Status badge helper component
 const statusToVariant: Record<ApplicationStatus, BadgeProps["variant"]> = {
+  Saved: "secondary",
+  Preparing: "outline",
+  Accepted: "offer",
   "Applied": "applied",
   "Phone Screen": "phoneScreen",
   "Interview": "interview",

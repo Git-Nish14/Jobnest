@@ -129,15 +129,16 @@ export function CompletenessCard({ applicationId }: Props) {
 
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground leading-tight">
-            {score === total ? "Complete ✓" : score >= 7 ? "Almost there" : score >= 4 ? "Halfway" : "Needs work"}
+            {score}/{total} tracking details saved
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {missing.length === 0
               ? "All fields filled"
-              : `${missing.length} of ${total} fields missing`}
+              : `${missing.length} optional details not recorded`}
           </p>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground mt-3">This tracks information saved in Jobnest, not application quality or hiring likelihood. Add only details useful for this role.</p>
 
       {/* Compact two-column checklist */}
       <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">

@@ -6,13 +6,14 @@
  *  - 429 when rate limited
  *  - 500 when getDashboardAnalytics fails
  *  - 200 application/pdf with correct headers on success
- *  - goal query-param parsing: valid, zero, overflow, NaN, missing
+ *  - existing goal is authoritative even when a report URL supplies another target
  *  - rate-limit key is user-scoped
  *
  * renderToBuffer and getDashboardAnalytics are mocked.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { renderToBuffer } from "@react-pdf/renderer";
 
 vi.mock("@/lib/supabase/server",    () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
@@ -125,32 +126,15 @@ describe("GET /api/export/weekly-report — success", () => {
   });
 });
 
-describe("GET /api/export/weekly-report — goal param parsing", () => {
-  it("accepts a valid goal between 1 and 100", async () => {
-    const res = await GET(makeReq("10"));
-    expect(res.status).toBe(200);
+describe("GET /api/export/weekly-report - authoritative weekly goal", () => {
+  it("uses the saved goal instead of a URL override", async () => {
+    mockCreate.mockResolvedValue(makeClient({ id: UID, user_metadata: { weekly_goal: 12, timezone: "America/Chicago" } }) as never);
+    expect((await GET(makeReq("999"))).status).toBe(200);
+    expect(renderToBuffer).toHaveBeenCalledWith(expect.objectContaining({ props: expect.objectContaining({ goal: 12 }) }));
   });
-
-  it("clamps goal=0 up to 1 (minimum)", async () => {
-    // We can't directly inspect the goal value passed to the PDF component
-    // without capturing createElement args — just verify the route succeeds.
-    const res = await GET(makeReq("0"));
-    expect(res.status).toBe(200);
-  });
-
-  it("clamps goal=999 down to 100 (maximum)", async () => {
-    const res = await GET(makeReq("999"));
-    expect(res.status).toBe(200);
-  });
-
-  it("defaults to goal=5 when param is missing", async () => {
-    const res = await GET(makeReq());
-    expect(res.status).toBe(200);
-  });
-
-  it("defaults to goal=5 when param is non-numeric", async () => {
-    const res = await GET(makeReq("abc"));
-    expect(res.status).toBe(200);
+  it("uses the existing default when no goal has been saved", async () => {
+    expect((await GET(makeReq("10"))).status).toBe(200);
+    expect(renderToBuffer).toHaveBeenCalledWith(expect.objectContaining({ props: expect.objectContaining({ goal: 5 }) }));
   });
 });
 

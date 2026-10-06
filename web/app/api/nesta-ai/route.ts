@@ -8,6 +8,8 @@ import { verifyOrigin } from "@/lib/security/csrf";
 import { TOKEN_CAPS, getDailyTokenUsage, checkAndReserveTokens, recordTokenUsage, recordRedisOutputTokens } from "@/lib/features/ai-usage";
 import type { AiFeature } from "@/lib/features/ai-usage";
 import { buildRagContext } from "@/lib/features/nestai-rag";
+import { getDashboardAnalytics } from "@/services/analytics";
+import { readWeeklyGoal, readSearchPreferences } from "@/lib/job-search/preferences";
 
 // Rate limits per plan
 const RATE_LIMITS = {
@@ -182,25 +184,25 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from("job_applications")
-        .select("id, company, position, status, applied_date, location, salary_range, notes, job_url, resume_path, cover_letter_path")
+        .select("id, company, position, status, applied_date, location, salary_range, notes, job_url, resume_path, cover_letter_path, source, company_tier, job_description, has_referral, ats_score")
         .eq("user_id", user.id)
         .order("applied_date", { ascending: false }),
 
       supabase
         .from("interviews")
-        .select("id, type, round, status, scheduled_at, duration_minutes, location, meeting_url, interviewer_names, notes, job_applications(company, position)")
+        .select("id, type, round, status, scheduled_at, duration_minutes, location, meeting_url, interviewer_names, notes:preparation_notes, job_applications(company, position)")
         .eq("user_id", user.id)
         .order("scheduled_at", { ascending: false }),
 
       supabase
         .from("reminders")
-        .select("id, title, type, due_date, is_completed, notes, job_applications(company, position)")
+        .select("id, title, type, due_date:remind_at, is_completed, notes:description, job_applications(company, position)")
         .eq("user_id", user.id)
-        .order("due_date", { ascending: true }),
+        .order("remind_at", { ascending: true }),
 
       supabase
         .from("contacts")
-        .select("name, company, role, email, phone, notes, is_primary, linkedin_url, application_id")
+        .select("name, company, role:title, email, phone, notes, is_primary, linkedin_url, application_id")
         .eq("user_id", user.id)
         .order("name", { ascending: true }),
 
@@ -235,7 +237,7 @@ export async function POST(request: NextRequest) {
 
         supabase
           .from("salary_details")
-          .select("application_id, base_salary, bonus, signing_bonus, equity, benefits, final_offer, offer_deadline, currency, notes")
+          .select("application_id, base_salary, bonus, signing_bonus, equity, benefits:other_benefits, final_offer, currency, notes:negotiation_notes")
           .in("application_id", appIds),
 
         supabase
@@ -368,6 +370,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { data: searchAnalytics } = await getDashboardAnalytics();
+    const searchSummary = searchAnalytics
+      ? `Authoritative search summary: ${JSON.stringify({ submitted: searchAnalytics.totalApplications, thisWeek: searchAnalytics.thisWeek, goal: readWeeklyGoal(user.user_metadata?.weekly_goal), remaining: Math.max(0, readWeeklyGoal(user.user_metadata?.weekly_goal) - searchAnalytics.thisWeek), responseRate: searchAnalytics.responseRate, recordedResponseMedian: searchAnalytics.averageTimeToResponse, resolvedInterviewRate: searchAnalytics.interviewToOfferRate, pendingInterviews: searchAnalytics.interviewPending, timezone: searchAnalytics.timezone, availability: readSearchPreferences(user.user_metadata?.search_preferences) })}`
+      : "Search analytics unavailable. Do not calculate or guess full-history counts from the records in context.";
     const buildSystemPrompt = (context: string, isRag = false) => {
       const aboutLines: string[] = [];
       if (nestaiContext) aboutLines.push(nestaiContext);
@@ -389,6 +395,8 @@ export async function POST(request: NextRequest) {
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 ${aboutSection}${memorySection}
 === ${dataLabel} ===
+${searchSummary}
+Use the existing weekly application goal; never silently change it. Separate saved roles from submitted applications. Recommend feasible actions within available time. Weekday activity is a habit, not evidence of better hiring outcomes. Recorded status-change dates are approximate response dates. Explain uncertainty; never promise a job or fabricate qualifications.
 ${context}
 === END OF DATA ===
 
@@ -761,7 +769,7 @@ type SalaryRow = {
   equity: string | null;
   benefits: string | null;
   final_offer: number | null;
-  offer_deadline: string | null;
+  offer_deadline?: string | null;
   currency: string | null;
   notes: string | null;
 };
@@ -833,7 +841,7 @@ function buildContext(
     ).length;
 
     parts.push(
-      `APPLICATIONS — Total: ${applications.length} | This week: ${thisWeekCount} | This month: ${thisMonthCount}`,
+      `APPLICATION RECORDS IN CONTEXT — ${applications.length} records | This week: ${thisWeekCount} | This month: ${thisMonthCount}. Use the authoritative summary for full-history metrics.`,
       `Status breakdown: ${Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(" | ")}`,
       `Documents on file: ${appsWithResume} resume(s), ${appsWithCoverLetter} cover letter(s) uploaded. Full text of each document is included in the DOCUMENT CONTENTS section below.`,
     );

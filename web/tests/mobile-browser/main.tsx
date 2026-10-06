@@ -17,6 +17,7 @@ import { usePathname, useSearchParams } from "./mocks/navigation";
 import { applications } from "./fixtures";
 import "@/app/globals.css";
 import "@/app/(dashboard)/dashboard.css";
+import { DashboardFixture } from "./dashboard-fixture";
 
 function Controls() {
   const [status, setStatus] = useState<ApplicationStatus>("Applied");
@@ -73,7 +74,7 @@ function App() {
     {isControls ? <Controls /> : <>
       <header className="sticky top-0 z-40 flex h-14 items-center border-b border-border bg-background px-4 sm:h-16"><span className="font-semibold">Jobnest</span></header>
       <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
-        {isEdit || isNew ? <div className="application-page-shell mx-auto max-w-3xl">
+        {pathname === "/dashboard" ? <DashboardFixture /> : isEdit || isNew ? <div className="application-page-shell mx-auto max-w-3xl">
           <ApplicationForm application={isEdit ? applications[0] : undefined} userId="fixture-user" initialDocuments={isEdit ? [{ id: "fixture-resume", label: "Resume", storage_path: "fixture/resume.pdf", original_name: "Senior_Software_Engineer_Developer_Experience_and_Infrastructure_Resume_2026.pdf" }] : undefined} />
         </div> : <>
           <ApplicationsHeader />

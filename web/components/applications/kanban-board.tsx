@@ -12,10 +12,13 @@ import { StatusPicker } from "./status-picker";
 import styles from "./mobile-workspace.module.css";
 
 const COLUMNS: { status: ApplicationStatus; label: string; accent: string; bg: string; darkBg: string }[] = [
+  { status: "Saved", label: "Saved", accent: "#94a3b8", bg: "bg-slate-50", darkBg: "dark:bg-slate-950/20" },
+  { status: "Preparing", label: "Preparing", accent: "#818cf8", bg: "bg-indigo-50", darkBg: "dark:bg-indigo-950/20" },
   { status: "Applied",      label: "Applied",      accent: "#f59e0b", bg: "bg-amber-50",             darkBg: "dark:bg-amber-950/20" },
   { status: "Phone Screen", label: "Phone Screen", accent: "#ccff00", bg: "bg-[#fdf6f3]",            darkBg: "dark:bg-[#ccff00]/5" },
   { status: "Interview",    label: "Interview",    accent: "#4ade80", bg: "bg-emerald-50",            darkBg: "dark:bg-emerald-950/20" },
   { status: "Offer",        label: "Offer",        accent: "#60a5fa", bg: "bg-blue-50",              darkBg: "dark:bg-blue-950/20" },
+  { status: "Accepted", label: "Accepted", accent: "#34d399", bg: "bg-emerald-50", darkBg: "dark:bg-emerald-950/20" },
   { status: "Rejected",     label: "Rejected",     accent: "#ff5f5f", bg: "bg-red-50",               darkBg: "dark:bg-red-950/20" },
   { status: "Withdrawn",    label: "Withdrawn",    accent: "#94a3b8", bg: "bg-slate-50",             darkBg: "dark:bg-slate-950/20" },
   { status: "Ghosted",      label: "Ghosted",      accent: "#a1a1aa", bg: "bg-zinc-50",              darkBg: "dark:bg-zinc-950/20" },

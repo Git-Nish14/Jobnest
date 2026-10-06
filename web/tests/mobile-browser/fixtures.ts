@@ -1,5 +1,7 @@
 import type { JobApplication } from "@/types";
 import { APPLICATION_STATUSES } from "@/config/constants";
+// Gesture and draft-cancel tests start from an applied role; include every lifecycle elsewhere.
+const fixtureStatuses = ["Applied", ...APPLICATION_STATUSES.filter((status) => status !== "Applied")] as const;
 
 export const applications: JobApplication[] = Array.from({ length: 10 }, (_, index) => ({
   id: `fixture-${index + 1}`,
@@ -8,7 +10,7 @@ export const applications: JobApplication[] = Array.from({ length: 10 }, (_, ind
   position: index === 0 ? "Senior Software Engineer, Developer Experience & Infrastructure" : "Product Engineer",
   job_id: "ENG-2026-123456",
   job_url: "https://example.invalid/careers/engineer",
-  status: APPLICATION_STATUSES[index % APPLICATION_STATUSES.length],
+  status: fixtureStatuses[index % fixtureStatuses.length],
   applied_date: "2026-09-24",
   salary_range: "$150,000 – $190,000",
   location: "San Francisco, California · Remote friendly",

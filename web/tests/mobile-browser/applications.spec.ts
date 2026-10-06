@@ -166,12 +166,13 @@ test("mobile board switches from filters and horizontal card swipes never edit o
   expect(writes).toEqual([]);
   await board.evaluate((element) => { element.scrollLeft = 0; });
   const edit = card.getByRole("link", { name: "Edit application", exact: true });
+  const expectedEditUrl = new URL((await edit.getAttribute("href"))!, page.url()).href;
   await swipe(page, edit, -65, "x");
   await expect(page).toHaveURL(/view=kanban$/);
   expect(writes).toEqual([]);
   await board.evaluate((element) => { element.scrollLeft = 0; });
   await edit.tap();
-  await expect(page).toHaveURL(/\/applications\/fixture-1\/edit$/);
+  await expect(page).toHaveURL(expectedEditUrl);
   await expect(page.getByRole("button", { name: "Save Changes", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });

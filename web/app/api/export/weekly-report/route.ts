@@ -6,8 +6,10 @@ import { getDashboardAnalytics } from "@/services";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { WeeklyReportPDF } from "@/components/pdf/WeeklyReportPDF";
+import { readWeeklyGoal } from "@/lib/job-search/preferences";
+import { calendarDate, dateLabel, validTimezone } from "@/lib/job-search/calendar";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -19,16 +21,14 @@ export async function GET(request: NextRequest) {
     });
     if (!rl.allowed) throw ApiError.tooManyRequests("Weekly report limit: 10 per day.");
 
-    // Parse goal from query param — user's own localStorage preference, not sensitive
-    const rawGoal = request.nextUrl.searchParams.get("goal");
-    const goal = Math.max(1, Math.min(100, parseInt(rawGoal ?? "5", 10) || 5));
+    // One authoritative goal shared by Profile, dashboard, planner, and reports.
+    const goal = readWeeklyGoal(user.user_metadata?.weekly_goal);
 
     const { data: analytics, error: analyticsError } = await getDashboardAnalytics();
     if (analyticsError || !analytics) throw ApiError.internal("Failed to fetch analytics");
 
-    const generatedAt = new Date().toLocaleDateString("en-US", {
-      year: "numeric", month: "long", day: "numeric",
-    });
+    const localDate = calendarDate(new Date(), validTimezone(user.user_metadata?.timezone));
+    const generatedAt = dateLabel(localDate, { year: "numeric", month: "long", day: "numeric" });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfBuffer = await (renderToBuffer as (el: any) => Promise<Buffer>)(
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = localDate;
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
