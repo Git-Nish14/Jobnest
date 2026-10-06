@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Daily cron: application-age reminders for waiting applications only.
+// Daily cron: auto-creates follow-up reminders at Day 7/14/21 for Applied/Phone Screen apps.
 // Idempotency: [auto-cadence:dayN] marker embedded in description prevents duplicates.
 
 const CADENCE = [
@@ -9,7 +9,7 @@ const CADENCE = [
     days: 7,
     title:       (c: string) => `Follow up on ${c} application`,
     description: (c: string) =>
-      `It's been a week since you applied to ${c}. Review the posting and any promised response date before deciding whether to follow up. [auto-cadence:day7]`,
+      `It's been a week since you applied to ${c}. A short, polite check-in email can meaningfully increase your response rate. [auto-cadence:day7]`,
   },
   {
     days: 14,
@@ -19,9 +19,9 @@ const CADENCE = [
   },
   {
     days: 21,
-    title:       (c: string) => `Review status — ${c}`,
+    title:       (c: string) => `No response from ${c} — consider marking as Ghosted`,
     description: (c: string) =>
-      `Three weeks since you applied to ${c}. Check for missing updates before deciding whether to keep waiting or close this role. [auto-cadence:day21]`,
+      `Three weeks without a reply from ${c}. Consider updating the status to Ghosted or Withdrawn. [auto-cadence:day21]`,
   },
 ] as const;
 
@@ -35,7 +35,6 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient();
   const now = new Date();
   const results = { created: 0, skipped: 0, errors: [] as string[] };
-  const pausedUsers = new Map<string, boolean>();
 
   for (const cadence of CADENCE) {
     const windowStart = new Date(now);
@@ -46,20 +45,14 @@ export async function GET(request: NextRequest) {
     const { data: apps, error: appsErr } = await admin
       .from("job_applications")
       .select("id, user_id, company, status")
-      .eq("status", "Applied")
-      .gte("applied_date", windowStart.toISOString().slice(0, 10))
-      .lte("applied_date", windowEnd.toISOString().slice(0, 10));
+      .in("status", ["Applied", "Phone Screen"])
+      .gte("created_at", windowStart.toISOString())
+      .lte("created_at", windowEnd.toISOString());
 
     if (appsErr) { results.errors.push(`day${cadence.days}: ${appsErr.message}`); continue; }
 
     for (const app of apps ?? []) {
       try {
-        if (!pausedUsers.has(app.user_id)) {
-          const { data, error } = await admin.auth.admin.getUserById(app.user_id);
-          if (error || !data.user) { results.errors.push("Could not verify search preferences"); continue; }
-          pausedUsers.set(app.user_id, data.user.user_metadata?.search_preferences?.paused === true);
-        }
-        if (pausedUsers.get(app.user_id)) { results.skipped++; continue; }
         const marker = `[auto-cadence:day${cadence.days}]`;
         const { count } = await admin
           .from("reminders")

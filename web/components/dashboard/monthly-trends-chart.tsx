@@ -29,7 +29,7 @@ export function MonthlyTrendsChart({ data }: Props) {
   return (
     <div className="db-panel h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="db-panel-title">Application cohorts by month</h2>
+        <h2 className="db-panel-title">Monthly Breakdown</h2>
         <div className="flex items-center gap-3">
           {/* Legend — always visible */}
           <div className="hidden sm:flex items-center gap-4">
@@ -53,8 +53,7 @@ export function MonthlyTrendsChart({ data }: Props) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mb-3">Outcomes of applications submitted that month; not when offers or rejections arrived.</p>
-      {/* Cohort outcomes */}
+      {/* Chart body — blurred on mobile until revealed */}
       <div className={`flex-1 overflow-x-auto transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
         <svg
           width={Math.max(svgW, 320)}

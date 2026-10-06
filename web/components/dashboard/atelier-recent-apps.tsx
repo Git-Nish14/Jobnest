@@ -31,8 +31,8 @@ export function AtelierRecentApps({ applications }: AtelierRecentAppsProps) {
       {/* Section header */}
       <div className="flex justify-between items-end mb-5">
         <div>
-          <h2 className="db-headline text-3xl text-foreground">Recently changed roles</h2>
-          <p className="text-sm text-muted-foreground mt-1">New applications and updates to older opportunities</p>
+          <h2 className="db-headline text-3xl text-foreground">Recent Applications</h2>
+          <p className="text-sm text-muted-foreground mt-1">Manage and track your active progress</p>
         </div>
         <Link href="/applications" className="db-link-primary">
           View All History
@@ -68,7 +68,7 @@ export function AtelierRecentApps({ applications }: AtelierRecentAppsProps) {
                 {/* Right: date + badge */}
                 <div className="flex items-center gap-6 shrink-0 mt-3 md:mt-0">
                   <div className="text-right hidden md:block">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{app.status === "Saved" || app.status === "Preparing" ? "Saved" : "Applied"}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Applied</p>
                     <p className="text-sm font-medium text-foreground">
                       {formatAppliedDate(app.applied_date)}
                     </p>

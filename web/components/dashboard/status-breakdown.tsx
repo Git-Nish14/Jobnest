@@ -14,9 +14,6 @@ interface StatusBreakdownProps {
 }
 
 const statusColors: Record<ApplicationStatus, string> = {
-  Saved: "bg-slate-400",
-  Preparing: "bg-indigo-400",
-  Accepted: "bg-emerald-500",
   Applied: "bg-blue-500",
   "Phone Screen": "bg-amber-500",
   Interview: "bg-purple-500",

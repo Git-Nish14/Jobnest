@@ -36,8 +36,6 @@ interface ExistingDoc {
 }
 
 interface ApplicationFormProps {
-  initialDate?: string;
-  initialStatus?: ApplicationFormData["status"];
   application?: JobApplication;
   userId: string;
   initialDocuments?: ExistingDoc[];
@@ -135,7 +133,7 @@ function OptionalSection({
   );
 }
 
-export function ApplicationForm({ application, userId, initialDocuments, initialStatus, initialDate }: ApplicationFormProps) {
+export function ApplicationForm({ application, userId, initialDocuments }: ApplicationFormProps) {
   const router = useRouter();
   const isEditing = !!application;
   const submittingRef = useRef(false);
@@ -171,9 +169,9 @@ export function ApplicationForm({ application, userId, initialDocuments, initial
     defaultValues: {
       company: application?.company || "",
       position: application?.position || "",
-      status: application?.status || initialStatus || "Applied",
+      status: application?.status || "Applied",
       applied_date:
-        application?.applied_date || initialDate || new Date().toISOString().split("T")[0],
+        application?.applied_date || new Date().toISOString().split("T")[0],
       job_id: application?.job_id || "",
       job_url: application?.job_url || "",
       salary_range: application?.salary_range || "",
@@ -660,7 +658,7 @@ export function ApplicationForm({ application, userId, initialDocuments, initial
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="applied_date">{currentStatus === "Saved" || currentStatus === "Preparing" ? "Date saved" : "Applied Date"}</Label>
+              <Label htmlFor="applied_date">Applied Date</Label>
               <Input
                 id="applied_date"
                 type="date"

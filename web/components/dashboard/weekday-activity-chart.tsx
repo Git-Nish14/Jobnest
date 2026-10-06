@@ -17,7 +17,7 @@ export function WeekdayActivityChart({ data }: Props) {
 
   if (total === 0) return (
     <div className="db-panel h-full flex flex-col">
-      <h2 className="db-panel-title mb-4">Your application schedule</h2>
+      <h2 className="db-panel-title mb-4">Best Day to Apply</h2>
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
         Add applications to see your most productive days.
       </div>
@@ -28,7 +28,7 @@ export function WeekdayActivityChart({ data }: Props) {
     <div className="db-panel h-full flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h2 className="db-panel-title">Your application schedule</h2>
+          <h2 className="db-panel-title">Best Day to Apply</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Most active: <span className="font-semibold text-[#99462a] dark:text-[#ccff00]">{data[peakDay]?.day}</span>
             {" "}({data[peakDay]?.count} app{data[peakDay]?.count !== 1 ? "s" : ""})
@@ -47,8 +47,7 @@ export function WeekdayActivityChart({ data }: Props) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mb-3">Submission counts show your habits, not which weekdays produce better hiring outcomes.</p>
-      {/* Recorded application volume */}
+      {/* Chart body — blurred on mobile until revealed */}
       <div className={`flex items-end gap-1.5 flex-1 transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
         {data.map((item, i) => {
           const barH = Math.max(Math.round((item.count / maxVal) * CHART_H * 0.92), item.count > 0 ? 6 : 2);

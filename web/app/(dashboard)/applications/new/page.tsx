@@ -1,16 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { calendarDate, validTimezone } from "@/lib/job-search/calendar";
+import { getCurrentUser } from "@/services";
 import { ApplicationForm } from "@/components/forms";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewApplicationPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const params = await searchParams;
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+export default async function NewApplicationPage() {
+  const { data: user, error } = await getCurrentUser();
 
   if (error || !user) {
     redirect("/login");
@@ -26,7 +23,7 @@ export default async function NewApplicationPage({ searchParams }: { searchParam
         Back to Applications
       </Link>
 
-      <ApplicationForm userId={user.id} initialStatus={params.status === "Saved" ? "Saved" : "Applied"} initialDate={calendarDate(new Date(), validTimezone(user.user_metadata?.timezone))} />
+      <ApplicationForm userId={user.id} />
     </div>
   );
 }

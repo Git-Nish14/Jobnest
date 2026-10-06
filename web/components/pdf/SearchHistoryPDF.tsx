@@ -47,6 +47,18 @@ const s = StyleSheet.create({
 });
 
 const STAGE_COLOURS_HEX = [AMBER, ORANGE, TERRACOTTA, EMERALD, "#047857"];
+const BENCHMARKS_CONV: Record<string, number> = {
+  "Applied → Phone Screen":   18,
+  "Phone Screen → Interview": 42,
+  "Interview → Offer":        22,
+  "Offer → Accepted":         88,
+};
+const TRANSITION_LABELS = [
+  "Applied → Phone Screen",
+  "Phone Screen → Interview",
+  "Interview → Offer",
+  "Offer → Accepted",
+];
 
 const STATUS_COLOUR: Record<string, string> = {
   Applied:        AMBER,
@@ -272,12 +284,16 @@ export function SearchHistoryPDF({ analytics, applications, generatedAt, userNam
         <Header generatedAt={generatedAt} userEmail={userEmail} />
 
         {/* Funnel */}
-        <Text style={s.sectionTitle}>Observed stages reached</Text>
+        <Text style={s.sectionTitle}>Application Funnel</Text>
         <View style={{ gap: 0, marginBottom: 16 }}>
           {stageFunnel.map((item, i) => {
             const top = stageFunnel[0]?.count ?? 1;
             const barPct = top > 0 ? Math.max(Math.round((item.count / top) * 100), item.count > 0 ? 4 : 0) : 0;
             const barW_f = Math.round((barPct / 100) * 340);
+            const nextCount = stageFunnel[i + 1]?.count ?? null;
+            const convRate = nextCount != null && item.count > 0 ? Math.round((nextCount / item.count) * 100) : null;
+            const bLabel = TRANSITION_LABELS[i];
+            const bench = bLabel ? BENCHMARKS_CONV[bLabel] : null;
 
             return (
               <View key={item.stage}>
@@ -289,6 +305,17 @@ export function SearchHistoryPDF({ analytics, applications, generatedAt, userNam
                   </Svg>
                   <Text style={s.funnelCnt}>{item.count}</Text>
                 </View>
+                {convRate !== null && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 2, paddingLeft: 94 }}>
+                    <Text style={{ fontSize: 7, color: MUTED }}>↓</Text>
+                    <Text style={{ fontSize: 7, fontFamily: "Helvetica-Bold", color: convRate >= (bench ?? 0) ? EMERALD : AMBER }}>
+                      {convRate}%
+                    </Text>
+                    {bench != null && (
+                      <Text style={{ fontSize: 7, color: MUTED }}>· industry avg {bench}%</Text>
+                    )}
+                  </View>
+                )}
               </View>
             );
           })}
@@ -297,7 +324,7 @@ export function SearchHistoryPDF({ analytics, applications, generatedAt, userNam
         {/* Source effectiveness */}
         {sourceEffectiveness.length > 0 && (
           <View>
-            <Text style={s.sectionTitle}>Source outcomes (applications aged 30+ days)</Text>
+            <Text style={s.sectionTitle}>Source Effectiveness</Text>
             <View style={s.tableHead}>
               <Text style={[s.tableHeadTx, { flex: 2 }]}>Source</Text>
               <Text style={[s.tableHeadTx, { flex: 1, textAlign: "right" }]}>Applied</Text>

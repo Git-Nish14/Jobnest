@@ -1,8 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { readAll } from "@/lib/job-search/read-all";
-import { calendarDate, validTimezone, weekStart } from "@/lib/job-search/calendar";
-import { readSearchPreferences } from "@/lib/job-search/preferences";
-import { PRE_APPLICATION } from "@/lib/job-search/analytics";
 import type {
   JobApplication,
   JobApplicationInsert,
@@ -239,7 +235,14 @@ export async function getApplications(
         break;
     }
 
-    const data = await readAll<JobApplication>((from, to) => query.range(from, to));
+    const { data, error } = await query;
+
+    if (error) {
+      return {
+        data: null,
+        error: { message: error.message, code: error.code },
+      };
+    }
 
     return { data: data as JobApplication[], error: null };
   } catch {
@@ -258,12 +261,39 @@ export async function getApplications(
 export async function getApplicationPipelineSummary(): Promise<ApiResponse<ApplicationStats>> {
   try {
     const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return { data: null, error: { message: "Not authenticated" } };
-    const rows = await readAll<Pick<JobApplication, "status" | "applied_date">>((from, to) => supabase.from("job_applications")
-      .select("status, applied_date").eq("user_id", user.id).order("id").range(from, to));
-    const prefs = readSearchPreferences(user.user_metadata?.search_preferences);
-    return { data: calculateStats(rows, validTimezone(user.user_metadata?.timezone), prefs.weekStartsOn), error: null };
+    const { data, error } = await supabase
+      .from("job_applications")
+      .select("status, applied_date");
+
+    if (error) {
+      return { data: null, error: { message: error.message, code: error.code } };
+    }
+
+    const rows = (data ?? []) as Pick<JobApplication, "status" | "applied_date">[];
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const statusCounts = rows.reduce((counts, application) => {
+      counts[application.status] = (counts[application.status] ?? 0) + 1;
+      return counts;
+    }, {} as Record<ApplicationStatus, number>);
+
+    return {
+      data: {
+        total: rows.length,
+        thisWeek: rows.filter((application) => new Date(application.applied_date) >= startOfWeek).length,
+        thisMonth: rows.filter((application) => new Date(application.applied_date) >= startOfMonth).length,
+        active:
+          (statusCounts.Applied ?? 0) +
+          (statusCounts["Phone Screen"] ?? 0) +
+          (statusCounts.Interview ?? 0),
+        statusCounts,
+      },
+      error: null,
+    };
   } catch {
     return { data: null, error: { message: "Failed to fetch application pipeline" } };
   }
@@ -382,18 +412,41 @@ export async function deleteApplication(
   }
 }
 
-export function calculateStats(applications: Pick<JobApplication, "status" | "applied_date">[], timezone = "UTC", startsOn = 0): ApplicationStats {
-  const today = calendarDate(new Date(), timezone);
-  const start = weekStart(today, startsOn);
-  const statusCounts = applications.reduce((counts, app) => {
-    counts[app.status] = (counts[app.status] ?? 0) + 1; return counts;
-  }, {} as Record<ApplicationStatus, number>);
-  const submitted = applications.filter((a) => !PRE_APPLICATION.has(a.status) && a.applied_date <= today);
+export function calculateStats(applications: JobApplication[]): ApplicationStats {
+  const now = new Date();
+
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const statusCounts = applications.reduce(
+    (acc, app) => {
+      acc[app.status] = (acc[app.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<ApplicationStatus, number>
+  );
+
+  const thisWeek = applications.filter(
+    (app) => new Date(app.applied_date) >= startOfWeek
+  ).length;
+
+  const thisMonth = applications.filter(
+    (app) => new Date(app.applied_date) >= startOfMonth
+  ).length;
+
+  const active =
+    (statusCounts["Applied"] || 0) +
+    (statusCounts["Phone Screen"] || 0) +
+    (statusCounts["Interview"] || 0);
+
   return {
     total: applications.length,
-    thisWeek: submitted.filter((a) => a.applied_date >= start).length,
-    thisMonth: submitted.filter((a) => a.applied_date >= `${today.slice(0, 7)}-01`).length,
-    active: (statusCounts.Applied ?? 0) + (statusCounts["Phone Screen"] ?? 0) + (statusCounts.Interview ?? 0),
+    thisWeek,
+    thisMonth,
+    active,
     statusCounts,
   };
 }

@@ -259,34 +259,25 @@ export type SalaryDetailsUpdate = Partial<Omit<SalaryDetailsInsert, "application
 
 // Dashboard Analytics Types
 export interface DashboardAnalytics {
-  savedApplications?: number;
-  offersReceived?: number;
-  responseSampleSize?: number;
-  interviewResolved?: number;
-  interviewPending?: number;
-  historyCoverage?: number;
-  staleApplications?: number;
-  upcomingInterviewCount?: number;
-  pendingReminderCount?: number;
-  overdueReminderCount?: number;
-  generatedAt?: string;
-  timezone?: string;
-  weekStart?: string;
   totalApplications: number;
   thisWeek: number;
   thisMonth: number;
   responseRate: number;
-  /** Median days to first recorded response-stage change; not employer-verified time. */
+  /** Median days from applied_date → first status change past Applied.
+   *  null when fewer than 2 responded applications exist. */
   averageTimeToResponse: number | null;
-  /** Historical offers / resolved applications with an observed interview; pending excluded. */
+  /** (Offer + Accepted) / (Interview + Offer + Accepted) × 100.
+   *  null when the denominator is below 3 (not yet statistically meaningful). */
   interviewToOfferRate: number | null;
-  /** Explicit Ghosted status / submitted applications; stale records are separate. */
+  /** (Ghosted status + Applied apps silent for >30 days) / totalApplications × 100.
+   *  null when totalApplications < 5. */
   ghostRate: number | null;
   /** Applications currently in Phone Screen or Interview stage. */
   activePipeline: number;
-  /** Current week vs equal elapsed days in the prior four weeks; null at zero baseline. */
+  /** This week's applications vs 4-week trailing average (% change).
+   *  null when trailing data is insufficient or the average is zero. */
   weeklyMomentum: number | null;
-  /** Reserved for sufficiently supported recommendations; currently null. */
+  /** Source with the highest response rate (≥2 data points), or null. */
   topSource: { source: string; responseRate: number } | null;
   statusDistribution: StatusCount[];
   dailyTrends: DailyTrend[];
@@ -318,10 +309,6 @@ export interface SourceEffectiveness {
   total: number;
   responded: number;
   responseRate: number;
-  positive?: number;
-  positiveRate?: number;
-  pending?: number;
-  excludedRecent?: number;
 }
 
 export interface StageFunnel {

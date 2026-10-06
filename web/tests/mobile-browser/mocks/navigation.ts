@@ -13,7 +13,7 @@ export function navigate(href: string, replace = false) {
 const router = {
   push: (href: string) => navigate(href),
   replace: (href: string) => navigate(href, true),
-  refresh: () => window.dispatchEvent(new Event("fixture:refresh")),
+  refresh: () => {},
   prefetch: () => {},
   back: () => window.history.back(),
 };
