@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getStripe } from "@/lib/stripe";
+import { getSubscriptionPeriodEnd } from "@/lib/stripe-subscription";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDunningEmail } from "@/lib/email/nodemailer";
 import type Stripe from "stripe";
@@ -49,9 +50,7 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: sub.id,
             plan: "pro",
             status: sub.status,
-            current_period_end: new Date(
-              (sub as unknown as { current_period_end: number }).current_period_end * 1000
-            ).toISOString(),
+            current_period_end: getSubscriptionPeriodEnd(sub),
             cancel_at_period_end: sub.cancel_at_period_end,
           },
           { onConflict: "user_id" }
@@ -73,9 +72,7 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: sub.id,
             plan: sub.status === "active" ? "pro" : "free",
             status: sub.status,
-            current_period_end: new Date(
-              (sub as unknown as { current_period_end: number }).current_period_end * 1000
-            ).toISOString(),
+            current_period_end: getSubscriptionPeriodEnd(sub),
             cancel_at_period_end: sub.cancel_at_period_end,
           },
           { onConflict: "user_id" }

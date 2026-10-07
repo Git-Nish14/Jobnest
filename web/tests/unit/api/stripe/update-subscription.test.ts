@@ -56,13 +56,15 @@ function makeStripe(currentPriceId = MONTHLY_PRICE) {
         id: "sub-1",
         status: "active",
         cancel_at_period_end: false,
-        current_period_end: Math.floor(Date.now() / 1000) + 86400,
-        items: { data: [{ id: "si-1", price: { id: currentPriceId } }] },
+        items: { data: [{
+          id: "si-1", price: { id: currentPriceId },
+          current_period_end: Math.floor(Date.now() / 1000) + 86400,
+        }] },
       }),
       update: vi.fn().mockResolvedValue({
         id: "sub-1",
         cancel_at_period_end: false,
-        current_period_end: Math.floor(Date.now() / 1000) + 86400 * 365,
+        items: { data: [{ current_period_end: 1_800_000_000 }] },
       }),
     },
   };
