@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { getSubscriptionPeriodEnd } from "@/lib/stripe-subscription";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 import { verifyOrigin } from "@/lib/security/csrf";
 
@@ -84,9 +85,7 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from("subscriptions")
       .update({
-        current_period_end: new Date(
-          (updated as unknown as { current_period_end: number }).current_period_end * 1000
-        ).toISOString(),
+        current_period_end: getSubscriptionPeriodEnd(updated),
         cancel_at_period_end: updated.cancel_at_period_end,
       })
       .eq("user_id", user.id);

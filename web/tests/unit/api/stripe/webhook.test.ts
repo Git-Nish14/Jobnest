@@ -118,7 +118,7 @@ describe("POST /api/stripe/webhook — checkout.session.completed", () => {
     const sub = {
       id: "sub_1",
       status: "active",
-      current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+      items: { data: [{ current_period_end: 1_800_000_000 }] },
       cancel_at_period_end: false,
     };
     const event = {
@@ -147,7 +147,10 @@ describe("POST /api/stripe/webhook — checkout.session.completed", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("OK");
     expect(upsertFn).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "uid-1", plan: "pro", status: "active" }),
+      expect.objectContaining({
+        user_id: "uid-1", plan: "pro", status: "active",
+        current_period_end: new Date(1_800_000_000 * 1000).toISOString(),
+      }),
       expect.anything()
     );
   });
