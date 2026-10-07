@@ -19,11 +19,17 @@ export function NotificationBell() {
   const [counts, setCounts] = useState<NotifCount | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const countRequest = useRef(0);
+  const invalidateCounts = useCallback(() => { ++countRequest.current; }, []);
 
   const fetchCounts = useCallback(async () => {
+    const request = ++countRequest.current;
     try {
       const res = await fetch("/api/notifications/count", { cache: "no-store" });
-      if (res.ok) setCounts(await res.json());
+      if (res.ok) {
+        const next = await res.json();
+        if (request === countRequest.current) setCounts(next);
+      }
     } catch {
       // Non-critical — fail silently; bell shows no badge
     }
@@ -81,17 +87,21 @@ export function NotificationBell() {
           { event: "*", schema: "public", table: "interviews", filter: `user_id=eq.${user.id}` },
           fetchCounts,
         )
-        .subscribe();
+        .subscribe((status) => {
+          // Close the initial fetch/subscription gap and reconcile after reconnects.
+          if (!cancelled && status === "SUBSCRIBED") void fetchCounts();
+        });
     });
 
     const fallback = setInterval(fetchCounts, FALLBACK_POLL_MS);
 
     return () => {
       cancelled = true;
+      invalidateCounts();
       if (channel) supabase.removeChannel(channel);
       clearInterval(fallback);
     };
-  }, [fetchCounts]);
+  }, [fetchCounts, invalidateCounts]);
 
   // Close popover on outside click
   useEffect(() => {

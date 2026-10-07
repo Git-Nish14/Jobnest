@@ -305,13 +305,15 @@ Open [http://localhost:3000](http://localhost:3000). The first account you creat
 | `npm test` | Run all Vitest unit and flow tests |
 | `npm run test:coverage` | Coverage report with enforced thresholds |
 | `npm run test:e2e` | Playwright end-to-end tests (requires live credentials) |
+| `npm run test:e2e:features` | Live notification and DOCX preview tests on desktop Chrome and Pixel 5 emulation |
+| `npm run test:mobile` | Browser regressions using isolated component fixtures |
 | `npm run analyze` | Open the webpack bundle treemap |
 
 ---
 
 ## Testing
 
-Unit and flow tests run fully offline — no Supabase connection, no API keys. Every external dependency (database, AI providers, email, Redis) is mocked with Vitest. Playwright E2E tests target a live staging instance and are skipped automatically when `PLAYWRIGHT_BASE_URL` is not set.
+Unit and flow tests run fully offline — no Supabase connection, no API keys. Every external dependency (database, AI providers, email, Redis) is mocked with Vitest. The general Playwright suite defaults to a local Next.js server; `PLAYWRIGHT_BASE_URL` selects a remote target. Most authenticated tests skip when `E2E_TEST_EMAIL` or `E2E_TEST_PASSWORD` is missing. The focused feature suite requires credentials and fails with setup guidance when they are missing.
 
 | Suite | Location | Covers |
 |---|---|---|
@@ -319,7 +321,29 @@ Unit and flow tests run fully offline — no Supabase connection, no API keys. E
 | Flow | `tests/flows/` | Auth signup/login/recovery, NESTAi chat, Stripe billing, portfolio |
 | E2E | `tests/e2e/` | Full user journeys: applications, search, mobile UX, ATS, documents |
 
-**2121 tests across 122 files, all passing.** Coverage thresholds are set ~5 percentage points below measured values so they act as a regression gate without being brittle.
+Coverage thresholds are set ~5 percentage points below measured values so they act as a regression gate without being brittle.
+
+### Notification and DOCX feature tests
+
+Apply `supabase/migrations/20240101000055_notification_bell_realtime.sql` to the test database to enable Realtime for notifications, reminders, and interviews. From `web/`, with the Supabase URL, anon key, and service-role key configured in ignored `.env.local`, run:
+
+```bash
+node scripts/prepare-feature-e2e.mjs
+npm run test:e2e:features
+```
+
+The setup script creates a dedicated confirmed account without sending email, saves `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD` to ignored `.env.local`, and reuses them on later runs. You can configure an existing test account instead. Tests use genuine Supabase SSR session cookies and do not exercise the login UI's emailed OTP flow. Never commit credentials.
+
+The feature suite starts local Next.js at `http://localhost:3000`. Set `E2E_BASE_URL` to target a staging build using the same Supabase project; this config ignores `PLAYWRIGHT_BASE_URL`. Windows uses installed Chrome when available. Otherwise install Playwright Chromium, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
+
+- `notification-realtime.spec.ts` waits for the WebSocket subscription, inserts a notification, verifies receipt of that INSERT and badge increment without navigation or reload, then marks the row read and checks the baseline returns.
+- `docx-preview.spec.ts` uploads the genuine `fixtures/preview.docx` through the library UI and asserts Mammoth heading, bold text, paragraph, and table content in the sandboxed iframe. It also checks ownership denial, closing, and reopening.
+
+Tests run serially against the shared account on desktop Chrome and Pixel 5 emulation. Each removes only its own notification or document in `finally`; the account remains for future runs. Regenerate the DOCX fixture with `python tests/e2e/fixtures/create-docx.py`.
+
+Run isolated browser regressions with `npm run test:mobile -- notification-docx.spec.ts`. They cover stale count responses, previews without a signed URL, blocked scripts and remote images, and conversion-error recovery using simulated API/Realtime boundaries.
+
+Verified on October 7, 2026: **4 live feature E2E tests, 39 browser regressions, and 33 targeted API/parser unit tests passed**, along with typecheck and lint.
 
 ---
 

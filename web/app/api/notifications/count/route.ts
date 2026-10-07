@@ -20,9 +20,9 @@ export async function GET() {
     const in24h = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const [
-      { count: overdueCount },
-      { count: upcomingCount },
-      { count: unreadCount },
+      { count: overdueCount, error: overdueError },
+      { count: upcomingCount, error: upcomingError },
+      { count: unreadCount, error: unreadError },
     ] = await Promise.all([
       // Overdue reminders: not completed, remind_at in the past
       supabase
@@ -49,6 +49,10 @@ export async function GET() {
         .eq("is_read", false),
     ]);
 
+    if (overdueError || upcomingError || unreadError) {
+      throw ApiError.internal("Could not load notification counts.");
+    }
+
     const overdue = overdueCount ?? 0;
     const upcoming = upcomingCount ?? 0;
     const unread = unreadCount ?? 0;
@@ -62,7 +66,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+          "Cache-Control": "private, no-store",
         },
       }
     );

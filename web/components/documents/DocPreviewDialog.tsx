@@ -47,7 +47,8 @@ function proxyUrl(storagePath: string) {
 // Minimal safe HTML shell for mammoth output rendered in a sandboxed iframe.
 // sandox="" prevents all scripting; @media handles dark-mode without parent access.
 function docxSrcDoc(body: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><style>
     *,*::before,*::after{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.7;
          padding:2rem 2.5rem;color:#1a1a1a;margin:0 auto;max-width:860px}
@@ -103,7 +104,7 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
       try {
         // Step 1 — get a valid signed URL (used for image rendering and "no URL" guard)
         let url = doc.signed_url ?? null;
-        if (!url && doc.id) {
+        if (!url && doc.id && !isDocx(doc.mime_type)) {
           const r = await fetch(`/api/documents/refresh-url?document_id=${doc.id}`, { credentials: "include" });
           const d = await r.json() as { signed_url?: string };
           url = d.signed_url ?? null;
@@ -144,7 +145,10 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
           }
         }
       } catch {
-        if (!cancelled) setPdfError("Could not load PDF. Try opening it in a new tab.");
+        if (!cancelled) {
+          if (isDocx(doc.mime_type)) setDocxError("Could not generate preview.");
+          else setPdfError("Could not load PDF. Try opening it in a new tab.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

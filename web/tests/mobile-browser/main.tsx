@@ -9,6 +9,8 @@ import { ApplicationForm } from "@/components/forms/application-form";
 import { StatusPicker } from "@/components/applications/status-picker";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { TouchScrollGuard } from "@/components/layout/TouchScrollGuard";
+import { NotificationBell } from "@/components/layout/NotificationBell";
+import { DocPreviewDialog } from "@/components/documents/DocPreviewDialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
   Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui";
@@ -61,12 +63,25 @@ function Controls() {
   </main>;
 }
 
+function DocxFixture() {
+  const [open, setOpen] = useState(true);
+  return open ? <DocPreviewDialog doc={{
+    id: 'fixture-docx', user_id: 'fixture-user', application_id: null,
+    label: 'DOCX regression', storage_path: 'fixture-user/preview.docx',
+    mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    size_bytes: 1000, is_current: true, is_master: true,
+    uploaded_at: '2026-01-01T00:00:00Z', original_name: 'preview.docx',
+  }} onClose={() => setOpen(false)} /> : <button onClick={() => setOpen(true)}>Open DOCX</button>;
+}
+
 function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isControls = pathname === "/controls";
   const isEdit = pathname.endsWith("/edit");
   const isNew = pathname.endsWith("/new");
+  if (pathname === '/notification-fixture') return <div className="p-8"><NotificationBell /></div>;
+  if (pathname === '/docx-fixture') return <DocxFixture />;
   return <div className="db-root min-h-screen">
     <TouchScrollGuard />
     <Toaster />
