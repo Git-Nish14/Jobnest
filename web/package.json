@@ -46,7 +46,7 @@
     "nodemailer": "^10.0.13",
     "papaparse": "^5.7.0",
     "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^6.3.289",
+    "pdfjs-dist": "^6.4.299",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
