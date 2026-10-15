@@ -8,12 +8,12 @@ A job search workspace for tracking applications, managing documents, preparing 
 
 - **Application tracking:** manage your pipeline, import job postings, search application content, and export records.
 - **Document management:** organize resumes and cover letters, preview PDF and DOCX files, annotate PDFs, compare versions, and share expiring links.
-- **NESTAi:** get resume feedback, interview preparation, email drafts, and conversational support informed by your job search. Includes file attachments, image input, daily token usage, and Pro semantic retrieval.
+- **NESTAi:** get resume feedback, interview preparation, email drafts, and conversational support informed by your job search. Review and save drafts to your template library. Includes file attachments, image input, daily token usage, and Pro search index counts and update status.
 - **Resume assessment:** compare a resume with a job description using the ATS scanner and review resume audit suggestions.
-- **Interview preparation:** manage interviews, coding practice, system design topics, behavioral answers, and mock interviews.
+- **Interview preparation:** manage interviews, download calendar events as `.ics` files, and practice coding, system design, behavioral answers, and mock interviews.
 - **Reminders and notifications:** receive live badge updates, manage reminders, and enable browser push alerts for overdue tasks.
-- **Networking and compensation:** manage contacts, outreach statuses, referrals, and coffee chats; compare compensation and export offer comparisons.
-- **Developer portfolios:** publish selected projects, skills, and GitHub repositories.
+- **Networking and compensation:** manage contacts, outreach statuses, referrals, and coffee chats; save equity grants with vesting previews, compare compensation, and export offer comparisons.
+- **Developer portfolios:** publish selected projects, skills, and GitHub repositories; receive anonymous skill endorsements with duplicate and rate controls.
 
 The interface supports dark mode, responsive layouts, and installation as a progressive web app. The [ChatGPT integration guide](docs/CHATGPT_PLUGIN_SETUP.md) explains how to connect Jobnest for checking and saving job applications.
 
@@ -101,6 +101,12 @@ Apply the SQL files in [supabase/migrations](supabase/migrations) in filename or
 
 Include `20240101000055_notification_bell_realtime.sql` for notification publication and replica identity. Configure Supabase Auth site and redirect URLs for the local application, and enable any social sign-in providers you intend to use.
 
+Public skill endorsements require `20240101000056_portfolio_skill_endorsements.sql`. The API exposes aggregate counts only for published portfolios; database access to endorsement identities and write functions is restricted to the service role. Votes are limited per browser and network, with a persistent cap of 20 new endorsements per network in 24 hours. Shared networks can therefore share an endorsement limit. Network addresses and random browser identifiers are stored as keyed hashes; the visitor cookie lasts 180 days.
+
+On Vercel, endorsement network identity uses the platform's `x-vercel-forwarded-for` header. Other production deployments must use a reverse proxy that overwrites `x-real-ip`, prevents direct origin access, and set `ENDORSEMENTS_TRUST_PROXY=1`. Without a trusted network identity, endorsement requests fail closed. Configure a strong, stable `CSRF_SECRET`; rotating it resets endorsement identity matching. Optional Upstash Redis settings also make the short-term request limiter consistent across server instances.
+
+The index panel shows the latest embedding row update, not proof that every source has been reindexed. A refresh is marked due after two hours. Calendar downloads preserve the scheduled instant using UTC and include the recorded timezone, location, and valid meeting link; importing a file into a calendar is a manual action. Interview preparation and feedback notes are excluded.
+
 ### 4. Run the application
 
 ```bash
@@ -158,7 +164,7 @@ The general [Playwright configuration](web/playwright.config.ts) starts a local 
 
 Use dedicated accounts and a test Supabase project for browser suites that create or delete records.
 
-### Live notification and DOCX checks
+### Authenticated feature checks
 
 Configure the Supabase URL, anon key, and service-role key in `web/.env.local`, apply migration 055, then run:
 
@@ -182,7 +188,9 @@ npm run test:mobile
 npm run test:mobile -- notification-docx.spec.ts
 ```
 
-These tests render application components with mocked routing, API responses, and Supabase behavior. They cover mobile gestures, forms, dialogs, stale notification responses, DOCX error recovery, and iframe restrictions without writing to a live database.
+These tests render application components with mocked routing, API responses, and Supabase behavior. They cover mobile gestures, forms, dialogs, stale notification responses, DOCX error recovery, iframe restrictions, and all five index/template/endorsement/calendar/equity UI workflows without writing to a live database. Run `npm run test:mobile -- roadmap.spec.ts` for the new workflows at mobile and desktop widths.
+
+The authenticated feature suite also checks template persistence, equity creation and editing without overwriting existing salary fields, and real calendar downloads using temporary records. Endorsement SQL regression checks are in [supabase/tests/portfolio_skill_endorsements.sql](supabase/tests/portfolio_skill_endorsements.sql); run that transactional script against a disposable database after migration 056. It verifies duplicate protection, publication and ownership checks, persistent daily limits, deletion cleanup, and restricted role access.
 
 For WebKit, install its browser first with `npx playwright install webkit`. See the [browser suite guide](web/tests/mobile-browser/README.md) for supported cases and production CSS checks.
 

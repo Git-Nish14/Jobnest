@@ -80,6 +80,14 @@ describe("proxy — unauthenticated access", () => {
     mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
   });
 
+  it("allows only the explicit public endorsement endpoint", async () => {
+    expect((await proxy(req("/p/test-owner"))).headers.get("location")).toBeNull();
+    expect((await proxy(req("/p/test-owner/edit"))).headers.get("location")).toContain("/login");
+    expect((await proxy(req("/api/public/portfolios/test-owner/endorsements"))).headers.get("location")).toBeNull();
+    expect((await proxy(req("/api/public/portfolios/test-owner/endorsements-admin"))).headers.get("location")).toContain("/login");
+    expect((await proxy(req("/api/portfolio/projects"))).headers.get("location")).toContain("/login");
+  });
+
   it("allows access to / (landing page)", async () => {
     const res = await proxy(req("/"));
     expect(res.status).not.toBe(307);

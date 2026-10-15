@@ -104,6 +104,8 @@ function addSecurityHeaders(response: NextResponse, nonce = "", isHttps = false)
 }
 
 function isPublicPath(pathname: string): boolean {
+  if (/^\/p\/[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/.test(pathname)) return true;
+  if (/^\/api\/public\/portfolios\/[a-z0-9][a-z0-9-]{1,28}[a-z0-9]\/endorsements$/.test(pathname)) return true;
   if (publicRoutes.has(pathname)) return true;
   if (publicApiRoutes.has(pathname)) return true;
   for (const prefix of publicApiPrefixes) {

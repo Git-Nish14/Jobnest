@@ -26,13 +26,40 @@ const USAGE_ROWS = [
   { date: TODAY,   feature: "resume_audit", input_tokens: 3000, output_tokens: 1500, request_count: 1, model: "llama-3.3-70b-versatile" },
 ];
 
-function makeClient(user: unknown, sub: unknown = null) {
+function makeClient(user: unknown, sub: unknown = null, index = { data: [] as { updated_at: string }[], count: 0 as number | null, error: null as unknown }) {
   const subChain = makeChain({ data: sub, error: null });
   return {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }) },
-    from: vi.fn().mockReturnValue(subChain),
+    from: vi.fn((table: string) => table === "nestai_embeddings" ? makeChain(index) : subChain),
   };
 }
+
+describe("embedding status and ownership", () => {
+  it("does not query embeddings for Free users", async () => {
+    const client = makeClient({ id: USER_ID });
+    mockCreate.mockResolvedValue(client as never);
+    const response = await GET(req() as never);
+    expect((await response.json()).index).toBeNull();
+    expect(client.from).not.toHaveBeenCalledWith("nestai_embeddings");
+  });
+  it("returns the exact count and latest timestamp for the current Pro user", async () => {
+    const updated_at = new Date().toISOString();
+    const indexChain = makeChain({ data: [{ updated_at }], count: 42, error: null });
+    const client = makeClient({ id: USER_ID }, { plan: "pro", status: "active" });
+    client.from.mockImplementation((table: string) => table === "nestai_embeddings" ? indexChain : makeChain({ data: { plan: "pro", status: "active" }, error: null }));
+    mockCreate.mockResolvedValue(client as never);
+    const response = await GET(req() as never);
+    expect((await response.json()).index).toEqual({ status: "recent", embeddingCount: 42, lastUpdatedAt: updated_at });
+    expect(indexChain.eq).toHaveBeenCalledWith("user_id", USER_ID);
+    expect(indexChain.select).toHaveBeenCalledWith("updated_at", { count: "exact" });
+  });
+  it("keeps token usage available when the index query fails", async () => {
+    mockCreate.mockResolvedValue(makeClient({ id: USER_ID }, { plan: "pro", status: "active" }, { data: [], count: null, error: { message: "failed" } }) as never);
+    const response = await GET(req() as never);
+    expect(response.status).toBe(200);
+    expect((await response.json()).index).toMatchObject({ status: "unavailable", embeddingCount: null });
+  });
+});
 
 function req() {
   return new Request("http://localhost/api/nesta-ai/analytics", { method: "GET" });

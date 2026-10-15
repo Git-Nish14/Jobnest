@@ -137,9 +137,9 @@ export function TemplateList({ templates }: TemplateListProps) {
           key={template.id}
           className="p-4 sm:p-5 rounded-xl bg-[#f4f3f1] dark:bg-[#1a1a1a] transition-colors"
         >
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#1a1c1b] dark:text-white">{template.name}</h3>
+              <h3 className="font-semibold text-[#1a1c1b] dark:text-white wrap-break-word">{template.name}</h3>
               <p className="text-sm text-[#55433d]/70 dark:text-[#a09890] mt-1">
                 <span className="font-medium text-[#55433d] dark:text-[#c0b0a8]">Subject:</span>{" "}
                 {template.subject}
@@ -151,7 +151,7 @@ export function TemplateList({ templates }: TemplateListProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setPreviewId(previewId === template.id ? null : template.id)}

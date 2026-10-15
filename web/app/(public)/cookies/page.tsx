@@ -78,6 +78,13 @@ function CookieTable({ rows }: { rows: CookieRow[] }) {
 
 const SESSION_COOKIES: CookieRow[] = [
   {
+    name: "jobnest_endorser",
+    purpose: "Signed random visitor identifier for duplicate prevention on public skill endorsements. HttpOnly, SameSite=Lax, Secure in production, and restricted to portfolio endorsement API requests.",
+    type: "Essential",
+    duration: "180 days, renewed when endorsements are loaded or saved",
+    setBy: "Jobnest (portfolio endorsements API)",
+  },
+  {
     name: "sb-<ref>-auth-token",
     purpose: "Stores your Supabase authentication session JWT. Required to keep you signed in.",
     type: "Essential",
@@ -127,7 +134,7 @@ export default function CookiesPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Cookie Policy
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: 19 May 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: 15 October 2026</p>
             <div className="mt-4 p-4 bg-[#f4f3f1] rounded-xl border border-[#dbc1b9]/30 text-sm text-[#55433d] leading-relaxed">
               <strong className="text-[#1a1c1b]">Short version:</strong> Jobnest only uses cookies that are
               strictly necessary to run the service. We set <strong className="text-[#1a1c1b]">zero</strong>{" "}
