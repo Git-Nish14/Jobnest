@@ -31,7 +31,10 @@ describe("interview calendar", () => {
     expect(folded.replaceAll("\r\n ", "")).toBe(original);
     for (const line of folded.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
   });
-  it.each(["javascript:alert(1)", "data:text/plain,evil", "https://user:secret@example.com", "invalid"])("omits unsafe meeting URL %s", meeting_url => {
+  const credentialUrl = new URL("https://example.invalid");
+  credentialUrl.username = "test-user";
+  credentialUrl.password = "test-password";
+  it.each(["javascript:alert(1)", "data:text/plain,evil", credentialUrl.href, "invalid"])("omits unsafe meeting URL %s", meeting_url => {
     expect(interviewCalendar({ ...interview, meeting_url }, company, now)).not.toMatch(/\r\nURL:/);
   });
   it("marks cancellations and defaults absent duration to an hour", () => {
