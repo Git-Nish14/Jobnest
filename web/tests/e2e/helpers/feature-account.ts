@@ -10,6 +10,8 @@ export function requireFeatureAccount() {
 
 export async function loginFeatureAccount(page: Page) {
   requireFeatureAccount();
+  // Keep the optional feedback popup from covering the feature under test.
+  await page.addInitScript(() => localStorage.setItem('jobnest_nps_dismissed_at', Date.now().toString()));
   await page.goto('/login');
   // The app's login UI requires an emailed OTP. These feature tests authenticate
   // with Supabase and install genuine SSR session cookies without sending mail.

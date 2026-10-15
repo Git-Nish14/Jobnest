@@ -60,6 +60,8 @@ test.describe("Legal pages", () => {
   test("privacy page loads", async ({ page }) => {
     await page.goto("/privacy");
     await expect(page).toHaveTitle(/privacy/i);
+    // The title can arrive before streamed content is visible.
+    await expect(page.getByRole("heading", { name: "Privacy Policy", level: 1 })).toBeVisible();
     // CCPA section is anchored
     await page.goto("/privacy#do-not-sell");
     await expect(page.locator("#do-not-sell")).toBeVisible();

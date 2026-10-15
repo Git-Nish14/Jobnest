@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const dynamic = "force-static";
+// The proxy creates a fresh CSP nonce for each response; scripts must match it.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
