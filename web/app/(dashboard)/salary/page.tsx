@@ -1,3 +1,4 @@
+import { EquityVestingEditor } from "@/components/salary/EquityVestingEditor";
 import Link from "next/link";
 import { DollarSign, TrendingUp, Building, Award, Clock } from "lucide-react";
 import { getAllSalaryDetails, formatSalary, getApplications } from "@/services";
@@ -189,6 +190,7 @@ export default async function SalaryComparisonPage() {
                           <td className="py-3 px-3 text-right text-[#1a1c1b] border-b border-[#dbc1b9]/10">{formatSalary(item.base_salary, cur)}</td>
                           <td className="py-3 px-3 text-right text-[#1a1c1b] border-b border-[#dbc1b9]/10">{formatSalary(item.bonus, cur)}</td>
                           <td className="py-3 px-3 text-right border-b border-[#dbc1b9]/10">
+                            <div className="mb-1"><EquityVestingEditor applicationId={item.application_id} existing={item.equity_details ?? null} currency={cur} /></div>
                             {tc.equityAnnual > 0
                               ? <span className="font-medium text-violet-700 dark:text-violet-300">{formatSalary(tc.equityAnnual, cur)}</span>
                               : <span className="text-muted-foreground text-xs">—</span>

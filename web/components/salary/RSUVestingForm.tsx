@@ -1,164 +1,72 @@
 "use client";
 
-import { useState } from "react";
-import { TrendingUp, Save, Loader2 } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import { Button, Input, Label } from "@/components/ui";
-import { createClient } from "@/lib/supabase/client";
-import { computeVestingSchedule, type VestingYear } from "@/lib/utils/salary-helpers";
-import { formatSalary } from "@/services/salary";
-import type { RSUEquityDetails, SalaryDetails } from "@/types";
+import { computeVestingSchedule } from "@/lib/utils/salary-helpers";
+import { equitySchema } from "@/lib/validations/equity";
+import type { RSUEquityDetails } from "@/types";
 import { toast } from "sonner";
 
-interface RSUVestingFormProps {
-  applicationId: string;
-  existing: RSUEquityDetails | null;
-  currency?: string;
-  onSaved?: (details: RSUEquityDetails) => void;
+function formatSalary(amount: number, currency: string) {
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount); }
+  catch { return `${amount.toLocaleString()} ${currency}`; }
 }
 
-const DEFAULT: RSUEquityDetails = {
-  total_shares: 0,
-  grant_date: new Date().toISOString().split("T")[0],
-  cliff_months: 12,
-  vest_months: 48,
-  current_price: 0,
-};
-
-export function RSUVestingForm({ applicationId, existing, currency = "USD", onSaved }: RSUVestingFormProps) {
-  const [details, setDetails] = useState<RSUEquityDetails>(existing ?? DEFAULT);
+export function RSUVestingForm({ applicationId, existing, currency = "USD", onSaved }: {
+  applicationId: string; existing: RSUEquityDetails | null; currency?: string;
+  onSaved?: (details: RSUEquityDetails) => void;
+}) {
+  const prefix = useId();
+  const [details, setDetails] = useState<RSUEquityDetails>(existing ?? {
+    total_shares: 0, current_price: 0, grant_date: new Date().toISOString().slice(0, 10), cliff_months: 12, vest_months: 48,
+  });
   const [saving, setSaving] = useState(false);
-
-  const set = (key: keyof RSUEquityDetails, value: number | string) =>
-    setDetails((prev) => ({ ...prev, [key]: value }));
-
-  const schedule: VestingYear[] =
-    details.total_shares > 0 && details.current_price > 0
-      ? computeVestingSchedule(details)
-      : [];
-
-  const handleSave = async () => {
-    setSaving(true);
+  const [error, setError] = useState("");
+  const pending = useRef(false);
+  const validated = equitySchema.safeParse(details);
+  const schedule = validated.success ? computeVestingSchedule(validated.data) : [];
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (pending.current) return;
+    if (!validated.success) { setError(validated.error.issues[0].message); return; }
+    pending.current = true; setSaving(true); setError("");
     try {
-      const supabase = createClient();
-      // Scope the update to the authenticated user's own record via the join to job_applications.
-      // RLS on salary_details enforces this at the DB level; the JS filter is defence-in-depth.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error("Not authenticated"); return; }
-
-      const { error } = await supabase
-        .from("salary_details")
-        .update({ equity_details: details } as Partial<SalaryDetails>)
-        .eq("application_id", applicationId);
-
-      if (error) throw error;
-      toast.success("RSU details saved");
-      onSaved?.(details);
-    } catch {
-      toast.error("Failed to save RSU details");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Total Shares</Label>
-          <Input
-            type="number"
-            min={0}
-            value={details.total_shares || ""}
-            onChange={(e) => set("total_shares", Number(e.target.value))}
-            placeholder="e.g. 10000"
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Current Stock Price ($)</Label>
-          <Input
-            type="number"
-            min={0}
-            step={0.01}
-            value={details.current_price || ""}
-            onChange={(e) => set("current_price", Number(e.target.value))}
-            placeholder="e.g. 150.00"
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Grant Date</Label>
-          <Input
-            type="date"
-            value={details.grant_date}
-            onChange={(e) => set("grant_date", e.target.value)}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Cliff (months)</Label>
-          <Input
-            type="number"
-            min={1}
-            value={details.cliff_months}
-            onChange={(e) => set("cliff_months", Number(e.target.value))}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5 col-span-2">
-          <Label className="text-xs">Vesting Period (months)</Label>
-          <Input
-            type="number"
-            min={details.cliff_months}
-            value={details.vest_months}
-            onChange={(e) => set("vest_months", Number(e.target.value))}
-            className="h-8 text-sm"
-          />
-        </div>
+      const response = await fetch(`/api/applications/${encodeURIComponent(applicationId)}/equity`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ equity_details: validated.data }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not save equity details.");
+      toast.success("Equity vesting saved"); onSaved?.(data.equity_details);
+    } catch (error) { setError(error instanceof Error ? error.message : "Could not save equity details."); }
+    finally { pending.current = false; setSaving(false); }
+  }
+  const fields = [
+    { key: "total_shares", label: "Total shares", min: 0.000001, max: 1_000_000_000, step: "any" },
+    { key: "current_price", label: `Current share price (${currency})`, min: 0, max: 1_000_000, step: "any" },
+    { key: "cliff_months", label: "Cliff (months)", min: 0, max: 120, step: "1" },
+    { key: "vest_months", label: "Vesting period (months)", min: 1, max: 120, step: "1" },
+  ] as const;
+  return <form onSubmit={save} className="space-y-4">
+    <fieldset disabled={saving} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {fields.map(field => <div key={field.key} className="space-y-1.5">
+        <Label htmlFor={`${prefix}-${field.key}`}>{field.label}</Label>
+        <Input id={`${prefix}-${field.key}`} type="number" required min={field.min} max={field.max} step={field.step}
+          value={Number.isNaN(details[field.key]) ? "" : details[field.key]} className="min-h-11" onChange={event => { setError(""); setDetails(previous => ({ ...previous, [field.key]: event.target.value === "" ? NaN : Number(event.target.value) })); }} />
+      </div>)}
+      <div className="space-y-1.5"><Label htmlFor={`${prefix}-date`}>Grant date</Label>
+        <Input id={`${prefix}-date`} type="date" required value={details.grant_date} className="min-h-11"
+          onChange={event => { setError(""); setDetails(previous => ({ ...previous, grant_date: event.target.value })); }} />
       </div>
-
-      {schedule.length > 0 && (
-        <div className="rounded-lg border bg-muted/30 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/20">
-            <TrendingUp className="h-3.5 w-3.5 text-[#99462a]" />
-            <span className="text-xs font-semibold text-foreground">Vesting Schedule</span>
-          </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left px-3 py-2 text-muted-foreground font-medium">Year</th>
-                <th className="text-right px-3 py-2 text-muted-foreground font-medium">Shares</th>
-                <th className="text-right px-3 py-2 text-muted-foreground font-medium">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((row) => (
-                <tr key={row.year} className="border-b last:border-0">
-                  <td className="px-3 py-2 font-medium text-foreground">Year {row.year}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{row.sharesVested.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-[#99462a]">
-                    {formatSalary(row.value, currency)}
-                  </td>
-                </tr>
-              ))}
-              <tr className="bg-muted/30">
-                <td className="px-3 py-2 font-semibold text-foreground">Total ({Math.round(details.vest_months / 12)}yr)</td>
-                <td className="px-3 py-2 text-right tabular-nums font-semibold">
-                  {details.total_shares.toLocaleString()}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums font-bold text-[#99462a]">
-                  {formatSalary(details.total_shares * details.current_price, currency)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Button size="sm" onClick={handleSave} disabled={saving}>
-        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-        Save RSU Details
-      </Button>
-    </div>
-  );
+    </fieldset>
+    <p className="text-xs text-muted-foreground">Monthly vesting after the cliff. Values use today’s share price and may change. A zero-month cliff starts vesting in month one.</p>
+    {schedule.length > 0 && <div className="overflow-x-auto rounded-lg border"><table className="w-full text-sm">
+      <caption className="text-left p-3 font-medium">First four years from grant date</caption>
+      <thead><tr><th className="p-2 text-left" scope="col">Year</th><th className="p-2 text-right" scope="col">Shares</th><th className="p-2 text-right" scope="col">Estimated value</th></tr></thead>
+      <tbody>{schedule.map(row => <tr key={row.year} className="border-t"><th scope="row" className="p-2 text-left">{row.year}</th>
+        <td className="p-2 text-right tabular-nums">{row.sharesVested.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
+        <td className="p-2 text-right tabular-nums">{formatSalary(row.value, currency)}</td></tr>)}</tbody>
+    </table></div>}
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    <Button type="submit" className="min-h-11" disabled={saving}>{saving ? "Saving…" : "Save equity vesting"}</Button>
+  </form>;
 }

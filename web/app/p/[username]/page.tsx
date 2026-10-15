@@ -1,3 +1,4 @@
+import { PublicSkillEndorsements } from "@/components/portfolio/PublicSkillEndorsements";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Metadata } from "next";
@@ -125,7 +126,7 @@ async function fetchPortfolio(username: string): Promise<PublicPortfolio | null>
   if (authErr || !user) return null;
 
   const meta = user.user_metadata ?? {};
-  if (!meta.portfolio_public) return null;
+  if (meta.portfolio_public !== true) return null;
 
   // Fetch all portfolio data in parallel
   const [connRes, reposRes, projectsRes, skillsRes, certsRes, eduRes] = await Promise.all([
@@ -201,14 +202,6 @@ const LANG_COLORS: Record<string, string> = {
   CSS: "#563d7c", Shell: "#89e051", Vue: "#41b883",
 };
 
-// ── Skill proficiency color ───────────────────────────────────────────────────
-
-const PROF_STYLE: Record<string, string> = {
-  Beginner: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  Intermediate: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  Advanced: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  Expert: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-};
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -230,12 +223,6 @@ export default async function PublicPortfolioPage({
   const name = displayName || username;
   const featuredProjects = projects.filter((p) => p.is_featured);
   const otherProjects = projects.filter((p) => !p.is_featured);
-
-  // Group skills by category
-  const skillsByCategory = skills.reduce<Record<string, typeof skills>>((acc, s) => {
-    (acc[s.category] = acc[s.category] ?? []).push(s);
-    return acc;
-  }, {});
 
   return (
     <div className="min-h-screen">
@@ -414,28 +401,7 @@ export default async function PublicPortfolioPage({
         {/* ── Skills ─────────────────────────────────────────────────────────── */}
         {skills.length > 0 && (
           <Section title="Skills">
-            <div className="space-y-4">
-              {Object.entries(skillsByCategory).map(([cat, items]) => (
-                <div key={cat}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {cat}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex items-center gap-1.5 rounded-full border border-border bg-background pl-3 pr-2 py-1"
-                      >
-                        <span className="text-sm font-medium text-foreground">{s.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PROF_STYLE[s.proficiency] ?? "bg-muted text-muted-foreground"}`}>
-                          {s.proficiency}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PublicSkillEndorsements username={username} skills={skills} />
           </Section>
         )}
 

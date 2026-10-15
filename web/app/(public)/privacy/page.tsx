@@ -65,7 +65,7 @@ export default function PrivacyPage() {
             <h1 className="landing-serif text-4xl sm:text-5xl font-medium text-[#1a1c1b] mt-6 mb-3">
               Privacy Policy
             </h1>
-            <p className="text-[#55433d] text-sm">Last updated: 19 May 2026</p>
+            <p className="text-[#55433d] text-sm">Last updated: 15 October 2026</p>
             <div className="mt-4 p-4 bg-[#f4f3f1] rounded-xl border border-[#dbc1b9]/30 text-sm text-[#55433d] leading-relaxed">
               <strong className="text-[#1a1c1b]">Quick summary:</strong> We collect only what we need to run
               the service. We do not sell your data. You can export or delete everything at any time. We use
@@ -107,6 +107,7 @@ export default function PrivacyPage() {
                 ["Security", "IP address on account-deletion requests and OTP events", "Fraud prevention and rate limiting"],
                 ["Cookies", "Session token (sb-*-auth-token), remember-me flag (sb_rm)", "Keeping you signed in — see Cookie Policy"],
                 ["Usage", "Pages visited, error events, approximate latency", "Service reliability and debugging only"],
+                ["Skill endorsements", "Skill ID, endorsement time, and keyed hashes of a random browser identifier and network address; no raw address is stored in endorsement records", "Public aggregate endorsement counts, duplicate prevention, and abuse limits"],
               ]} />
               <p className="mt-4 text-sm italic">
                 We do <strong className="not-italic font-semibold text-[#1a1c1b]">not</strong> collect precise
@@ -192,6 +193,7 @@ export default function PrivacyPage() {
             </Section>
 
             <Section title="7. Data Retention">
+              <p className="mb-4">Public skill endorsement records are kept until the associated skill or portfolio owner account is deleted. Unpublishing a portfolio hides its counts and stops new endorsements. The signed browser cookie expires after 180 days and is renewed when endorsements are loaded or saved.</p>
               <ul className="space-y-2 pl-5 list-disc">
                 <li>
                   <strong className="text-[#1a1c1b]">Active accounts:</strong> Data is kept for as long as

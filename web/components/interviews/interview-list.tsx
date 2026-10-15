@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui";
+import { InterviewCalendarButton } from "./interview-calendar-button";
 import { InterviewForm } from "./interview-form";
 import type { Interview } from "@/types";
 import { formatFullDate, formatTime as formatTime_ } from "@/lib/utils/date";
@@ -197,6 +198,8 @@ function InterviewCard({
               </span>
             )}
           </div>
+
+          <div className="mt-3"><InterviewCalendarButton interviewId={interview.id} /></div>
 
           {interview.preparation_notes && (
             <div className="mt-2.5 pt-2.5 border-t border-[#dbc1b9]/18">

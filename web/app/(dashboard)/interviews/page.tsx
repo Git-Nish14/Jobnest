@@ -1,3 +1,4 @@
+import { InterviewCalendarButton } from "@/components/interviews/interview-calendar-button";
 import Link from "next/link";
 import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
 import { getUpcomingInterviews, getInterviews } from "@/services";
@@ -134,6 +135,7 @@ export default async function InterviewsPage() {
                   </div>
                 </Link>
 
+                <InterviewCalendarButton interviewId={interview.id} />
                 {interview.meeting_url && (
                   <a
                     href={interview.meeting_url}
@@ -162,27 +164,26 @@ export default async function InterviewsPage() {
           </div>
           <div className="space-y-2">
             {(past as InterviewWithApp[]).slice(0, 10).map((interview) => (
-              <Link
-                key={interview.id}
-                href={`/applications/${interview.application_id}`}
-                className="db-app-row block"
-              >
-                <div className="flex items-center justify-between gap-4 w-full">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-[#1a1c1b] text-sm">
-                        {interview.job_applications?.company || "Company"}
-                      </span>
-                      <span className={`db-status-badge ${statusBadge(interview.status)}`}>
-                        {interview.status}
-                      </span>
+              <div key={interview.id} className="db-app-row flex flex-col sm:flex-row sm:items-center gap-3">
+                <Link href={`/applications/${interview.application_id}`} className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-4 w-full">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-[#1a1c1b] text-sm">
+                          {interview.job_applications?.company || "Company"}
+                        </span>
+                        <span className={`db-status-badge ${statusBadge(interview.status)}`}>
+                          {interview.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#55433d]/70 mt-0.5">
+                        {interview.type} · Round {interview.round} · {formatDate(interview.scheduled_at)}
+                      </p>
                     </div>
-                    <p className="text-xs text-[#55433d]/70 mt-0.5">
-                      {interview.type} · Round {interview.round} · {formatDate(interview.scheduled_at)}
-                    </p>
                   </div>
-                </div>
-              </Link>
+                </Link>
+                <InterviewCalendarButton interviewId={interview.id} />
+              </div>
             ))}
           </div>
         </section>
