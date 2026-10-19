@@ -29,7 +29,7 @@
     "@radix-ui/react-slot": "^1.4.0",
     "@radix-ui/react-toast": "^1.2.24",
     "@react-pdf/renderer": "^4.9.0",
-    "@sentry/nextjs": "^11.6.0",
+    "@sentry/nextjs": "^11.8.0",
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.117.3",
     "@types/diff": "^8.0.0",
