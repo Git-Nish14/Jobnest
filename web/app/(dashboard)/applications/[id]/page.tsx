@@ -1,3 +1,5 @@
+import { EquityVestingEditor } from "@/components/salary/EquityVestingEditor";
+import { getSalaryDetails } from "@/services/salary";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -46,10 +48,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     { data: application, error },
     { data: interviews },
     { data: activityLogs },
+    { data: salaryDetails },
   ] = await Promise.all([
     getApplicationById(id),
     getInterviews(id),
     getActivityLogs(id),
+    getSalaryDetails(id),
   ]);
 
   if (error || !application) notFound();
@@ -355,6 +359,12 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
         {/* ── Sidebar ── */}
         <div className="order-2 lg:order-0 space-y-6 min-w-0">
+
+          <section className="db-content-card space-y-3">
+            <h2 className="db-headline text-xl font-semibold">Equity vesting</h2>
+            <p className="text-sm text-muted-foreground">Add your share grant to include annual vesting in salary comparisons.</p>
+            <EquityVestingEditor applicationId={id} existing={salaryDetails?.equity_details ?? null} currency={salaryDetails?.currency ?? "USD"} />
+          </section>
 
           {/* Documents — pre-fetched server-side to avoid loading flash */}
           <DocumentManager

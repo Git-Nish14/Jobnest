@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { RoadmapFixture } from "./roadmap-fixture";
 import { Toaster } from "sonner";
 import { ApplicationFilters } from "@/components/applications/application-filters";
 import { ApplicationsList } from "@/components/applications/applications-list";
@@ -78,6 +79,7 @@ function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isControls = pathname === "/controls";
+  if (pathname === "/roadmap-fixture") return <RoadmapFixture />;
   const isEdit = pathname.endsWith("/edit");
   const isNew = pathname.endsWith("/new");
   if (pathname === '/notification-fixture') return <div className="p-8"><NotificationBell /></div>;

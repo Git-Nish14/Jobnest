@@ -35,35 +35,19 @@ export interface VestingYear {
   value: number;
 }
 
-/** Compute Year 1–4 RSU vesting values using 1yr cliff + monthly vesting after. */
+/** Compute the first four grant years with a configurable cliff and monthly vesting. */
 export function computeVestingSchedule(details: RSUEquityDetails): VestingYear[] {
   const { total_shares, cliff_months, vest_months, current_price } = details;
-  const results: VestingYear[] = [];
-
-  // Shares that vest at cliff (typically 25% at 12 months)
-  const cliffShares  = Math.round(total_shares * (cliff_months / vest_months));
-  // Remaining shares vest monthly after cliff
-  const postCliffMonths = vest_months - cliff_months;
-  const monthlyShares   = postCliffMonths > 0
-    ? (total_shares - cliffShares) / postCliffMonths
-    : 0;
-
-  for (let yr = 1; yr <= 4; yr++) {
-    const monthStart = (yr - 1) * 12 + 1;
-    const monthEnd   = yr * 12;
-
-    let shares = 0;
-    for (let m = monthStart; m <= monthEnd; m++) {
-      if (m === cliff_months) {
-        shares += cliffShares;
-      } else if (m > cliff_months && m <= vest_months) {
-        shares += monthlyShares;
-      }
-    }
-    results.push({ year: yr, sharesVested: Math.round(shares), value: Math.round(shares * current_price) });
-  }
-
-  return results;
+  if (![total_shares, cliff_months, vest_months, current_price].every(Number.isFinite)
+    || total_shares <= 0 || current_price < 0 || vest_months <= 0
+    || cliff_months < 0 || cliff_months > vest_months) return [];
+  const cumulative = (month: number) => month < cliff_months ? 0
+    : total_shares * Math.min(month, vest_months) / vest_months;
+  return Array.from({ length: 4 }, (_, index) => {
+    const shares = cumulative((index + 1) * 12) - cumulative(index * 12);
+    return { year: index + 1, sharesVested: Math.round(shares * 1e6) / 1e6,
+      value: Math.round(shares * current_price * 100) / 100 };
+  });
 }
 
 /** Annual equity value = Year-1 vest value (standard for TC comparison). */

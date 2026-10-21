@@ -11,7 +11,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: ['notification-realtime.spec.ts', 'docx-preview.spec.ts'],
+  testMatch: ['notification-realtime.spec.ts', 'docx-preview.spec.ts', 'roadmap-workflows.spec.ts'],
   fullyParallel: false,
   // Both viewports use the same dedicated account; isolate badge baselines.
   workers: 1,

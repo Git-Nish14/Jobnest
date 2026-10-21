@@ -11,6 +11,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
 export default defineConfig({
   testDir: directory,
   testMatch: "**/*.spec.ts",
+  testIgnore: "**/artifacts/**",
   outputDir: path.join(directory, "artifacts/results"),
   fullyParallel: true,
   workers: process.env.CI ? 2 : 3,

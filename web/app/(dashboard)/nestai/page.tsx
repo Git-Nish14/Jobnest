@@ -8,6 +8,8 @@ import {
   Square, Pin, PinOff, Paperclip, Mail, FileDown, ShieldCheck, FileText,
 } from "lucide-react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui";
+import { UsageSummary as DailyUsageBar } from "@/components/nestai/UsageSummary";
+import { SaveDraftTemplateButton } from "@/components/nestai/SaveDraftTemplateButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { fetchWithRetry } from "@/lib/utils/fetch-retry";
@@ -77,57 +79,6 @@ const SUGGESTED_PROMPTS = [
   { icon: Bell, label: "My reminders", prompt: "What are my pending reminders?" },
   { icon: BrainCircuit, label: "Progress summary", prompt: "Summarize my job search progress" },
 ];
-
-// ── Daily token usage bar (shown at bottom of sidebar) ───────────────────────
-interface DailyUsageData {
-  cap: { daily: number; used: number; remaining: number };
-  plan: "free" | "pro";
-}
-
-function DailyUsageBar() {
-  const [data, setData] = useState<DailyUsageData | null>(null);
-
-  useEffect(() => {
-    fetch("/api/nesta-ai/analytics", { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((j) => j && setData(j))
-      .catch(() => {});
-  }, []);
-
-  if (!data) return null;
-
-  const { cap } = data;
-  const pct = Math.min(100, Math.round((cap.used / cap.daily) * 100));
-  const capK = cap.daily >= 1_000_000
-    ? `${cap.daily / 1_000_000}M`
-    : `${cap.daily / 1_000}k`;
-  const usedK = cap.used >= 1_000
-    ? `${(cap.used / 1_000).toFixed(1)}k`
-    : String(cap.used);
-
-  return (
-    <div className="shrink-0 px-3 pb-3 pt-2 border-t border-[#e8e0dc]/60">
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground/70 mb-1.5">
-        <span className="font-medium uppercase tracking-wider">Daily AI usage</span>
-        <span className="tabular-nums">{usedK} / {capK}</span>
-      </div>
-      <div className="h-1 rounded-full bg-[#e8e0dc]/60 overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            pct >= 90 ? "bg-destructive/70" : pct >= 70 ? "bg-amber-400" : "bg-[#99462a]/50"
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      {pct >= 90 && (
-        <p className="text-[10px] text-destructive/70 mt-1">
-          {data.plan === "free" ? "Upgrade to Pro for 20× more." : "Resets at midnight UTC."}
-        </p>
-      )}
-    </div>
-  );
-}
 
 function RateLimitCounter({
   remaining, max, resetCountdown, isRateLimited,
@@ -1071,6 +1022,7 @@ export default function NestAiPage() {
       setMessages((prev) =>
         prev.map((m) => m.id === assistantMsgId ? { ...m, content, suggestions, isStreaming: false } : m)
       );
+      window.dispatchEvent(new Event("nestai:usage-updated"));
       if (sessionId) saveMessage(sessionId, "assistant", content);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -1692,8 +1644,9 @@ export default function NestAiPage() {
                         }
                         {!msg.isStreaming && (
                           <>
-                            <div className="flex items-center gap-1 mt-1.5">
+                            <div className="flex flex-wrap items-center gap-1 mt-1.5">
                               <CopyButton text={msg.content} />
+                              {msg.content.trim() && <SaveDraftTemplateButton content={msg.content} />}
                               <span className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {formatTime(msg.timestamp.toISOString())}
                               </span>

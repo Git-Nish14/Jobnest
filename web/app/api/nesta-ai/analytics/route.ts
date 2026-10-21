@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { getUsageHistory, TOKEN_CAPS } from "@/lib/features/ai-usage";
+import { describeIndex, type IndexStatus } from "@/lib/features/index-status";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,17 @@ export async function GET(_request: NextRequest) {
     const isPro = sub?.plan === "pro" && sub?.status === "active";
     const plan = isPro ? "pro" : "free";
     const dailyCap = isPro ? TOKEN_CAPS.pro : TOKEN_CAPS.free;
+
+    let index: IndexStatus | null = null;
+    if (isPro) {
+      const { data, count, error } = await supabase
+        .from("nestai_embeddings")
+        .select("updated_at", { count: "exact" })
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      index = describeIndex(count, data?.[0]?.updated_at ?? null, !!error);
+    }
 
     // Last 30 days of usage
     const rows = await getUsageHistory(user.id, 30);
@@ -79,7 +91,8 @@ export async function GET(_request: NextRequest) {
       totals: { tokens: totalTokens, requests: totalRequests, days: 30 },
       byFeature,
       dailyChart,
-    });
+      index,
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     return errorResponse(err);
   }
