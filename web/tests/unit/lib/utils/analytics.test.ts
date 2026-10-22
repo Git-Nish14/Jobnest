@@ -72,7 +72,9 @@ function datetimeAgo(n: number): string {
 }
 
 /** Builds a Supabase chain that resolves the query promise with `data` */
-function makeChainForApps(apps: AppRow[]) {
+function makeChainForApps(apps: AppRow[], pageLimit = 1000, failAt?: number) {
+  let offset = 0;
+  let end = pageLimit - 1;
   const chain = {
     select: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -80,16 +82,26 @@ function makeChainForApps(apps: AppRow[]) {
     eq: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
-    then: (resolve: (v: { data: AppRow[]; error: null }) => void) =>
-      Promise.resolve({ data: apps, error: null }).then(resolve),
+    range: vi.fn((from: number, to: number) => {
+      offset = from;
+      end = Math.min(to, from + pageLimit - 1);
+      return chain;
+    }),
+    then: (resolve: (v: {
+      data: AppRow[] | null;
+      error: { message: string; code: string } | null;
+      count: number | null;
+    }) => void) => Promise.resolve(failAt !== undefined && offset >= failAt
+      ? { data: null, error: { message: "Page fetch failed", code: "08006" }, count: null }
+      : { data: apps.slice(offset, end + 1), error: null, count: apps.length }).then(resolve),
   };
   return chain;
 }
 
-function makeSupabaseClient(apps: AppRow[]) {
+function makeSupabaseClient(apps: AppRow[], pageLimit = 1000, failAt?: number) {
   return {
     from: vi.fn((table: string) => {
-      if (table === "job_applications") return makeChainForApps(apps);
+      if (table === "job_applications") return makeChainForApps(apps, pageLimit, failAt);
       // interviews and reminders return empty arrays for simplicity
       return makeChainForApps([]);
     }),
@@ -98,6 +110,60 @@ function makeSupabaseClient(apps: AppRow[]) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+});
+
+describe("getDashboardAnalytics — accounts beyond the response row limit", () => {
+  it.each([0, 1, 999, 1000, 1001, 2000, 2501])("counts all %i applications", async (total) => {
+    const apps = Array.from({ length: total }, () => makeApp({ status: "Applied" }));
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+
+    const { data, error } = await getDashboardAnalytics();
+
+    expect(error).toBeNull();
+    expect(data?.totalApplications).toBe(total);
+    expect(data?.statusDistribution.reduce((sum, status) => sum + status.count, 0)).toBe(total);
+  });
+
+  it("includes offers and reporting periods from later pages in derived metrics", async () => {
+    const apps = [
+      ...Array.from({ length: 1000 }, () => makeApp({ status: "Applied", applied_date: daysAgo(0) })),
+      ...Array.from({ length: 250 }, () => makeApp({
+        status: "Offer", applied_date: daysAgo(60), source: "Referral", company_tier: "Startup",
+      })),
+    ];
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps) as never);
+
+    const { data } = await getDashboardAnalytics();
+
+    expect(data?.totalApplications).toBe(1250);
+    expect(data?.thisMonth).toBe(1000);
+    expect(data?.statusDistribution).toContainEqual({ status: "Offer", count: 250 });
+    expect(data?.responseRate).toBe(20);
+    expect(data?.sourceEffectiveness).toContainEqual({
+      source: "Referral", total: 250, responded: 250, responseRate: 100,
+    });
+    expect(data?.stageFunnel).toContainEqual({ stage: "Offer", count: 250 });
+    expect(data?.monthlyTrends.reduce((sum, month) => sum + month.count, 0)).toBe(1250);
+  });
+
+  it("continues through short pages when the server's row cap is below 1,000", async () => {
+    const apps = Array.from({ length: 1201 }, () => makeApp({ status: "Applied" }));
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps, 300) as never);
+
+    const { data, error } = await getDashboardAnalytics();
+
+    expect(error).toBeNull();
+    expect(data?.totalApplications).toBe(1201);
+  });
+
+  it.each([0, 1000])("returns an error instead of partial analytics if a page fails at %i", async (failAt) => {
+    const apps = Array.from({ length: 1201 }, () => makeApp({ status: "Applied" }));
+    mockCreate.mockResolvedValue(makeSupabaseClient(apps, 1000, failAt) as never);
+
+    expect(await getDashboardAnalytics()).toEqual({
+      data: null, error: { message: "Page fetch failed", code: "08006" },
+    });
+  });
 });
 
 // ── averageTimeToResponse ─────────────────────────────────────────────────────
