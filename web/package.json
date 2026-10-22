@@ -31,7 +31,7 @@
     "@react-pdf/renderer": "^4.9.0",
     "@sentry/nextjs": "^11.8.0",
     "@supabase/ssr": "^0.12.6",
-    "@supabase/supabase-js": "^2.117.3",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/diff": "^8.0.0",
     "@types/papaparse": "^5.5.2",
     "@types/web-push": "^3.6.4",
