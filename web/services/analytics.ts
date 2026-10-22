@@ -15,7 +15,13 @@ import type {
   TierResponseRate,
   Interview,
   Reminder,
+  JobApplication,
 } from "@/types";
+
+type AnalyticsApplication = Pick<JobApplication,
+  "id" | "status" | "applied_date" | "updated_at" | "company" |
+  "source" | "salary_range" | "company_tier"
+>;
 
 export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnalytics>> {
   try {
@@ -23,16 +29,33 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
 
     // Fetch only the columns needed for analytics — avoids pulling notes/job_description
     // (which can be many KB each) for every row, cutting transfer size significantly.
-    const { data: applications, error: appError } = await supabase
-      .from("job_applications")
-      .select("id,status,applied_date,updated_at,company,source,salary_range,company_tier")
-      .order("applied_date", { ascending: false });
+    // Supabase caps each response. Fetch every page so totals and derived
+    // metrics include the entire account, not just its first 1,000 rows.
+    const pageSize = 1000;
+    const applications: AnalyticsApplication[] = [];
+    let expectedTotal: number | null = null;
+    let offset = 0;
+    while (true) {
+      const { data, error, count } = await supabase
+        .from("job_applications")
+        .select("id,status,applied_date,updated_at,company,source,salary_range,company_tier",
+          offset === 0 ? { count: "exact" } : undefined)
+        .order("applied_date", { ascending: false })
+        .order("id", { ascending: false })
+        .range(offset, offset + pageSize - 1);
 
-    if (appError) {
-      return {
-        data: null,
-        error: { message: appError.message, code: appError.code },
-      };
+      if (error) {
+        return { data: null, error: { message: error.message, code: error.code } };
+      }
+
+      if (offset === 0) expectedTotal = count;
+      applications.push(...((data ?? []) as AnalyticsApplication[]));
+      if (!data?.length || (expectedTotal !== null
+        ? applications.length >= expectedTotal
+        : data.length < pageSize)) break;
+      // Advance by the actual response size, including when the project's
+      // configured row cap is smaller than the requested page size.
+      offset += data.length;
     }
 
     const now = new Date();
