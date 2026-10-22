@@ -65,9 +65,14 @@ test.describe("Responsive", () => {
   test("navigation is visible on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 }); // iPhone 14
     await page.goto("/");
-    // Mobile nav or bottom bar
-    const nav = page.locator("nav, [role='navigation']").first();
-    await expect(nav).toBeVisible();
+    const header = page.getByRole("banner");
+    const menu = header.getByRole("button", { name: "Toggle menu", exact: true });
+    await expect(menu).toBeVisible();
+    await menu.click();
+    const pricing = header.getByRole("link", { name: "Pricing", exact: true }).filter({ visible: true });
+    await expect(pricing).toBeVisible();
+    await pricing.click();
+    await expect(page).toHaveURL(/\/pricing/);
   });
 
   test("pricing page renders on mobile", async ({ page }) => {
