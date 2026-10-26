@@ -43,7 +43,7 @@
     "lucide-react": "^1.58.0",
     "mammoth": "^1.13.0",
     "next": "^16.4.2",
-    "nodemailer": "^10.1.2",
+    "nodemailer": "^10.2.1",
     "papaparse": "^5.7.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^6.4.299",
