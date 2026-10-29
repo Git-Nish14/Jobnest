@@ -75,6 +75,38 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe("Sentry tunnel routing", () => {
+  it("allows cookie-free event POSTs without a session lookup or login redirect", async () => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+    const request = new NextRequest("https://localhost/monitoring?o=123&p=456", {
+      method: "POST",
+      headers: { "x-forwarded-proto": "https" },
+      body: "event-envelope",
+    });
+
+    const response = await proxy(request);
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("content-security-policy")).toContain("script-src");
+    expect(mockCreateServerClient).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["/monitoring", "GET"],
+    ["/monitoring-admin", "POST"],
+    ["/monitoring/private", "POST"],
+    ["/dashboard", "POST"],
+  ])("keeps %s %s protected", async (pathname, method) => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+    const response = await proxy(new NextRequest(`http://localhost${pathname}`, { method }));
+
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/login");
+  });
+});
+
 describe("proxy — unauthenticated access", () => {
   beforeEach(() => {
     mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
