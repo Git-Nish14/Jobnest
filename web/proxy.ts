@@ -154,6 +154,13 @@ export async function proxy(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
+  // Sentry 11.9 sends tunnel envelopes without cookies. Let only event POSTs
+  // reach the configured /monitoring rewrite without a session redirect.
+  if (pathname === "/monitoring" && request.method === "POST") {
+    response.headers.set("Cache-Control", "no-store");
+    return addSecurityHeaders(response, nonce, isHttps);
+  }
+
   if (chatGptApiRoutes.has(pathname)) {
     response.headers.set("Cache-Control", "no-store");
     addSecurityHeaders(response, nonce, isHttps);
