@@ -1,3 +1,19 @@
+# Agent instructions
+
+## Repository skills
+
+Before working in `web/`, review the skills in `../skills/` (relative to this file). Read the `SKILL.md` for each skill relevant to the task and follow its instructions while implementing and reviewing changes.
+
+Available skills:
+
+- [Accessibility](../skills/accessibility/SKILL.md)
+- [Emil design engineering](../skills/emil-design-eng/SKILL.md)
+- [Frontend design](../skills/frontend-design/SKILL.md)
+- [Mobile native](../skills/mobile-native/SKILL.md)
+- [Unslop](../skills/unslop/SKILL.md)
+
+Check `../skills/` for newly added skills as well; this list may grow.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
