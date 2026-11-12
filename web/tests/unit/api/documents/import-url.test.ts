@@ -15,6 +15,7 @@ vi.stubGlobal("fetch", mockFetch);
 import { POST } from "@/app/api/documents/import-url/route";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { fetchPublicUrl } from "@/lib/security/public-fetch";
 
 const mockRL     = vi.mocked(checkRateLimit);
 const mockCreate = vi.mocked(createClient);
@@ -188,9 +189,9 @@ describe("POST /api/documents/import-url", () => {
     const gdUrl = "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing";
     const res = await POST(jsonRequest({ url: gdUrl, label: "Resume", application_id: VALID_APP_ID }) as never);
     expect(res.status).toBe(201);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("drive.usercontent.google.com"),
-      expect.any(Object)
+    expect(fetchPublicUrl).toHaveBeenCalledWith(
+      "https://drive.usercontent.google.com/download?id=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs&export=download&authuser=0",
+      expect.objectContaining({ maxBytes: 10 * 1024 * 1024, timeoutMs: 20_000 })
     );
   });
 

@@ -526,7 +526,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
         { status: 429 }
       );
     }
-    async function callOpenAI(model: string) {
+    const callOpenAI = async (model: string) => {
       try {
         return await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -534,10 +534,10 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
           body: JSON.stringify({ model, messages: chatMessages, max_completion_tokens: 1500, reasoning_effort: "medium", stream: true }),
         });
       } catch (error) {
-        await releaseTokenReservation(user.id, inputTokenCount, reservation!);
+        await releaseTokenReservation(user.id, inputTokenCount, reservation);
         throw error;
       }
-    }
+    };
 
     let openaiResponse = await callOpenAI(PRIMARY_MODEL);
     let usedModel = PRIMARY_MODEL;

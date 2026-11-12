@@ -1,6 +1,7 @@
-const { spawn } = require("node:child_process");
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
+const child = spawn(process.execPath, [fileURLToPath(import.meta.resolve("next/dist/bin/next")), "build"], {
   env: { ...process.env, ANALYZE: "true" },
   stdio: "inherit",
 });

@@ -19,7 +19,7 @@
     "test:e2e:features": "playwright test --config playwright.features.config.ts",
     "test:mobile": "playwright test --config tests/mobile-browser/playwright.config.ts",
     "test:mobile:webkit": "playwright test --config tests/mobile-browser/playwright.webkit.config.ts",
-    "analyze": "node scripts/analyze.cjs"
+    "analyze": "node scripts/analyze.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.3",

@@ -1,7 +1,7 @@
 import { ApiError } from "@/lib/api/errors";
 
 /** Enforce the limit while reading, including responses without Content-Length. */
-export async function readLimitedResponse(response: Response, maxBytes: number): Promise<Buffer> {
+export async function readLimitedResponse(response: Response, maxBytes: number): Promise<Buffer<ArrayBuffer>> {
   if (Number(response.headers.get("content-length")) > maxBytes) {
     await response.body?.cancel();
     throw ApiError.badRequest("File exceeds the download size limit.");
