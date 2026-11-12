@@ -10,6 +10,7 @@ Available skills:
 - [Emil design engineering](../skills/emil-design-eng/SKILL.md)
 - [Frontend design](../skills/frontend-design/SKILL.md)
 - [Mobile native](../skills/mobile-native/SKILL.md)
+- [Security audit](../skills/security-audit/SKILL.md)
 - [Unslop](../skills/unslop/SKILL.md)
 
 Check `../skills/` for newly added skills as well; this list may grow.
