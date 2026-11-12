@@ -63,7 +63,7 @@ export default async function NetworkingPage() {
     .filter(Boolean);
 
   return (
-    <main id="main-content" className="db-main">
+    <div>
       <div className="db-page-header">
         <div>
           <h1 className="db-page-title">Networking</h1>
@@ -83,6 +83,6 @@ export default async function NetworkingPage() {
         userSchools={userSchools}
         initialGoal={initialGoal}
       />
-    </main>
+    </div>
   );
 }

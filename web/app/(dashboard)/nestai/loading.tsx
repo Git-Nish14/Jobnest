@@ -1,4 +1,4 @@
-import { NestAiSkeleton } from "@/components/common";
+import { NestAiSkeleton } from "@/components/common/skeletons";
 
 export default function NestAiLoading() {
   return <NestAiSkeleton />;

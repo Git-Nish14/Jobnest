@@ -128,6 +128,7 @@ export const viewport: Viewport = {
   // Allows content to extend into the notch/home-indicator area so that
   // env(safe-area-inset-*) values are non-zero and our fixed bars sit correctly.
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   colorScheme: "light dark",
 };
 

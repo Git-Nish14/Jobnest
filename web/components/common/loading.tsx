@@ -16,13 +16,14 @@ const sizeClasses = {
 export function Loading({ className, size = "default", text }: LoadingProps) {
   return (
     <div
+      role="status"
       className={cn(
         "flex flex-col items-center justify-center gap-3",
         className
       )}
     >
-      <Loader2 className={cn("animate-spin text-primary", sizeClasses[size])} />
-      {text && <p className="text-sm text-muted-foreground">{text}</p>}
+      <Loader2 aria-hidden="true" className={cn("animate-spin motion-reduce:animate-none text-primary", sizeClasses[size])} />
+      {text ? <p className="text-sm text-muted-foreground">{text}</p> : <span className="sr-only">Loading</span>}
     </div>
   );
 }
@@ -36,5 +37,5 @@ export function PageLoading() {
 }
 
 export function ButtonLoading({ className }: { className?: string }) {
-  return <Loader2 className={cn("h-4 w-4 animate-spin", className)} />;
+  return <Loader2 aria-hidden="true" className={cn("h-4 w-4 animate-spin motion-reduce:animate-none", className)} />;
 }

@@ -58,7 +58,7 @@ export async function checkAndReserveTokens(
   userId: string,
   cap: number,
   tokens: number,
-): Promise<{ allowed: boolean; used: number; midnightTs: number } | null> {
+): Promise<{ allowed: boolean; used: number; midnightTs: number; redisReserved?: boolean } | null> {
   const date       = todayUtc();
   const key        = tokenCapKey(userId, date);
   const midnightTs = utcMidnightTs();
@@ -81,7 +81,7 @@ export async function checkAndReserveTokens(
       }
       return { allowed: false, used: newTotal - tokens, midnightTs };
     }
-    return { allowed: true, used: newTotal, midnightTs };
+    return { allowed: true, used: newTotal, midnightTs, redisReserved: true };
   }
 
   // Redis unavailable — fall back to DB (carries TOCTOU risk but beats a 503)
@@ -90,6 +90,22 @@ export async function checkAndReserveTokens(
   if (current === null) return null;
   if (current + tokens > cap) return { allowed: false, used: current, midnightTs };
   return { allowed: true, used: current + tokens, midnightTs };
+}
+
+/** Undo only a committed Redis reservation, using its original UTC day. */
+export async function releaseTokenReservation(
+  userId: string,
+  tokens: number,
+  reservation: { midnightTs: number; redisReserved?: boolean },
+): Promise<void> {
+  if (!reservation.redisReserved) return;
+  const date = new Date(reservation.midnightTs * 1000 - 1).toISOString().slice(0, 10);
+  // Do not recreate an expired counter or let a duplicate release make it negative.
+  const result = await redisPipeline([["EVAL",
+    "local v=redis.call('GET',KEYS[1]); if v then return redis.call('DECRBY',KEYS[1],math.min(tonumber(v),tonumber(ARGV[1]))) end; return 0",
+    1, tokenCapKey(userId, date), tokens,
+  ]]);
+  if (result === null) console.error("[ai-usage] Failed to release token reservation");
 }
 
 /**
@@ -101,7 +117,9 @@ export async function recordRedisOutputTokens(
   outputTokens: number,
   midnightTs: number,
 ): Promise<void> {
-  const key = tokenCapKey(userId, todayUtc());
+  // Preserve the reservation's day if a stream finishes across UTC midnight.
+  const date = new Date(midnightTs * 1000 - 1).toISOString().slice(0, 10);
+  const key = tokenCapKey(userId, date);
   await redisPipeline([
     ["INCRBY",   key, outputTokens],
     ["EXPIREAT", key, midnightTs, "NX"],

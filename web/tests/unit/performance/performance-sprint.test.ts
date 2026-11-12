@@ -70,9 +70,11 @@ describe("Bundle analysis — package.json", () => {
     expect(pkg.scripts).toHaveProperty("analyze");
   });
 
-  it("analyze script passes ANALYZE=true to next build", () => {
-    expect(pkg.scripts.analyze).toContain("ANALYZE=true");
-    expect(pkg.scripts.analyze).toContain("next build");
+  it("analyze script uses a cross-platform launcher with the analysis environment", () => {
+    expect(pkg.scripts.analyze).toBe("node scripts/analyze.cjs");
+    const launcher = readSrc("scripts/analyze.cjs");
+    expect(launcher).toContain('ANALYZE: "true"');
+    expect(launcher).toContain('require.resolve("next/dist/bin/next")');
   });
 
   it("@next/bundle-analyzer is in devDependencies", () => {

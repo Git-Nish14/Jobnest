@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readLimitedResponse } from "@/lib/security/read-limited-response";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       throw ApiError.badRequest("Could not download file from Google Drive.");
     }
 
-    const buffer = Buffer.from(await driveRes.arrayBuffer());
+    const buffer = await readLimitedResponse(driveRes, MAX_FILE_SIZE);
 
     if (buffer.length > MAX_FILE_SIZE) {
       throw ApiError.badRequest(`File exceeds the 10 MB limit (${(buffer.length / 1024 / 1024).toFixed(1)} MB).`);

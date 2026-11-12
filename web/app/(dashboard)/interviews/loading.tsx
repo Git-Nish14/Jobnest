@@ -1,5 +1,5 @@
-import { GenericPageSkeleton } from "@/components/common";
+import { InterviewsSkeleton } from "@/components/common/skeletons";
 
 export default function InterviewsLoading() {
-  return <GenericPageSkeleton />;
+  return <InterviewsSkeleton />;
 }

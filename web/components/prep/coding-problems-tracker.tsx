@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Plus, ExternalLink, Trash2, CheckCircle2, RefreshCw, Clock, Tag, Code2 } from "lucide-react";
 import type { CodingProblem, ProblemDifficulty, ProblemStatus } from "@/types/prep";
 import { PROBLEM_TOPICS } from "@/types/prep";
@@ -40,6 +40,7 @@ const defaultForm: AddForm = {
 };
 
 export function CodingProblemsTracker({ problems, onChange, onActivity }: Props) {
+  const formId = useId();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<AddForm>(defaultForm);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -119,6 +120,7 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
         {(["Todo", "Attempted", "Solved", "Review"] as ProblemStatus[]).map(s => (
           <button
             key={s}
+            aria-pressed={filterStatus === s}
             onClick={() => setFilterStatus(filterStatus === s ? "all" : s)}
             className={`db-content-card text-center py-3 cursor-pointer transition-all ${filterStatus === s ? "ring-2 ring-[#99462a]" : ""}`}
           >
@@ -150,6 +152,7 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
           {["all", "Array", "String", "Tree", "Graph", "DP", ...uniqueTopics.filter(t => !["Array","String","Tree","Graph","DP"].includes(t))].map(t => (
             <button
               key={t}
+              aria-pressed={filterTopic === t}
               onClick={() => setFilterTopic(t)}
               className={`db-filter-pill ${filterTopic === t ? "db-filter-pill-active" : "db-filter-pill-inactive"}`}
             >
@@ -161,6 +164,7 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
           {(["all", "Easy", "Medium", "Hard"] as const).map(d => (
             <button
               key={d}
+              aria-pressed={filterDiff === d}
               onClick={() => setFilterDiff(d)}
               className={`db-filter-pill text-xs ${filterDiff === d ? "db-filter-pill-active" : "db-filter-pill-inactive"}`}
             >
@@ -181,11 +185,13 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
       {showAdd && (
         <div className="db-content-card space-y-4">
           <h3 className="font-semibold text-[#1a1c1b] db-headline text-lg">Add Problem</h3>
-          {error && <p className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p role="alert" className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 rounded-lg px-3 py-2">{error}</p>}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Title *</label>
+              <label htmlFor={`${formId}-title`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Title *</label>
               <input
+                id={`${formId}-title`}
+                required
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Two Sum"
@@ -193,8 +199,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               />
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Difficulty</label>
+              <label htmlFor={`${formId}-difficulty`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Difficulty</label>
               <select
+                id={`${formId}-difficulty`}
                 value={form.difficulty}
                 onChange={e => setForm(f => ({ ...f, difficulty: e.target.value as ProblemDifficulty }))}
                 className="w-full bg-[#f4f3f1] border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#99462a]/30 text-[#1a1c1b]"
@@ -203,8 +210,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Topic</label>
+              <label htmlFor={`${formId}-topic`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Topic</label>
               <select
+                id={`${formId}-topic`}
                 value={form.topic}
                 onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
                 className="w-full bg-[#f4f3f1] border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#99462a]/30 text-[#1a1c1b]"
@@ -213,8 +221,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Status</label>
+              <label htmlFor={`${formId}-status`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Status</label>
               <select
+                id={`${formId}-status`}
                 value={form.status}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value as ProblemStatus }))}
                 className="w-full bg-[#f4f3f1] border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#99462a]/30 text-[#1a1c1b]"
@@ -223,8 +232,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">LeetCode URL</label>
+              <label htmlFor={`${formId}-url`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">LeetCode URL</label>
               <input
+                id={`${formId}-url`}
                 type="url"
                 value={form.url}
                 onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
@@ -233,8 +243,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Company Tags <span className="normal-case font-normal opacity-60">(comma-separated)</span></label>
+              <label htmlFor={`${formId}-tags`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Company Tags <span className="normal-case font-normal opacity-60">(comma-separated)</span></label>
               <input
+                id={`${formId}-tags`}
                 value={form.company_tags}
                 onChange={e => setForm(f => ({ ...f, company_tags: e.target.value }))}
                 placeholder="Google, Meta, Amazon"
@@ -242,8 +253,9 @@ export function CodingProblemsTracker({ problems, onChange, onActivity }: Props)
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Notes</label>
+              <label htmlFor={`${formId}-notes`} className="text-xs font-bold uppercase tracking-wider text-[#55433d] opacity-60 block mb-1.5">Notes</label>
               <textarea
+                id={`${formId}-notes`}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}

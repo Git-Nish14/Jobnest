@@ -1,5 +1,5 @@
-import { GenericPageSkeleton } from "@/components/common";
+import { ContactsSkeleton } from "@/components/common/skeletons";
 
 export default function ContactsLoading() {
-  return <GenericPageSkeleton />;
+  return <ContactsSkeleton />;
 }

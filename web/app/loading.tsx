@@ -2,11 +2,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="h-14 sm:h-16 border-b bg-white flex items-center px-4 sm:px-8">
+    <div role="status" aria-busy="true" className="min-h-dvh flex flex-col bg-background">
+      <span className="sr-only">Loading Jobnest</span>
+      <div aria-hidden="true" className="h-14 sm:h-16 border-b bg-card flex items-center px-4 sm:px-8">
         <Skeleton className="h-8 w-28" />
       </div>
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div aria-hidden="true" className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-3xl space-y-6 text-center">
           <Skeleton className="h-12 w-3/4 mx-auto" />
           <Skeleton className="h-6 w-1/2 mx-auto" />

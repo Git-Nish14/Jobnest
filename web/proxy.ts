@@ -23,7 +23,7 @@ const publicRoutes = new Set([
 // Use exact strings or explicit trailing slashes — never bare prefixes that
 // could accidentally match unrelated routes (e.g. "/api/contact" would also
 // match a hypothetical "/api/contact-admin").
-const publicApiRoutes = new Set(["/api/contact"]);
+const publicApiRoutes = new Set(["/api/contact", "/api/health", "/api/referrals"]);
 const publicApiPrefixes = ["/api/auth/", "/api/documents/shared/", "/api/cron/"];
 
 // These handlers own their authentication: OAuth/MCP use bearer tokens or
@@ -157,6 +157,12 @@ export async function proxy(request: NextRequest) {
   // Sentry 11.9 sends tunnel envelopes without cookies. Let only event POSTs
   // reach the configured /monitoring rewrite without a session redirect.
   if (pathname === "/monitoring" && request.method === "POST") {
+    response.headers.set("Cache-Control", "no-store");
+    return addSecurityHeaders(response, nonce, isHttps);
+  }
+
+  // Stripe authenticates deliveries with its signature, without session cookies.
+  if (pathname === "/api/stripe/webhook" && request.method === "POST") {
     response.headers.set("Cache-Control", "no-store");
     return addSecurityHeaders(response, nonce, isHttps);
   }

@@ -1,4 +1,5 @@
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -78,9 +79,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./"),
+      "@": fileURLToPath(new URL("./", import.meta.url)),
       // Match Next's server-component build alias when testing server routes.
-      "server-only": path.resolve(__dirname, "node_modules/next/dist/compiled/server-only/empty.js"),
+      "server-only": path.resolve(fileURLToPath(new URL("./", import.meta.url)), "node_modules/next/dist/compiled/server-only/empty.js"),
     },
   },
 });

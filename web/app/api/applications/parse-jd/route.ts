@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { verifyOrigin } from "@/lib/security/csrf";
+import { fetchPublicUrl, isPublicAddress } from "@/lib/security/public-fetch";
 import { z } from "zod";
 
 // Extracts structured job data from a URL or pasted text using Groq.
@@ -35,9 +36,9 @@ async function tryGreenhouse(url: string): Promise<string | null> {
   if (!m) return null;
   const [, company, jobId] = m;
   try {
-    const res = await fetch(
+    const res = await fetchPublicUrl(
       `https://boards-api.greenhouse.io/v1/boards/${company}/jobs/${jobId}`,
-      { signal: AbortSignal.timeout(8_000) }
+      { timeoutMs: 8_000, maxBytes: 2 * 1024 * 1024 }
     );
     if (!res.ok) return null;
     const data = await res.json() as { title?: string; location?: { name?: string }; content?: string; departments?: { name: string }[] };
@@ -57,9 +58,9 @@ async function tryLever(url: string): Promise<string | null> {
   if (!m) return null;
   const [, company, jobId] = m;
   try {
-    const res = await fetch(
+    const res = await fetchPublicUrl(
       `https://api.lever.co/v0/postings/${company}/${jobId}`,
-      { signal: AbortSignal.timeout(8_000) }
+      { timeoutMs: 8_000, maxBytes: 2 * 1024 * 1024 }
     );
     if (!res.ok) return null;
     const data = await res.json() as { text?: string; categories?: { location?: string; team?: string }; descriptionPlain?: string; additionalPlain?: string };
@@ -115,25 +116,7 @@ function isBlockedBoard(url: string): string | null {
 // (e.g. AWS metadata at 169.254.169.254, internal k8s services, etc.).
 
 function isPrivateIp(ip: string): boolean {
-  // IPv6 loopback / ULA / link-local
-  if (ip === "::1") return true;
-  if (/^(fc|fd)/i.test(ip)) return true;
-  if (/^fe80/i.test(ip)) return true;
-  // IPv4 private / loopback / link-local / CGNAT / reserved
-  return [
-    /^127\./,                               // loopback
-    /^0\./,                                 // this-network
-    /^10\./,                                // RFC-1918 class A
-    /^172\.(1[6-9]|2\d|3[01])\./,          // RFC-1918 class B
-    /^192\.168\./,                          // RFC-1918 class C
-    /^169\.254\./,                          // link-local / AWS + GCP metadata
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // CGNAT (RFC-6598)
-    /^192\.0\.[02]\./,                      // IETF protocol assignments
-    /^198\.(1[89])\./,                      // benchmarking
-    /^198\.51\.100\./,                      // TEST-NET-2
-    /^203\.0\.113\./,                       // TEST-NET-3
-    /^2[45]\d\./,                           // class D/E
-  ].some((re) => re.test(ip));
+  return !isPublicAddress(ip);
 }
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
@@ -198,14 +181,14 @@ export async function POST(request: NextRequest) {
           try {
             await assertSafeUrl(url);
 
-            const res = await fetch(url, {
+            const res = await fetchPublicUrl(url, {
               headers: {
                 "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0; +https://jobnest.app)",
                 "Accept": "text/html,application/xhtml+xml",
                 "Accept-Language": "en-US,en;q=0.9",
               },
-              signal: AbortSignal.timeout(10_000),
-              redirect: "follow",
+              timeoutMs: 10_000,
+              maxBytes: 2 * 1024 * 1024,
             });
 
             // Post-redirect SSRF check

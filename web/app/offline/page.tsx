@@ -14,9 +14,10 @@ export const metadata: Metadata = {
 
 export default function OfflinePage() {
   return (
-    <div
+    <main
+      id="main-content"
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -188,6 +189,6 @@ export default function OfflinePage() {
           Jobnest
         </p>
       </div>
-    </div>
+    </main>
   );
 }

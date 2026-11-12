@@ -341,27 +341,28 @@ export async function getDashboardAnalytics(): Promise<ApiResponse<DashboardAnal
     // Upcoming interviews — include the parent application so the dashboard can
     // show the company name in the "Next interview" stat card footer.
     let upcomingInterviews: Interview[] = [];
-    const { data: interviews } = await supabase
+    const [{ data: interviews }, { data: reminders }] = await Promise.all([
+      supabase
       .from("interviews")
       .select("*, job_applications(company, position)")
       .gte("scheduled_at", now.toISOString())
       .eq("status", "Scheduled")
       .order("scheduled_at", { ascending: true })
-      .limit(5);
-
-    if (interviews) {
-      upcomingInterviews = interviews as Interview[];
-    }
-
-    // Pending reminders — select only the fields the tasks panel renders.
-    let pendingReminders: Reminder[] = [];
-    const { data: reminders } = await supabase
+      .limit(5),
+      supabase
       .from("reminders")
       .select("id, title, remind_at, is_completed, application_id")
       .eq("is_completed", false)
       .gte("remind_at", now.toISOString())
       .order("remind_at", { ascending: true })
-      .limit(5);
+      .limit(5),
+    ]);
+
+    if (interviews) {
+      upcomingInterviews = interviews as Interview[];
+    }
+
+    let pendingReminders: Reminder[] = [];
 
     if (reminders) {
       pendingReminders = reminders as Reminder[];

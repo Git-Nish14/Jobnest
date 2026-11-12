@@ -13,4 +13,10 @@ export {
   PrepSkeleton,
   NotificationsSkeleton,
   ProfileSkeleton,
+  ContactsSkeleton,
+  InterviewsSkeleton,
+  RemindersSkeleton,
+  TemplatesSkeleton,
+  NetworkingSkeleton,
+  ApplicationFormSkeleton,
 } from "./skeletons";

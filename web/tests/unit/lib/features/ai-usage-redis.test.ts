@@ -23,7 +23,7 @@ vi.mock("@/lib/supabase/admin", () => ({
   })),
 }));
 
-import { checkAndReserveTokens, recordRedisOutputTokens } from "@/lib/features/ai-usage";
+import { checkAndReserveTokens, releaseTokenReservation, recordRedisOutputTokens } from "@/lib/features/ai-usage";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const mockAdmin = vi.mocked(createAdminClient);
@@ -51,6 +51,23 @@ function mockPipelineResponse(results: unknown[]) {
 
 const USER_ID = "user-redis-test-aabbcc";
 const CAP     = 100_000;
+
+describe("failed provider reservation release", () => {
+  it("uses the reservation's UTC day when releasing after midnight", async () => {
+    mockPipelineResponse([0]);
+    await releaseTokenReservation(USER_ID, 100, {
+      midnightTs: Date.parse("2026-11-13T00:00:00Z") / 1000,
+      redisReserved: true,
+    });
+    const options = vi.mocked(fetch).mock.calls[0][1]!;
+    expect(String(options.body)).toContain(`token-cap:${USER_ID}:2026-11-12`);
+  });
+  it("does not subtract tokens when only the database fallback was used", async () => {
+    mockPipelineResponse([0]);
+    await releaseTokenReservation(USER_ID, 100, { midnightTs: 0 });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -165,6 +182,18 @@ describe("checkAndReserveTokens — Redis unavailable (DB fallback)", () => {
 // ── Output token recording ────────────────────────────────────────────────────
 
 describe("recordRedisOutputTokens", () => {
+  it("does not add yesterday's stream output to today's counter after midnight", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-13T00:00:05Z"));
+      mockPipelineResponse([500, 1]);
+      await recordRedisOutputTokens(USER_ID, 500, Date.parse("2026-11-13T00:00:00Z") / 1000);
+      const options = vi.mocked(fetch).mock.calls[0][1]!;
+      expect(String(options.body)).toContain(`token-cap:${USER_ID}:2026-11-12`);
+      expect(String(options.body)).not.toContain(`token-cap:${USER_ID}:2026-11-13`);
+    } finally { vi.useRealTimers(); }
+  });
+
   it("fires INCRBY + EXPIREAT pipeline with the provided midnightTs", async () => {
     mockPipelineResponse([1234, 1]);
 

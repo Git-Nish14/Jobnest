@@ -15,7 +15,7 @@ A job search workspace for tracking applications, managing documents, preparing 
 - **Networking and compensation:** manage contacts, outreach statuses, referrals, and coffee chats; save equity grants with vesting previews, compare compensation, and export offer comparisons.
 - **Developer portfolios:** publish selected projects, skills, and GitHub repositories; receive anonymous skill endorsements with duplicate and rate controls.
 
-The interface supports dark mode, responsive layouts, and installation as a progressive web app. The [ChatGPT integration guide](docs/CHATGPT_PLUGIN_SETUP.md) explains how to connect Jobnest for checking and saving job applications.
+The interface supports dark mode, responsive layouts, and installation as a progressive web app. Open Connected tools in Profile to connect ChatGPT for checking and saving job applications.
 
 ## Technology
 
@@ -194,7 +194,7 @@ These tests render application components with mocked routing, API responses, an
 
 The authenticated feature suite also checks template persistence, equity creation and editing without overwriting existing salary fields, and real calendar downloads using temporary records. Endorsement SQL regression checks are in [supabase/tests/portfolio_skill_endorsements.sql](supabase/tests/portfolio_skill_endorsements.sql); run that transactional script against a disposable database after migration 056. It verifies duplicate protection, publication and ownership checks, persistent daily limits, deletion cleanup, and restricted role access.
 
-For WebKit, install its browser first with `npx playwright install webkit`. See the [browser suite guide](web/tests/mobile-browser/README.md) for supported cases and production CSS checks.
+Run `npm run test:mobile -- skeletons.spec.ts` to check page loaders; use `npm run test:mobile:webkit` for WebKit. After building, `npx playwright test --config tests/mobile-browser/playwright.production-css.config.ts` checks the emitted CSS.
 
 ## Repository layout
 
@@ -209,7 +209,6 @@ web/
   proxy.ts      Authentication, redirects, and security headers
 supabase/
   migrations/   Database schema and access-policy changes
-docs/           Integration setup guides
 ```
 
 ## Deployment

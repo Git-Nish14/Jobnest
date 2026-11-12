@@ -76,6 +76,18 @@ beforeEach(() => {
 });
 
 describe("Sentry tunnel routing", () => {
+  it("passes a cookie-free Stripe webhook to signature verification", async () => {
+    const response = await proxy(new NextRequest("https://localhost/api/stripe/webhook", { method: "POST" }));
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mockCreateServerClient).not.toHaveBeenCalled();
+  });
+
+  it.each(["/api/stripe/webhook-admin", "/api/stripe/webhook/private"])("keeps %s protected", async (path) => {
+    mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
+    expect((await proxy(req(path))).headers.get("location")).toContain("/login");
+  });
+
   it("allows cookie-free event POSTs without a session lookup or login redirect", async () => {
     mockCreateServerClient.mockReturnValue(makeAuthClient(null) as never);
     const request = new NextRequest("https://localhost/monitoring?o=123&p=456", {

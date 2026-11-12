@@ -7,6 +7,7 @@ import { scanBuffer } from "@/lib/security/virus-scan";
 import { ALLOWED_MIME_TYPES } from "@/types/application";
 import { z } from "zod";
 import { verifyOrigin } from "@/lib/security/csrf";
+import { fetchPublicUrl } from "@/lib/security/public-fetch";
 
 const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10 MB
 const FETCH_TIMEOUT_MS = 20_000;
@@ -99,7 +100,7 @@ function resolveMimeType(
 function extractGoogleDriveFileId(url: string): string | null {
   try {
     const u = new URL(url);
-    if (!u.hostname.endsWith("google.com")) return null;
+    if (!["drive.google.com", "docs.google.com"].includes(u.hostname)) return null;
 
     // /file/d/FILE_ID, /document/d/FILE_ID, /spreadsheets/d/FILE_ID, etc.
     const pathMatch = u.pathname.match(/\/d\/([A-Za-z0-9_-]{10,})/);
@@ -142,14 +143,12 @@ function extractGoogleDriveConfirmUrl(html: string, fileId: string): string | nu
 
 // ── Fetch helper ──────────────────────────────────────────────────────────────
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
+async function fetchWithTimeout(url: string): Promise<Response> {
+  return fetchPublicUrl(url, {
+    maxBytes: MAX_IMPORT_SIZE,
+    timeoutMs: FETCH_TIMEOUT_MS,
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0)" },
+  });
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -196,10 +195,7 @@ export async function POST(request: NextRequest) {
     // ── First fetch ──────────────────────────────────────────────────────────
     let firstRes: Response;
     try {
-      firstRes = await fetchWithTimeout(fetchUrl, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0)" },
-        redirect: "follow",
-      });
+      firstRes = await fetchWithTimeout(fetchUrl);
     } catch (e) {
       if ((e as Error).name === "AbortError") {
         throw ApiError.badRequest("The request timed out. Check that the URL is publicly accessible.");
@@ -231,10 +227,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        finalRes = await fetchWithTimeout(confirmUrl, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; Jobnest/1.0)" },
-          redirect: "follow",
-        });
+        finalRes = await fetchWithTimeout(confirmUrl);
       } catch (e) {
         if ((e as Error).name === "AbortError") {
           throw ApiError.badRequest("Google Drive confirmation timed out. Please try again.");

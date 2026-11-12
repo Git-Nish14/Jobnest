@@ -13,6 +13,8 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // These require dedicated credentials and run via test:e2e:features.
+  testIgnore: ["**/notification-realtime.spec.ts", "**/docx-preview.spec.ts", "**/roadmap-workflows.spec.ts"],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

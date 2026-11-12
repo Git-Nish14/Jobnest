@@ -26,6 +26,7 @@ vi.mock("@/lib/features/ai-usage", () => ({
   checkAndReserveTokens:   vi.fn().mockResolvedValue({ allowed: true, used: 0, midnightTs: 0 }),
   recordTokenUsage:        vi.fn().mockResolvedValue(undefined),
   recordRedisOutputTokens: vi.fn().mockResolvedValue(undefined),
+  releaseTokenReservation: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Intercept global fetch — captures the OpenAI API call made by the NESTAi route

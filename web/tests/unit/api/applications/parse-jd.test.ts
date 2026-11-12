@@ -14,6 +14,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 vi.mock("node:dns/promises", () => ({ lookup: vi.fn() }));
+vi.mock("@/lib/security/public-fetch", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/security/public-fetch")>(),
+  fetchPublicUrl: vi.fn((url: string) => fetch(url)),
+}));
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);

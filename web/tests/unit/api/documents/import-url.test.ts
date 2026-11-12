@@ -3,6 +3,9 @@ import { makeChain } from "@/tests/helpers/supabase-mock";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/security/public-fetch", () => ({
+  fetchPublicUrl: vi.fn((url: string) => fetch(url)),
+}));
 vi.mock("@/lib/utils/storage", () => ({
   validateMagicBytes: vi.fn().mockReturnValue(true),
 }));

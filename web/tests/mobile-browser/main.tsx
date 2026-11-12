@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { RoadmapFixture } from "./roadmap-fixture";
+import * as PageSkeletons from "@/components/common/skeletons";
 import { Toaster } from "sonner";
 import { ApplicationFilters } from "@/components/applications/application-filters";
 import { ApplicationsList } from "@/components/applications/applications-list";
@@ -78,6 +79,14 @@ function DocxFixture() {
 function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  if (pathname === "/skeleton-fixture") {
+    const name = searchParams.get("component") as keyof typeof PageSkeletons;
+    const Component = PageSkeletons[name] ?? PageSkeletons.GenericPageSkeleton;
+    return <div className="db-root min-h-dvh">
+      <header className="h-14 border-b sm:h-16" aria-hidden="true" />
+      <main className="mx-auto max-w-7xl px-4 pt-4 pb-36 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8"><Component /></main>
+    </div>;
+  }
   const isControls = pathname === "/controls";
   if (pathname === "/roadmap-fixture") return <RoadmapFixture />;
   const isEdit = pathname.endsWith("/edit");

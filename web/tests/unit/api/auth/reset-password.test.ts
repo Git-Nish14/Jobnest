@@ -56,6 +56,17 @@ beforeEach(() => {
 });
 
 describe("POST /api/auth/reset-password", () => {
+  it("never resets a different account when the provider ignores the email filter", async () => {
+    const admin = makeAdmin(validOtpRecord);
+    mockAdminClient.mockReturnValue(admin as never);
+    mockUserFetch([{ id: "other-user", email: "other@example.com" }]);
+    const res = await POST(makeRequest("/api/auth/reset-password", {
+      email: "a@b.com", newPassword: "NewPass1", resetToken: "reset-token-id",
+    }) as never);
+    expect(res.status).toBe(400);
+    expect(admin.auth.admin.updateUserById).not.toHaveBeenCalled();
+  });
+
   it("returns 422 for invalid body", async () => {
     mockAdminClient.mockReturnValue(makeAdmin(null) as never);
     const res = await POST(makeRequest("/api/auth/reset-password", { email: "bad" }) as never);

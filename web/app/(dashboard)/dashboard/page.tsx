@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getDashboardAnalytics, getApplications } from "@/services";
+import { getDashboardAnalytics, getApplicationsPage } from "@/services";
 import { AtelierStatsCard } from "@/components/dashboard/atelier-stats-card";
 import { AtelierChart } from "@/components/dashboard/atelier-chart";
 import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart";
@@ -24,11 +24,11 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const [{ data: analytics }, { data: applications }] = await Promise.all([
+  const [{ data: { user } }, { data: analytics }, { data: applications }] = await Promise.all([
+    supabase.auth.getUser(),
     getDashboardAnalytics(),
-    getApplications(),
+    // The home page renders five recent roles; do not download every full record.
+    getApplicationsPage({ pageSize: 5 }),
   ]);
 
   const allApps = applications || [];

@@ -5,7 +5,7 @@ import { ApiError, errorResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { extractAllDocuments } from "@/lib/utils/document-parser";
 import { verifyOrigin } from "@/lib/security/csrf";
-import { TOKEN_CAPS, getDailyTokenUsage, checkAndReserveTokens, recordTokenUsage, recordRedisOutputTokens } from "@/lib/features/ai-usage";
+import { TOKEN_CAPS, getDailyTokenUsage, checkAndReserveTokens, releaseTokenReservation, recordTokenUsage, recordRedisOutputTokens } from "@/lib/features/ai-usage";
 import type { AiFeature } from "@/lib/features/ai-usage";
 import { buildRagContext } from "@/lib/features/nestai-rag";
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (dailyUsed >= dailyCap) {
-      // Format cap as "2M" for Pro (2 000 000), "100k" for Free (100 000)
+      // Format the configured cap using M or k for readability.
       const capLabel = dailyCap >= 1_000_000
         ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
         : `${(dailyCap / 1_000).toLocaleString("en-US")}k`;
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         {
           error: isPro
             ? `You've reached your daily AI limit of ${capLabel} tokens. Usage resets at midnight UTC.`
-            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for 20x more capacity, or wait until midnight UTC.`,
+            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for ${TOKEN_CAPS.pro / TOKEN_CAPS.free}x the capacity, or wait until midnight UTC.`,
           code: "DAILY_CAP_REACHED",
           used: dailyUsed,
           cap: dailyCap,
@@ -500,12 +500,43 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
     const PRIMARY_MODEL  = "gpt-5.6-luna";
     const FALLBACK_MODEL = "gpt-5.6-luna";
 
+    const inputTokenCount = totalEstTokens(chatMessages);
+
+    // Reserve before starting provider work so rejected requests incur no chat call.
+    const capLabel = dailyCap >= 1_000_000
+      ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
+      : `${(dailyCap / 1_000).toLocaleString("en-US")}k`;
+    const reservation = await checkAndReserveTokens(user.id, dailyCap, inputTokenCount);
+    if (reservation === null) {
+      return NextResponse.json(
+        { error: "AI service is temporarily unavailable. Please try again shortly." },
+        { status: 503 }
+      );
+    }
+    if (!reservation.allowed) {
+      return NextResponse.json(
+        {
+          error: isPro
+            ? `You've reached your daily AI limit of ${capLabel} tokens. Usage resets at midnight UTC.`
+            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for ${TOKEN_CAPS.pro / TOKEN_CAPS.free}x the capacity, or wait until midnight UTC.`,
+          code: "DAILY_CAP_REACHED",
+          used: reservation.used,
+          cap: dailyCap,
+        },
+        { status: 429 }
+      );
+    }
     async function callOpenAI(model: string) {
-      return fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiApiKey}` },
-        body: JSON.stringify({ model, messages: chatMessages, max_completion_tokens: 1500, reasoning_effort: "medium", stream: true }),
-      });
+      try {
+        return await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiApiKey}` },
+          body: JSON.stringify({ model, messages: chatMessages, max_completion_tokens: 1500, reasoning_effort: "medium", stream: true }),
+        });
+      } catch (error) {
+        await releaseTokenReservation(user.id, inputTokenCount, reservation!);
+        throw error;
+      }
     }
 
     let openaiResponse = await callOpenAI(PRIMARY_MODEL);
@@ -539,6 +570,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
     }
 
     if (!openaiResponse.ok) {
+      await releaseTokenReservation(user.id, inputTokenCount, reservation);
       const rawBody = await openaiResponse.text().catch(() => "");
       let errorData: unknown = {};
       try { errorData = JSON.parse(rawBody); } catch { /* not JSON */ }
@@ -551,6 +583,7 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
 
     // Guard: body can be null in edge proxies even on HTTP 200.
     if (!openaiResponse.body) {
+      await releaseTokenReservation(user.id, inputTokenCount, reservation);
       return NextResponse.json({ error: "AI service returned an empty response. Please try again." }, { status: 502 });
     }
 
@@ -565,37 +598,6 @@ FOLLOW_UPS: [question 1?] | [question 2?] | [question 3?]`;
       return "chat";
     })();
 
-    const inputTokenCount = totalEstTokens(chatMessages);
-
-    // ── Atomic token reservation ──────────────────────────────────────────────
-    // Redis INCRBY atomically reserves the input tokens so concurrent requests
-    // that both passed the preliminary DB check serialize here instead of both
-    // streaming back to the client. Falls back to DB-only on Redis unavailability.
-    // This is safe to call after the OpenAI fetch because the stream has not yet
-    // been piped to the response — we can still return a 429 if over cap.
-    const capLabel = dailyCap >= 1_000_000
-      ? `${(dailyCap / 1_000_000).toLocaleString("en-US")}M`
-      : `${(dailyCap / 1_000).toLocaleString("en-US")}k`;
-    const reservation = await checkAndReserveTokens(user.id, dailyCap, inputTokenCount);
-    if (reservation === null) {
-      return NextResponse.json(
-        { error: "AI service is temporarily unavailable. Please try again shortly." },
-        { status: 503 }
-      );
-    }
-    if (!reservation.allowed) {
-      return NextResponse.json(
-        {
-          error: isPro
-            ? `You've reached your daily AI limit of ${capLabel} tokens. Usage resets at midnight UTC.`
-            : `You've used your daily free AI quota (${capLabel} tokens). Upgrade to Pro for 20x more capacity, or wait until midnight UTC.`,
-          code: "DAILY_CAP_REACHED",
-          used: reservation.used,
-          cap: dailyCap,
-        },
-        { status: 429 }
-      );
-    }
     // DB analytics record — fire-and-forget (Redis is the authoritative cap source)
     recordTokenUsage(user.id, featureHint, inputTokenCount, 0, usedModel).catch(
       (err) => console.error("[ai-usage] pre-stream DB record failed:", err)

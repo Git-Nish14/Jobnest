@@ -15,6 +15,13 @@ Available skills:
 
 Check `../skills/` for newly added skills as well; this list may grow.
 
+## Documentation
+
+Keep contributor documentation in the root README, with short, natural wording
+suited to an open-source project. Do not add a docs folder, duplicate READMEs,
+or generated review reports to the repository. Keep required skill references
+and agent instructions.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

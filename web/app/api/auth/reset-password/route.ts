@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Find the user by email using a targeted admin API call (not a full listUsers scan).
     // listUsers() without filtering fetches only the first page (~50 users) and would
     // silently fail for users beyond page 1. Using the Supabase REST admin endpoint with
-    // an email filter is O(1) and safe.
+    // an email filter narrows the request. Verify the returned identity as well.
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userLookupData = await userLookupRes.json();
-    const user = (userLookupData.users as Array<{ id: string; email: string }> | undefined)?.[0];
+    const user = (userLookupData.users as Array<{ id: string; email?: string }> | undefined)
+      ?.find((candidate) => candidate.email?.trim().toLowerCase() === email.trim().toLowerCase());
 
     if (!user) {
       // Don't reveal whether the email exists in our system

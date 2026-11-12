@@ -1,5 +1,5 @@
-import { GenericPageSkeleton } from "@/components/common";
+import { RemindersSkeleton } from "@/components/common/skeletons";
 
 export default function RemindersLoading() {
-  return <GenericPageSkeleton />;
+  return <RemindersSkeleton />;
 }

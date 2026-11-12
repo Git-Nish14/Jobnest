@@ -30,12 +30,13 @@ vi.mock("@/lib/features/ai-usage", () => ({
   checkAndReserveTokens:   vi.fn().mockResolvedValue({ allowed: true, used: 0, midnightTs: 0 }),
   recordTokenUsage:        vi.fn().mockResolvedValue(undefined),
   recordRedisOutputTokens: vi.fn().mockResolvedValue(undefined),
+  releaseTokenReservation: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { POST } from "@/app/api/nesta-ai/route";
 import { createClient }       from "@/lib/supabase/server";
 import { checkRateLimit }     from "@/lib/security/rate-limit";
-import { getDailyTokenUsage, checkAndReserveTokens, recordTokenUsage } from "@/lib/features/ai-usage";
+import { getDailyTokenUsage, checkAndReserveTokens, releaseTokenReservation, recordTokenUsage } from "@/lib/features/ai-usage";
 
 const mockCreate         = vi.mocked(createClient);
 const mockCheckRL        = vi.mocked(checkRateLimit);
@@ -115,6 +116,17 @@ describe("daily cap 429 — capLabel formatting", () => {
 // ── Atomic pre-stream reservation (Redis INCRBY) ─────────────────────────────
 
 describe("atomic pre-stream reservation", () => {
+  it("releases a committed reservation when the provider connection fails", async () => {
+    process.env.OPENAI_API_KEY = "fixture-key";
+    const reservation = { allowed: true, used: 1000, midnightTs: 1_800_000_000, redisReserved: true };
+    mockReserve.mockResolvedValue(reservation);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Provider unavailable")));
+    const response = await POST(makePostRequest() as never);
+    expect(response.status).toBe(500);
+    expect(releaseTokenReservation).toHaveBeenCalledWith(USER_ID, expect.any(Number), reservation);
+    delete process.env.OPENAI_API_KEY;
+  });
+
   function makeGroqStream(content = "Hi") {
     const sseBody =
       `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\ndata: [DONE]\n\n`;
@@ -173,6 +185,7 @@ describe("atomic pre-stream reservation", () => {
     const body = await res.json();
     expect(body.code).toBe("DAILY_CAP_REACHED");
     expect(body.used).toBe(99_500);
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("api.openai.com"))).toHaveLength(0);
     // No DB record when denied
     expect(mockRecordUsage).not.toHaveBeenCalled();
 

@@ -236,7 +236,7 @@ export default async function PublicPortfolioPage({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-14">
+      <main id="main-content" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-14">
         {/* ── Profile hero ───────────────────────────────────────────────────── */}
         <section className="flex flex-col sm:flex-row items-start gap-6">
           {avatarUrl ? (

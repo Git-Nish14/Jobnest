@@ -1,5 +1,5 @@
-import { GenericPageSkeleton } from "@/components/common";
+import { TemplatesSkeleton } from "@/components/common/skeletons";
 
 export default function TemplatesLoading() {
-  return <GenericPageSkeleton />;
+  return <TemplatesSkeleton />;
 }
