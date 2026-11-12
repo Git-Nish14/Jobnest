@@ -3,7 +3,7 @@
 // Env vars: VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
 // Generate keys: npx web-push generate-vapid-keys
 
-import webpush from "web-push";
+import * as webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 if (

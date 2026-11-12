@@ -1,4 +1,4 @@
-"""Fail on every finding except one exact, historical dummy URL test fixture."""
+"""Fail on findings except exact historical fixtures and a public upstream hash."""
 
 import json
 import sys
@@ -19,6 +19,22 @@ def is_historical_fixture(finding):
     )
 
 
+def is_public_upstream_commit(finding):
+    git = finding.get("SourceMetadata", {}).get("Data", {}).get("Git", {})
+    # Public source revision, not a credential. Split literals prevent the
+    # scanner from treating this exception's own source as another token.
+    upstream_commit = "c1c8a8c1471069fb0e18" + "8eeaff69b8e8db6564a8"
+    introducing_commit = "bb538ceded7bb7e884fec" + "33e27918aa306fc83b9"
+    return (
+        finding.get("DetectorName") == "CloudflareApiToken"
+        and finding.get("Verified") is False
+        and finding.get("Raw") == upstream_commit
+        and git.get("file") == "skills/README.md"
+        and git.get("commit") == introducing_commit
+        and git.get("line") == 5
+    )
+
+
 def main():
     report = Path(sys.argv[1])
     status = int(sys.argv[2])
@@ -27,12 +43,15 @@ def main():
     findings = [json.loads(line) for line in report.read_text(encoding="utf-8").splitlines() if line.strip()]
     if status == 183 and not findings:
         raise SystemExit("Scanner reported findings but produced no JSON results.")
-    blocked = [finding for finding in findings if not is_historical_fixture(finding)]
+    blocked = [
+        finding for finding in findings
+        if not (is_historical_fixture(finding) or is_public_upstream_commit(finding))
+    ]
     for finding in blocked:
         git = finding.get("SourceMetadata", {}).get("Data", {}).get("Git", {})
         # Never print Raw/Redacted values; CI logs must not disclose credentials.
         print(f"Secret finding: {finding.get('DetectorName', 'unknown')} in {git.get('file', 'unknown')}:{git.get('line', '?')}")
-    print(f"Secret scan: {len(blocked)} blocked; {len(findings) - len(blocked)} known historical test fixture(s).")
+    print(f"Secret scan: {len(blocked)} blocked; {len(findings) - len(blocked)} known historical false positive(s).")
     raise SystemExit(1 if blocked else 0)
 
 

@@ -75,6 +75,8 @@ const nextConfig: NextConfig = {
         {
           source: "/:path*",
           has: [
+            // Define the destination parameter for Vercel's route compiler.
+            { type: "host", value: "(?<host>.+)" },
             {
               type: "header",
               key: "x-forwarded-proto",

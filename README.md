@@ -34,10 +34,12 @@ The interface supports dark mode, responsive layouts, and installation as a prog
 
 ### Prerequisites
 
-- Node.js **24** and npm, matching the current dependency requirements.
+- Node.js **26** and npm, matching the current dependency requirements.
 - A Supabase project with database, authentication, and storage configured.
 - SMTP credentials for the application's email verification flow and transactional mail.
 - An OpenAI API key to use NESTAi chat and semantic retrieval.
+
+The application package requires Node.js `26.x`, matching CI and the Vercel deployment runtime.
 
 ### 1. Install dependencies
 
@@ -212,13 +214,13 @@ docs/           Integration setup guides
 
 ## Deployment
 
-For Vercel, import the repository, select `web` as the root directory, use Node.js 24, and configure production environment variables. Apply the database migrations to the connected Supabase project and configure production Auth redirect URLs.
+For Vercel, import the repository, select `web` as the root directory, use Node.js 26, and configure production environment variables. Apply the database migrations to the connected Supabase project and configure production Auth redirect URLs.
 
 For billing, configure Stripe's webhook endpoint at `/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed`. Configure GitHub OAuth separately if portfolio repository synchronization is enabled.
 
 Scheduled jobs are defined in [web/vercel.json](web/vercel.json) and authenticate with `CRON_SECRET`. Check that the deployment supports each configured schedule. The weekly digest currently runs on **Saturday at 21:00 UTC**; delivery at each user's local Saturday evening is not enabled.
 
-The existing [CI workflow](.github/workflows/ci.yml) runs type, lint, unit, coverage, and build checks. Its general E2E job runs only when the repository variable `PLAYWRIGHT_BASE_URL` is set. CI still specifies Node.js 20 and needs alignment with the documented runtime.
+The existing [CI workflow](.github/workflows/ci.yml) runs type, lint, unit, coverage, and build checks on Node.js 26. Its general E2E job runs only when the repository variable `PLAYWRIGHT_BASE_URL` is set.
 
 ## Security and contributions
 
