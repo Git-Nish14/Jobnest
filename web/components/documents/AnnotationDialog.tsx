@@ -257,8 +257,11 @@ export function AnnotationDialog({ doc, onClose }: AnnotationDialogProps) {
 
         // Dynamic import to keep PDF.js out of the main bundle
         const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+        // Bundle the matching worker; CDN releases can lag behind the library.
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.min.mjs",
+          import.meta.url,
+        ).toString();
 
         const pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
         if (cancelled) return;
