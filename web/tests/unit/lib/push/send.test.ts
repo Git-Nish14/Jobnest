@@ -13,17 +13,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock web-push before importing the module under test
 vi.mock("web-push", () => ({
-  default: {
-    setVapidDetails: vi.fn(),
-    sendNotification: vi.fn(),
-  },
+  setVapidDetails: vi.fn(),
+  sendNotification: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(),
 }));
 
-import webpush from "web-push";
+import * as webpush from "web-push";
 import { sendUserPushNotifications } from "@/lib/push/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 
