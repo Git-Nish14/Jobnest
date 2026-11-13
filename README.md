@@ -26,7 +26,7 @@ The interface supports dark mode, responsive layouts, and installation as a prog
 | Data and authentication | Supabase PostgreSQL, Auth, Storage, Realtime, pgvector |
 | AI | OpenAI for NESTAi chat and embeddings; configurable providers for resume scanning |
 | Documents | Mammoth, PDF.js, pdf-parse, React PDF |
-| Email and push | Nodemailer, Web Push |
+| Email and push | AWS SES via Nodemailer, Web Push |
 | Billing and monitoring | Stripe, Sentry |
 | Testing | Vitest, Playwright |
 
@@ -36,7 +36,7 @@ The interface supports dark mode, responsive layouts, and installation as a prog
 
 - Node.js **26** and npm, matching the current dependency requirements.
 - A Supabase project with database, authentication, and storage configured.
-- SMTP credentials for the application's email verification flow and transactional mail.
+- AWS SES credentials and a verified sender for account verification and transactional mail.
 - An OpenAI API key to use NESTAi chat and semantic retrieval.
 
 The application package requires Node.js `26.x`, matching CI and the Vercel deployment runtime.
@@ -65,15 +65,19 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 CSRF_SECRET=replace-with-a-generated-secret
 CRON_SECRET=replace-with-a-different-generated-secret
 
-SMTP_HOST=your-smtp-host
-SMTP_PORT=587
-SMTP_USER=your-smtp-username
-SMTP_PASS=your-smtp-password
-CONTACT_EMAIL=contact@example.com
+AWS_SES_REGION=us-east-1
+AWS_SES_ACCESS_KEY_ID=your-ses-access-key-id
+AWS_SES_SECRET_ACCESS_KEY=your-ses-secret-access-key
+SES_FROM_EMAIL=me@nishpatel.dev
+CONTACT_EMAIL=me@nishpatel.dev
 
 # Required for NESTAi chat and semantic retrieval.
 OPENAI_API_KEY=your-openai-api-key
 ```
+
+All application emails use the shared AWS SES transport. Verify `SES_FROM_EMAIL` in the configured region and grant the credentials `ses:SendEmail` permission for that identity. SES sandbox accounts can send only to verified recipients or the mailbox simulator; request production access to email other users. See [SES identity verification](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html) and [sandbox restrictions](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
+
+The transport also accepts standard `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` variables, or an IAM role. For temporary SES credentials, set `AWS_SES_SESSION_TOKEN`. Set `AWS_SES_CONFIGURATION_SET` only if that configuration set exists in the same region. Contact submissions and feedback go to `CONTACT_EMAIL`; replies to account emails also go there. Add these server-side variables to your hosting environment for production; local env files are ignored by Git.
 
 Generate independent values for `CSRF_SECRET` and `CRON_SECRET` by running this command twice:
 

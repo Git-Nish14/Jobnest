@@ -13,7 +13,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import nodemailer from "nodemailer";
+import { sendEmail } from "@/lib/email/ses";
 
 // ── Document parsing ──────────────────────────────────────────────────────────
 
@@ -65,18 +65,5 @@ export async function queueEmail(payload: {
   text: string;
   html: string;
 }): Promise<void> {
-  const { SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT = "587" } = process.env;
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return;
-
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: parseInt(SMTP_PORT),
-    secure: SMTP_PORT === "465",
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-
-  await transporter.sendMail({
-    from: `"Jobnest" <${SMTP_USER}>`,
-    ...payload,
-  });
+  await sendEmail(payload);
 }

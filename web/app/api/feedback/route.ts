@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import { checkEmailConfig, getContactEmail, sendEmail } from "@/lib/email/ses";
 import { createClient } from "@/lib/supabase/server";
 import { ApiError, errorResponse } from "@/lib/api/errors";
 import { verifyOrigin } from "@/lib/security/csrf";
@@ -55,28 +55,16 @@ export async function POST(request: NextRequest) {
     // ── 2. Email notification ───────────────────────────────────────────────
     // Non-fatal — if email fails we still return success so the user isn't
     // shown an error for something they can't control.
-    const smtpHost    = process.env.SMTP_HOST;
-    const smtpPort    = process.env.SMTP_PORT;
-    const smtpUser    = process.env.SMTP_USER;
-    const smtpPass    = process.env.SMTP_PASS;
-    const contactEmail = process.env.CONTACT_EMAIL;
-
-    if (smtpHost && smtpUser && smtpPass && contactEmail) {
+    if (checkEmailConfig().ok) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: parseInt(smtpPort || "587") || 587,
-          secure: smtpPort === "465",
-          auth: { user: smtpUser, pass: smtpPass },
-        });
-
+        const contactEmail = getContactEmail();
         const safeEmail   = escapeHtml(userEmail);
         const safeComment = comment ? escapeHtml(comment) : null;
         const color       = scoreColor(score);
         const band        = scoreBand(score);
 
-        await transporter.sendMail({
-          from:    `"Jobnest Feedback" <${smtpUser}>`,
+        await sendEmail({
+          fromName: "Jobnest Feedback",
           to:      contactEmail,
           replyTo: userEmail,          // reply goes straight to the user's inbox
           subject: `[Jobnest Feedback] Score ${score}/10 (${band}) — ${userEmail}`,
@@ -139,7 +127,7 @@ export async function POST(request: NextRequest) {
         console.error("[feedback] Email notification failed:", emailErr);
       }
     } else {
-      console.warn("[feedback] SMTP not configured — email notification skipped.");
+      console.warn("[feedback] Invalid SES configuration — email notification skipped.");
     }
 
     return NextResponse.json({ success: true });

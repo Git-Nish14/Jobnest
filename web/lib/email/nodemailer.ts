@@ -1,55 +1,5 @@
-import nodemailer from "nodemailer";
-
-interface EmailConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  auth: {
-    user: string;
-    pass: string;
-  };
-}
-
-function getEmailConfig(): EmailConfig {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    throw new Error("Missing SMTP configuration environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS)");
-  }
-
-  return {
-    host: smtpHost,
-    port: parseInt(smtpPort || "587"),
-    secure: smtpPort === "465",
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  };
-}
-
-/**
- * Synchronously checks whether the SMTP env vars are present.
- * Does NOT open a TCP connection — use this at cron startup to fail fast
- * before the user loop begins, so the error appears in Vercel function logs
- * immediately rather than buried in per-user error entries.
- */
-export function checkSmtpConfig(): { ok: true } | { ok: false; error: string } {
-  try {
-    getEmailConfig();
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Unknown SMTP config error" };
-  }
-}
-
-function createTransporter() {
-  const config = getEmailConfig();
-  return nodemailer.createTransport(config);
-}
+import { sendEmail } from "./ses";
+export { checkEmailConfig } from "./ses";
 
 // Read once at module load — safe for server-side code
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://jobnest.nishpatel.dev";
@@ -241,8 +191,6 @@ export async function sendOTPEmail(
   purpose: "login" | "signup" | "password_reset" | "change_password" | "delete_account" = "login"
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
 
     const purposeText: Record<typeof purpose, string> = {
       login:           "sign in to your account",
@@ -285,8 +233,7 @@ export async function sendOTPEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `${otp} is your Jobnest verification code`,
       text: `Your Jobnest verification code is: ${otp}\n\nUse this code to ${purposeText[purpose]}.\n\nThis code will expire in 10 minutes. Do not share it with anyone.\n\nIf you didn't request this, you can safely ignore this email.\n\nThe Jobnest Team`,
@@ -309,8 +256,6 @@ export async function sendDeletionScheduledEmail(
   scheduledDeletionAt: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const deletionDate = formatDate(scheduledDeletionAt);
 
     const html = emailHtml({
@@ -351,8 +296,7 @@ export async function sendDeletionScheduledEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: "Your Jobnest account has been scheduled for deletion",
       text: `Your Jobnest account has been scheduled for permanent deletion on ${deletionDate}.\n\nYou have 30 days to cancel. Sign in at ${APP_URL}/login to restore your account.\n\nIf you take no action, all your data will be permanently deleted on ${deletionDate}.\n\nThe Jobnest Team`,
@@ -376,8 +320,6 @@ export async function sendDeletionReminderEmail(
   daysRemaining: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const deletionDate = formatDate(scheduledDeletionAt);
     const plural = daysRemaining === 1 ? "" : "s";
 
@@ -414,8 +356,7 @@ export async function sendDeletionReminderEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Reminder: Your Jobnest account will be deleted in ${daysRemaining} day${plural}`,
       text: `Reminder: Your Jobnest account is scheduled for permanent deletion in ${daysRemaining} day${plural} (${deletionDate}).\n\nTo cancel the deletion, sign in at ${APP_URL}/login.\n\nThe Jobnest Team`,
@@ -438,8 +379,6 @@ export async function sendDeletionFinalWarningEmail(
   scheduledDeletionAt: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const deletionDate = formatDate(scheduledDeletionAt);
 
     const html = emailHtml({
@@ -470,8 +409,7 @@ export async function sendDeletionFinalWarningEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: "Final notice: Your Jobnest account will be deleted tomorrow",
       text: `FINAL NOTICE: Your Jobnest account is scheduled for permanent deletion on ${deletionDate}.\n\nThis is your last chance. Sign in at ${APP_URL}/login within 24 hours to save your account.\n\nThe Jobnest Team`,
@@ -496,8 +434,6 @@ export async function sendDunningEmail(
   nextRetryDate: string | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
 
     const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -540,8 +476,7 @@ export async function sendDunningEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Action required: Payment of ${formatted} failed for your Jobnest subscription`,
       text: `Your recent Jobnest Pro payment of ${formatted} was unsuccessful.\n\n${retryNote}\n\nUpdate your payment method: ${APP_URL}/api/stripe/portal\n\nThe Jobnest Team`,
@@ -563,8 +498,6 @@ export async function sendAccountReactivatedEmail(
   email: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
 
     const html = emailHtml({
       previewText: "Great news — your Jobnest account has been restored",
@@ -596,8 +529,7 @@ export async function sendAccountReactivatedEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: "Your Jobnest account has been restored",
       text: `Your Jobnest account has been successfully restored. All your data is intact.\n\nWelcome back!\n\nGo to your dashboard: ${APP_URL}/dashboard\n\nThe Jobnest Team`,
@@ -631,8 +563,6 @@ export async function sendOverdueReminderEmail(
   if (reminders.length === 0) return { success: true };
 
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const name = esc(displayName || "there");
     const count = reminders.length;
 
@@ -683,8 +613,7 @@ export async function sendOverdueReminderEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Action needed: ${count} overdue reminder${count !== 1 ? "s" : ""} on Jobnest`,
       text: `Hi ${displayName || "there"},\n\nYou have ${count} overdue reminder${count !== 1 ? "s" : ""}:\n\n${reminders.map(r => `• ${r.title}${r.company ? ` (${r.company})` : ""}, ${r.daysOverdue === 0 ? "due today" : `${r.daysOverdue}d overdue`}`).join("\n")}\n\nReview them at ${APP_URL}/reminders\n\nThe Jobnest Team`,
@@ -720,8 +649,6 @@ export async function sendWeeklyDigestEmail(
   data: WeeklyDigestData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const { email, displayName, appUrl, stats, recentApplications, upcomingInterviews } = data;
     // Escape user-controlled display name before embedding in HTML
     const name = esc(displayName || "there");
@@ -812,8 +739,7 @@ export async function sendWeeklyDigestEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Your weekly job search digest — ${stats.applicationsThisWeek} application${stats.applicationsThisWeek !== 1 ? "s" : ""} this week`,
       text: `Hi ${displayName || "there"},\n\nHere's your Jobnest weekly digest:\n\nApplied this week: ${stats.applicationsThisWeek}\nActive pipeline: ${stats.totalActive}\nUpcoming interviews: ${stats.upcomingInterviews}\nOverdue reminders: ${stats.overdueReminders}\n\nLog in: ${appUrl}/dashboard\n\nThe Jobnest Team`,
@@ -848,8 +774,6 @@ export async function sendApplicationMilestoneEmail(
   stats: { responseRate: number; activePipeline: number; totalOffers: number },
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const name = esc(displayName || "there");
     const msg = appMilestoneMessage(milestone);
     const n = milestone.toLocaleString("en-US");
@@ -903,8 +827,7 @@ export async function sendApplicationMilestoneEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `🎉 ${n} applications — you're making it happen!`,
       text: `Hi ${displayName || "there"},\n\nYou've submitted ${n} job applications — that's an incredible milestone!\n\nView your dashboard: ${APP_URL}/dashboard\n\nThe Jobnest Team`,
@@ -947,8 +870,6 @@ export async function sendOfferMilestoneEmail(
   totalApps: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const name = esc(displayName || "there");
     const { headline, body } = offerMilestoneContent(offerCount, totalApps);
     const offerRate = totalApps > 0 ? Math.round((offerCount / totalApps) * 100) : 0;
@@ -1009,8 +930,7 @@ export async function sendOfferMilestoneEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `🏆 ${offerCount} offers received — companies are choosing you!`,
       text: `Hi ${displayName || "there"},\n\nYou've received ${offerCount} job offers — that's an incredible achievement!\n\nCompare your offers: ${APP_URL}/salary\n\nThe Jobnest Team`,
@@ -1067,8 +987,6 @@ export async function sendWeeklyMotivationEmail(
   data: WeeklyMotivationData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const { email, displayName, totalApps, appsThisWeek, responseRate, activePipeline, totalOffers } = data;
     const name = esc(displayName || "there");
     const insight = weeklyMotivationInsight(data);
@@ -1146,8 +1064,7 @@ export async function sendWeeklyMotivationEmail(
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Keep going, ${displayName || "there"} — your job search is working`,
       text: `Hi ${displayName || "there"},\n\n${insight.replace(/&[a-z]+;|&#\d+;/g, "")}\n\nTotal applications: ${totalApps} | This week: ${appsThisWeek} | Response rate: ${responseRate}% | Pipeline: ${activePipeline}\n\nView your dashboard: ${APP_URL}/dashboard\n\nThe Jobnest Team`,
@@ -1177,8 +1094,6 @@ export async function sendReEngagementEmail({
   activeApplications: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const transporter = createTransporter();
-    const smtpUser = process.env.SMTP_USER;
     const name = esc(displayName || "there");
 
     const html = emailHtml({
@@ -1239,8 +1154,7 @@ export async function sendReEngagementEmail({
       `,
     });
 
-    await transporter.sendMail({
-      from: `"Jobnest" <${smtpUser}>`,
+    await sendEmail({
       to: email,
       subject: `Your job search is waiting, ${name} — pick up where you left off`,
       text: `Hi ${name},\n\nIt's been a while since you logged in to Jobnest. Your ${totalApplications} applications are still there.\n\nReturn to your dashboard: ${appUrl}/dashboard\n\nThe Jobnest Team`,

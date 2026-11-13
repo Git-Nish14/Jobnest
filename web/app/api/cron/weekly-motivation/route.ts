@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkSmtpConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
+import { checkEmailConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
 
 // Runs once per week: Wednesday 09:00 UTC (cron: "0 9 * * 3").
 // Hobby-plan compatible — Vercel Hobby limits crons to once per day;
@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Fail fast if SMTP is not configured — avoids silent per-user failures
-  const smtpCheck = checkSmtpConfig();
-  if (!smtpCheck.ok) {
-    console.error("[cron/weekly-motivation] SMTP config missing:", smtpCheck.error);
-    return NextResponse.json({ error: smtpCheck.error }, { status: 500 });
+  // Validate local SES settings before iterating over users.
+  const emailCheck = checkEmailConfig();
+  if (!emailCheck.ok) {
+    console.error("[cron/weekly-motivation] Invalid SES configuration:", emailCheck.error);
+    return NextResponse.json({ error: emailCheck.error }, { status: 500 });
   }
 
   const admin = createAdminClient();

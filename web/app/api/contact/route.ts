@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import nodemailer from "nodemailer";
+import { checkEmailConfig, getContactEmail, sendEmail } from "@/lib/email/ses";
 import { contactApiSchema } from "@/lib/validations/api";
 import { ApiError, errorResponse, successResponse, validateBody } from "@/lib/api/errors";
 import { checkRateLimit } from "@/lib/security/rate-limit";
@@ -28,28 +28,12 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const { name, email, subject, message } = await validateBody(request, contactApiSchema);
 
-    // Check for required environment variables
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = process.env.SMTP_PORT;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const contactEmail = process.env.CONTACT_EMAIL;
-
-    if (!smtpHost || !smtpUser || !smtpPass || !contactEmail) {
-      console.error("Missing email configuration environment variables");
+    const emailConfig = checkEmailConfig();
+    if (!emailConfig.ok) {
+      console.error("Invalid email configuration:", emailConfig.error);
       throw ApiError.serviceUnavailable("Email service not configured. Please try again later.");
     }
-
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(smtpPort || "587"),
-      secure: smtpPort === "465",
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+    const contactEmail = getContactEmail();
 
     // SECURITY: Sanitize all user input for HTML email
     const safeName = escapeHtml(name);
@@ -59,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Email content to admin
     const mailOptions = {
-      from: `"Jobnest Contact" <${smtpUser}>`,
+      fromName: "Jobnest Contact",
       to: contactEmail,
       replyTo: email,
       subject: `[Jobnest Contact] ${safeSubject}`,
@@ -103,11 +87,10 @@ ${message}
     };
 
     // Send email to admin
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
 
     // Send confirmation email to user
     const confirmationOptions = {
-      from: `"Jobnest" <${smtpUser}>`,
       to: email,
       subject: "We received your message - Jobnest",
       text: `
@@ -152,7 +135,7 @@ A Nish Patel Product
   </div>
 
   <p style="margin: 20px 0 0; font-size: 12px; color: #9ca3af; text-align: center;">
-    This is an automated confirmation email. Please do not reply directly to this message.<br>
+    Reply to this email if you need to add anything to your message.<br>
     &copy; ${new Date().getFullYear()} <a href="https://nishpatel.dev" style="color: #3b82f6;">Nish Patel</a>. All rights reserved.
   </p>
 </body>
@@ -160,12 +143,12 @@ A Nish Patel Product
       `,
     };
 
-    await transporter.sendMail(confirmationOptions);
+    await sendEmail(confirmationOptions);
 
     return successResponse({ success: true, message: "Message sent successfully" });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("SMTP")) {
-      console.error("SMTP Error:", error);
+    if (!(error instanceof ApiError)) {
+      console.error("Contact email failed:", error);
       return errorResponse(ApiError.serviceUnavailable("Failed to send message. Please try again later."));
     }
     return errorResponse(error);

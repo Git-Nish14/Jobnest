@@ -5,6 +5,8 @@
  * not silently at the first request.
  */
 
+import { checkEmailConfig } from "@/lib/email/ses";
+
 interface EnvVar {
   name: string;
   required: boolean;
@@ -22,9 +24,8 @@ const ENV_VARS: EnvVar[] = [
   { name: "CRON_SECRET", required: true, description: "Cron job bearer token" },
 
   // Email
-  { name: "SMTP_HOST", required: true, description: "SMTP server hostname" },
-  { name: "SMTP_USER", required: true, description: "SMTP username / from address" },
-  { name: "SMTP_PASS", required: true, description: "SMTP password / app password" },
+  { name: "AWS_SES_REGION", required: false, description: "SES region (defaults to AWS_REGION or us-east-1)" },
+  { name: "SES_FROM_EMAIL", required: true, description: "Verified AWS SES sender address" },
   { name: "CONTACT_EMAIL", required: true, description: "Destination for contact form submissions" },
 
   // App URL
@@ -69,6 +70,9 @@ export function validateEnv(): void {
       missing.push(`  • ${name} — ${description}`);
     }
   }
+
+  const emailConfig = checkEmailConfig();
+  if (!emailConfig.ok) missing.push(`  Email configuration: ${emailConfig.error}`);
 
   // Warn about weak CSRF secret in production
   if (

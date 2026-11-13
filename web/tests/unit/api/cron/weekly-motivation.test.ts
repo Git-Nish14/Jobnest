@@ -27,16 +27,16 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 vi.mock("@/lib/email/nodemailer", () => ({
-  checkSmtpConfig:           vi.fn().mockReturnValue({ ok: true }),
+  checkEmailConfig:           vi.fn().mockReturnValue({ ok: true }),
   sendWeeklyMotivationEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 import { GET } from "@/app/api/cron/weekly-motivation/route";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkSmtpConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
+import { checkEmailConfig, sendWeeklyMotivationEmail } from "@/lib/email/nodemailer";
 
 const mockAdmin = vi.mocked(createAdminClient);
-const mockSmtp  = vi.mocked(checkSmtpConfig);
+const mockEmailConfig  = vi.mocked(checkEmailConfig);
 const mockEmail = vi.mocked(sendWeeklyMotivationEmail);
 
 const CRON_SECRET = "test-cron-secret";
@@ -108,11 +108,11 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-// ── SMTP config guard ─────────────────────────────────────────────────────────
+// ── SES config guard ─────────────────────────────────────────────────────────
 
-describe("GET /api/cron/weekly-motivation — SMTP config guard", () => {
-  it("returns 500 when SMTP env vars are missing (fails before user loop)", async () => {
-    mockSmtp.mockReturnValueOnce({ ok: false, error: "Missing SMTP configuration environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS)" });
+describe("GET /api/cron/weekly-motivation — SES config guard", () => {
+  it("returns 500 when the SES sender is invalid (fails before user loop)", async () => {
+    mockEmailConfig.mockReturnValueOnce({ ok: false, error: "Invalid sender email address" });
     mockAdmin.mockReturnValue({
       auth: {
         admin: {
@@ -125,7 +125,7 @@ describe("GET /api/cron/weekly-motivation — SMTP config guard", () => {
     const res = await GET(validReq());
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toMatch(/missing smtp/i);
+    expect(body.error).toMatch(/invalid sender/i);
     expect(mockEmail).not.toHaveBeenCalled();
   });
 });
