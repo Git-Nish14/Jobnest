@@ -75,7 +75,7 @@ CONTACT_EMAIL=me@nishpatel.dev
 OPENAI_API_KEY=your-openai-api-key
 ```
 
-All application emails use the shared AWS SES transport. Verify `SES_FROM_EMAIL` in the configured region and grant the credentials `ses:SendEmail` permission for that identity. SES sandbox accounts can send only to verified recipients or the mailbox simulator; request production access to email other users. See [SES identity verification](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html) and [sandbox restrictions](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
+All application emails use the shared AWS SES transport. `SES_FROM_EMAIL` defaults to `me@nishpatel.dev` when omitted. Verify the sender in the configured region and grant the credentials `ses:SendEmail` permission for that identity. SES sandbox accounts can send only to verified recipients or the mailbox simulator; request production access to email other users. See [SES identity verification](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html) and [sandbox restrictions](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
 
 The transport also accepts standard `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` variables, or an IAM role. For temporary SES credentials, set `AWS_SES_SESSION_TOKEN`. Set `AWS_SES_CONFIGURATION_SET` only if that configuration set exists in the same region. Contact submissions and feedback go to `CONTACT_EMAIL`; replies to account emails also go there. Add these server-side variables to your hosting environment for production; local env files are ignored by Git.
 

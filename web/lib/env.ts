@@ -25,7 +25,7 @@ const ENV_VARS: EnvVar[] = [
 
   // Email
   { name: "AWS_SES_REGION", required: false, description: "SES region (defaults to AWS_REGION or us-east-1)" },
-  { name: "SES_FROM_EMAIL", required: true, description: "Verified AWS SES sender address" },
+  { name: "SES_FROM_EMAIL", required: false, description: "Verified AWS SES sender address (defaults to me@nishpatel.dev)" },
   { name: "CONTACT_EMAIL", required: true, description: "Destination for contact form submissions" },
 
   // App URL
