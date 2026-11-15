@@ -10,6 +10,8 @@ import { KanbanBoard } from "@/components/applications/kanban-board";
 import { ApplicationForm } from "@/components/forms/application-form";
 import { StatusPicker } from "@/components/applications/status-picker";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
+import { Navbar } from "@/components/layout/Navbar";
+import { LandingHeader } from "@/components/layout/LandingHeader";
 import { TouchScrollGuard } from "@/components/layout/TouchScrollGuard";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { DocPreviewDialog } from "@/components/documents/DocPreviewDialog";
@@ -21,6 +23,7 @@ import { usePathname, useSearchParams } from "./mocks/navigation";
 import { applications } from "./fixtures";
 import "@/app/globals.css";
 import "@/app/(dashboard)/dashboard.css";
+import "@/app/landing.css";
 
 function Controls() {
   const [status, setStatus] = useState<ApplicationStatus>("Applied");
@@ -79,6 +82,13 @@ function DocxFixture() {
 function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  if (searchParams.has("navigation-fixture")) {
+    return <div className="db-root min-h-dvh">
+      {pathname === "/" ? <LandingHeader /> : <Navbar user={{ email: "fixture@example.test" }} />}
+      <main className="h-[1800px] p-4"><h1>Navigation fixture</h1></main>
+      {pathname !== "/" && <BottomTabBar />}
+    </div>;
+  }
   if (pathname === "/skeleton-fixture") {
     const name = searchParams.get("component") as keyof typeof PageSkeletons;
     const Component = PageSkeletons[name] ?? PageSkeletons.GenericPageSkeleton;

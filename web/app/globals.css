@@ -69,6 +69,11 @@ html body[data-scroll-locked] {
 
 :root {
   color-scheme: light;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --app-header-height: calc(3.5rem + var(--safe-area-top));
 
   /* Light — warm parchment Atelier palette
      NOTE: --background maps to #faf9f7 (warm cream), not pure white.
@@ -233,8 +238,20 @@ body {
 }
 
 /* ── Atelier Navbar — light defaults ───────────────────────────────────────── */
+/* Keep controls below the status bar in edge-to-edge iOS standalone mode. */
+.atelier-nav,
+.landing-header {
+  padding-top: var(--safe-area-top);
+  padding-right: var(--safe-area-right);
+  padding-left: var(--safe-area-left);
+}
+
+@media (min-width: 40rem) {
+  :root { --app-header-height: calc(4rem + var(--safe-area-top)); }
+}
+
 .atelier-nav {
-  background-color: rgba(250, 249, 247, 0.82);
+  background-color: #faf9f7;
   border-color: rgba(219, 193, 185, 0.18);
   box-shadow: 0 1px 12px rgba(26, 28, 27, 0.05);
 }
@@ -264,6 +281,7 @@ body {
 }
 
 .atelier-slide-panel {
+  padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);
   box-shadow: 0 8px 40px rgba(26, 28, 27, 0.18);
 }
 
@@ -316,9 +334,19 @@ html.dark,
 
 /* ── Atelier Navbar — dark overrides ───────────────────────────────────────── */
 .dark .atelier-nav {
-  background-color: rgba(0, 0, 0, 0.92);
+  background-color: #000000;
   border-color: rgba(204, 255, 0, 0.08);
   box-shadow: 0 1px 24px rgba(0, 0, 0, 0.8);
+}
+
+/* Touch/installed navigation uses opaque surfaces to avoid WebKit blur layers. */
+@media (hover: hover) and (pointer: fine) and (display-mode: browser) {
+  .atelier-nav {
+    background-color: rgba(250, 249, 247, 0.82);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  .dark .atelier-nav { background-color: rgba(0, 0, 0, 0.92); }
 }
 
 .dark .atelier-nav-logo {

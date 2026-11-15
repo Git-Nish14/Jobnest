@@ -34,11 +34,9 @@
 
 /* ── Header ────────────────────────────────────────────────────────────────── */
 .landing-header {
-  background-color: rgba(250, 249, 247, 0.82);
+  background-color: #faf9f7;
   border-color: rgba(219, 193, 185, 0.18);
   box-shadow: 0 1px 16px rgba(26, 28, 27, 0.05);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
-  backdrop-filter: blur(20px) saturate(1.8);
 }
 
 .landing-logo-text {
@@ -359,11 +357,22 @@
 
 /* ── Header ── */
 .dark .landing-header {
-  background-color: rgba(0, 0, 0, 0.82);
+  background-color: #000000;
   border-color: rgba(204, 255, 0, 0.08);
   box-shadow: 0 1px 20px rgba(0, 0, 0, 0.7);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  backdrop-filter: blur(24px) saturate(1.6);
+}
+
+@media (hover: hover) and (pointer: fine) and (display-mode: browser) {
+  .landing-header {
+    background-color: rgba(250, 249, 247, 0.82);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    backdrop-filter: blur(20px) saturate(1.8);
+  }
+  .dark .landing-header {
+    background-color: rgba(0, 0, 0, 0.82);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+  }
 }
 
 .dark .landing-logo-text {

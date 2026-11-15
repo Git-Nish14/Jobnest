@@ -201,7 +201,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   if (isAuthenticated && isDashboardPage) {
     return (
       <>
-        <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
+        <nav className="sticky top-0 z-50 w-full border-b atelier-nav" aria-label="App header">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 sm:h-16 items-center justify-between">
 
@@ -428,7 +428,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             />
             <div className="nav-panel-animate fixed inset-y-0 right-0 z-50 w-full max-w-sm lg:hidden db-root atelier-slide-panel">
               <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between px-4 h-14 border-b atelier-dropdown-header">
+                <div className="flex shrink-0 items-center justify-between px-4 h-14 sm:h-16 border-b atelier-dropdown-header">
                   <span className="text-xl atelier-nav-logo">Jobnest</span>
                   <button
                     type="button"
@@ -440,7 +440,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto py-4" aria-label="Mobile navigation">
+                <nav className="min-h-0 flex-1 overflow-y-auto py-4" aria-label="Mobile navigation">
                   {/* Bottom tab bar covers Applications, Interviews, NESTAi — show only the rest */}
                   {NAV_GROUPS.map(group => {
                     const visibleLinks = group.links.filter(l => !BOTTOM_TAB_HREFS.has(l.href));
@@ -544,7 +544,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
   // ── Public navbar (landing, legal, contact pages) ─────────────────────────────
   return (
-    <nav className="sticky top-0 z-50 w-full border-b backdrop-blur-md atelier-nav">
+    <nav className="sticky top-0 z-50 w-full border-b atelier-nav">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo />

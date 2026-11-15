@@ -704,7 +704,7 @@ export function ProfileClient({ user, pendingDeletion: initialPendingDeletion }:
         </div>
         <p className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex"><CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> Joined {formatDate(user.createdAt)}</p>
       </div>
-      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm sm:top-16">
+      <div className="sticky top-(--app-header-height) z-20 bg-background/95 backdrop-blur-sm">
         <ProfileNavigation section={section} />
       </div>
       <ProfilePanel id="profile" active={section} title="Personal details" description="Manage how you appear across Jobnest.">

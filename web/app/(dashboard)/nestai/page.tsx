@@ -1252,7 +1252,7 @@ export default function NestAiPage() {
 
       {sidebarOpen && (
         <div
-          className="fixed top-14 sm:top-16 inset-x-0 bottom-16 md:bottom-0 z-20 bg-black/40 lg:hidden"
+          className="fixed top-(--app-header-height) inset-x-0 bottom-16 md:bottom-0 z-20 bg-black/40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -1261,7 +1261,7 @@ export default function NestAiPage() {
       <aside className={cn(
         "flex flex-col nestai-sidebar transition-all duration-300 shrink-0",
         sidebarOpen
-          ? "w-full sm:w-80 fixed lg:relative top-14 sm:top-16 bottom-16 md:bottom-0 left-0 z-30 lg:top-auto lg:bottom-auto lg:z-auto lg:w-72"
+          ? "w-full sm:w-80 fixed lg:relative top-(--app-header-height) bottom-16 md:bottom-0 left-0 z-30 lg:top-auto lg:bottom-auto lg:z-auto lg:w-72"
           : "w-0 overflow-hidden border-r-0"
       )}>
         <div className="flex items-center justify-between px-3 py-3.5 shrink-0 nestai-sidebar-header">

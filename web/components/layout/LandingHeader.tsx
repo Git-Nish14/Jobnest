@@ -54,7 +54,7 @@ export function LandingHeader() {
   };
 
   return (
-    <header className="sticky top-0 w-full z-50 backdrop-blur-md border-b landing-header">
+    <header className="sticky top-0 w-full z-50 border-b landing-header">
       <div className="flex justify-between items-center px-6 py-3.5 w-full max-w-7xl mx-auto">
 
         {/* Logo */}

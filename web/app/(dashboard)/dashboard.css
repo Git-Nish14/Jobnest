@@ -278,7 +278,9 @@
  */
 .bottom-tab-bar {
   /* Floating position */
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+  bottom: calc(var(--safe-area-bottom) + 0.5rem);
+  left: max(0.75rem, var(--safe-area-left));
+  right: max(0.75rem, var(--safe-area-right));
   border-radius: 2rem;
 
   /* Smooth slide for open/close and nav-open hide */
@@ -388,10 +390,9 @@ html.page-nestai .nestai-input-area {
 /* Negative margins in the TSX (-mt-6/-mt-8, -mb-36/-mb-8) cancel the
    dashboard padding so NESTAi fills exactly (100dvh - navbar height). */
 .nestai-page {
-  height: calc(100dvh - 3.5rem); /* mobile: h-14 navbar */
+  height: calc(100dvh - var(--app-header-height));
   overflow-x: hidden;
 }
-@media (min-width: 640px) { .nestai-page { height: calc(100dvh - 4rem); } } /* sm+: h-16 navbar */
 
 .nestai-root         { background-color: var(--atelier-bg); }
 .nestai-sidebar-header { background-color: rgba(244, 243, 241, 0.85); }
@@ -1280,6 +1281,15 @@ html.page-nestai .nestai-input-area {
     0 18px 50px rgba(0, 0, 0, 0.70),
     0  6px 16px rgba(0, 0, 0, 0.55),
     0  2px  4px rgba(0, 0, 0, 0.40);
+}
+
+/* Avoid expensive glass compositing on touch screens and installed PWAs. */
+@media (pointer: coarse), (display-mode: standalone) {
+  .bottom-tab-bar,
+  .dark .bottom-tab-bar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* ── NESTAi tab pill — dark mode ─────────────────────────────────────────── */

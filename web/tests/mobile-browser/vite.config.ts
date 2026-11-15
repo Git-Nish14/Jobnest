@@ -16,9 +16,11 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      { find: "next/image", replacement: path.join(directory, "mocks/image.tsx") },
       { find: "next/link", replacement: path.join(directory, "mocks/link.tsx") },
       { find: "next/navigation", replacement: path.join(directory, "mocks/navigation.ts") },
       { find: "@/lib/supabase/client", replacement: path.join(directory, "mocks/supabase.ts") },
+      { find: "@/actions/auth", replacement: path.join(directory, "mocks/auth.ts") },
       { find: "@", replacement: webRoot },
     ],
   },

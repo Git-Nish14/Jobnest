@@ -23,7 +23,10 @@ window.__mobileRealtime = {
 /** An in-memory client only: this harness must never contact a real account. */
 export function createClient() {
   return {
-    auth: { getUser: async () => ({ data: { user: { id: 'fixture-user' } }, error: null }) },
+    auth: {
+      getUser: async () => ({ data: { user: { id: 'fixture-user', email: 'fixture@example.test', user_metadata: {} } }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    },
     channel() {
       const owned = new Set<Listener>();
       const channel = {
