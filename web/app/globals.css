@@ -17,19 +17,6 @@ html.dark {
   background-color: #000000;
 }
 
-/* Smooth fade-in on every app launch (PWA or browser) */
-@keyframes app-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-body {
-  animation: app-fade-in 0.35s ease-out both;
-}
-/* Respect user preference for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  body { animation: none; }
-}
-
 html {
   /* Always reserve the vertical scrollbar channel so content width never
      changes when the scrollbar appears or disappears during navigation
@@ -244,6 +231,9 @@ body {
   padding-top: var(--safe-area-top);
   padding-right: var(--safe-area-right);
   padding-left: var(--safe-area-left);
+  /* Keep header controls out of backdrop-composited layers at every size. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @media (min-width: 40rem) {
@@ -337,16 +327,6 @@ html.dark,
   background-color: #000000;
   border-color: rgba(204, 255, 0, 0.08);
   box-shadow: 0 1px 24px rgba(0, 0, 0, 0.8);
-}
-
-/* Touch/installed navigation uses opaque surfaces to avoid WebKit blur layers. */
-@media (hover: hover) and (pointer: fine) and (display-mode: browser) {
-  .atelier-nav {
-    background-color: rgba(250, 249, 247, 0.82);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-  }
-  .dark .atelier-nav { background-color: rgba(0, 0, 0, 0.92); }
 }
 
 .dark .atelier-nav-logo {

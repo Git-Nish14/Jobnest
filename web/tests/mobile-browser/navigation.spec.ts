@@ -11,7 +11,10 @@ async function expectUncovered(target: Locator) {
 for (const viewport of [
   { width: 320, height: 568, top: 0, bottom: 0, side: 0 },
   { width: 375, height: 812, top: 59, bottom: 34, side: 0 },
+  { width: 393, height: 852, top: 59, bottom: 34, side: 0 },
+  { width: 430, height: 932, top: 62, bottom: 34, side: 0 },
   { width: 667, height: 375, top: 0, bottom: 21, side: 44 },
+  { width: 768, height: 1024, top: 24, bottom: 20, side: 0 },
   { width: 812, height: 375, top: 0, bottom: 21, side: 44 },
 ]) {
   for (const theme of ["light", "dark"]) {
@@ -36,6 +39,7 @@ for (const viewport of [
       expect((await menu.boundingBox())!.y).toBeGreaterThanOrEqual(viewport.top);
       await expectNoOverflow(page);
       await page.evaluate(() => window.scrollTo(0, 700));
+      await expect.poll(async () => (await header.boundingBox())?.y).toBe(0);
       await expect(header).toHaveJSProperty("offsetHeight", (viewport.width >= 640 ? 64 : 56) + viewport.top + 1);
       await expectUncovered(menu);
       const bell = header.getByRole("button", { name: /Notifications/ });
@@ -88,4 +92,45 @@ test("landing header clears the status bar and its theme control responds to tou
   await toggle.tap();
   await expect(header).toHaveCSS("background-color", "rgb(0, 0, 0)");
   expect(errors).toEqual([]);
+});
+
+test.describe("mouse navigation", () => {
+  // Exercise real mouse/hover media queries too, not only mobile emulation.
+  test.use({
+    viewport: { width: 1920, height: 1080 },
+    isMobile: false,
+    hasTouch: false,
+    reducedMotion: "no-preference",
+  });
+  for (const route of ["/dashboard", "/"]) {
+    test(`headers stay opaque and usable when desktop windows resize on ${route}`, async ({ page }) => {
+      const { errors } = await fixture(page, `${route}?navigation-fixture=1`);
+      const header = route === "/" ? page.locator("header.landing-header") : page.getByRole("navigation", { name: "App header" });
+      for (const width of [1920, 1440, 1024, 1023, 812, 768, 767, 640, 639, 430, 393, 375, 320]) {
+        await page.setViewportSize({ width, height: 1080 });
+        for (const theme of ["light", "dark"]) {
+          await page.evaluate((theme) => document.documentElement.classList.toggle("dark", theme === "dark"), theme);
+          await expect(header).toHaveCSS("backdrop-filter", "none");
+          await expect(header).toHaveCSS("background-color", theme === "dark" ? "rgb(0, 0, 0)" : "rgb(250, 249, 247)");
+          await expect(page.locator("body")).toHaveCSS("animation-name", "none");
+          await expectNoOverflow(page);
+          await page.evaluate(() => window.scrollTo(0, 700));
+          await expect.poll(async () => (await header.boundingBox())?.y).toBe(0);
+          await expectUncovered(header.getByRole("button", { name: /Switch to .* mode/ }));
+          if (route === "/dashboard") {
+            await expectUncovered(header.getByRole("button", { name: /Notifications/ }));
+            if (width < 1024) {
+              await expectUncovered(header.getByRole("button", { name: "Open menu", exact: true }));
+            } else {
+              await expectUncovered(header.getByRole("link", { name: "Applications", exact: true }));
+            }
+          } else {
+            await expectUncovered(header.getByRole("link", { name: "Get Started", exact: true }));
+            if (width < 1024) await expectUncovered(header.getByRole("button", { name: "Toggle menu" }));
+          }
+        }
+      }
+      expect(errors).toEqual([]);
+    });
+  }
 });

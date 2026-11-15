@@ -8,8 +8,8 @@ const baseURL = "http://127.0.0.1:4175";
 
 export default defineConfig({
   ...base,
-  testMatch: ["applications.spec.ts", "dialog-position.spec.ts"],
-  grep: /applications fit|short landscape sheets|filters are drafted|failed status save|mobile sheets close|default dialog stays centered/,
+  testMatch: ["applications.spec.ts", "dialog-position.spec.ts", "navigation.spec.ts"],
+  grep: /applications fit|short landscape sheets|filters are drafted|failed status save|mobile sheets close|default dialog stays centered|navigation stays readable|landing header clears|headers stay opaque/,
   outputDir: path.join(directory, "artifacts/production-css-results"),
   reporter: [["list"], ["html", { outputFolder: path.join(directory, "artifacts/production-css-report"), open: "never" }]],
   use: { ...base.use, baseURL },

@@ -9,7 +9,7 @@ interface ClientManifest {
 /** Serve Next's emitted CSS verbatim: do not run it through Vite or PostCSS. */
 export function nextProductionCss(webRoot: string): Plugin {
   const buildRoot = path.join(webRoot, ".next");
-  const routes = ["(dashboard)/applications", "(dashboard)/applications/[id]/edit"];
+  const routes = ["(dashboard)/applications", "(dashboard)/applications/[id]/edit", "(public)"];
   const files = new Map<string, string>();
 
   for (const route of routes) {
@@ -35,8 +35,10 @@ export function nextProductionCss(webRoot: string): Plugin {
   return {
     name: "next-production-css-fixture",
     enforce: "pre",
-    resolveId(source) {
-      if (source.endsWith(".css")) return `${virtualPrefix}${encodeURIComponent(source)}.js`;
+    resolveId(source, importer) {
+      if (!source.endsWith(".css")) return;
+      const filename = source.startsWith(".") && importer ? path.resolve(path.dirname(importer), source) : source;
+      return `${virtualPrefix}${encodeURIComponent(filename)}.js`;
     },
     load(id) {
       if (!id.startsWith(virtualPrefix)) return;
@@ -47,6 +49,24 @@ export function nextProductionCss(webRoot: string): Plugin {
       const selector = new RegExp(`\\.(${escapedStem}__[A-Za-z0-9_-]+?__([A-Za-z][A-Za-z0-9_-]*))`, "g");
       const tokens: Record<string, string> = {};
       for (const match of compiledCss.matchAll(selector)) tokens[match[2]] = match[1];
+      // Newer Turbopack builds emit hash_local instead of filename__hash__local.
+      // Identify a namespace by its complete set of local classes; never guess
+      // from a shared name such as "card" or regenerate the production CSS.
+      if (!Object.keys(tokens).length) {
+        const localCss = readFileSync(source, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/:global\([^)]*\)/g, "");
+        const locals = new Set([...localCss.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((match) => match[1]));
+        const candidates = new Map<string, Record<string, string>>();
+        for (const local of locals) {
+          const scoped = new RegExp(`\\.([\\w-]+)_${local}(?![\\w-])`, "g");
+          for (const match of compiledCss.matchAll(scoped)) {
+            const candidate = candidates.get(match[1]) ?? {};
+            candidate[local] = `${match[1]}_${local}`;
+            candidates.set(match[1], candidate);
+          }
+        }
+        const matches = [...candidates.values()].filter((candidate) => Object.keys(candidate).length === locals.size);
+        if (matches.length === 1) Object.assign(tokens, matches[0]);
+      }
       if (!Object.keys(tokens).length) throw new Error(`No compiled CSS module tokens found for ${source}; rebuild Next.`);
       return `export default ${JSON.stringify(tokens)};`;
     },

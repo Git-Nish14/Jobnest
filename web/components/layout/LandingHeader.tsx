@@ -55,7 +55,7 @@ export function LandingHeader() {
 
   return (
     <header className="sticky top-0 w-full z-50 border-b landing-header">
-      <div className="flex justify-between items-center px-6 py-3.5 w-full max-w-7xl mx-auto">
+      <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 w-full max-w-7xl mx-auto">
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
@@ -65,7 +65,7 @@ export function LandingHeader() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {NAV_LINKS.map(({ label, href }) => (
             <Link
               key={label}
@@ -82,7 +82,7 @@ export function LandingHeader() {
         </nav>
 
         {/* Right: theme toggle + auth CTAs + mobile hamburger */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           <ThemeToggle className="landing-theme-toggle" />
 
           {/* Auth — desktop */}
@@ -117,7 +117,7 @@ export function LandingHeader() {
 
           <Link
             href="/signup"
-            className="px-6 py-2 rounded-full font-medium text-sm transition-all landing-btn-primary"
+            className="inline-flex min-h-11 items-center justify-center px-3 sm:px-6 py-2 rounded-full font-medium text-xs sm:text-sm whitespace-nowrap transition-all landing-btn-primary"
           >
             Get Started
           </Link>
@@ -125,7 +125,7 @@ export function LandingHeader() {
           {/* Mobile hamburger */}
           <button
             type="button"
-            className="md:hidden min-h-11 min-w-11 flex items-center justify-center -mr-2 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/8"
+            className="lg:hidden min-h-11 min-w-11 flex items-center justify-center -mr-2 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/8"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -136,7 +136,7 @@ export function LandingHeader() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden border-t px-6 py-4 space-y-1 landing-header">
+        <div className="lg:hidden border-t px-6 py-4 space-y-1 landing-header">
           {NAV_LINKS.map(({ label, href }) => (
             <Link
               key={label}

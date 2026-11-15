@@ -266,26 +266,18 @@ describe("dashboard.css — foldable device support", () => {
 
 describe("landing.css — header and nav-link polish", () => {
   const css = src("app/landing.css");
-  const desktopHeaders = css.match(
-    /@media \(hover: hover\) and \(pointer: fine\) and \(display-mode: browser\) \{([\s\S]*?)^\}/m
-  )?.[1] ?? "";
-
-  it("landing-header is opaque by default and uses blur only in desktop browser mode", () => {
+  it("landing-header stays opaque at every breakpoint", () => {
     const headerBlock = css.match(/^\.landing-header \{([^}]+)\}/m)?.[1] ?? "";
     expect(headerBlock).toContain("background-color: #faf9f7");
     expect(headerBlock).not.toContain("backdrop-filter");
-    const desktopHeader = desktopHeaders.match(/^\s+\.landing-header \{([^}]+)\}/m)?.[1] ?? "";
-    expect(desktopHeader).toContain("-webkit-backdrop-filter: blur(");
-    expect(desktopHeader).toContain("backdrop-filter: blur(");
+    expect(css).not.toMatch(/\.landing-header\s*\{[^}]*background-color:\s*rgba\(/);
   });
 
-  it("dark landing-header is opaque by default and uses blur only in desktop browser mode", () => {
+  it("dark landing-header stays opaque at every breakpoint", () => {
     const darkHeader = css.match(/^\.dark \.landing-header \{([^}]+)\}/m)?.[1] ?? "";
     expect(darkHeader).toContain("background-color: #000000");
     expect(darkHeader).not.toContain("backdrop-filter");
-    const desktopHeader = desktopHeaders.match(/^\s+\.dark \.landing-header \{([^}]+)\}/m)?.[1] ?? "";
-    expect(desktopHeader).toContain("-webkit-backdrop-filter: blur(");
-    expect(desktopHeader).toContain("backdrop-filter: blur(");
+    expect(css).not.toMatch(/\.dark \.landing-header\s*\{[^}]*background-color:\s*rgba\(/);
   });
 
   it("landing-nav-link transitions both background-color and color", () => {

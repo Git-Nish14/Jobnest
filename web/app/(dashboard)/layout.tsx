@@ -40,7 +40,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen db-root">
+    <div className="min-h-dvh db-root">
       <ScrollRestorer />
       <AuthSync />
       <TimezoneSync />
