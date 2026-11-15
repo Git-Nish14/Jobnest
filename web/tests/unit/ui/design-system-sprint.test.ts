@@ -266,22 +266,26 @@ describe("dashboard.css — foldable device support", () => {
 
 describe("landing.css — header and nav-link polish", () => {
   const css = src("app/landing.css");
+  const desktopHeaders = css.match(
+    /@media \(hover: hover\) and \(pointer: fine\) and \(display-mode: browser\) \{([\s\S]*?)^\}/m
+  )?.[1] ?? "";
 
-  it("landing-header has backdrop-filter (glass effect on scroll)", () => {
-    const headerBlock = css.slice(
-      css.indexOf(".landing-header {"),
-      css.indexOf(".landing-logo-text")
-    );
-    expect(headerBlock).toContain("backdrop-filter");
-    expect(headerBlock).toContain("blur(");
+  it("landing-header is opaque by default and uses blur only in desktop browser mode", () => {
+    const headerBlock = css.match(/^\.landing-header \{([^}]+)\}/m)?.[1] ?? "";
+    expect(headerBlock).toContain("background-color: #faf9f7");
+    expect(headerBlock).not.toContain("backdrop-filter");
+    const desktopHeader = desktopHeaders.match(/^\s+\.landing-header \{([^}]+)\}/m)?.[1] ?? "";
+    expect(desktopHeader).toContain("-webkit-backdrop-filter: blur(");
+    expect(desktopHeader).toContain("backdrop-filter: blur(");
   });
 
-  it("dark mode landing-header also has backdrop-filter", () => {
-    const darkHeader = css.slice(
-      css.indexOf(".dark .landing-header {"),
-      css.indexOf(".dark .landing-logo-text")
-    );
-    expect(darkHeader).toContain("backdrop-filter");
+  it("dark landing-header is opaque by default and uses blur only in desktop browser mode", () => {
+    const darkHeader = css.match(/^\.dark \.landing-header \{([^}]+)\}/m)?.[1] ?? "";
+    expect(darkHeader).toContain("background-color: #000000");
+    expect(darkHeader).not.toContain("backdrop-filter");
+    const desktopHeader = desktopHeaders.match(/^\s+\.dark \.landing-header \{([^}]+)\}/m)?.[1] ?? "";
+    expect(desktopHeader).toContain("-webkit-backdrop-filter: blur(");
+    expect(desktopHeader).toContain("backdrop-filter: blur(");
   });
 
   it("landing-nav-link transitions both background-color and color", () => {

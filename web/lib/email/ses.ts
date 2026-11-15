@@ -65,7 +65,8 @@ export async function sendEmail({ fromName = "Jobnest", ...options }: EmailOptio
   return transporter.sendMail({
     ...options,
     from: { name: fromName, address: getSenderEmail() },
-    replyTo: options.replyTo ?? getContactEmail(),
+    // The contact inbox is private; user-facing replies use the public sender.
+    replyTo: options.replyTo ?? getSenderEmail(),
     disableFileAccess: true,
     disableUrlAccess: true,
     ...(configurationSet ? { ses: { ConfigurationSetName: configurationSet } } : {}),

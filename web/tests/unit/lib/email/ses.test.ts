@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.stubEnv("AWS_SES_ACCESS_KEY_ID", "test-access-key");
   vi.stubEnv("AWS_SES_SECRET_ACCESS_KEY", "test-secret-key");
   vi.stubEnv("SES_FROM_EMAIL", "me@nishpatel.dev");
-  vi.stubEnv("CONTACT_EMAIL", "me@nishpatel.dev");
+  vi.stubEnv("CONTACT_EMAIL", "private-inbox@example.com");
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -35,12 +35,13 @@ function sentMessage() {
 }
 
 describe("SES transport with real Nodemailer MIME composition", () => {
-  it("sends OTP mail from the configured sender with contact replies", async () => {
+  it("sends OTP mail with the public sender and reply-to while keeping the contact inbox private", async () => {
     expect(await sendOTPEmail("user@example.com", "123456", "signup")).toEqual({ success: true });
     const { input, mime } = sentMessage();
     expect(input.Destination?.ToAddresses).toEqual(["user@example.com"]);
     expect(mime).toContain("From: Jobnest <me@nishpatel.dev>");
     expect(mime).toContain("Reply-To: me@nishpatel.dev");
+    expect(mime).not.toContain("private-inbox@example.com");
     expect(mime).toContain("123456 is your Jobnest verification code");
     expect(mime).toContain("verify your email address");
   });
@@ -50,7 +51,7 @@ describe("SES transport with real Nodemailer MIME composition", () => {
     await sendEmail({ fromName: "Jobnest Contact", to: getContactEmail(), replyTo: "user@example.com", subject: "Contact", text: "Hello" });
     const { input, mime } = sentMessage();
     expect(input.ConfigurationSetName).toBe("jobnest-events");
-    expect(input.Destination?.ToAddresses).toEqual(["me@nishpatel.dev"]);
+    expect(input.Destination?.ToAddresses).toEqual(["private-inbox@example.com"]);
     expect(mime).toContain("From: Jobnest Contact <me@nishpatel.dev>");
     expect(mime).toContain("Reply-To: user@example.com");
   });

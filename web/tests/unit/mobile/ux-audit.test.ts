@@ -92,8 +92,12 @@ describe("ApplicationFilters — debounce & aria", () => {
     expect(code).toContain("aria-label={`Sort:");
   });
 
-  it("keeps the sticky filter workspace above scrolling cards", () => {
-    expect(code).toContain("sticky top-14 sm:top-16 z-30");
+  it("keeps the sticky filter workspace below the safe-area-aware header and above cards", () => {
+    expect(code).toContain("sticky top-(--app-header-height) z-30");
+    const globals = src("app/globals.css");
+    expect(globals).toContain("--safe-area-top: env(safe-area-inset-top, 0px)");
+    expect(globals).toContain("--app-header-height: calc(3.5rem + var(--safe-area-top))");
+    expect(globals).toContain("--app-header-height: calc(4rem + var(--safe-area-top))");
   });
 
   it("clears timeout on cleanup (no memory leak)", () => {
