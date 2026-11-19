@@ -314,7 +314,7 @@ export function ApplicationDetailSkeleton() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="db-content-card">
             <AtelierShimmer className="h-6 w-44 rounded mb-6" />
@@ -496,7 +496,7 @@ export function DocumentsSkeleton() {
       {/* Search + filter pills */}
       <div className="flex flex-col sm:flex-row gap-3">
         <AtelierShimmer className="h-10 w-full sm:w-64 rounded-lg shrink-0" />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {[...Array(5)].map((_, i) => (
             <AtelierShimmer key={i} className="h-8 w-14 rounded-full shrink-0" />
           ))}
@@ -781,7 +781,7 @@ export function PortfolioSkeleton() {
     <div className="mx-auto max-w-5xl space-y-14 px-4 py-10 sm:px-6 lg:px-8">
       <div className="flex flex-col items-start gap-6 sm:flex-row">
         <AtelierShimmer className="h-24 w-24 shrink-0 rounded-full" />
-        <div className="min-w-0 flex-1 space-y-3">
+        <div className="min-w-0 w-full flex-1 space-y-3">
           <AtelierShimmer className="h-9 w-56" />
           <AtelierShimmer className="h-5 w-80" />
           <AtelierShimmer className="h-4 w-60" />

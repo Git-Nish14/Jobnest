@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Bell } from "lucide-react";
 import { toast } from "sonner";
@@ -54,7 +54,7 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ReminderFormData>({
@@ -69,7 +69,7 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
     },
   });
 
-  const currentType = watch("type");
+  const currentType = useWatch({ control, name: "type" });
 
   const onSubmit = async (data: ReminderFormData) => {
     if (submittingRef.current) return;
@@ -155,7 +155,7 @@ export function ReminderForm({ applicationId, reminder, onSuccess }: ReminderFor
             {reminder ? "Update this reminder's title, date, and notes." : "Create a reminder with a title and due date to stay on top of your job search."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
             <Input

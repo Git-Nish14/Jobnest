@@ -227,7 +227,7 @@ export default async function PublicPortfolioPage({
   return (
     <div className="min-h-screen">
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+      <header className="public-portfolio-header border-b border-border bg-background sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="text-sm font-semibold text-[#99462a] dark:text-[#ccff00]">
             Jobnest

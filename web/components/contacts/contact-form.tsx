@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -44,7 +44,7 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
@@ -65,8 +65,8 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
     },
   });
 
-  const isPrimary = watch("is_primary");
-  const outreachStatus = watch("outreach_status");
+  const isPrimary = useWatch({ control, name: "is_primary" });
+  const outreachStatus = useWatch({ control, name: "outreach_status" });
 
   const onSubmit = async (data: ContactFormData) => {
     if (submittingRef.current) return;
@@ -170,7 +170,7 @@ export function ContactForm({ applicationId, contact, onSuccess }: ContactFormPr
             {contact ? "Update this contact's name, company, and details." : "Add a new networking contact with their name, company, and role."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>

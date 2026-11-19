@@ -323,19 +323,8 @@ describe("Navbar.tsx — mobile slide panel animation", () => {
     expect(panelSection).not.toContain("max-w-xs");
   });
 
-  it("backdrop overlay has backdropFilter for frosted glass effect", () => {
-    expect(code).toContain("backdropFilter");
-    expect(code).toContain("blur(4px)");
-  });
-
-  it("backdrop uses WebkitBackdropFilter for Safari compatibility", () => {
-    expect(code).toContain("WebkitBackdropFilter");
-  });
-
-  it("mobile overlay background is semi-transparent (not fully opaque)", () => {
-    // rgba is correct — pure bg-black/60 doesn't allow blur to show through
-    expect(code).toContain("rgba(0,0,0,0.55)");
-  });
+  // Overlay clarity, dimming, and safe-area geometry are exercised in
+  // tests/mobile-browser/pwa-readability.spec.ts using rendered components.
 });
 
 // ── 6. ThemeToggle.tsx — dynamic meta theme-color sync ───────────────────────

@@ -958,7 +958,7 @@ export function DocumentManager({
 }: DocumentManagerProps) {
   // Build a stable Set so we can filter in O(1) without re-creating on every render.
   // The prop is set once from the server component and never changes.
-  const excludeSet = useRef(new Set(excludeStoragePaths ?? [])).current;
+  const excludeSet = useState(() => new Set(excludeStoragePaths ?? []))[0];
 
   const [docs, setDocs]       = useState<ApplicationDocument[]>(
     // Filter out any pre-loaded docs that match legacy storage paths so the

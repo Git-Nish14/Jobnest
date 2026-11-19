@@ -39,6 +39,8 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Read the browser theme after hydration so the server and initial client markup match.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const stored = readStoredTheme();
     if (stored !== theme) setTheme(stored);

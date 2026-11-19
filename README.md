@@ -34,12 +34,12 @@ The interface supports dark mode, responsive layouts, and installation as a prog
 
 ### Prerequisites
 
-- Node.js **26** and npm, matching the current dependency requirements.
+- Node.js **26.13.0** and npm, matching the current dependency requirements.
 - A Supabase project with database, authentication, and storage configured.
 - AWS SES credentials and a verified sender for account verification and transactional mail.
 - An OpenAI API key to use NESTAi chat and semantic retrieval.
 
-The application package requires Node.js `26.x`, matching CI and the Vercel deployment runtime.
+The application package requires Node.js `26.x`. CI uses Node.js `26.13.0`, matching local development. Select Node.js 26.x in Vercel, which manages the exact patch version.
 
 ### 1. Install dependencies
 

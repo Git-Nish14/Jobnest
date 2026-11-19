@@ -98,6 +98,8 @@ export default function NotificationsPage() {
   // Initial load + when filter changes
   useEffect(() => {
     let cancelled = false;
+    // Reset pagination while synchronizing with a different server-side filter.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setItems([]);
     setNextCursor(null);

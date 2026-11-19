@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -48,7 +48,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<InterviewFormData>({
@@ -69,8 +69,8 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
     },
   });
 
-  const currentType = watch("type");
-  const currentStatus = watch("status");
+  const currentType = useWatch({ control, name: "type" });
+  const currentStatus = useWatch({ control, name: "status" });
 
   const onSubmit = async (data: InterviewFormData) => {
     if (submittingRef.current) return;
@@ -152,7 +152,7 @@ export function InterviewForm({ applicationId, interview, onSuccess }: Interview
             {interview ? "Edit interview details including type, date, and notes." : "Schedule a new interview by filling in the type, date, and optional notes."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="type">Interview Type</Label>

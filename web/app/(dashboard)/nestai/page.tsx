@@ -462,7 +462,7 @@ function ChatAttachmentPreview({
   };
 
   // Icon for non-previewable types
-  function OpenInBrowserState({ label }: { label: string }) {
+  function renderOpenInBrowserState({ label }: { label: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-5 text-center px-8">
         <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center", meta.bg)}>
@@ -582,7 +582,7 @@ function ChatAttachmentPreview({
 
           {/* PDF — blob failed but signedUrl exists → Open in browser */}
           {!loading && isPDF && !blobUrl && signedUrl && (
-            <OpenInBrowserState label={fileError ?? "Could not embed this PDF inline."} />
+            renderOpenInBrowserState({ label: fileError ?? "Could not embed this PDF inline." })
           )}
 
           {/* Image — from Supabase Storage */}
@@ -608,7 +608,7 @@ function ChatAttachmentPreview({
 
           {/* DOCX / DOC — cannot render natively */}
           {!loading && (ft === "docx" || ft === "doc") && signedUrl && (
-            <OpenInBrowserState label="Word documents cannot be previewed inline." />
+            renderOpenInBrowserState({ label: "Word documents cannot be previewed inline." })
           )}
 
           {/* No binary available — file was attached before storage upload was enforced */}
@@ -723,6 +723,8 @@ export default function NestAiPage() {
   const pendingStorageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Read the browser viewport after hydration; the server cannot know the sidebar breakpoint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (window.innerWidth >= 1024) setSidebarOpen(true);
   }, []);
 
@@ -731,6 +733,8 @@ export default function NestAiPage() {
     const pending = sessionStorage.getItem("nestai_pending_message");
     if (pending) {
       sessionStorage.removeItem("nestai_pending_message");
+      // Consume the cross-page sessionStorage handoff after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInput(pending);
       // Focus the textarea so the user can immediately send or edit
       setTimeout(() => {
@@ -745,6 +749,8 @@ export default function NestAiPage() {
   }, [messages]);
 
   useEffect(() => {
+    // Synchronize the countdown with the external clock and clear it when the rate-limit window ends.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!windowEndAt) { setResetCountdown(null); return; }
     const totalSecs = WINDOW_MS / 1000;
     const tick = () => {
@@ -789,6 +795,8 @@ export default function NestAiPage() {
     }
   }, []);
 
+  // Load external chat sessions on mount; the request owns the loading state.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
   useEffect(() => {
@@ -977,6 +985,8 @@ export default function NestAiPage() {
     filePayload: { fileContent?: string; fileData?: string; fileMediaType?: string; fileName?: string },
     sessionId: string | null,
   ) => {
+    // This clock read runs only in the message submit/stream event path, never during render.
+    // eslint-disable-next-line react-hooks/purity
     const assistantMsgId = `${Date.now() + 1}`;
     setMessages((prev) => [...prev, { id: assistantMsgId, role: "assistant", content: "", timestamp: new Date(), isStreaming: true }]);
     abortControllerRef.current = new AbortController();
@@ -993,6 +1003,8 @@ export default function NestAiPage() {
         const data = await res.json().catch(() => ({ error: "Failed to get response" }));
         if (res.status === 429 && data.resetIn) {
           setIsRateLimited(true); setRemaining(0);
+          // This clock read runs only in the message submit/stream event path, never during render.
+          // eslint-disable-next-line react-hooks/purity
           setWindowEndAt(Date.now() + data.resetIn * 1000);
         }
         setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
@@ -1002,6 +1014,8 @@ export default function NestAiPage() {
       const rlRemaining = parseInt(res.headers.get("X-RateLimit-Remaining") ?? String(MAX_REQUESTS), 10);
       const rlResetIn = parseInt(res.headers.get("X-RateLimit-Reset-In") ?? "0", 10);
       setRemaining(rlRemaining);
+      // This clock read runs only in the message submit/stream event path, never during render.
+      // eslint-disable-next-line react-hooks/purity
       if (rlResetIn > 0) setWindowEndAt(Date.now() + rlResetIn * 1000);
       if (rlRemaining === 0) setIsRateLimited(true);
       setIsDegraded(res.headers.get("X-NESTAi-Degraded") === "1");
@@ -1014,6 +1028,8 @@ export default function NestAiPage() {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
+        // The stream reader and buffer are created and consumed inside this submit event, never during render.
+        // eslint-disable-next-line react-hooks/immutability
         fullContent += chunk;
         setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, content: fullContent } : m)));
       }
@@ -1185,6 +1201,8 @@ export default function NestAiPage() {
       : undefined;
 
     const userMsg: Message = {
+      // This clock read runs only in the message submit/stream event path, never during render.
+      // eslint-disable-next-line react-hooks/purity
       id: Date.now().toString(),
       role: "user",
       content: baseQuestion,
@@ -1447,7 +1465,7 @@ export default function NestAiPage() {
             >
               {/* Scrim */}
               <div
-                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                className="app-overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
                 onClick={() => setMobileActionsOpen(false)}
                 aria-hidden="true"
               />
@@ -1717,7 +1735,7 @@ export default function NestAiPage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={(event) => void handleSubmit(event)}>
                 {attachedFile && (
                   <div className={cn(
                     "mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border w-fit max-w-full",

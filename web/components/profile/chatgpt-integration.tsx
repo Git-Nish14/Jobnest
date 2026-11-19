@@ -57,6 +57,8 @@ export function ChatGptIntegration() {
 
   useEffect(() => {
     const controller = new AbortController();
+    // Load the connection from the API after mount with abort cleanup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadCredential(controller.signal);
     return () => controller.abort();
   }, []);

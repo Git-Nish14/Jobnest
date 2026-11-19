@@ -31,6 +31,8 @@ export function PublicSkillEndorsements({ username, skills }: { username: string
       setLoaded(true); setError("");
     } catch (error) { if (!signal?.aborted) setError(error instanceof Error ? error.message : "Could not load endorsements."); }
   }, [endpoint]);
+  // Load external endorsement state on mount; the request updates state asynchronously.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort(); }, [load]);
   async function endorse(skill: Skill) {
     if (pending.current) return;

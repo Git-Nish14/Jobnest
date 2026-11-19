@@ -29,6 +29,8 @@ export function TailoringChecklist({ applicationId, hasJobDescription }: Props) 
           checked: number[];
         };
         if (Array.isArray(savedItems) && savedItems.length > 0) {
+          // Restore browser-persisted state after hydration; localStorage is unavailable on the server.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setItems(savedItems);
           setChecked(new Set(savedChecked ?? []));
           setGenerated(true);

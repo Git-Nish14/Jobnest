@@ -156,7 +156,7 @@ export default function ContactPage() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-5">
                   {/* Name */}
                   <div>
                     <label htmlFor="name" className="atelier-label flex items-center gap-1.5 mb-1.5">

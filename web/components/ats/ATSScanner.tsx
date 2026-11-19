@@ -317,6 +317,43 @@ function ResumePicker({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+const CategoryBar = ({
+  label, score, max, icon, evidence,
+}: { label: string; score: number; max: number; icon: React.ReactNode; evidence: string }) => {
+  const [open, setOpen] = useState(false);
+  const pct = Math.round((score / max) * 100);
+  const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
+  const textColor = pct >= 70 ? "text-emerald-600 dark:text-emerald-400"
+    : pct >= 40 ? "text-amber-600 dark:text-amber-400"
+    : "text-red-600 dark:text-red-400";
+  return (
+    <div className="space-y-1.5">
+      <button
+        type="button"
+        className="w-full flex items-center gap-2.5 text-sm"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="shrink-0">{icon}</span>
+        <span className="flex-1 font-semibold text-foreground text-left">{label}</span>
+        <span className={cn("tabular-nums font-bold", textColor)}>{score}/{max}</span>
+        {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+      </button>
+      <div className="h-2 rounded-full bg-border/30 overflow-hidden">
+        <div
+          className={cn("ats-progress-fill h-full rounded-full transition-all", color)}
+          style={{ "--ats-w": `${pct}%` } as React.CSSProperties}
+        />
+      </div>
+      {open && (
+        <p className="text-xs text-muted-foreground leading-relaxed pl-6 pt-0.5 border-l-2 border-border/40 ml-2">
+          {evidence}
+        </p>
+      )}
+    </div>
+  );
+};
+
+
 export function ATSScanner({ initialDocs, configuredProviders }: Props) {
   const searchParams  = useSearchParams();
   const router        = useRouter();
@@ -397,7 +434,7 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
   }
 
   // ── mode tab ──
-  const ModeTab = ({ m, label, icon: Icon }: { m: "scan" | "audit"; label: string; icon: React.ElementType }) => (
+  const renderModeTab = ({ m, label, icon: Icon }: { m: "scan" | "audit"; label: string; icon: React.ElementType }) => (
     <button
       type="button"
       onClick={() => { setMode(m); handleReset(); }}
@@ -425,41 +462,6 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
         : "text-red-600 dark:text-red-400";
 
     // Category score bar (hiring-agent style: scored/max)
-    const CategoryBar = ({
-      label, score, max, icon, evidence,
-    }: { label: string; score: number; max: number; icon: React.ReactNode; evidence: string }) => {
-      const [open, setOpen] = useState(false);
-      const pct = Math.round((score / max) * 100);
-      const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
-      const textColor = pct >= 70 ? "text-emerald-600 dark:text-emerald-400"
-        : pct >= 40 ? "text-amber-600 dark:text-amber-400"
-        : "text-red-600 dark:text-red-400";
-      return (
-        <div className="space-y-1.5">
-          <button
-            type="button"
-            className="w-full flex items-center gap-2.5 text-sm"
-            onClick={() => setOpen(o => !o)}
-          >
-            <span className="shrink-0">{icon}</span>
-            <span className="flex-1 font-semibold text-foreground text-left">{label}</span>
-            <span className={cn("tabular-nums font-bold", textColor)}>{score}/{max}</span>
-            {open ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-          </button>
-          <div className="h-2 rounded-full bg-border/30 overflow-hidden">
-            <div
-              className={cn("ats-progress-fill h-full rounded-full transition-all", color)}
-              style={{ "--ats-w": `${pct}%` } as React.CSSProperties}
-            />
-          </div>
-          {open && (
-            <p className="text-xs text-muted-foreground leading-relaxed pl-6 pt-0.5 border-l-2 border-border/40 ml-2">
-              {evidence}
-            </p>
-          )}
-        </div>
-      );
-    };
 
     return (
       <div className="space-y-6">
@@ -804,8 +806,8 @@ export function ATSScanner({ initialDocs, configuredProviders }: Props) {
     <div className="space-y-6">
       {/* Mode tabs */}
       <div className="flex flex-wrap gap-2">
-        <ModeTab m="scan"  label="ATS Keyword Scan" icon={ScanSearch}   />
-        <ModeTab m="audit" label="NESTpro Audit"      icon={ShieldCheck}  />
+        {renderModeTab({ m: "scan", label: "ATS Keyword Scan", icon: ScanSearch })}
+        {renderModeTab({ m: "audit", label: "NESTpro Audit", icon: ShieldCheck })}
       </div>
 
       {/* Scan-specific info */}

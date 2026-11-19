@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useForm } from "react-hook-form";
+import { useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Loader2,
@@ -156,13 +156,13 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
 
-  const watchedPassword = watch("password") ?? "";
-  const watchedAgeConfirmed = watch("ageConfirmed");
-  const watchedTermsAccepted = watch("termsAccepted");
+  const watchedPassword = useWatch({ control, name: "password" }) ?? "";
+  const watchedAgeConfirmed = useWatch({ control, name: "ageConfirmed" });
+  const watchedTermsAccepted = useWatch({ control, name: "termsAccepted" });
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -409,7 +409,7 @@ export default function SignupPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-5" noValidate>
           {/* Email */}
           <div>
             <label htmlFor="signup-email" className="atelier-label">Email address</label>
