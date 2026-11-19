@@ -43,6 +43,8 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
     const stored = localStorage.getItem(GOAL_KEY);
     if (stored) {
       const n = parseInt(stored, 10);
+      // Restore the browser-stored goal only when the server has no saved goal.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (!isNaN(n)) setGoal(clampGoal(n));
     }
   }, [initialGoal]);
@@ -80,10 +82,9 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
 
   useEffect(() => {
     if (editing) {
-      setDraft(String(goal));
       setTimeout(() => inputRef.current?.select(), 0);
     }
-  }, [editing, goal]);
+  }, [editing]);
 
   // Last 12 weeks for the mini chart
   const chartWeeks = weeklyTrends.slice(-12);
@@ -179,7 +180,7 @@ export function WeeklyCadence({ weeklyTrends, thisWeek, initialGoal }: Props) {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setEditing(true)}
+                    onClick={() => { setDraft(String(goal)); setEditing(true); }}
                     className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors group"
                     title="Edit weekly goal — also configurable in Profile settings"
                   >

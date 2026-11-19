@@ -15,6 +15,8 @@ import { LandingHeader } from "@/components/layout/LandingHeader";
 import { TouchScrollGuard } from "@/components/layout/TouchScrollGuard";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { DocPreviewDialog } from "@/components/documents/DocPreviewDialog";
+import ForgotPasswordPage from "@/app/(auth)/forgot-password/page";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   Select, SelectTrigger, SelectContent, SelectItem, SelectValue,
   Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui";
@@ -82,6 +84,8 @@ function DocxFixture() {
 function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  if (pathname === "/forgot-password-fixture") return <ForgotPasswordPage />;
+  if (pathname === "/command-palette-fixture") return <main><h1>Command palette fixture</h1><CommandPalette /></main>;
   if (searchParams.has("navigation-fixture")) {
     return <div className="db-root min-h-dvh">
       {pathname === "/" ? <LandingHeader /> : <Navbar user={{ email: "fixture@example.test" }} />}

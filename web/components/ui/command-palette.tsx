@@ -52,28 +52,26 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // ── Application full-text search ───────────────────────────────────────────
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchState, setSearchState] = useState<{ query: string; results: SearchResult[]; loading: boolean }>({ query: "", results: [], loading: false });
+  const searchQuery = query.trim();
+  const searchResults = searchQuery.length >= 2 && searchState.query === searchQuery ? searchState.results : [];
+  const searchLoading = searchQuery.length >= 2 && searchState.query === searchQuery && searchState.loading;
 
   useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    if (query.trim().length < 2) { setSearchResults([]); return; }
-
-    searchTimerRef.current = setTimeout(async () => {
-      setSearchLoading(true);
+    if (searchQuery.length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearchState({ query: searchQuery, results: [], loading: true });
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
-        if (res.ok) {
-          const json = await res.json() as { results: SearchResult[] };
-          setSearchResults(json.results ?? []);
-        }
-      } catch { /* search is non-critical — fail silently */ }
-      finally { setSearchLoading(false); }
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`, { signal: controller.signal });
+        const json = res.ok ? await res.json() as { results: SearchResult[] } : { results: [] };
+        if (!controller.signal.aborted) setSearchState({ query: searchQuery, results: json.results ?? [], loading: false });
+      } catch {
+        if (!controller.signal.aborted) setSearchState({ query: searchQuery, results: [], loading: false });
+      }
     }, 250);
-
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
-  }, [query]);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [searchQuery]);
 
   const navigate = useCallback(
     (path: string) => { setOpen(false); router.push(path); },

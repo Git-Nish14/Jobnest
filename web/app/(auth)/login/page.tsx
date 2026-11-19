@@ -328,7 +328,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmitCredentials)} className="space-y-6" noValidate>
+        <form onSubmit={(event) => void handleSubmit(onSubmitCredentials)(event)} className="space-y-6" noValidate>
           {/* Email */}
           <div>
             <label htmlFor="email" className="atelier-label">Email address</label>

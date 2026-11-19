@@ -33,6 +33,24 @@ type EmailData = z.infer<typeof emailSchema>;
 type ResetData = z.infer<typeof resetSchema>;
 type Step = "email" | "otp" | "reset" | "success";
 
+const Shell = ({ children }: { children: React.ReactNode }) => (
+  <main className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden">
+    <div className="atelier-glow-top" />
+    <div className="atelier-glow-bottom" />
+    <div className="atelier-grain" />
+    <div className="w-full max-w-110 z-10">{children}</div>
+  </main>
+);
+
+const Logo = () => (
+  <div className="flex flex-col items-center mb-10">
+    <div className="mb-5">
+      <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
+    </div>
+  </div>
+);
+
+
 export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("email");
@@ -171,23 +189,6 @@ export default function ForgotPasswordPage() {
   };
 
   // ── Shell ─────────────────────────────────────────────────────────────────
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden">
-      <div className="atelier-glow-top" />
-      <div className="atelier-glow-bottom" />
-      <div className="atelier-grain" />
-      <div className="w-full max-w-110 z-10">{children}</div>
-    </main>
-  );
-
-  const Logo = () => (
-    <div className="flex flex-col items-center mb-10">
-      <div className="mb-5">
-        <Image src="/new_logo_1.png" alt="Jobnest" width={52} height={52} priority />
-      </div>
-    </div>
-  );
-
   // ── Success ───────────────────────────────────────────────────────────────
   if (step === "success") {
     return (
@@ -221,7 +222,7 @@ export default function ForgotPasswordPage() {
         <div className="atelier-card">
           {error && <p className="atelier-error" role="alert">{error}</p>}
 
-          <form onSubmit={resetForm.handleSubmit(onSubmitReset)} className="space-y-5" noValidate>
+          <form onSubmit={(event) => void resetForm.handleSubmit(onSubmitReset)(event)} className="space-y-5" noValidate>
             <div>
               <label htmlFor="new-password" className="atelier-label">New password</label>
               <div className="atelier-input-wrap">
@@ -390,7 +391,7 @@ export default function ForgotPasswordPage() {
       <div className="atelier-card">
         {error && <p className="atelier-error" role="alert">{error}</p>}
 
-        <form onSubmit={emailForm.handleSubmit(onSubmitEmail)} className="space-y-6" noValidate>
+        <form onSubmit={(event) => void emailForm.handleSubmit(onSubmitEmail)(event)} className="space-y-6" noValidate>
           <div>
             <label htmlFor="fp-email" className="atelier-label">Email address</label>
             <input

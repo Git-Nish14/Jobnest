@@ -161,8 +161,8 @@ export default async function RootLayout({
         )}
         <meta name="application-name" content="Jobnest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        {/* Omit the deprecated black-translucent mode: current iOS adds a
-            system scrim over the header. Let it use the page background. */}
+        {/* Explicitly keep installed iOS content below the system status bar. */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Jobnest" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#99462a" />

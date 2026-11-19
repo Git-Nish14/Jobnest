@@ -85,6 +85,8 @@ export default function DocumentLibraryPage() {
     }
   }, []);
 
+  // Start the library request on mount; its pending state belongs to that external request.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetch_(); }, [fetch_]);
 
   // Filter + search — all docs here are already library-only (master=true)

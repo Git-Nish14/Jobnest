@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import Link from "next/link";
 import { Bell, Clock, Calendar, Inbox, X, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +18,7 @@ const FALLBACK_POLL_MS = 5 * 60_000;
 export function NotificationBell() {
   const [counts, setCounts] = useState<NotifCount | null>(null);
   const [open, setOpen] = useState(false);
+  const panelId = useId();
   const ref = useRef<HTMLDivElement>(null);
   const countRequest = useRef(0);
   const invalidateCounts = useCallback(() => { ++countRequest.current; }, []);
@@ -110,7 +111,14 @@ export function NotificationBell() {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
   const total = counts?.total ?? 0;
@@ -149,13 +157,15 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         type="button"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
         aria-label={
           total > 0
             ? `${total} notification${total !== 1 ? "s" : ""} — click to view`
             : "Notifications — no new alerts"
         }
         onClick={() => setOpen((o) => !o)}
-        className="relative h-8 w-8 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+        className="relative min-h-11 min-w-11 flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
       >
         <Bell className="h-4.5 w-4.5" />
         {total > 0 && (
@@ -169,14 +179,14 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border bg-popover shadow-lg z-50 overflow-hidden">
+        <div id={panelId} role="region" aria-label="Notifications" className="app-notification-panel absolute right-0 top-full mt-2 w-72 rounded-xl border bg-popover shadow-lg z-50 overflow-y-auto overscroll-contain">
           <div className="flex items-center justify-between px-4 py-2.5 border-b">
             <span className="text-sm font-semibold">Notifications</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close notifications"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="min-h-11 min-w-11 flex items-center justify-center -mr-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-3.5 w-3.5" />
             </button>

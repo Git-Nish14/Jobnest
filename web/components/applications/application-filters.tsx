@@ -85,7 +85,11 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
 
   // Debounced search sync
   const urlSearch = searchParams.get("search") ?? "";
-  useEffect(() => { setSearch(urlSearch); }, [urlSearch]);
+  const [previousUrlSearch, setPreviousUrlSearch] = useState(urlSearch);
+  if (previousUrlSearch !== urlSearch) {
+    setPreviousUrlSearch(urlSearch);
+    setSearch(urlSearch);
+  }
   useEffect(() => {
     if (search === urlSearch) return;
     const t = setTimeout(() => pushRef.current(createQSRef.current({ search })), 400);

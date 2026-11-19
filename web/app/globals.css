@@ -227,7 +227,8 @@ body {
 /* ── Atelier Navbar — light defaults ───────────────────────────────────────── */
 /* Keep controls below the status bar in edge-to-edge iOS standalone mode. */
 .atelier-nav,
-.landing-header {
+.landing-header,
+.public-portfolio-header {
   padding-top: var(--safe-area-top);
   padding-right: var(--safe-area-right);
   padding-left: var(--safe-area-left);
@@ -273,6 +274,58 @@ body {
 .atelier-slide-panel {
   padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);
   box-shadow: 0 8px 40px rgba(26, 28, 27, 0.18);
+}
+
+/* The bell sits inside the sticky header. On phones, anchor its panel below
+   the whole header instead of letting a right-aligned desktop panel run offscreen. */
+.app-notification-panel {
+  max-height: calc(100dvh - var(--app-header-height) - var(--safe-area-bottom) - 1rem);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (max-width: 47.999rem) {
+  /* Keep the open panel above the bottom tabs in short landscape viewports. */
+  .atelier-nav:has(.app-notification-panel) {
+    z-index: 60;
+  }
+
+  .app-notification-panel {
+    position: fixed;
+    top: calc(var(--app-header-height) + 0.5rem);
+    left: max(0.5rem, var(--safe-area-left));
+    right: max(0.5rem, var(--safe-area-right));
+    width: auto;
+    margin-top: 0;
+  }
+}
+
+/* Keep iPhone/PWA controls out of backdrop-composited layers. A dim modal
+   backdrop still separates content without blurring the header beneath it. */
+@media (pointer: coarse), (display-mode: standalone), (display-mode: fullscreen) {
+  html :is(
+    .app-overlay,
+    .app-notification-panel,
+    .nestai-preview-backdrop,
+    .application-import-overlay,
+    .application-filter-workspace,
+    .mobile-form-steps,
+    .nestai-input-area,
+    .atelier-bottom-bar,
+    .atelier-bottom-card,
+    .public-portfolio-header
+  ) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html :is(.atelier-bottom-bar, .atelier-bottom-card, .application-filter-workspace, .mobile-form-steps) {
+    background-color: #faf9f7;
+  }
+
+  html.dark :is(.atelier-bottom-bar, .atelier-bottom-card, .application-filter-workspace, .mobile-form-steps) {
+    background-color: #0a0a0a;
+  }
 }
 
 /* ── Atelier Bottom Bar — used by CookieBanner + NPSFeedback ────────────────

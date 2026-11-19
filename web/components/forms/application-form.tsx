@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, type FieldErrors } from "react-hook-form";
+import { useWatch, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload, X, FileText, Sparkles, Link, AlignLeft, ExternalLink, ChevronDown } from "lucide-react";
 import { ApplicationJsonImport } from "./application-json-import";
@@ -159,7 +159,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -185,17 +185,17 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
     },
   });
 
-  const currentStatus   = watch("status");
-  const currentSource   = watch("source");
-  const currentProvider = watch("ats_provider");
-  const currentTier     = watch("company_tier");
-  const watchedCompany  = watch("company");
-  const watchedPosition = watch("position");
-  const watchedLocation = watch("location");
-  const watchedSalary = watch("salary_range");
-  const watchedJobUrl = watch("job_url");
-  const watchedNotes = watch("notes");
-  const watchedDescription = watch("job_description");
+  const currentStatus   = useWatch({ control, name: "status" });
+  const currentSource   = useWatch({ control, name: "source" });
+  const currentProvider = useWatch({ control, name: "ats_provider" });
+  const currentTier     = useWatch({ control, name: "company_tier" });
+  const watchedCompany  = useWatch({ control, name: "company" });
+  const watchedPosition = useWatch({ control, name: "position" });
+  const watchedLocation = useWatch({ control, name: "location" });
+  const watchedSalary = useWatch({ control, name: "salary_range" });
+  const watchedJobUrl = useWatch({ control, name: "job_url" });
+  const watchedNotes = useWatch({ control, name: "notes" });
+  const watchedDescription = useWatch({ control, name: "job_description" });
 
   const toggleSection = (section: FormSection) => {
     setExpandedSections((previous) => {
@@ -232,6 +232,8 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
     const company  = watchedCompany?.trim();
     const position = watchedPosition?.trim();
     if (!company || !position || company.length < 2 || position.length < 2) {
+      // Discard a previous API result when there is no valid duplicate-check query.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDuplicateWarning(null);
       return;
     }
@@ -322,7 +324,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
     } finally {
       setParsing(false);
     }
-  }, [parseTab, parseUrl, parseText, setValue]);
+  }, [parseTab, parseUrl, parseText, setValue, setParseError, setParsing, setParseModalOpen, setParseUrl, setParseText]);
 
   const onSubmit = async (data: ApplicationFormData) => {
     if (submittingRef.current) return;
@@ -584,7 +586,7 @@ export function ApplicationForm({ application, userId, initialDocuments }: Appli
           id="application-form"
           ref={formRef}
           noValidate
-          onSubmit={handleSubmit(onSubmit, onInvalid)}
+          onSubmit={(event) => void handleSubmit(onSubmit, onInvalid)(event)}
           className={`application-form space-y-6 pb-4 md:pb-0 ${styles.form}`}
           style={isSubmitting ? { opacity: 0.65, pointerEvents: "none" } : undefined}
         >

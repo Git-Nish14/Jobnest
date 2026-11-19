@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   MoreHorizontal, Pencil, Trash2, ExternalLink,
   MapPin, DollarSign, Calendar, ScanSearch, Copy,
@@ -63,9 +63,11 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
   const [currentStatus, setCurrentStatus]     = useState<ApplicationStatus>(application.status);
   const [statusUpdating, setStatusUpdating]   = useState(false);
 
-  useEffect(() => {
+  const [previousStatus, setPreviousStatus] = useState(application.status);
+  if (previousStatus !== application.status) {
+    setPreviousStatus(application.status);
     setCurrentStatus(application.status);
-  }, [application.status]);
+  }
 
   const tok      = tokens(currentStatus);
   const initial  = application.company.charAt(0).toUpperCase();

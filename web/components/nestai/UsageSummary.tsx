@@ -39,6 +39,8 @@ export function UsageSummary() {
     }
   }, []);
   useEffect(() => {
+    // Start external usage polling on mount; refresh owns its request pending state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
     const interval = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 60_000);
     window.addEventListener("nestai:usage-updated", refresh);

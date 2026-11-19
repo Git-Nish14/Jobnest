@@ -91,6 +91,8 @@ export function DocPreviewDialog({ doc, onClose, onAnnotate }: DocPreviewDialogP
   });
 
   useEffect(() => {
+    // Discard the previous file preview before synchronizing with the new document.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlobUrl(null);
     setDocxHtml(null);
     setPdfError(null);

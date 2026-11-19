@@ -422,8 +422,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         {mobileMenuOpen && (
           <>
             <div
-              className="nav-overlay-animate fixed inset-0 z-50 lg:hidden"
-              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+              className="app-overlay nav-overlay-animate fixed inset-0 z-50 lg:hidden bg-black/55"
               onClick={() => setMobileMenuOpen(false)}
             />
             <div className="nav-panel-animate fixed inset-y-0 right-0 z-50 w-full max-w-sm lg:hidden db-root atelier-slide-panel">

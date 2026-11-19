@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useWatch, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -46,7 +46,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<TemplateFormData>({
@@ -59,7 +59,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
     },
   });
 
-  const currentCategory = watch("category");
+  const currentCategory = useWatch({ control, name: "category" });
 
   const onSubmit = async (data: TemplateFormData) => {
     if (submittingRef.current) return;
@@ -134,7 +134,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             {template ? "Edit your email template name, subject, and body." : "Create a reusable email template with dynamic variables like {{company}} and {{position}}."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Template Name *</Label>

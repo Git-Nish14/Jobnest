@@ -30,6 +30,8 @@ export function PushNotificationSubscriber() {
       !VAPID_KEY
     ) return;
 
+    // Read browser-only notification support and permission after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupported(true);
     setPermission(Notification.permission);
 
