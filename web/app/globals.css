@@ -335,8 +335,8 @@ body {
   background-color: rgba(250, 249, 247, 0.92);
   border-top: 1px solid rgba(219, 193, 185, 0.22);
   box-shadow: 0 -2px 16px rgba(26, 28, 27, 0.07);
-  -webkit-backdrop-filter: blur(12px) saturate(1.8);
-  backdrop-filter: blur(12px) saturate(1.8);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* Card variant — all-around border + rounded corners for floating cards */
@@ -346,8 +346,8 @@ body {
   box-shadow:
     0 -4px 24px rgba(26, 28, 27, 0.08),
     0  4px 16px rgba(26, 28, 27, 0.06);
-  -webkit-backdrop-filter: blur(12px) saturate(1.8);
-  backdrop-filter: blur(12px) saturate(1.8);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ── Dark mode — base backgrounds (belt + suspenders) ─────────────────────── */

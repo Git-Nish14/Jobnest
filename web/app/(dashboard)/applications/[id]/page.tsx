@@ -133,7 +133,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   });
 
   const initial = application.company.charAt(0).toUpperCase();
-  const { avatar, badge, accent } = statusTokens(application.status);
+  const { avatar, badge } = statusTokens(application.status);
 
   // Compute purge countdown server-side before the render return.
   // This is a server component — Date.now() runs exactly once on the server
@@ -184,7 +184,6 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           never gets clipped by the section boundary. */}
       <section className="relative bg-[#f4f3f1] rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 overflow-clip">
         {/* Subtle gradient glow in the corner */}
-        <div className={cn("absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 blur-3xl -mr-16 -mt-16", accent)} />
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-6 relative">
           {/* Large company avatar */}

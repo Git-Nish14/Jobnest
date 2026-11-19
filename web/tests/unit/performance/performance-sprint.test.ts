@@ -172,11 +172,11 @@ describe("Service worker — public/sw.js", () => {
   const sw = readSrc("public/sw.js");
 
   it("uses v2 asset cache name (forces old cache purge on activate)", () => {
-    expect(sw).toContain(`"jobnest-assets-v2"`);
+    expect(sw).toContain(`"jobnest-assets-v3"`);
   });
 
   it("defines a separate offline cache name", () => {
-    expect(sw).toContain(`"jobnest-offline-v2"`);
+    expect(sw).toContain(`"jobnest-offline-v3"`);
   });
 
   it('sets OFFLINE_URL to "/offline"', () => {

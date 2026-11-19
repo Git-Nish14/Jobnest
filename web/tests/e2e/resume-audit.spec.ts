@@ -285,7 +285,7 @@ test.describe("Service worker", () => {
     expect(body).toContain("navigate");
     expect(body).toContain("return"); // early-return after respondWith
     // Performance sprint additions: offline fallback pre-cached, v2 cache names
-    expect(body).toContain("jobnest-assets-v2");
+    expect(body).toContain("jobnest-assets-v3");
     expect(body).toContain("/offline");
   });
 });

@@ -121,7 +121,7 @@ export function ApplicationFilters({ statusCounts }: ApplicationFiltersProps) {
       pending={isPending}
     />
     {/* Desktop retains its existing inline filter workspace. */}
-    <div className="application-filter-workspace hidden md:block sticky top-(--app-header-height) z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/98 dark:bg-black/98 backdrop-blur-md border-b border-border/40 dark:border-white/7 pt-2 pb-2.5 shadow-[0_8px_18px_-18px_rgba(75,43,32,0.45)] dark:shadow-[0_8px_18px_-18px_rgba(0,0,0,0.9)]">
+    <div className="application-filter-workspace hidden md:block sticky top-(--app-header-height) z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-4 bg-[#faf9f7]/98 dark:bg-black/98 border-b border-border/40 dark:border-white/7 pt-2 pb-2.5 shadow-[0_8px_18px_-18px_rgba(75,43,32,0.45)] dark:shadow-[0_8px_18px_-18px_rgba(0,0,0,0.9)]">
 
       {/* ── Row 1: Search + Sort + Advanced Filter ── */}
       <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">

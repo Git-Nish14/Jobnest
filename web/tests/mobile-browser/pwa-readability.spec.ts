@@ -1,6 +1,26 @@
 import { expect, test } from "@playwright/test";
 import { expectNoOverflow, fixture } from "./helpers";
 
+for (const width of [393, 1024]) {
+  for (const dark of [false, true]) {
+    test(`dashboard charts are readable immediately at ${width}px (${dark ? "dark" : "light"})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 852 });
+      const { errors } = await fixture(page, "/dashboard-charts-fixture");
+      await page.evaluate((dark) => document.documentElement.classList.toggle("dark", dark), dark);
+      await expect(page.locator(".db-stat-value")).toHaveText("12");
+      await expect(page.locator(".db-panel")).toHaveCount(4);
+      await expect(page.getByRole("button", { name: /(?:Hide|Reveal) (?:chart data|value)/ })).toHaveCount(0);
+      // Check all descendants so a filtered ancestor cannot hide otherwise sharp text/SVGs.
+      expect(await page.locator("main, main *").evaluateAll((elements) => elements.flatMap((element) => {
+        const style = getComputedStyle(element);
+        return /blur\(/.test(`${style.filter} ${style.backdropFilter} ${style.getPropertyValue("-webkit-backdrop-filter")}`)
+          ? [element.outerHTML.slice(0, 160)] : [];
+      }))).toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
 for (const viewport of [
   { width: 320, height: 568, top: 59, bottom: 34, side: 0 },
   { width: 393, height: 852, top: 59, bottom: 34, side: 0 },

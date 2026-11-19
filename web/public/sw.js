@@ -8,8 +8,8 @@
 // The /offline page is pre-cached during install as a safe fallback because it
 // contains no user data — it is a fully static branded error page.
 
-const ASSET_CACHE   = "jobnest-assets-v2";
-const OFFLINE_CACHE = "jobnest-offline-v2";
+const ASSET_CACHE   = "jobnest-assets-v3";
+const OFFLINE_CACHE = "jobnest-offline-v3";
 const OFFLINE_URL   = "/offline";
 
 // Static asset extensions safe to cache (Next.js content-hashes JS/CSS

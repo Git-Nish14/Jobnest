@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import type { StageFunnel } from "@/types";
 
 interface Props {
@@ -33,8 +31,6 @@ const TRANSITION_LABELS = [
 ];
 
 export function StageFunnelChart({ data }: Props) {
-  const [revealed, setRevealed] = useState(false);
-
   const top = data[0]?.count ?? 0;
 
   if (top === 0) {
@@ -56,19 +52,10 @@ export function StageFunnelChart({ data }: Props) {
           <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest hidden sm:block">
             vs. Industry avg
           </span>
-          <button
-            type="button"
-            onClick={() => setRevealed((r) => !r)}
-            className="sm:hidden text-[#99462a]/40 hover:text-[#99462a] transition-colors"
-            aria-label={revealed ? "Hide chart data" : "Reveal chart data"}
-          >
-            {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </button>
         </div>
       </div>
 
-      {/* Chart body — blurred on mobile until revealed */}
-      <div className={`flex flex-col gap-1.5 flex-1 justify-center transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
+      <div className="flex flex-col gap-1.5 flex-1 justify-center">
         {data.map((item, i) => {
           const pct = top > 0
             ? Math.max(Math.round((item.count / top) * 100), item.count > 0 ? 4 : 0)

@@ -130,8 +130,8 @@ test.describe("Service worker — /sw.js updates", () => {
   }) => {
     const res = await request.get("/sw.js");
     const body = await res.text();
-    expect(body).toContain("jobnest-assets-v2");
-    expect(body).toContain("jobnest-offline-v2");
+    expect(body).toContain("jobnest-assets-v3");
+    expect(body).toContain("jobnest-offline-v3");
     // v1 must not be the live name — otherwise old caches are never purged
     expect(body).not.toContain(`"jobnest-assets-v1"`);
     expect(body).not.toContain(`"jobnest-offline-v1"`);

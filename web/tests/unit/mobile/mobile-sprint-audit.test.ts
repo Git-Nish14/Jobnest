@@ -107,10 +107,10 @@ describe("globals.css — bottom bar CSS classes", () => {
     expect(css).toContain(".atelier-bottom-bar {");
   });
 
-  it("atelier-bottom-bar uses backdrop-filter for blur", () => {
+  it("atelier-bottom-bar keeps its backdrop sharp", () => {
     const ruleStart = css.indexOf(".atelier-bottom-bar {");
     const ruleChunk = css.slice(ruleStart, ruleStart + 300);
-    expect(ruleChunk).toContain("backdrop-filter");
+    expect(ruleChunk).toContain("backdrop-filter: none");
   });
 
   it("atelier-bottom-bar has a top border (not bottom like navbar)", () => {

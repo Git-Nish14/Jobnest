@@ -1465,7 +1465,7 @@ export default function NestAiPage() {
             >
               {/* Scrim */}
               <div
-                className="app-overlay fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                className="app-overlay fixed inset-0 z-50 bg-black/40"
                 onClick={() => setMobileActionsOpen(false)}
                 aria-hidden="true"
               />
@@ -1554,10 +1554,6 @@ export default function NestAiPage() {
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-52 md:pb-0">
           {messages.length === 0 ? (
             <div className="relative min-h-full md:h-full md:overflow-hidden flex flex-col items-center justify-center px-6 py-8">
-              <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[#99462a]/5 blur-[120px] pointer-events-none" />
-              <div className="absolute top-[40%] -right-[5%] w-[30%] h-[30%] rounded-full bg-[#006d34]/5 blur-[100px] pointer-events-none" />
-              <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[30%] bg-[#d97757]/5 blur-[120px] pointer-events-none" />
-
               <div className="relative w-full max-w-2xl flex flex-col items-center text-center space-y-6">
                 <div className="space-y-4">
                   <h2 className="db-headline text-4xl sm:text-5xl text-[#1a1c1b] tracking-tight leading-tight">

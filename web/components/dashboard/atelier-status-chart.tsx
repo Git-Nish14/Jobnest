@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
 import type { StatusCount } from "@/types";
 
 interface AtelierStatusChartProps {
@@ -27,8 +25,6 @@ function getMeta(status: string) {
 }
 
 export function AtelierStatusChart({ data, total }: AtelierStatusChartProps) {
-  const [revealed, setRevealed] = useState(false);
-
   const active = data.filter((d) => d.count > 0);
 
   const inProgress = data
@@ -74,18 +70,9 @@ export function AtelierStatusChart({ data, total }: AtelierStatusChartProps) {
           <h2 className="db-panel-title">Application Pipeline</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Your progress through each hiring stage</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setRevealed((r) => !r)}
-          className="sm:hidden shrink-0 text-[#99462a]/40 hover:text-[#99462a] transition-colors mt-0.5"
-          aria-label={revealed ? "Hide chart data" : "Reveal chart data"}
-        >
-          {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-        </button>
       </div>
 
-      {/* Chart body — blurred on mobile until revealed */}
-      <div className={`flex flex-col gap-5 transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
+      <div className="flex flex-col gap-5">
         {/* Donut + key metrics */}
         <div className="flex items-center gap-5">
           <div className="relative shrink-0">

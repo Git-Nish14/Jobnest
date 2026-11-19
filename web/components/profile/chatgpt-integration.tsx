@@ -152,7 +152,6 @@ export function ChatGptIntegration() {
   return (
     <Card id="chatgpt" className="scroll-mt-8 overflow-hidden border-primary/15">
       <CardHeader className="relative overflow-hidden border-b bg-gradient-to-br from-primary/[0.09] via-card to-card p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3.5">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-background/80 text-primary shadow-sm">

@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { RoadmapFixture } from "./roadmap-fixture";
+import { AtelierStatsCard } from "@/components/dashboard/atelier-stats-card";
+import { AtelierStatusChart } from "@/components/dashboard/atelier-status-chart";
+import { MonthlyTrendsChart } from "@/components/dashboard/monthly-trends-chart";
+import { WeekdayActivityChart } from "@/components/dashboard/weekday-activity-chart";
+import { StageFunnelChart } from "@/components/dashboard/stage-funnel-chart";
 import * as PageSkeletons from "@/components/common/skeletons";
 import { Toaster } from "sonner";
 import { ApplicationFilters } from "@/components/applications/application-filters";
@@ -84,6 +89,13 @@ function DocxFixture() {
 function App() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  if (pathname === "/dashboard-charts-fixture") return <main className="db-root space-y-4 p-4">
+    <AtelierStatsCard label="Applications" value="12" icon={null} bgClass="" footer="This month" />
+    <AtelierStatusChart data={[{ status: "Applied", count: 10 }, { status: "Offer", count: 2 }]} total={12} />
+    <MonthlyTrendsChart data={[{ month: "Nov", count: 12, rejections: 1, offers: 2 }]} />
+    <WeekdayActivityChart data={[{ day: "Mon", count: 12 }]} />
+    <StageFunnelChart data={[{ stage: "Applied", count: 12 }, { stage: "Offer", count: 2 }]} />
+  </main>;
   if (pathname === "/forgot-password-fixture") return <ForgotPasswordPage />;
   if (pathname === "/command-palette-fixture") return <main><h1>Command palette fixture</h1><CommandPalette /></main>;
   if (searchParams.has("navigation-fixture")) {

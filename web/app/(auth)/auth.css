@@ -28,7 +28,7 @@
   height: 40%;
   background-color: #d9775718;
   border-radius: 9999px;
-  filter: blur(120px);
+  display: none;
   pointer-events: none;
 }
 
@@ -40,7 +40,7 @@
   height: 30%;
   background-color: #99462a0a;
   border-radius: 9999px;
-  filter: blur(100px);
+  display: none;
   pointer-events: none;
 }
 

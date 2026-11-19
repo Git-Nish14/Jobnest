@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 import type { MonthlyTrend } from "@/types";
 
 interface Props { data: MonthlyTrend[] }
@@ -15,8 +13,6 @@ const SERIES = [
 ] as const;
 
 export function MonthlyTrendsChart({ data }: Props) {
-  const [revealed, setRevealed] = useState(false);
-
   if (!data.length) return null;
 
   const maxVal = Math.max(...data.flatMap((d) => [d.count, d.rejections, d.offers]), 1);
@@ -42,19 +38,10 @@ export function MonthlyTrendsChart({ data }: Props) {
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setRevealed((r) => !r)}
-            className="sm:hidden shrink-0 text-[#99462a]/40 hover:text-[#99462a] transition-colors"
-            aria-label={revealed ? "Hide chart data" : "Reveal chart data"}
-          >
-            {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          </button>
         </div>
       </div>
 
-      {/* Chart body — blurred on mobile until revealed */}
-      <div className={`flex-1 overflow-x-auto transition-[filter] duration-200 ${!revealed ? "blur-sm sm:blur-none" : ""}`}>
+      <div className="flex-1 overflow-x-auto">
         <svg
           width={Math.max(svgW, 320)}
           height={CHART_H + 24}

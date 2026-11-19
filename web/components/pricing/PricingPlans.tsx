@@ -195,7 +195,6 @@ export function PricingPlans({
           {/* Top accent line */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#d97757]/50 to-transparent" />
           {/* Glow */}
-          <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-[#99462a]/15 blur-3xl pointer-events-none" />
 
           {/* Most popular badge */}
           <div className="absolute top-5 right-5">

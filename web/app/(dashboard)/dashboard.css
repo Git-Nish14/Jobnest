@@ -286,17 +286,9 @@
   /* Smooth slide for open/close and nav-open hide */
   transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Liquid glass layers (light mode) ────────────────────────────────────
-     Layer 1 (backdrop): heavy blur + saturation + contrast pulls vivid
-       content colour through while keeping it soft and luminous.
-     Layer 2 (background): a soft gradient over an opaque base keeps labels
-       readable even when the browser cannot composite the backdrop blur.
-     Layer 3 (border): bright semi-opaque white ring → the glass edge.
-     Layer 4 (box-shadow): stacked inset highlights that give a 3-D curved
-       glass look: top specular line, soft inner glow, side catches, plus
-       3-layer outer floating drop shadow for lift.                       */
-  -webkit-backdrop-filter: blur(72px) saturate(2.2) brightness(1.06) contrast(1.04);
-  backdrop-filter: blur(72px) saturate(2.2) brightness(1.06) contrast(1.04);
+  /* An opaque base and inset highlights keep tab labels sharp. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 
   background:
     linear-gradient(
@@ -407,8 +399,8 @@ html.page-nestai .nestai-input-area {
   padding: 0.75rem 1rem 0.875rem;
   background-color: rgba(250, 249, 247, 0.96);
   border-top: 1px solid rgba(219, 193, 185, 0.20);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @media (min-width: 768px) {
@@ -1033,7 +1025,7 @@ html.page-nestai .nestai-input-area {
     border-block: 1px solid rgba(219, 193, 185, 0.22);
     background: rgba(250, 249, 247, 0.94);
     scrollbar-width: none;
-    backdrop-filter: blur(14px);
+    backdrop-filter: none;
   }
 
   .mobile-form-steps::-webkit-scrollbar { display: none; }
@@ -1261,8 +1253,8 @@ html.page-nestai .nestai-input-area {
 
 /* ── Bottom tab bar — dark liquid glass ─────────────────────────────────── */
 .dark .bottom-tab-bar {
-  -webkit-backdrop-filter: blur(72px) saturate(1.8) brightness(0.78) contrast(1.08);
-  backdrop-filter: blur(72px) saturate(1.8) brightness(0.78) contrast(1.08);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background:
     linear-gradient(
       to bottom,
@@ -1720,8 +1712,8 @@ html.page-nestai .nestai-input-area {
 /* ── NESTAi chat attachment preview modal ────────────────────────────────────── */
 .nestai-preview-backdrop {
   background-color: rgba(0, 0, 0, 0.60);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .nestai-preview-modal {

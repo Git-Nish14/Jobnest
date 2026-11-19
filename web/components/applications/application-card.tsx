@@ -211,7 +211,7 @@ export function ApplicationCard({ application, selectable, selected, onSelect, m
     >
       {/* ── Deletion overlay ── */}
       {deleting && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-2xl">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 rounded-2xl">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-background/95 px-3.5 py-2 rounded-full shadow-sm border border-border">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Deleting…
