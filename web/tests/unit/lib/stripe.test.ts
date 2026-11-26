@@ -22,11 +22,11 @@ describe("Stripe SDK compatibility", () => {
     expect(customer.id).toBe("cus_review");
     expect(request).toHaveBeenCalledOnce();
     expect(request.mock.calls[0][4]).toMatchObject({
-      "Stripe-Version": "2026-10-28.endive",
+      "Stripe-Version": "2026-11-18.endive",
     });
   });
 
-  it.each(["2026-09-30.endive", "2026-10-28.endive"])(
+  it.each(["2026-09-30.endive", "2026-10-28.endive", "2026-11-18.endive"])(
     "verifies signed webhook payloads from API version %s",
     (apiVersion) => {
       const stripe = getStripe();
